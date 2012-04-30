@@ -1,0 +1,17 @@
+In order to make programming/testing easy, Natalie made the following 
+changes:
+1. kept pkginfo.f90 static
+2. Did not keep libxc_mod.F90 and commented all references to it
+    in abinitinterface.f90 for testing purposes
+3. Made changes to abinitinterface.f90 to reflect slightly changed 
+   datastructures in atomdata.f90 -- does not work for hf
+4. Tried to  impliment clean up routines such as DestroyPAW; but these
+   may not be complete
+5. Load and save functions  need to be updated.   They are useful if the
+   atomic calculations take a long time to converge.   As written they take
+   a command line argument.
+6. No testing of the scalar relativistic case has been done, and no provisions
+   for scalar relativistic and Hartree are implemented.
+7. Bessel function shape functions not correct for l>0.   This is a problem
+for HF.
+8. README file is not uptodate

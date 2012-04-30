@@ -1,0 +1,54 @@
+ Completed calculations for F
+ Exchange-correlation type: HF
+  Radial integration grid is logarithmic 
+r0 =   1.1111111E-06 h =   9.1576601E-03   n =      2001 rmax =   1.0000000E+02
+ Non-relativistic calculation
+   AEatom converged in          33  iterations
+      for nz =            9
+     delta  =   9.427253098210805E-011
+  All Electron Orbital energies:         
+  n  l     occupancy       energy
+ 1  0      2.0000000E+00 -5.2765519E+01
+ 2  0      2.0000000E+00 -3.1450644E+00
+ 2  1      5.0000000E+00 -1.4600365E+00
+ 
+  Total energy
+     Total                    :    -198.818698897240     
+ Completed calculations for F
+ Exchange-correlation type: HF
+  Radial integration grid is logarithmic 
+r0 =   1.1111111E-06 h =   9.1576601E-03   n =      2001 rmax =   1.0000000E+02
+ Non-relativistic calculation
+   SCatom converged in          33  iterations
+      for nz =            9
+     delta  =   9.427253098210805E-011
+   Valence Electron Orbital energies:         
+  n  l     occupancy       energy
+ 2  0      2.0000000E+00 -3.1450644E+00
+ 2  1      5.0000000E+00 -1.4600365E+00
+ 
+  Total energy
+     Total                    :    -198.818698897240     
+     Valence                  :    -47.8592125691347     
+  paw parameters: 
+       lmax =            1
+         rc =    1.50826672244666     
+        irc =         1543
+ Vloc: Norm-conserving Troullier-Martins with l= 2;e=   0.0000E+00
+  HF projectors using Vanderbilt-like scheme + Gram-Schmidt ortho.
+ Sinc^2 compensation charge shape zeroed at rc
+
+Number of basis functions     4
+ No.   n    l      Energy         Cp coeff         Occ
+    1    2    0 -3.1450644E+00 -3.4594958E-01  2.0000000E+00
+    2  999    0  2.0000000E+00  2.1636533E-01  0.0000000E+00
+    3    2    1 -1.4600365E+00  1.8803884E+00  5.0000000E+00
+    4  999    1  2.0000000E+00  2.4828396E-02  0.0000000E+00
+  Summary of PAW energies
+        Total valence energy       -47.8590154475161     
+          Smooth energy             6.10852757356857     
+          One center               -53.9675430210847     
+          Smooth kinetic            16.8949802983252     
+          Vloc energy              -6.30428976643794     
+          Smooth exch-corr         -7.91614963316765     
+          One-center xc            -1.37724154082382     

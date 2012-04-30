@@ -1,0 +1,8 @@
+# lapack and blas libraries
+LIBS=/home/natalie/EL4/publiccode/LAPACK/lapack_intel91.a \
+	/home/natalie/EL4/publiccode/LAPACK/blas_intel91.a
+
+# Compilers and flags
+F90 = /opt/intel/compiler111/ifort/bin/intel64/ifort
+F90FLAGS = -r8 -g -debug all -msse2 -fp-model precise -static-intel -check all
+LDFLAGS = $(F90FLAGS)

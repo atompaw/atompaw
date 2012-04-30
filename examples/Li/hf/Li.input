@@ -1,0 +1,24 @@
+Li 3
+HF loggrid 2001
+2 0 0 0 0 0 
+2 0 1 
+0 0 0 
+v 
+v 
+1
+1.6
+n 
+y
+0.0
+n 
+VANDERBILT
+2 0
+1.4
+1.6
+1.6
+2
+default
+3
+UPFDX  0.008d0   UPFXMIN   -7.d0     UPFZMESH 3.d0
+0
+0

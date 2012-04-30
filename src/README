@@ -1,0 +1,49 @@
+03-30-08 -- tested removal of CoreShift from gradient residue
+03-31-08 -- removed CoreShift from data structures
+04-14-08 -- Try adding shift correction term and restructuring the
+               iteration loops
+04-23-08 -- Removed zero constrant from optimization and reinstated
+               AdjustV
+04-24-08 -- Play with function for AdjustV, add iteration loop to find
+               Vxcore in Frozencore case, removing CoreShift
+04-28-08 -- Fix Vxvale & Vxcore according to notes.  For frozencore
+                case FCPot%rvx holds r*Vxvale and HSZ%rVxcore must be added
+                to form correct Hamiltonian potential
+06-09-08 -- Attempt to adjust match point to stablize solutions for Row 3
+                elements
+11-26-08 -- From version with Xiao's Colle Salvetti code which is not
+                yet quite working; fixing some compatibility with old LDA
+12-24-08 -- Start to add atompaw functions back in
+01-02-09 -- atompaw functions up to unscreening are back in code.  Attempted
+                an alternative method of partitioning Vx into core and valence
+                contributions which unfortunately lead to a dead end.  Added
+                capability of dumping/loading all-electron results to speed
+                up PAW part, controlled with argument.  Also added possibility
+                of adjusting lineargrid mesh.
+03-28-09 -- Attempt to impose projector orthogonality constraints for multiple
+                projector per channel  case
+04-09-09 -- Revert to simple iteration procedure
+05-14-09 -- Start to program SVD grid method
+05-21-09 -- Modify inhomogeneous equation solvers; assume non-singular
+                behavior at origin for all l.
+06-29-09 -- Modify setcore to first find Vxcore and then iterate a few times
+                with Vxvale
+07-06-09 -- Modified frozencore energy so the core-valence contribution
+                of exchange energy is given by 
+                \int d^3r Vx^{core}(v)*\rho_{vale}(r)
+08-26-09 -- Version of code without inter-state orthogonalization (again).
+09-24-09 -- Copied code from directory
+          /home/natalie/EL4/developcode/EXXatompaw/OEP+HF_PAW/NoOrthog_PAW
+          in order to start programming Hartree Fock part
+12-28-09 -- HF portion including unbound states (not orthogonalized) working
+          plausibly
+05-21-10 -- Fixed loggrid grid so that n=2001 is fairly close to CFF results
+            in Hartree Fock.   Introduce new update scheme for EXX
+07-08-10 -- KLI scheme sort of demonstrated for all-electron case;   Restart
+            programming for PAW version.
+10-06-10 -- Modified HF code to include node counting in order to stabilize
+             solutions.
+01-22-11 -- Added new keywords and data for Core-electron output in HF/KLI 
+             calculations.
+07-04-11 -- Add keyword 'LOCALIZEDCOREEXCHANGE" to indicate that
+             \tilde{psi}_c == 0.

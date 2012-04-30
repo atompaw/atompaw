@@ -1,0 +1,8 @@
+# lapack and blas libraries
+LIBS=/home/natalie/EL4/publiccode/LAPACK/lapack_Gfortran.a \
+	/home/natalie/EL4/publiccode/LAPACK/blas_Gfortran.a
+
+# Compilers and flags
+F90 = /usr/bin/gfortran
+F90FLAGS = -g -O
+LDFLAGS = $(F90FLAGS)

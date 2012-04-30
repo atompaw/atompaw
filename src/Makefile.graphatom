@@ -1,0 +1,47 @@
+PROG =	graphatom
+
+SRCS =	aeatom.f90 anderson_driver.f90 atomdata.f90 blockdavidson_mod.f90 \
+	boundnumerov_mod.f90 excor.f90 exx_mod.f90 general_mod.f90 \
+	globalmath.f90 graphatom.f90 graphatom_report.f90 gridmod.f90 \
+	ldagga_mod.f90 radialsr.f90 report_mod.f90 search_sort.f90
+
+OBJS =	aeatom.o anderson_driver.o atomdata.o blockdavidson_mod.o \
+	boundnumerov_mod.o excor.o exx_mod.o general_mod.o globalmath.o \
+	graphatom.o graphatom_report.o gridmod.o ldagga_mod.o radialsr.o \
+	report_mod.o search_sort.o
+
+include make.inc
+
+all:	$(PROG)
+
+$(PROG):	$(OBJS)
+	$(F90) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+compile:
+	$(F90) $(LDFLAGS) -o $(PROG) $(OBJS) $(LIBS)
+
+clean:
+	rm -f $(PROG) $(OBJS) *.mod
+
+.SUFFIXES: $(SUFFIXES) .f90
+
+%.o :	%.f90
+	$(F90) $(F90FLAGS) -c $<
+
+aeatom.o: anderson_driver.o atomdata.o excor.o exx_mod.o general_mod.o \
+	globalmath.o gridmod.o ldagga_mod.o
+anderson_driver.o: globalmath.o
+blockdavidson_mod.o: globalmath.o search_sort.o
+boundnumerov_mod.o: blockdavidson_mod.o gridmod.o
+excor.o: atomdata.o globalmath.o gridmod.o
+exx_mod.o: anderson_driver.o atomdata.o general_mod.o globalmath.o gridmod.o \
+	report_mod.o
+general_mod.o: atomdata.o boundnumerov_mod.o globalmath.o gridmod.o \
+	radialsr.o
+graphatom.o: aeatom.o atomdata.o globalmath.o graphatom_report.o gridmod.o
+graphatom_report.o: atomdata.o gridmod.o report_mod.o
+gridmod.o: globalmath.o
+ldagga_mod.o: anderson_driver.o atomdata.o excor.o general_mod.o globalmath.o \
+	gridmod.o report_mod.o
+radialsr.o: atomdata.o globalmath.o gridmod.o
+report_mod.o: atomdata.o excor.o gridmod.o

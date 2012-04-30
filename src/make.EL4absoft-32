@@ -1,0 +1,14 @@
+# lapack and blas libraries
+ABSOFT=/opt/absoft-10.1
+FC=$(ABSOFT)/bin/f90
+LD_LIBRARY_PATH=$ABSOFT/lib
+
+LIBS =  $(ABSOFT)/lib/libaU77.a -L$(ABSOFT)/lib \
+        /opt/absoft-10.1/extras/lapack/precompiled/32bit/liblapack.a \
+        /opt/absoft-10.1/extras/lapack/precompiled/32bit/libblas.a
+                            
+# Compilers and flags
+F90 = $(FC)
+F90FLAGS = -O2 -YEXT_NAMES=LCS -YEXT_SFX="_"
+LDFLAGS = $(F90FLAGS)
+

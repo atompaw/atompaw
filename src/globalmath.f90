@@ -817,7 +817,7 @@ End Subroutine
     REAL(8),INTENT(IN) :: alpha,beta
     REAL(8),INTENT(OUT) :: root(nq)
 
-    REAL(8),PARAMETER :: dh=1.D-1, tol=1.D-12
+    REAL(8),PARAMETER :: dh=1.D-1, tol=1.D-14
 
     INTEGER :: nroot
     REAL(8) :: dum,y1,y2,jbes,jbesp,qq,qx,hh

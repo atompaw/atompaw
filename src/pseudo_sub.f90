@@ -314,8 +314,8 @@ CONTAINS
     IF (besselshapefunction) THEN
        CALL shapebes(al,ql,l,PAW%rc_shap)
        DO i=1,PAW%irc_shap
-          qr=ql(1)*r(i);CALL jbessel(jbes1,dum1,dum2,0,0,qr)
-          qr=ql(2)*r(i);CALL jbessel(jbes2,dum1,dum2,0,0,qr)
+          qr=ql(1)*r(i);CALL jbessel(jbes1,dum1,dum2,l,0,qr)
+          qr=ql(2)*r(i);CALL jbessel(jbes2,dum1,dum2,l,0,qr)
           den(i)=(al(1)*jbes1+al(2)*jbes2)*r(i)**2
        ENDDO
        IF (n>PAW%irc_shap) den(PAW%irc_shap+1:n)=0.d0

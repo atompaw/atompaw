@@ -12,6 +12,4 @@ changes:
    a command line argument.
 6. No testing of the scalar relativistic case has been done, and no provisions
    for scalar relativistic and Hartree are implemented.
-7. Bessel function shape functions not correct for l>0.   This is a problem
-for HF.
-8. README file is not uptodate
+7. README file is not uptodate

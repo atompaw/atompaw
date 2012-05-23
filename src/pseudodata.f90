@@ -103,8 +103,8 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%mLic)) DEALLOCATE(PAW%mLic)
     If (ASSOCIATED(PAW%mLcc)) DEALLOCATE(PAW%mLcc)
     If (ASSOCIATED(PAW%Dcj)) DEALLOCATE(PAW%Dcj)
-    Call DestroyOrbit(PAW%OCCwfn)
-    Call DestroyOrbit(PAW%TOCCwfn)
+    If (ASSOCIATED(PAW%OCCwfn)) Call DestroyOrbit(PAW%OCCwfn)
+    If (ASSOCIATED(PAW%TOCCwfn)) Call DestroyOrbit(PAW%TOCCwfn)
   
   End Subroutine DestroyPAW
 

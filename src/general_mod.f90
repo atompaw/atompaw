@@ -45,6 +45,11 @@ CONTAINS
         ALLOCATE(COrbit%X(n,norbit),COrbit%lqp(norbit,norbit))
           COrbit%X(:,1:norbit)=SOrbit%X(:,1:norbit)
           COrbit%lqp(1:norbit,1:norbit)=SOrbit%lqp(1:norbit,1:norbit)
+    Else
+        Nullify(COrbit%X)      
+        Nullify(SOrbit%X)      
+        Nullify(COrbit%lqp)      
+        Nullify(SOrbit%lqp)      
     Endif      
             
   END SUBROUTINE Copy_OrbitInfo

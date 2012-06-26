@@ -116,7 +116,7 @@ Module PWscfInterface
 &                       rtvion*(PAW%otphi(:,io)*PAW%otphi(:,jo) + &
 &                             PAW%oij(io,jo)*PAW%hatden)
                arg(1)=0.d0; arg(2:Grid%n)=arg(2:Grid%n)/Grid%r(2:Grid%n)
-               dij0(io,jo)=dij0(io,jo)+integrator(Grid,arg)
+               dij0(io,jo)=dij0(io,jo)+integrator(Grid,arg,1,PAW%irc)
             endif
          enddo
       enddo

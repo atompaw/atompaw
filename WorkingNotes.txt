@@ -13,3 +13,6 @@ changes:
 6. No testing of the scalar relativistic case has been done, and no provisions
    for scalar relativistic and Hartree are implemented.
 7. README file is not uptodate
+
+6/26/2012 -- NAWH: fixed bug in pwscfinterface.f90; made slight changes in
+           gridmod.f90 and pseudo_sub.f90

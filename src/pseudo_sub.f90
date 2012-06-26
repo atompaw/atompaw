@@ -827,10 +827,12 @@ CONTAINS
            l=PAW%l(ib)
 	   DO jb=1,nbase
 	     IF (PAW%l(jb)==l) THEN
-	     CALL kinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb),l,x,lr)
-             CALL kinetic_ij(Grid,PAW%otphi(:,ib),PAW%otphi(:,jb),l,y,lr)
-	     WRITE(6,'(" Kinetic ", 3i5, 1p3e15.7)') ib,jb,l,x,y,x-y
-	     PAW%Kij(ib,jb)=x-y
+	     !CALL kinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb),l,x,lr)
+             !CALL kinetic_ij(Grid,PAW%otphi(:,ib),PAW%otphi(:,jb),l,y,lr)
+	     CALL deltakinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb), &
+                PAW%otphi(:,ib),PAW%otphi(:,jb),l,x,PAW%irc)
+	     WRITE(6,'(" Kinetic ", 3i5, 1p3e15.7)') ib,jb,l,x
+	     PAW%Kij(ib,jb)=x
 	     dum=PAW%ophi(:,ib)*PAW%ophi(:,jb)*PAW%rVf - &
 	     PAW%otphi(:,ib)*PAW%otphi(:,jb)*PAW%rtVf
              dum(2:n)=dum(2:n)/Grid%r(2:n)
@@ -1111,12 +1113,14 @@ CONTAINS
         l=PAW%TOCCWFN%l(io)
 	DO jb=1,nbase
 	IF (PAW%l(jb)==l) THEN
-	CALL kinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),&
-			PAW%ophi(:,jb),l,x,lr)
-	CALL kinetic_ij(Grid,PAW%TOCCWFN%wfn(:,io),&
-			PAW%otphi(:,jb),l,y,lr)
+	!CALL kinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),&
+        !			PAW%ophi(:,jb),l,x,lr)
+	!CALL kinetic_ij(Grid,PAW%TOCCWFN%wfn(:,io),&
+	!		PAW%otphi(:,jb),l,y,lr)
+        CALL deltakinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),PAW%ophi(:,jb), &
+                   PAW%TOCCWFN%wfn(:,io),PAW%otphi(:,jb),l,x,PAW%irc)        
 	!WRITE(6,'(" Kinetic ", 3i5, 1p3e15.7)') io,jb,l,x,y,x-y
-	PAW%Dcj(io,jb)=x-y
+	PAW%Dcj(io,jb)=x
 	dum=PAW%OCCWFN%wfn(:,io)*PAW%ophi(:,jb)*PAW%rVf - &
 	PAW%TOCCWFN%wfn(:,io)*PAW%otphi(:,jb)*PAW%rtVf
         dum(2:n)=dum(2:n)/Grid%r(2:n)

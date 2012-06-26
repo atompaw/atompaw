@@ -1645,6 +1645,55 @@ CONTAINS
 
     DEALLOCATE(dfdr1,arg1,dfdr2,arg2)
   END SUBROUTINE kinetic_ij
+
+  !******************************************************************
+  !  subroutine deltakinetic_ij(Grid,wfn1,wfn2,twfn1,twfn2,l,ekin,last)
+  !       calculates difference matrix element  of kinetic energy for 
+  !         all electron functions wfn1 and wfn2
+  !         and pseudo functions twfn1 and twfn2
+  !        with orbital angular momentum l
+  !        wfn == r*radialwfn in Schroedinger Equation
+  !        assumes wfn=(constant)*r^(l+1) at small r
+  !*****************************************************************
+  SUBROUTINE deltakinetic_ij(Grid,wfn1,wfn2,twfn1,twfn2,l,ekin,last)
+    TYPE (GridInfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN) :: wfn1(:),wfn2(:),twfn1(:),twfn2(:)
+    INTEGER, INTENT(IN) :: l
+    REAL(8), INTENT(OUT) :: ekin
+    INTEGER, INTENT(IN), OPTIONAL :: last
+
+    REAL(8), ALLOCATABLE :: dfdr1(:),dfdr2(:),arg1(:),arg2(:)
+    REAL(8), ALLOCATABLE :: tdfdr1(:),tdfdr2(:),targ1(:),targ2(:)
+    INTEGER :: i,n
+
+    n=Grid%n
+    if (present(last)) n=last
+    ALLOCATE(dfdr1(n),arg1(n),dfdr2(n),arg2(n),stat=i)
+    ALLOCATE(tdfdr1(n),targ1(n),tdfdr2(n),targ2(n),stat=i)
+
+    CALL derivative(Grid,wfn1,dfdr1,1,n)
+    CALL derivative(Grid,wfn2,dfdr2,1,n)
+    CALL derivative(Grid,twfn1,tdfdr1,1,n)
+    CALL derivative(Grid,twfn2,tdfdr2,1,n)
+
+    arg1=0; arg2=0; targ1=0; targ2=0
+    DO i=2,n
+       arg1(i)=wfn1(i)/Grid%r(i)
+       arg2(i)=wfn2(i)/Grid%r(i)
+       targ1(i)=twfn1(i)/Grid%r(i)
+       targ2(i)=twfn2(i)/Grid%r(i)
+    ENDDO
+
+    DO i=1,n
+       arg1(i)=(dfdr1(i)*dfdr2(i)-tdfdr1(i)*tdfdr2(i))&
+            +(l*(l+1))*(arg1(i)*arg2(i)-targ1(i)*targ2(i))
+    ENDDO
+
+    ekin=integrator(Grid,arg1,1,n)
+
+    DEALLOCATE(dfdr1,arg1,dfdr2,arg2,tdfdr1,targ1,tdfdr2,targ2)
+  END SUBROUTINE deltakinetic_ij
+  !******************************************************************
   !******************************************************************
   !  subroutine altkinetic(Grid,wfn,energy,rv,ekin)
   !       calculates expectation value of kinetic energy for wfn

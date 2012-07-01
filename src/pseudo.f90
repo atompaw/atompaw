@@ -2771,8 +2771,8 @@ CONTAINS
    !     also generate version without hathat density in vxc
    !     Presently only valid for lda or gga
      If (TRIM(Orbit%exctype)=='LDA-PW'.or. &
-         TRIM(Orbit%exctype)=='GGA-PW'.or. &
-         TRIM(Orbit%exctype)=='GGA-PWSOL') then
+         TRIM(Orbit%exctype)=='GGA-PBE'.or. &
+         TRIM(Orbit%exctype)=='GGA-PBESOL') then
       d=0;dv=0
       norbit=PAW%OCCWFN%norbit
       do io=1,norbit

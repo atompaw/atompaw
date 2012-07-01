@@ -2497,7 +2497,10 @@ end subroutine calc_shapef
   hh=pawrad%rstep
  end if
 
- ii=meshsz;do while(abs(ff(ii))<eps);ii=ii-1;enddo
+ ii=meshsz;do while(abs(ff(ii))<eps.and.ii>0);ii=ii-1;enddo
+  if (ii<=0) then
+     simp=zero;return
+  end if
  nn=min(ii+1,meshsz)
 
  if (nn>=5) then

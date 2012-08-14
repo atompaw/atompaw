@@ -121,7 +121,7 @@ Module ABINITInterface
   integer :: shape_type      ! Shape function type
                              ! shape_type=1 ; g(r)=sinc2
                              ! shape_type=2 ; g(r)=exp
-                             ! shape_type=2 ; g(r)=bessel
+                             ! shape_type=3 ; g(r)=bessel
                              ! shape_type=-1; g(r)=tabulated
   integer :: sph_meshsz      ! Dimension of radial mesh corresponding to PAW radius
   integer :: vale_meshsz     ! Dimension of radial mesh for pseudo valence density

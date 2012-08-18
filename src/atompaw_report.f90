@@ -308,6 +308,21 @@ CONTAINS
        WRITE(ifatompaw,'("  END     ")')
     ENDDO
 
+
+!! optional l-dependent shape functions
+    if (besselshapefunction) then
+      li=MAXVAL(PAW%TOCCWFN%l(:)); li=MAX(li,PAW%lmax); li=2*li
+      WRITE(ifatompaw,'("    SHAPE_L",i4,"  # for  l= 0 .. lmax")') li
+      Do l=1,li+1
+         f(2:PAW%mesh_size)=PAW%g(2:PAW%mesh_size,l)/(Grid%r(2:PAW%mesh_size)**2)
+         call extrapolate(Grid,f)
+         WRITE(ifatompaw,'(1p3e25.17)') (f(i),i=1,PAW%mesh_size)
+         WRITE(ifatompaw,'( "END")')
+      ENddo   
+    endif        
+
+
+
     ! spherical matrix elements
     icount=0
     DO ib=1,PAW%nbase

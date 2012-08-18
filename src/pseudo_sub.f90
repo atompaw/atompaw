@@ -807,7 +807,7 @@ CONTAINS
 	OPEN(1001,file='rvf',form='formatted')
 	DO i=1,n
 	WRITE(1001,'(1p30e15.7)') Grid%r(i),PAW%rVf(i),PAW%rtVf(i),&
-            PAW%hatpot(i), PAW%hatden(i),(PAW%g(i,l+1),l=1,ll)
+            PAW%hatpot(i), PAW%hatden(i),(PAW%g(i,l+1),l=0,ll)
 	ENDDO
         CLOSE(1001)
 

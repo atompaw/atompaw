@@ -1,0 +1,30 @@
+Na 11
+LDA-PW   loggrid    2001
+3 2 0 0 0 0
+3 0 1
+0 0 0
+c
+v
+v
+v
+1
+1.7   1.5   1.7    1.7
+n
+y
+4.6
+n
+VANDERBILT  Besselshape
+2 0   MTROULLIER
+1.5
+1.7
+1.5
+1.7
+XMLOUT
+PWPAWOUT
+ABINITOUT
+default
+PWSCF
+UPFDX  0.0125d0   UPFXMIN   -7.d0     UPFZMESH 11.d0
+END
+
+

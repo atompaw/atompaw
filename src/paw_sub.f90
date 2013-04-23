@@ -47,8 +47,8 @@ Module paw_sub
    enddo
 
    call linsol(A,X,np)
-   write(6,*) 'Completed linsol with coefficients'
-   write(6,'(1p10e15.7)') (X(i),i=1,np)
+   !write(6,*) 'Completed linsol with coefficients'
+   !write(6,'(1p10e15.7)') (X(i),i=1,np)
 
    do i=1,np
     Ci(i)=X(i)/rc**(l+2*i-1)
@@ -170,8 +170,8 @@ Module paw_sub
 
    scale=(rc/(rc-r(irc-1)))**2;A=A*scale;X=X*scale ! Scale to limit rounding error in linsol
    call linsol(A,X,np+4)
-   write(6,*) 'Completed linsol with coefficients'
-   write(6,'(1p10e15.7)') (X(i),i=1,np+4)
+   !write(6,*) 'Completed linsol with coefficients'
+   !write(6,'(1p10e15.7)') (X(i),i=1,np+4)
 
    Ci(1:np)=X(1:np)
 

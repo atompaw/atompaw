@@ -107,8 +107,8 @@ CONTAINS
          CALL linsol(t,Coef,n)
 
          old=Coef10; Coef10=Coef10+Coef(1)
-         WRITE(6,'("EvaluateTp: iter",i5,1p2e15.7)') iter,Coef(1),Coef10
-         WRITE(6,'("Coef: ",1p6e15.7)')Coef10,(Coef(i),i=2,6)
+         !WRITE(6,'("EvaluateTp: iter",i5,1p2e15.7)') iter,Coef(1),Coef10
+         !WRITE(6,'("Coef: ",1p6e15.7)')Coef10,(Coef(i),i=2,6)
          Coef(1)=Coef10
       ENDDO
 
@@ -778,7 +778,7 @@ CONTAINS
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
 
     INTEGER :: io,jo,ko,lo,ll,lmax,i,j,k,l,n,norbit,nbase,ib,jb,kb,lb,irc
-    INTEGER :: llmin, llmax,lp,lr
+    INTEGER :: llmin, llmax,lp,lr,ishft
     REAL(8), ALLOCATABLE :: arg(:),dum(:),rh(:),trh(:),d(:),td(:)
     REAL(8) :: x,y,z,rr
     REAL(8) :: Qcore,tQcore
@@ -1273,6 +1273,14 @@ CONTAINS
 
     PAW%Etotal=PAW%tvale+PAW%Ea
      write(6,*) 'Energy terms ', PAW%tvale, PAW%Ea, PAW%Etotal
+
+   !Needed by atompaw2abinit  
+     ishft=5
+     if (usingloggrid(Grid)==.false.) ishft=25
+
+
+     PAW%mesh_size=PAW%irc+ishft
+     PAW%coretailpoints=MAX(PAW%coretailpoints,PAW%mesh_size)
 
 
    DEALLOCATE(arg,dum,rh,trh,d,td)

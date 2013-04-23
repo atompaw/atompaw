@@ -21,6 +21,7 @@ PROGRAM atompaw
   LOGICAL :: OK
   INTEGER :: ifinput=10,ifen=11
 
+
   j=iargc()
   if (j==2) then
        call GetArg(1,token)
@@ -49,6 +50,8 @@ PROGRAM atompaw
        write(6,*) 'Argument form not recognized', j
        stop
   endif
+
+  exploremode=.false.
 
   OPEN(ifinput,file='dummy',form='formatted')
 
@@ -83,37 +86,58 @@ PROGRAM atompaw
      PAW%tcore=0
   Endif
   If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
-  Call Set_PAW_Options(ifinput,ifen,Grid,FCOrbit,FCPot)
+  Call Set_PAW_Options(ifinput,ifen,Grid,FCOrbit,FCPot,OK)
+  If (.not.OK) then
+          write(6,*) 'Stopping due to options failure'
+          stop
+  endif        
   Call Report_Pseudobasis(Grid,PAW,ifen)
 
   Call Set_PAW_MatrixElements(Grid,PAW)
-  If (TRIM(FCOrbit%exctype)/='HF') CALL logderiv(Grid,FCPot,PAW)
+!  If (TRIM(FCOrbit%exctype)/='HF') CALL logderiv(Grid,FCPot,PAW)
+  CALL logderiv(Grid,FCPot,PAW)
   CALL ftprod(Grid)
 
   CALL FindVlocfromVeff(Grid,FCOrbit,PAW)
   CALL Report_Pseudopotential(Grid,PAW)
 
   CALL SPMatrixElements(Grid,FCPot,FC,PAW)
-  CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
+  !CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
   CALL Report_pseudo_energies(PAW,6)
   CALL Report_pseudo_energies(PAW,ifen)
 
     Do
-       WRITE(6,*) 'Enter 0 to end program'
-       WRITE(6,*) 'Enter 1 to run SCFPAW'
-       WRITE(6,*) 'Enter 2 to run atompaw2abinit'
-       WRITE(6,*) 'Enter 3 to run atompaw2pwscf'
+    WRITE(6,*) 'Enter 0 or END to end program'
+       WRITE(6,*) 'Enter 1 or SCFPAW to run SCFPAW'
+       WRITE(6,*) 'Enter 2 or ABINITOUT to run atompaw2abinit'
+       WRITE(6,*) 'Enter 3 or PWSCFOUT to run atompaw2pwscf'
+       WRITE(6,*) 'Enter 4 or PWPAWOUT  to run atompaw2pwpaw'
+       WRITE(6,*) 'Enter 5 or XMLOUT  to run atompaw2xml'
+       WRITE(6,*) 'Enter 10 or EXPLORE to run exploreparms'
                      
-       READ(5,*) i
-           if (i==0) then
+       READ(5,'(a)',iostat=i) token
+           if (i/=0) exit
+           !if (i==0) then
+           if (checkline2(token,"0","END")) then
                exit
-           else if (i==1) then    
+           !else if (i==1) then    
+           else if (checkline2(token,"1","SCFPAW")) then
                CALL SCFPAW(Grid,PAW)
-           else if (i==2) then    
+           !else if (i==2) then    
+           else if (checkline2(token,"2","ABINITOUT")) then
                CALL atompaw2abinit(AEOrbit,AEPot,PAW,FC,Grid)
-           else if (i==3) then    
+           !else if (i==3) then    
+           else if (checkline2(token,"3","PWSCFOUT")) then    
                CALL atompaw2pwscf(Grid,AEPot,FC,PAW,AEOrbit,ifinput)
-           else
+           else if (checkline2(token,"4","PWPAWOUT")) then    
+               CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
+           else if (checkline2(token,"5","XMLOUT")) then    
+               CALL WRITE_XML(Grid,FCPot,FCOrbit,FC,PAW) !dummy
+           !else if (i==10) then
+           else if (checkline2(token,"10","EXPLORE")) then    
+                   close(ifinput); close(ifen)
+                   CALL exploreparms(Grid,AEPot,FC,AEOrbit,PAW)    
+           else 
                write(6,*) 'Option not recognized -- pgm terminating'
                stop
            endif

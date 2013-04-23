@@ -16,17 +16,18 @@ MODULE pseudo
   Type(Pseudoinfo), TARGET :: PAW
 
  !  Parameters controlling PAW options
-  INTEGER,PRIVATE,PARAMETER :: BLOECHL=1, VANDERBILT=2, CUSTOM=3
+  INTEGER,PRIVATE,PARAMETER :: BLOECHL=1, VANDERBILT=2, CUSTOM=3, MODRRKJ=7
   INTEGER,PRIVATE,PARAMETER :: BLOECHLPS=0, POLYNOM=1, POLYNOM2=2, RRKJ=3
   INTEGER,PRIVATE,PARAMETER :: VANDERBILTORTHO=0, GRAMSCHMIDTORTHO=1
+  INTEGER,PRIVATE,PARAMETER :: SVDORTHO=2
   INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3 
   INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=4, SETVLOC=5
 
   REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-7, gausstol=1.d-4
 
-  INTEGER, PRIVATE :: coretailpoints,besselopt
-  INTEGER, PRIVATE :: Projectorindex,PSindex,Orthoindex,Vlocalindex
-  REAL(8), PRIVATE :: gaussparam
+  INTEGER, PRIVATE :: coretailpoints=-1,besselopt=-1
+  INTEGER, PRIVATE :: Projectorindex=-1,PSindex=-1,Orthoindex=-1,Vlocalindex=-1
+  REAL(8), PRIVATE :: gaussparam=-1
 
 CONTAINS
  
@@ -115,23 +116,25 @@ CONTAINS
 
  End Subroutine Init_PAW
 
- SUBROUTINE Set_PAW_Options(ifinput,ifen,Grid,Orbit,Pot)
+ SUBROUTINE Set_PAW_Options(ifinput,ifen,Grid,Orbit,Pot,success)
    INTEGER, INTENT(IN) :: ifinput,ifen
    Type(Gridinfo), INTENT(IN) :: Grid
    Type(OrbitInfo), INTENT(IN) :: Orbit
    Type(PotentialInfo), INTENT(IN) :: Pot
+   LOGICAL , INTENT(OUT) :: success
 
   CHARACTER(132) :: inputfileline
   CHARACTER(50) :: Projectortype
   INTEGER :: i,pdeg,l
   REAL(8) :: qcut,x,y,e
 
+  success=.true.
   ! default value for HF core functions
   PAW%coretol=1.d-4
   ! defalult value for SETVLOC
   PAW%VlocCoef=0.d0; PAW%VlocRad=PAW%rc
 
-  WRITE(6,*) 'Enter "Bloechl", "Vanderbilt", or "custom" keywords',&
+  WRITE(6,*) 'Enter "Bloechl", "Vanderbilt", "modrrkj" or "custom" keywords',&
              ' for projector generation method.'
   WRITE(6,*) ' In case of "custom" choice, enter additional (optional) keywords :'
    WRITE(6,*) ' - for partial waves pseudization scheme:'
@@ -145,6 +148,7 @@ CONTAINS
    WRITE(ifinput,'(a)') TRIM(inputfileline)
    call Uppercase(inputfileline)
    inputfileline=TRIM(inputfileline)
+   write(6,*) 'inputfileline ', inputfileline
    Projectorindex=BLOECHL;PSindex=BLOECHLPS;Orthoindex=GRAMSCHMIDTORTHO
    pdeg=4;qcut=10.d0
    read(unit=inputfileline,fmt=*) Projectortype
@@ -152,6 +156,15 @@ CONTAINS
     Projectorindex=BLOECHL;PSindex=BLOECHLPS;Orthoindex=GRAMSCHMIDTORTHO
    else if (TRIM(Projectortype)=='VANDERBILT'.or.TRIM(Projectortype)=='VNCTV') then
     Projectorindex=VANDERBILT;PSindex=POLYNOM;Orthoindex=VANDERBILTORTHO
+   else if (TRIM(Projectortype)=='MODRRKJ') then 
+     Projectorindex=MODRRKJ;PSindex=RRKJ;Orthoindex=VANDERBILTORTHO
+     i=0;i=INDEX(inputfileline,'VANDERBILTORTHO')
+       if (i>0) Orthoindex=VANDERBILTORTHO
+     i=0;i=INDEX(inputfileline,'GRAMSCHMIDTORTHO')
+       if (i>0) Orthoindex=GRAMSCHMIDTORTHO
+     i=0;i=INDEX(inputfileline,'SVDORTHO')
+       if (i>0) Orthoindex=SVDORTHO
+     write(6,*) 'modrrkj -- Orthoindex - ', Orthoindex  
    else if (TRIM(Projectortype)=='CUSTOM') then
     Projectorindex=CUSTOM
     i=0;i=INDEX(inputfileline,'BLOECHLPS')
@@ -209,6 +222,19 @@ CONTAINS
              trim(PAW%Proj_description)
     endif
    endif
+   If (Projectorindex==MODRRKJ) &
+    write(PAW%Proj_description,&
+       '(a, "Projector type: New recipe (modified RKKJ) projectors")')
+       If (Orthoindex==VANDERBILTORTHO) &
+          write(PAW%Proj_description,'(a," + Vanderbilt ortho.")') &
+             trim(PAW%Proj_description)
+       If (Orthoindex==GRAMSCHMIDTORTHO) &
+          write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
+             trim(PAW%Proj_description)
+       If (Orthoindex==SVDORTHO) &
+          write(PAW%Proj_description,'(a," + SVD ortho.")') &
+             trim(PAW%Proj_description)
+      write(6,*) PAW%Proj_description          
 
    gaussianshapefunction=.false.;besselshapefunction=.false.
    i=0;i=INDEX(inputfileline,'GAUSSIAN')
@@ -337,6 +363,8 @@ CONTAINS
      endif
    ELSE IF (Projectorindex==HARTREE_FOCK) THEN
     CALL make_hf_tp_only(Grid,Pot,PAW,ifinput)
+   ELSE IF (Projectorindex==MODRRKJ) THEN
+    CALL makebasis_modrrkj(Grid,Pot,Orthoindex,ifinput,success)
    ENDIF
 
       WRITE(ifen,*) TRIM(PAW%Vloc_description)
@@ -447,7 +475,7 @@ CONTAINS
        Coef0=(LOG(S/x))/2
 
        delta=ABS(Coef0-Coef0old)
-       WRITE(6,'(" VNC: iter Coef0 delta",i5,1p2e15.7)') iter,Coef0,delta
+       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p2e15.7)') iter,Coef0,delta
     ENDDO
 
     WRITE(6,*) '  VNC converged in ', iter,'  iterations'
@@ -621,7 +649,7 @@ CONTAINS
           gam=(2*l+3)*integrator(Grid,dum(1:irc),1,irc)/(rc**(2*l+3))
           bet=(2*l+3)*(Coef(1)/(2*l+3+m(1))+Coef(2)/(2*l+3+m(2))+&
                Coef(3)/(2*l+3+m(3))+Coef(4)/(2*l+3+m(4)))
-          WRITE(6,'("VNC: iter -- bet,gam = ",i5,1p4e15.7)') iter,bet,gam
+          !WRITE(6,'("VNC: iter -- bet,gam = ",i5,1p4e15.7)') iter,bet,gam
           x=bet**2+gam
           Coef0old=Coef0
           IF (x<0.d0) THEN
@@ -632,7 +660,7 @@ CONTAINS
             ENDIF
          ENDIF
          delta=ABS(Coef0-Coef0old)
-         WRITE(6,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
+         !WRITE(6,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
       ENDDO
 
       WRITE(6,*) '  VNC converged in ', iter,'  iterations'
@@ -761,8 +789,8 @@ CONTAINS
     amat(4,4)= 120.0d0*d(1)*rc**3+60.0d0*d(2)*rc**4+6.0d0*d(3)*rc**5
 
     CALL linsol(amat,b,4)
-    write(6,*) 'Completed linsol with coefficients'
-    write(6,'(1p10e15.7)') (b(i),i=1,4)
+    !write(6,*) 'Completed linsol with coefficients'
+    !write(6,'(1p10e15.7)') (b(i),i=1,4)
 
     PAW%rveff(1)=0.d0
     DO i=2,irc-1
@@ -824,6 +852,39 @@ CONTAINS
       TYPE(GridInfo), INTENT(IN) :: Grid
 
       INTEGER ::n,ok
+
+      IF (ASSOCIATED(PAW%projshape)) DEALLOCATE(PAW%projshape)
+      IF (ASSOCIATED(PAW%hatden)) DEALLOCATE(PAW%hatden)
+      IF (ASSOCIATED(PAW%hatpot)) DEALLOCATE(PAW%hatpot)
+      IF (ASSOCIATED(PAW%hatshape)) DEALLOCATE(PAW%hatshape)
+      IF (ASSOCIATED(PAW%vloc)) DEALLOCATE(PAW%vloc)
+      IF (ASSOCIATED(PAW%rveff)) DEALLOCATE(PAW%rveff)
+      IF (ASSOCIATED(PAW%abinitvloc)) DEALLOCATE(PAW%abinitvloc)
+      IF (ASSOCIATED(PAW%abinitnohat)) DEALLOCATE(PAW%abinitnohat)
+      IF (ASSOCIATED(PAW%AErefrv)) DEALLOCATE(PAW%AErefrv)
+      IF (ASSOCIATED(PAW%den)) DEALLOCATE(PAW%den)
+      IF (ASSOCIATED(PAW%tden)) DEALLOCATE(PAW%tden)
+      IF (ASSOCIATED(PAW%core)) DEALLOCATE(PAW%core)
+      IF (ASSOCIATED(PAW%tcore)) DEALLOCATE(PAW%tcore)
+      IF (ASSOCIATED(PAW%rvx)) DEALLOCATE(PAW%rvx)
+      IF (ASSOCIATED(PAW%trvx)) DEALLOCATE(PAW%trvx)
+      IF (ASSOCIATED(PAW%phi)) DEALLOCATE(PAW%phi)
+      IF (ASSOCIATED(PAW%tphi)) DEALLOCATE(PAW%tphi)
+      IF (ASSOCIATED(PAW%tp)) DEALLOCATE(PAW%tp)
+      IF (ASSOCIATED(PAW%ophi)) DEALLOCATE(PAW%ophi)
+      IF (ASSOCIATED(PAW%otphi)) DEALLOCATE(PAW%otphi)
+      IF (ASSOCIATED(PAW%otp)) DEALLOCATE(PAW%otp)
+      IF (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
+      IF (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)
+      IF (ASSOCIATED(PAW%eig)) DEALLOCATE(PAW%eig)
+      IF (ASSOCIATED(PAW%occ)) DEALLOCATE(PAW%occ)
+      IF (ASSOCIATED(PAW%ck)) DEALLOCATE(PAW%ck)
+      IF (ASSOCIATED(PAW%vrc)) DEALLOCATE(PAW%vrc)
+      IF (ASSOCIATED(PAW%Kop)) DEALLOCATE(PAW%Kop)
+      IF (ASSOCIATED(PAW%rng)) DEALLOCATE(PAW%rng)
+
+
+
       n=Grid%n
       ALLOCATE(PAW%projshape(n),PAW%hatden(n),PAW%hatpot(n),&
          PAW%hatshape(n),PAW%vloc(n),PAW%rveff(n),PAW%abinitvloc(n),&
@@ -1540,6 +1601,353 @@ CONTAINS
 
   END SUBROUTINE makebasis_custom
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+!!! makebasis_modrrkj
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+  SUBROUTINE makebasis_modrrkj(Grid,Pot,Orthoindex,ifinput,success)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    TYPE(PotentialInfo), INTENT(IN) :: Pot
+    INTEGER, INTENT(IN) :: Orthoindex,ifinput
+
+    INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
+    INTEGER :: icount,jcount,istart,ifinish,ibase,jbase,lprev
+    INTEGER :: match=5
+    REAL(8) :: dk
+    REAL(8) :: choice,rc,xx,yy,gg,g,gp,gpp,al(2),ql(2),root1,root2,logderiv
+    INTEGER, ALLOCATABLE :: omap(:)
+    REAL(8), ALLOCATABLE :: VNC(:),Ci(:),aa(:,:),ai(:,:),jl(:,:),kv(:)
+    REAL(8), ALLOCATABLE :: f(:)
+    REAL(8), ALLOCATABLE :: U(:,:),VT(:,:),WORK(:),S(:),X(:,:)
+    INTEGER :: LWORK
+    REAL(8), POINTER  :: r(:)
+    CHARACTER(132) :: inputline
+    LOGICAL :: success
+
+    success=.false.
+    n=Grid%n
+    r=>Grid%r
+    irc=PAW%irc
+    irc_vloc=PAW%irc_vloc
+    nbase=PAW%nbase
+    lmax=PAW%lmax
+
+  ! Set screened local pseudopotential
+    allocate(VNC(n),stat=i)
+    if (i/=0) stop 'allocation error in make_modrrkj'
+    VNC(2:n)=PAW%rveff(2:n)/r(2:n)
+    call extrapolate(Grid,VNC)
+
+    write(6,*) 'For each of the following basis functions enter rc'
+
+    allocate(kv(match),jl(n,match),f(n),Ci(match),aa(match,match))
+    if (i/=0) stop 'allocation error in make_nrecipe'
+  ! Loop on basis elements
+    lprev=-1;np=0
+    do io=1,nbase
+
+       PAW%Kop(1,io)=0
+       PAW%Kop(2:n,io)=(PAW%eig(io)-Pot%rv(2:n)/Grid%r(2:n))*PAW%phi(2:n,io)
+
+       l=PAW%l(io)
+       if (l==lprev) then
+         np=np+1
+       else
+         np=1
+         lprev=l
+       endif
+
+     ! Read matching radius
+       write(6,'(3i5,1pe15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io)
+       READ(5,'(a)') inputline
+       WRITE(ifinput,'(a)') TRIM(inputline)
+       read(inputline,*) rc
+       thisrc=FindGridIndex(Grid,rc)
+       thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
+       rc=r(thisrc)
+       write(6,*) 'rc for this wfn', rc
+       if (thisrc<3.or.thisrc>irc) then
+          write(6,*) 'rc out of range', thisrc,n,irc
+          stop
+       endif
+
+    ! Set normalization for PAW%eig(io)>0
+      if (PAW%eig(io)>0) then
+         PAW%phi(:,io)=PAW%phi(:,io)/PAW%phi(thisrc,io)
+      endif   
+
+     ! Find logderiv
+       logderiv=Gfirstderiv(Grid,thisrc,PAW%phi(:,io))/PAW%phi(thisrc,io)
+
+
+       write(6,*) 'logderiv ', io, l, logderiv
+
+     !  Find   bessel function zeros
+        call solvbes(kv,1.d0,0.d0,l,np)
+        write(6,*) 'Searching for solution ',kv(np)
+        if (np==1) then
+         root1=0.001d0; root2=kv(1)-0.001d0; xx=0.5d0*(root1+root2)
+        else
+         root1=kv(np-1)+0.001d0; root2=kv(np)-0.001d0; xx=0.5d0*(root1+root2)
+        endif
+        
+        icount=0
+        Do
+          call jbessel(g,gp,gpp,l,2,xx)
+          yy=(logderiv-(1.d0/xx+gp/g))/(-1.d0/xx**2+gpp/g-(gp/g)**2)
+          if (abs(yy)<1.d-6) then
+            write(6,*) 'exiting Bessel loop', icount,xx,yy
+            exit
+          else
+            if (xx+yy>root2) then
+                 xx=0.5*(xx+root2)
+            else if (xx+yy<root1) then
+                 xx=0.5*(xx+root1)
+            else
+                xx=xx+yy
+            endif
+          endif
+          write(6,*) 'iter Bessel', xx,yy
+          icount=icount+1
+          if (icount>1000) then
+            write(6,*) 'Giving up on Bessel root'
+            return
+          endif
+        Enddo
+
+        success=.true.
+        write(6,*) 'Found Bessel root at xx' , xx
+        
+        dk=(pi/40)/rc             !  could be made adjustable
+        write(6,*) 'dk value for this case ', dk
+        kv=0
+        kv(1)=xx/rc-dk*(match-1)/2
+        write(6,*) '#  kv      1', kv(1)
+        Do i=2,match
+          kv(i)=kv(i-1)+dk
+          write(6,*) '#  kv   ',   i, kv(i)
+        enddo
+
+        Do i=1,match
+          f(:)=kv(i)*r(:)
+          call sphbes(l,n,f)
+          jl(:,i)=f(:)*r(:)
+        Enddo
+
+      ! Match bessel functions with wavefunctions
+
+        Ci=0; aa=0
+        Do j=1,match
+           i=match/2-j+1
+           Ci(j)=PAW%phi(thisrc-i*1,io)                ! 1 step should vary
+           aa(j,1:match)=jl(thisrc-i*1,1:match)
+        enddo
+
+        !call linsol(aa,Ci,match,xx)
+        call SolveAXeqBM(match,aa,Ci,match-1)
+        write(6,*) 'Completed SolveAXeqB with coefficients'
+        write(6,'(1p10e15.7)') (Ci(i),i=1,match)
+
+     ! Compute pseudized partial wave and unnormalized projector
+       PAW%tphi(:,io)=PAW%phi(:,io);
+       PAW%tp(:,io)=0.d0
+        do i=1,thisrc-1
+         PAW%tphi(i,io)=sum(Ci(1:match)*jl(i,1:match))
+         do j=1,match
+            PAW%tp(i,io)=PAW%tp(i,io)+&
+              Ci(j)*(-PAW%eig(io)+(kv(j)**2)+VNC(i))*jl(i,j)
+         enddo
+        enddo
+
+       if (thisrc<=irc_vloc) then
+         do i=thisrc,irc_vloc-1
+             gpp=Gsecondderiv(Grid,i,PAW%tphi(:,io))
+             PAW%tp(i,io)=(-PAW%eig(io)&
+               +VNC(i)+dble(l*(l+1))/(r(i)**2))*PAW%tphi(i,io)  -gpp
+         enddo
+       endif
+
+
+    enddo  !nbase
+
+   
+     Deallocate(aa)
+!
+ Selectcase(Orthoindex)
+   Case default     ! Orthoindex=VANDERBILTORTHO
+  !! Form orthogonalized projectors --   VANDERBILTORTHO
+     write(6,*) ' Vanderbilt ortho'
+     do l=0,lmax
+       icount=0
+       do io=1,nbase
+        if (PAW%l(io)==l) icount=icount+1
+       enddo
+       write(6,*) 'For l = ', l,icount,' basis functions'
+       allocate(aa(icount,icount),ai(icount,icount),omap(icount))
+       aa=0;icount=0
+       do io=1,nbase
+        if (PAW%l(io)==l) then
+          icount=icount+1
+          omap(icount)=io
+        endif
+       enddo
+       do i=1,icount
+         io=omap(i)
+         PAW%otphi(:,io)=PAW%tphi(:,io)
+         PAW%ophi(:,io)=PAW%phi(:,io)
+       enddo
+       do i=1,icount
+          io=omap(i)  
+         do j=1,icount
+           jo=omap(j)
+           aa(i,j)=overlap(Grid,PAW%otphi(:,io),PAW%tp(:,jo),1,irc)
+         enddo
+       enddo
+       ai=aa;call minverse(ai,icount)
+
+       do i=1,icount
+         io=omap(i)
+         PAW%ck(io)=ai(i,i)
+         PAW%otp(:,io)=0
+         do j=1,icount
+           jo=omap(j)
+           PAW%otp(:,io)=PAW%otp(:,io)+PAW%tp(:,jo)*ai(j,i)
+         enddo
+       enddo
+
+       write(6,*) 'Check  otp for l = ', l
+       do i = 1, icount
+          io=omap(i)
+          do j = 1, icount
+             jo=omap(j)
+             write(6,*) 'Overlap i j ', i,j, &
+                     overlap(Grid,PAW%otphi(:,io),PAW%otp(:,jo),1,irc)
+          enddo
+       enddo              
+       deallocate(aa,ai,omap)
+    enddo
+
+  Case(GRAMSCHMIDTORTHO) ! Form orthonormal projectors --  GRAM-SCHMIDT SCHEME
+     write(6,*) 'Gramschmidt ortho'     
+     DO l=0,lmax
+        icount=0
+        do io=1,nbase
+           if (PAW%l(io)==l) icount=icount+1
+        enddo
+        allocate(aa(icount,icount),ai(icount,icount),omap(icount))
+        icount=0
+        DO io=1,nbase
+          IF (PAW%l(io)==l) THEN
+             IF (icount==0) istart=io
+             IF (icount>=0) ifinish=io
+               icount=icount+1;omap(icount)=io
+          ENDIF
+       ENDDO
+     DO ibase=istart,ifinish
+          PAW%otp(:,ibase)=PAW%tp(:,ibase)
+          PAW%otphi(:,ibase)=PAW%tphi(:,ibase)
+          PAW%ophi(:,ibase)=PAW%phi(:,ibase)
+          DO jbase=istart,ibase
+             IF (jbase.LT.ibase) THEN
+             xx=overlap(Grid,PAW%otp(:,jbase),PAW%otphi(:,ibase),1,irc)
+             yy=overlap(Grid,PAW%otphi(:,jbase),PAW%otp(:,ibase),1,irc)
+             PAW%ophi(1:n,ibase)=PAW%ophi(1:n,ibase)-PAW%ophi(1:n,jbase)*xx
+             PAW%Kop(1:n,ibase)=PAW%Kop(1:n,ibase)-PAW%Kop(1:n,jbase)*xx
+             PAW%otphi(1:n,ibase)=PAW%otphi(1:n,ibase)-PAW%otphi(1:n,jbase)*xx
+             PAW%otp(1:n,ibase)=PAW%otp(1:n,ibase)-PAW%otp(1:n,jbase)*yy
+             aa(ibase-istart+1,jbase-istart+1)=xx
+             aa(jbase-istart+1,ibase-istart+1)=xx
+             ELSE IF (jbase.EQ.ibase) THEN
+                   xx=overlap(Grid,PAW%otp(:,jbase),PAW%otphi(:,ibase),1,irc)
+                   !choice=1.d0/SQRT(ABS(xx))
+                   !PAW%otp(1:n,ibase)=PAW%otp(1:n,ibase)*DSIGN(choice,xx)
+                   !PAW%otphi(1:n,ibase)=PAW%otphi(1:n,ibase)*choice
+                   !PAW%ophi(1:n,ibase)=PAW%ophi(1:n,ibase)*choice
+                   !PAW%Kop(1:n,ibase)=PAW%Kop(1:n,ibase)*choice
+                   PAW%otp(1:n,ibase)=PAW%otp(1:n,ibase)/xx
+                   aa(ibase-istart+1,ibase-istart+1)=xx
+             ENDIF
+          ENDDO
+       ENDDO
+       ai=aa;
+       do i=1,icount
+        io=omap(i);PAW%ck(io)=ai(i,i)
+       enddo
+       deallocate(aa,ai,omap)
+     ENDDO
+
+  Case (SVDORTHO)    ! SVD construction
+     write(6,*) 'SVD ortho'     
+     DO l=0,lmax
+        icount=0
+        do io=1,nbase
+           if (PAW%l(io)==l) icount=icount+1
+        enddo
+        allocate(aa(icount,icount),ai(icount,icount),omap(icount),X(n,icount))
+        icount=0
+        DO io=1,nbase
+          IF (PAW%l(io)==l) THEN
+             IF (icount==0) istart=io
+             IF (icount>=0) ifinish=io
+               icount=icount+1;omap(icount)=io
+          ENDIF
+        ENDDO
+        do i=1,icount
+          io=omap(i)
+          PAW%otphi(:,io)=0
+          PAW%ophi(:,io)=0
+          PAW%otp(:,io)=0
+          do j=1,icount
+            jo=omap(j)
+            aa(i,j)=overlap(Grid,PAW%tphi(:,io),PAW%tp(:,jo),1,irc)
+          enddo
+        enddo
+        LWORK=MAX(200,icount,icount)
+        ALLOCATE(U(icount,icount),VT(icount,icount),WORK(LWORK),S(icount))
+        ai=aa;
+        CALL DGESVD('A','A',icount,icount,ai,icount,S,&
+           U,icount,VT,icount,WORK,LWORK,k)    
+
+        write(6,*) 'For l = ', l , 'Completed SVD'
+        write(6,*) 'S = ', S(:)   
+
+        Do i=1,icount
+           io=omap(i)
+           X(:,i)=PAW%Kop(:,io);
+        Enddo   
+        do j=1,icount   
+           jo=omap(j)
+           PAW%ophi(:,jo)=0
+           PAW%otphi(:,jo)=0
+           PAW%otp(:,jo)=0
+           PAW%Kop(:,jo)=0
+           do i=1,icount
+              io=omap(i)
+              PAW%ophi(:,jo)=PAW%ophi(:,jo)+PAW%phi(:,io)*U(i,j)
+              PAW%otphi(:,jo)=PAW%otphi(:,jo)+PAW%tphi(:,io)*U(i,j)
+              PAW%Kop(:,jo)=PAW%Kop(:,jo)+X(:,i)*U(i,j)
+              PAW%otp(:,jo)=PAW%otp(:,jo)+PAW%tp(:,io)*VT(j,i)/S(j)
+           enddo   
+        enddo   
+
+         do i=1,icount
+            io=omap(i)
+            do j=1,icount
+               jo=omap(j)
+               write (6,*) 'Overlap ', i,j, &
+                  overlap(Grid,PAW%otphi(:,io),PAW%otp(:,jo),1,irc)
+            enddo
+         enddo      
+
+      deallocate(aa,ai,omap,U,VT,S,WORK,X)  
+
+    ENDDO
+
+  End Select  
+
+  Deallocate(VNC,kv,jl,f,Ci)
+  END SUBROUTINE makebasis_modrrkj
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !modified version of SUBROUTINE makebasis_custom which was
   !           written by Marc Torrent from earlier version by NAWH
@@ -2195,6 +2603,7 @@ CONTAINS
       REAL(8), ALLOCATABLE :: y(:,:),b(:),a(:,:)
 
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc
+      !write(6,*) 'Entering unboundsep with l energy = ', l, energy
 
       IF (nr<irc) THEN
          WRITE(6,*) 'error in unboundsep -- nr < irc', nr,irc
@@ -3171,4 +3580,236 @@ CONTAINS
      Call Dealloc_OrbitInfo(tmpOrbit)
   END SUBROUTINE PAWIter_LDA
    
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  exploreparms reads ndata sets of PAW parameters and calculates
+!    the corresponding logderivs   It is intended that this routine
+!    would be used to choose the parameters with the best logderivs.
+!    It should be called after the program has first run a "normal"
+!    calculation.   exploreparms recalculates the wfni (i=1,2,..) and
+!    logderivl (l=0,1,2,..) values but does not generate the full
+!    PAW dataset.   Upon analyzing the logderiv results, the atompaw
+!    program should be run in the "normal" mode to generate the best
+!    dataset.  exploreparams should only be called once.
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+ SUBROUTINE exploreparms(Grid,AEPot,FC,AEOrbit,PAW)
+     Type(GridInfo), INTENT(IN) :: Grid
+     Type(PotentialInfo), INTENT(IN) :: AEPot
+     Type(FCInfo), INTENT(IN) :: FC
+     Type (OrbitInfo), INTENT(IN) :: AEOrbit
+     Type(PseudoInfo), INTENT(INOUT) :: PAW
+
+     INTEGER :: ndata,i,j,k,l
+     INTEGER :: ifinput=8,ifen=9
+     CHARACTER(4) ::fdata
+     REAL(8), allocatable ::  logderiverror(:,:)
+     LOGICAL :: success
+
+     success=.true.
+     write(6,*) 'Input the number of PAW parameter sets in this run'
+     read(5,*) ndata
+     if (ndata>9999) then
+             write(6,*) 'Error : ndata must be <= 9999', ndata
+             stop
+     endif        
+
+     allocate(logderiverror(6,ndata))         ! 6 represents the max l+1
+     logderiverror=55555
+
+     write(6,*) 'Begin explore runs'
+     OPEN(20,file='EXPLORERESULTS',form='formatted')
+     write(20,'("dataset",6(2x,i3,10x))') (l,l=0,PAW%lmax+1)
+
+     do i=1,ndata
+        call mkname(i,fdata)
+        OPEN(ifinput,file='EXPLOREIN.'//TRIM(fdata),form='formatted')
+        OPEN(ifen, file='EXPLOREout.'//TRIM(fdata), form='formatted')
+
+        CALL INIT_PAW(ifinput,ifen,Grid)
+        Call initpseudopot(Grid) 
+        CALL setbasis(Grid,FCPot,FCOrbit,ifinput)
+        Call setcoretail(Grid,FC%coreden)
+        If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') then
+             PAW%tcore=0
+        Endif
+        If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
+        Call Set_PAW_Options(ifinput,ifen,Grid,FCOrbit,FCPot,success)
+        Call Report_PseudobasisRP(Grid,PAW,ifen,fdata)
+        if (success) then
+           Call Set_PAW_MatrixElements(Grid,PAW)
+           CALL EXPLORElogderiv(Grid,FCPot,PAW,fdata,logderiverror(:,i))
+           write(20,'(i5,2x,1p6e15.7)') i,(logderiverror(l+1,i),l=0,PAW%lmax+1)
+        endif   
+
+        close(ifinput); close(ifen)
+     enddo    
+
+     Write(6,*) 'Results for minimum logderiverror'
+     Do l=0,PAW%lmax+1
+         i=MINLOC(logderiverror(l+1,:),1)
+         Write(6,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
+     enddo    
+ END SUBROUTINE exploreparms
+
+
+    !************************************************************************
+    !  program to calculate logerivatives of paw wavefunctions
+    !   and to compare them with all electron wavefunctions
+    !  optionally, wavefunctions are written to a file
+    !  Assumes prior call to SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
+    !    Version for exploreparms
+    !************************************************************************
+    SUBROUTINE EXPLORElogderiv(Grid,Pot,PAW,label,lderror)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(PotentialInfo), INTENT(IN) :: Pot
+      TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+      CHARACTER(4), INTENT(IN) :: label 
+      REAL(8), INTENT(INOUT) :: lderror(:)
+
+      TYPE(PotentialInfo) :: PS
+      INTEGER :: n,l,ie,nbase,ib,ic,nr,i,nodes,mbase,irc,lng
+      INTEGER, PARAMETER :: ne=200,ke=100
+      REAL(8), PARAMETER :: e0=-5.d0,de=0.05d0
+      REAL(8) :: h,x,dwdr,dcwdr,scale,energy
+      REAL(8), ALLOCATABLE :: psi(:),tpsi(:),ttpsi(:)
+      CHARACTER(4)  :: flnm
+
+      n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc;  nr=irc+10
+
+      ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),stat=ie)
+      IF (ie/=0) THEN
+         WRITE(6,*) 'Error in logderiv allocation',n,ie
+         STOP
+      ENDIF
+
+      ! load  PS
+      PS%rv=PAW%rveff ; PS%nz=0
+      call zeropot(Grid,PS%rv,PS%v0,PS%v0p)
+      !
+      !   calculate logderivatives at irc
+      !
+      WRITE(6,*) 'calculating log derivatives at irc',Grid%r(irc)
+      !
+      mbase=nbase
+      DO l=0,PAW%lmax+1
+         CALL mkname(l,flnm)
+         OPEN(56,file=TRIM(label)//'.logderiv.'//TRIM(flnm),form='formatted')
+         lderror(l+1)=0
+
+         DO ie=1,ne
+            energy=e0+de*(ie-1)
+            psi=0;tpsi=0;ttpsi=0
+            if (scalarrelativistic) then
+               CALL unboundsr(Grid,Pot,nr,l,energy,psi,nodes)
+            elseif (TRIM(PAW%exctype)=='HF') then
+               CALL HFunocc(Grid,PAW%OCCWFN,l,energy,Pot%rv,Pot%v0,Pot%v0p,&
+                        psi,lng)    
+            else
+               CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,energy,psi,nodes)
+            endif
+            CALL unboundsep(Grid,PS,PAW,nr,l,energy,tpsi,nodes)
+            CALL PStoAE(Grid,PAW,nr,l,tpsi,ttpsi)
+            !
+            dwdr=Gfirstderiv(Grid,irc,psi)/psi(irc)
+            dcwdr=Gfirstderiv(Grid,irc,ttpsi)/ttpsi(irc)
+
+            WRITE(56,'(1p5e12.4)') energy,dwdr,dcwdr ;
+            lderror(l+1)=lderror(l+1)+abs(atan(dwdr)-atan(dcwdr))
+    !!! do not output wfn for this case    
+    !!!     IF (ie.EQ.ke) THEN
+    !!!        mbase=mbase+1
+    !!!        CALL mkname(mbase,flnm)
+    !!!        OPEN(57,file='wfn'//TRIM(flnm),form='formatted')
+    !!!        WRITE(57,*) '# l=',l,'energy=',energy
+    !!!        !
+    !!!        ! form converted wavefunction and rescale exact wavefunction
+    !!!        !
+    !!!        scale=ttpsi(irc)/psi(irc)
+    !!!        DO i=1,nr
+    !!!           WRITE(57, '(1p5e12.4)') Grid%r(i),tpsi(i),ttpsi(i),psi(i)*scale
+    !!!        ENDDO
+    !!!        CLOSE(57)
+    !!!     ENDIF
+         ENDDO !ie
+         CLOSE(56)
+
+      ENDDO !l
+
+      DEALLOCATE(psi,tpsi,PS%rv)
+    END SUBROUTINE EXPLORElogderiv
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !   Repeated version of output for used with EXPLORElogderiv
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  SUBROUTINE Report_PseudobasisRP(Grid,PAW,ifen,fdata)
+     Type(GridInfo), INTENT(IN)  :: Grid
+     Type(PseudoInfo), INTENT(IN) :: PAW
+     INTEGER, INTENT(IN) :: ifen
+     CHARACTER(4) :: fdata
+
+     INTEGER, parameter :: ifout=15
+     INTEGER :: i,j,io,nbase,irc,norbit,icount,n
+     INTEGER, ALLOCATABLE :: mapp(:)
+     CHARACTER (len=4) :: flnm
+     
+     nbase=PAW%nbase;irc=PAW%irc;n=Grid%n
+     WRITE(ifen,'(/"Number of basis functions ",i5)') nbase
+     WRITE(ifen,*)'No.   n    l      Energy         Cp coeff         Occ'
+
+     
+     DO io=1,nbase
+        WRITE(ifen,'(3i5,1p3e15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io),&
+          PAW%ck(io),PAW%occ(io)
+        CALL mkname(io,flnm)
+        OPEN(ifout,file=TRIM(fdata)//'.wfn'//TRIM(flnm),form='formatted')
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
+             PAW%eig(io)
+          DO i=1,irc+50
+             WRITE(ifout,'(1p5e12.4)') Grid%r(i),PAW%ophi(i,io),&
+                    PAW%otphi(i,io),PAW%otp(i,io)
+          ENDDO
+       CLOSE(ifout)
+    ENDDO
+
+    ! also write "raw" wavefunctions 
+     DO io=1,nbase
+        CALL mkname(io,flnm)
+        OPEN(ifout,file=TRIM(fdata)//'.wfn00'//TRIM(flnm),form='formatted')
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
+             PAW%eig(io)
+          DO i=1,irc+50
+             WRITE(ifout,'(1p5e12.4)') Grid%r(i),PAW%phi(i,io),&
+                    PAW%tphi(i,io),PAW%tp(i,io)
+          ENDDO
+       CLOSE(ifout)
+    ENDDO
+
+
+
+    norbit=PAW%OCCWFN%norbit
+    allocate(mapp(norbit))
+    mapp=0
+    icount=0
+    do io=1,norbit
+       if(PAW%OCCWFN%iscore(io)) then
+       else
+         icount=icount+1
+         mapp(icount)=io
+       endif
+    enddo
+    OPEN(ifout,file='OCCWFN',form='formatted')
+    WRITE(ifout,'("#            ",50i30)') (mapp(j),j=1,icount)
+    do i=1,n
+       write(ifout,'(1p51e15.7)') Grid%r(i),(PAW%OCCWFN%wfn(i,mapp(j)),&
+                PAW%TOCCWFN%wfn(i,mapp(j)),j=1,icount)
+    enddo
+    close(ifout)
+ 
+    deallocate(mapp)
+
+  END SUBROUTINE Report_PseudobasisRP
 END MODULE pseudo

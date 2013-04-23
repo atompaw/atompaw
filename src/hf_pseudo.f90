@@ -1301,7 +1301,7 @@ END SUBROUTINE Smoothfunc
        Coef0=(LOG(S/x))/2
 
        delta=ABS(Coef0-Coef0old)
-       WRITE(6,'(" VNC: iter Coef0 delta",i5,1p2e15.7)') iter,Coef0,delta
+       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p2e15.7)') iter,Coef0,delta
     ENDDO
 
     WRITE(6,*) '  VNC converged in ', iter,'  iterations'

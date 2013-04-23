@@ -202,7 +202,7 @@ CONTAINS
     CHARACTER(4) stuff
     INTEGER i,i1,i10,i100,i1000
     stuff='?'
-    IF (i.GT.10000) i=MOD(i,10000)
+    IF (i.GT.9999) i=MOD(i,10000)
     i1000=i/1000
     i100=(i-1000*i1000)/100
     i10=(i-1000*i1000-100*i100)/10
@@ -223,9 +223,10 @@ CONTAINS
     RETURN
   END SUBROUTINE mkname
 
-  SUBROUTINE linsol(a,b,kk)
+  SUBROUTINE linsol(a,b,kk,det)
     REAL(8), INTENT(INOUT) :: a(:,:),b(:)
     INTEGER, INTENT(IN) :: kk
+    REAL(8), OPTIONAL, INTENT(OUT) :: det
 
     REAL(8) :: d,s,r
     INTEGER :: kkm,i,j,k,l,ipo,n,kmo
@@ -283,9 +284,10 @@ CONTAINS
           b(n)=b(n)/a(n,n)
        ENDDO
     ENDIF
-    write(6,*) 'determinant from linsol ' , d
+    !write(6,*) 'determinant from linsol ' , d
     IF(ABS(d).LT.1.d-10) WRITE(6,*) '**warning from linsol --',&
          'determinant too small --',d
+    If (present(det)) det=d     
   END SUBROUTINE linsol
 
   SUBROUTINE minverse(a,kk)
@@ -613,6 +615,26 @@ End Subroutine
     RETURN
   END SUBROUTINE UpperCase
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Logical function  checkline2
+!     Returns .true. if inputline matchs either in1 or in2
+!     Note: in1 and in2 should either be integers or uppercase characters
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  LOGICAL FUNCTION checkline2(inputline,in1,in2)
+     CHARACTER(*), INTENT(INOUT) :: inputline
+     CHARACTER(*), INTENT(IN) :: in1,in2
+
+     INTEGER :: i
+  
+     checkline2=.false.
+     call UpperCase(inputline)
+
+     if(TRIM(inputline)==in1.or.TRIM(inputline)==in2) checkline2=.true.
+
+     return
+  END FUNCTION checkline2
 
   !*****************************************************************
   ! subroutine conthomas(n,o,d,sol)
@@ -1283,7 +1305,7 @@ End Subroutine
     tol=tol*S(1)
     X=0
     DO i=1,n
-       write(6,*) 'Solver ',i,S(i)
+       write(6,*) 'Solver, tol ',i,S(i),tol
        IF (S(i)>tol) THEN
           xx=DOT_PRODUCT(U(1:n,i),B(1:n))/S(i)
           X(1:n)=X(1:n)+xx*(VT(i,1:n))
@@ -1294,6 +1316,60 @@ End Subroutine
 
     DEALLOCATE(C,X,U,VT,WORK,S)
   END SUBROUTINE SolveAXeqB
+
+  SUBROUTINE SolveAXeqBM(n,A,B,many)
+    ! General purpose AX=B solver for A, B real.
+    !  Modified version using "many" largest singular values
+    ! On return, B stores X
+    INTEGER, INTENT(IN) :: n,many
+    REAL(8), INTENT(IN) :: A(:,:)
+    REAL(8), INTENT(INOUT) :: B(:)
+
+    REAL(8), ALLOCATABLE :: C(:,:),U(:,:),VT(:,:),X(:)
+    REAL(8), ALLOCATABLE :: WORK(:)
+    REAL(8), ALLOCATABLE :: S(:)
+    REAL(8), PARAMETER :: rtol=1.d-9
+    INTEGER :: i,j,LWORK
+    REAL(8) :: xx,tol
+    REAL(8), PARAMETER :: one=1,zero=0
+
+    If (many<1.or.many>n) then
+       Write(6,*) 'Error in SOlveAXeqBM -- n, many ', n, many
+       stop
+    endif   
+    IF (n == 1) THEN
+       B(1)=B(1)/A(1,1)
+       RETURN
+    ENDIF
+    LWORK=MAX(200,n*n)
+
+    ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),&
+         STAT=i)
+    IF (i /= 0) THEN
+       WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
+       STOP
+    ENDIF
+
+
+    C(1:n,1:n)=A(1:n,1:n)
+    CALL DGESVD('A','A',n,n,C,n,S,U,n,VT,n,WORK,LWORK,i)
+
+
+    X=0
+    DO i=1,n
+       if (i<=many) then
+         write(6,*) 'Used SV  ',i,S(i)
+          xx=DOT_PRODUCT(U(1:n,i),B(1:n))/S(i)
+          X(1:n)=X(1:n)+xx*(VT(i,1:n))
+       else   
+         write(6,*) 'UnUsed SV  ',i,S(i)
+       ENDIF
+    ENDDO
+
+    B=X
+
+    DEALLOCATE(C,X,U,VT,WORK,S)
+  END SUBROUTINE SolveAXeqBM
 
   SUBROUTINE SolveAXeqB_eig(n,A,B,conditionNo)
     !  AX=B solver for A, B real and A symmetric

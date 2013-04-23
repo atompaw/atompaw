@@ -43,11 +43,13 @@ MODULE atomdata
   LOGICAL :: ColleSalvetti
   LOGICAL :: HFpostprocess
   LOGICAL :: localizedcoreexchange
+  LOGICAL :: exploremode
 
 
 CONTAINS
   SUBROUTINE DestroyOrbit(Orbit)
     TYPE (OrbitInfo), INTENT(INOUT) :: Orbit
+
 
        IF (ASSOCIATED(Orbit%np)) DEALLOCATE(Orbit%np)
        IF (ASSOCIATED(Orbit%l)) DEALLOCATE(Orbit%l)

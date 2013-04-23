@@ -797,7 +797,7 @@ CONTAINS
     a=0
     a(2:8)=proj(2:8)/(Grid%r(2:8)**(l+1))
     CALL extrapolate(Grid,a)
-    write(6,'("extrapolate ",1p9e15.7)') a(1:8)
+    !write(6,'("extrapolate ",1p9e15.7)') a(1:8)
     wfn=0
     wfn(2)=-a(1)*(Grid%r(2)**(l+3))/(4*l+6.d0)
 

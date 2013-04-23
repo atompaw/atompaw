@@ -96,6 +96,20 @@ CONTAINS
        CLOSE(ifout)
     ENDDO
 
+    ! also write "raw" wavefunctions 
+     DO io=1,nbase
+        CALL mkname(io,flnm)
+        OPEN(ifout,file='wfn00'//TRIM(flnm),form='formatted')
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
+             PAW%eig(io)
+          DO i=1,irc+50
+             WRITE(ifout,'(1p5e12.4)') Grid%r(i),PAW%phi(i,io),&
+                    PAW%tphi(i,io),PAW%tp(i,io)
+          ENDDO
+       CLOSE(ifout)
+    ENDDO
+
+
 
     norbit=PAW%OCCWFN%norbit
     allocate(mapp(norbit))
@@ -574,6 +588,18 @@ CONTAINS
 
     DEALLOCATE(f)
   END SUBROUTINE WRITE_ATOMDATA
+
+  SUBROUTINE WRITE_XML(Grid,Pot,Orbit,FC,PAW)
+    TYPE(GridInfo) , INTENT(IN):: Grid
+    TYPE(PotentialInfo), INTENT(IN) :: Pot
+    TYPE(OrbitInfo), INTENT(IN) :: Orbit
+    TYPE(FCInfo), INTENT(IN) :: FC
+    TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+
+    write(6,*) 'WRITE_XML subroutine could go here '
+
+  END SUBROUTINE WRITE_XML
+
 
   Subroutine Report_pseudo_energies(PAW,ien)
        Type(PseudoInfo), INTENT(IN) :: PAW

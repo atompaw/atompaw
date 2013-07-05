@@ -121,17 +121,20 @@ Module PWscfInterface
          enddo
       enddo
 
-     OPEN(1001,file=TRIM(AEpot%sym)//'.'//TRIM(exctype)//'-paw.UPF',&
-&          form='formatted')
-     write(1001,'("<UPF version=""2.0.1"">")')
-     write(1001,'("   <PP_INFO>")')
-     write(1001,'("         UPF file from ATOMPAW code with following input")')
-     rewind(ifinput)
+      OPEN(1001,file=TRIM(AEpot%sym)//'.'//TRIM(exctype)//'-paw.UPF',&
+ &          form='formatted')
+      write(1001,'("<UPF version=""2.0.1"">")')
+      write(1001,'("   <PP_INFO>")')
+      write(1001,'("         UPF file from ATOMPAW code with following input")')
+
+      open(ifinput,file='dummy',form='formatted')
       do
         read(ifinput,'(a)',iostat=i) inputfileline
            if (i/=0) exit
            write(1001,'("           ",a)') TRIM(inputfileline)
       enddo
+      close(ifinput)
+
       !WRITE(1001,'("  Note this UPF file is not well tested yet !! ")')
       WRITE(1001,'("  </PP_INFO>")')
       WRITE(1001,'("  <!--                               -->")')

@@ -56,6 +56,7 @@ module libxc_mod
  public :: libxc_init_func,&
 &          libxc_print_func,&
 &          libxc_getid_fromname,&
+&          libxc_getshortname,&
 &          libxc_getid,&
 &          libxc_getvxc,&
 &          libxc_isgga,&
@@ -136,7 +137,7 @@ module libxc_mod
   if (id(1)>0.and.xcstrg(1)(1:3)=="XC_")    xcname_short=trim(xcname_short)     //trim(xcstrg(1)(4:))
   if (id(1)>0.and.xcstrg(1)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)     //trim(xcstrg(1))
   if (id(2)>0.and.xcstrg(2)(1:3)=="XC_")    xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2)(4:))
-  if (id(2)>0.and.xcstrg(1)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2))
+  if (id(2)>0.and.xcstrg(2)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2))
  end if
 
 #else
@@ -183,6 +184,60 @@ module libxc_mod
 #endif
 
  end subroutine libxc_getid
+
+
+!!=================================================================
+!! NAME
+!! libxc_getshortname
+!!
+!! FUNCTION
+!! From a character string (given in input file), gives a short
+!! version of the libXC name (without XC_)
+!!
+!! PARENTS
+!! abinitinterface,xmlinterface
+!!
+!!=================================================================
+ subroutine libxc_getshortname(xcname,xcname_short)
+
+ implicit none
+ character*(*),intent(in) :: xcname
+ character*(*),intent(out) :: xcname_short
+
+#if defined HAVE_LIBXC
+!------------------------------------------------------------------
+!---- Local variables
+!------------------------------------------------------------------
+
+ integer :: i_plus
+ character*50 :: xcstrg(2)
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+ i_plus=index(xcname,'+')
+ if (i_plus<=0) then
+  xcstrg(1)=trim(xcname)
+  xcstrg(2)=""
+ else
+  xcstrg(1)=trim(xcname(1:i_plus-1))
+  xcstrg(2)=trim(xcname(i_plus+1:))
+ end if
+ call uppercase(xcstrg(1))
+ call uppercase(xcstrg(2))
+
+ xcname_short=""
+ if (xcstrg(1)(1:3)=="XC_")    xcname_short=trim(xcname_short)     //trim(xcstrg(1)(4:))
+ if (xcstrg(1)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)     //trim(xcstrg(1))
+ if (xcstrg(2)(1:3)=="XC_")    xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2)(4:))
+ if (xcstrg(2)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2))
+
+#else
+ xcname_short=xcname
+#endif
+
+ end subroutine libxc_getshortname
 
 
 !!=================================================================

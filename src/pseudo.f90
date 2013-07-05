@@ -1348,7 +1348,7 @@ CONTAINS
        read(inputline,*) rc
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
-       rc=r(thisrc)
+       rc=r(thisrc);PAW%rcio(io)=rc
        write(6,*) 'rc for this wfn', rc
        if (thisrc<3.or.thisrc>irc.or. &
 &          (optps==1.and.thisrc>n-3).or. &
@@ -1573,7 +1573,7 @@ CONTAINS
        read(inputline,*) rc
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
-       rc=r(thisrc)
+       rc=r(thisrc);PAW%rcio(io)=rc
        write(6,*) 'rc for this wfn', rc
        if (thisrc<3.or.thisrc>irc) then
           write(6,*) 'rc out of range', thisrc,n,irc
@@ -1900,7 +1900,7 @@ CONTAINS
          read(inputline,*) rc
          thisrc=FindGridIndex(Grid,rc)
          thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
-         rc=r(thisrc)
+         rc=r(thisrc);PAW%rcio(io)=rc
          write(6,*) 'rc for this wfn', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then
             write(6,*) 'rc out of range', thisrc,n,irc
@@ -2998,7 +2998,7 @@ CONTAINS
 
     !  Assumes prior call to SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
     SUBROUTINE FindVlocfromVeff(Grid,Orbit,PAW)
-      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(GridInfo), INTENT(INOUT) :: Grid
       TYPE(OrbitInfo), INTENT(IN) :: Orbit
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
 
@@ -3035,7 +3035,7 @@ CONTAINS
       call poisson(Grid,tq,d,dv,ecoul)
 
       d=PAW%core-PAW%tcore
-      q00=PAW%AErefrv(1)/2+integrator(Grid,d)
+      q00=PAW%AErefrv(1)+integrator(Grid,d)
       write(6,*) 'nucleus and core q00 ', q00
       do ib=1,nbase
          do ic=1,nbase
@@ -3087,35 +3087,46 @@ CONTAINS
       d=PAW%den-PAW%tden
       tq=integrator(Grid,d,1,irc)
       write(6,*) ' abinit tq = ', tq
-      write(6,*) ' check valence ', FC%zvale,integrator(Grid,PAW%tden)
 
+!     Compute VH(tDEN+hatDEN)
       d=PAW%tden+tq*PAW%hatden
-      CALL poisson(Grid,q00,d,v,rat)  ! Coul(\tilde(n) + \hat(n))
-      write(6,*) 'Check poisson (should equal ',FC%zvale,') ',q00
+      CALL poisson(Grid,q00,d,v,rat)
 
-      d=d+PAW%tcore
+!     Compute Vxc(tcore+tDEN)
+      d=PAW%tcore+PAW%tden
+      CALL exch(Grid,d,v,etxc,eexc)
+
+!     Compute Vxc(tcore+tDEN+hatDEN)
+      d=PAW%tcore+PAW%tden+tq*PAW%hatden
       CALL exch(Grid,d,vv,etxc,eexc)
-      d=vv                            ! store vxc(\tilde(n)+\tilde(n_c)+\hat(n))
 
-      dv=PAW%tden+PAW%tcore
-      CALL exch(Grid,dv,vv,etxc,eexc) !store vxc(\tilde(n)+\tilde(n_c))
-
-      do i=2,irc-1
-         PAW%abinitvloc(i)=(PAW%rveff(i)-v(i)-d(i))/r(i)    ! with nhat
-         PAW%abinitnohat(i)=(PAW%rveff(i)-v(i)-vv(i))/r(i ) ! without nhat
+!     Store Vxc(tcore+tDEN)-Vxc(tcore+tDEN+hatDEN)
+      do i=2,n
+        PAW%abinitvloc(i)=(v(i)-vv(i))/Grid%r(i)
       enddo
       call extrapolate(Grid,PAW%abinitvloc)
-      call extrapolate(Grid,PAW%abinitnohat)
 
-      d=FC%coreden-PAW%tcore
+!     Compute VH(tcore+(Nc-tNc-Z)*hatDEN)
+!     (For consistency with ABINIT, need to integrate Poisson
+!      equation up to coretailpoints (not the whole mesh))
+      d=PAW%core-PAW%tcore
       qeff=0.5d0*PAW%AErefrv(1)+integrator(Grid,d,1,PAW%irc_core)
       d=PAW%tcore+qeff*PAW%hatden
-      CALL poisson(Grid,q00,d,vv,rat)
-      write(6,*) 'Check poisson (should equal ',-FC%zvale,') ',q00
+      Grid%n=PAW%coretailpoints
+      CALL poisson_marc(Grid,q00,d(1:PAW%coretailpoints),vv(1:PAW%coretailpoints),rat)
+      Grid%n=n
 
-      do i=irc,n
-         PAW%abinitvloc(i) =vv(i)/r(i) ! still in Rydberg units
-         PAW%abinitnohat(i)=vv(i)/r(i) ! still in Rydberg units
+!     Compute ionic potential following Bloechl formalism
+      do i=2,PAW%coretailpoints
+        PAW%abinitnohat(i)=PAW%vloc(i)+vv(i)/r(i)  ! in Rydberg units
+      enddo
+      call extrapolate(Grid,PAW%abinitnohat)
+      PAW%abinitnohat(PAW%coretailpoints+1:n)=PAW%vloc(PAW%coretailpoints+1:n) &
+&                     +vv(PAW%coretailpoints)/Grid%r(PAW%coretailpoints+1:n)
+
+!     Compute ionic potential following Kresse formalism
+      do i=1,n
+        PAW%abinitvloc(i)=PAW%abinitvloc(i)+PAW%abinitnohat(i)  ! in Rydberg units
       enddo
 
       open(123,file='compare.abinit', form='formatted')

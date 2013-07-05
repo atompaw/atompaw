@@ -13,6 +13,7 @@ MODULE pseudodata
      CHARACTER(132) :: Comp_description
      LOGICAL :: multi_rc
      REAL(8) :: rc,rc_shap,rc_vloc,rc_core,energyoflmax,gausslength
+     REAL(8), POINTER :: rcio(:)
      REAL(8), POINTER :: vloc(:),abinitvloc(:),abinitnohat(:)
      REAL(8), POINTER :: rveff(:),AErefrv(:),rvx(:),trvx(:)
      REAL(8), POINTER :: projshape(:),hatshape(:),hatden(:),hatpot(:)
@@ -79,12 +80,12 @@ MODULE pseudodata
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
 &        PAW%ck(mxbase),PAW%vrc(mxbase),PAW%Kop(n,mxbase),PAW%rng(mxbase),&
-&        stat=ok)
+&        PAW%rcio(mxbase),stat=ok)
       IF (ok/=0) STOP 'Allocation error 2 in InitPAW'
       PAW%phi=0.d0;PAW%tphi=0.d0;PAW%tp=0.d0
       PAW%ophi=0.d0;PAW%otphi=0.d0;PAW%otp=0.d0
       PAW%eig=0.d0;PAW%occ=0.d0;PAW%vrc=0.d0;PAW%ck=0.d0;PAW%Kop=0.d0
-      PAW%np=0;PAW%l=0
+      PAW%rcio=0.d0;PAW%np=0;PAW%l=0
       PAW%rng=Grid%n
       ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),PAW%wij(mxbase,mxbase),&
 &              stat=ok)
@@ -109,6 +110,7 @@ MODULE pseudodata
 
   Subroutine DestroyPAW(PAW)
     Type(PseudoInfo), INTENT(INOUT) :: PAW
+    IF (ASSOCIATED(PAW%rcio)) DEALLOCATE(PAW%rcio)
     If (ASSOCIATED(PAW%vloc)) DEALLOCATE(PAW%vloc)
     If (ASSOCIATED(PAW%abinitvloc)) DEALLOCATE(PAW%abinitvloc)
     If (ASSOCIATED(PAW%abinitnohat)) DEALLOCATE(PAW%abinitnohat)

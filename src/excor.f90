@@ -45,7 +45,6 @@ CONTAINS
 
   SUBROUTINE initexch
     integer :: id(2)=(/0,0/)
-    CHARACTER(132) :: xcname
     !  choose form of exchange-correlation potential
     CALL Uppercase(exctype)
     WRITE(6,*)
@@ -53,10 +52,9 @@ CONTAINS
     SELECT CASE(TRIM(exctype))
     CASE default
       IF (have_libxc) THEN
-        call libxc_getid_fromname(exctype,id,xcname_short=xcname)
+        call libxc_getid_fromname(exctype,id)
         call libxc_init_func(id,1)
         itype = LIBXC
-        exctype=trim(xcname)
       ELSE
         itype = LDA_PW
         exctype='LDA-PW'

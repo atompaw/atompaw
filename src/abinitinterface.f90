@@ -71,7 +71,7 @@ Module ABINITInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2abinitver='3.3.1', abinitver='6.1.0+', verdate='nov. 2010'
+ character*10 :: atompaw2abinitver='3.4.1', abinitver='6.1.0+', verdate='june 2013'
 
 !Default name for Abinit file
  integer, parameter :: unit_abinit=22
@@ -236,13 +236,15 @@ Module ABINITInterface
 !! opt_proj,rdinputabinit,rdpawps1,rdpawps2,wrpawps,wrcorewf
 !!=================================================================
 
- subroutine Atompaw2Abinit(AEOrbit,AEPot,PAW,FC,Grid)
+ subroutine Atompaw2Abinit(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput)
 
  type(OrbitInfo), intent(in)     :: AEOrbit
  type(PotentialInfo), intent(in) :: AEPot
+ type (SCFInfo),  intent(in)     :: AESCF
  type(Pseudoinfo), intent(in)    ::  PAW
  type(FCInfo), intent(in)        :: FC
  type(GridInfo), intent(in)      :: Grid
+ integer, intent(in)             :: ifinput
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -254,8 +256,10 @@ Module ABINITInterface
  type(pawrad_type)   :: pawrad
  type(loggrd_type)   :: loggrd
  type(pawrso_type)   :: pawrso
+ integer :: id
  logical :: prtcorewf
- character*(fnlen) :: file_abinit
+ character*(fnlen) :: file_abinit,xcname
+ character*(5000) :: input_string
 
 !------------------------------------------------------------------
 !---- Executable code
@@ -272,6 +276,8 @@ Module ABINITInterface
  write(std_out,'(a)')       '==   "ABINIT" can be found at:  http://www.abinit.org =='
  write(std_out,'(a)')       '========================================================'
 
+ call read_inputstring(ifinput,input_string)
+
 !------------------------------------------------------------------
 !---- Load PAW dataset header into ABINIT datastructure (sizes of arrays)
 
@@ -280,7 +286,7 @@ Module ABINITInterface
 !------------------------------------------------------------------
 !---- Read choices from input file
 
- call rdinputabinit(pshead,pawrso,loggrd,prtcorewf)
+ call rdinputabinit(pshead,pawrso,loggrd,prtcorewf,input_string)
 
 !------------------------------------------------------------------
 !---- Allocations and initializations
@@ -327,7 +333,9 @@ Module ABINITInterface
 
 !------------------------------------------------------------------
 !---- Write PAW dataset file for ABINIT
- file_abinit=TRIM(AEpot%sym)//'.'//TRIM(exctype)//'-paw.abinit'
+ xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
+ file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.abinit'
+
  call wrpawps(pshead,pawps,pawarray,pawrad,loggrd,file_abinit,unit_abinit)
 
 !------------------------------------------------------------------
@@ -566,6 +574,8 @@ Module ABINITInterface
 !! FUNCTION
 !! Read the input file in order to get ABINIT dataset options
 !!
+!! INPUTS
+!!
 !! OUTPUT
 !!  pshead
 !!    %vlocopt= option for Vloc (use of nhat in XC or not)
@@ -580,6 +590,10 @@ Module ABINITInterface
 !!    %log_step=logarithmic step for the logarithmic grid
 !!  prtcorewf= TRUE is printing of core WF is required
 !!
+!! SIDE EFFECTS
+!!  input_string= string containing a copy of atompaw input file
+!!                appended here
+!!
 !! PARENTS
 !! atompaw2abinit
 !!
@@ -587,12 +601,13 @@ Module ABINITInterface
 !! extractword,uppercase
 !!=================================================================
 
- subroutine rdinputabinit(pshead,pawrso,loggrd,prtcorewf)
+ subroutine rdinputabinit(pshead,pawrso,loggrd,prtcorewf,input_string)
 
  type(pshead_type),intent(inout) :: pshead
  type(pawrso_type),intent(out)   :: pawrso
  type(loggrd_type),intent(out)   :: loggrd
  logical,intent(out)             :: prtcorewf
+ character(len=*),intent(inout) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -606,6 +621,8 @@ Module ABINITInterface
 !------------------------------------------------------------------
 
  read(std_in,'(a)',advance='no',iostat=ok) readline
+ write(unit=input_string,fmt='(5a)') trim(input_string), &
+&                   char(10),"2",char(10),trim(readline)
  call Uppercase(readline)
  i_usexcnhat=index(readline,'USEXCNHAT')
  i_prtcorewf=index(readline,'PRTCOREWF')
@@ -1279,6 +1296,7 @@ end subroutine calc_shapef
  vhnzc=half*vhnzc  ! Ryd. -> Ha
  vhnzc(2:pshead%core_meshsz)=(vhnzc(2:pshead%core_meshsz)-pshead%atomic_charge)/pawrad%rad(2:pshead%core_meshsz)
  call extrapolate(Grid_core,vhnzc)
+ 
  do jlmn=1,pshead%lmn_size
   j0lmn=jlmn*(jlmn-1)/2
   jlm=pawarray%indlmn(4,jlmn);jln=pawarray%indlmn(5,jlmn)
@@ -1288,6 +1306,7 @@ end subroutine calc_shapef
    if (jlm==ilm) then
     ff(1:meshsz)=pawps%phi(1:meshsz,iln)*pawps%phi(1:meshsz,jln)*vhnzc(1:meshsz)
     call csimp(ff,pawrad,meshsz,intg)
+
     pawps%dij0(klmn)=pawps%dij0(klmn)+intg
    endif
   enddo
@@ -1389,6 +1408,90 @@ end subroutine calc_shapef
  end subroutine calc_rhoij0
 
 
+!!=================================================================
+!! NAME
+!! calc_vloc
+!!
+!! FUNCTION
+!! Compute local potential in the Bloechl and Kresse formulation
+!!
+!! INPUTS
+!!  pshead
+!!    %basis_size= Number of elements for the paw nl basis
+!!    %occ(basis_size)= occupation for each basis function
+!!    %orbitals(basis_size)= Quantum number l for each basis function
+!!
+!! OUTPUT
+!!  pawps
+!!    %vhtnzc= Atomic initialization of rhoij
+!!
+!! PARENTS
+!! atompaw2abinit
+!!=================================================================
+
+ subroutine calc_vloc(FC,nz,PAW,pawps,pawrad,pshead)
+
+ real(dp) ,intent(in):: nz
+ type(Pseudoinfo),intent(in)       :: PAW
+ type(FCInfo),intent(in)           :: FC
+ type(pshead_type),intent(in)   :: pshead
+ type(pawps_type),intent(inout) :: pawps
+ type(pawrad_type),intent(inout)   :: pawrad
+
+!------------------------------------------------------------------
+!---- Local variables
+!------------------------------------------------------------------
+
+ integer :: ii,irc
+ real(dp):: etxc,eexc,qeff,q00,rat
+ type(GridInfo) :: Grid,Grid1
+ real(dp), allocatable :: dd(:),vv(:),vxc1(:),vxc2(:)
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+ call NullifyGrid(Grid)
+ call grid2pawrad(Grid,pawrad,pshead%core_meshsz,-1)
+
+ allocate(dd(pshead%core_meshsz))
+ allocate(vv(pshead%core_meshsz))
+ dd(1:pshead%core_meshsz)=FC%coreden(1:pshead%core_meshsz)-PAW%tcore(1:pshead%core_meshsz)
+ qeff=-nz+integrator(Grid,dd,1,PAW%irc_core)
+ dd(1:pshead%core_meshsz)=PAW%tcore(1:pshead%core_meshsz)+qeff*PAW%hatden(1:pshead%core_meshsz)
+ call poisson_marc(Grid,q00,dd,vv,rat)
+ pawps%vhtnzc(2:pshead%core_meshsz)=half*(PAW%vloc(2:pshead%core_meshsz)+vv(2:pshead%core_meshsz)/pawrad%rad(2:pshead%core_meshsz))
+ call extrapolate(Grid,pawps%vhtnzc)
+
+ call DestroyGrid(Grid)
+ if(pshead%vloc_meshsz>pshead%core_meshsz)then
+   pawps%vhtnzc(pshead%core_meshsz+1:pshead%vloc_meshsz)=half*(PAW%vloc(pshead%core_meshsz+1:pshead%vloc_meshsz)+&
+&       vv(pshead%core_meshsz)/pawrad%rad(pshead%core_meshsz+1:pshead%vloc_meshsz))
+ end if
+ deallocate(dd,vv)
+
+ if (pshead%vlocopt==1) then
+   allocate(dd(pshead%vloc_meshsz))
+   allocate(vxc1(pshead%vloc_meshsz))
+   allocate(vxc2(pshead%vloc_meshsz))
+   call grid2pawrad(Grid,pawrad,pshead%vloc_meshsz,-1)
+   dd(1:pshead%vloc_meshsz)=PAW%tden(1:pshead%vloc_meshsz)+PAW%tcore(1:pshead%vloc_meshsz)
+   call exch(Grid,dd,vxc1,etxc,eexc)   !store vxc(\tilde(n)+\tilde(n_c))
+   dd(1:pshead%vloc_meshsz)=PAW%den(1:pshead%vloc_meshsz)-PAW%tden(1:pshead%vloc_meshsz)
+   irc=max(PAW%irc,PAW%irc_shap,PAW%irc_vloc,PAW%irc_core)
+   qeff=integrator(Grid,dd,1,irc)
+   dd(1:pshead%vloc_meshsz)=PAW%tden(1:pshead%vloc_meshsz)+PAW%tcore(1:pshead%vloc_meshsz)+qeff*PAW%hatden(1:pshead%vloc_meshsz)
+   call exch(Grid,dd,vxc2,etxc,eexc) 
+   pawps%vhtnzc(2:pshead%vloc_meshsz)=pawps%vhtnzc(2:pshead%vloc_meshsz)+&
+&                        half*(vxc1(2:pshead%vloc_meshsz)-vxc2(2:pshead%vloc_meshsz))/pawrad%rad(2:pshead%vloc_meshsz)
+   call extrapolate(Grid,pawps%vhtnzc)
+   deallocate(dd,vxc1,vxc2)
+   call DestroyGrid(Grid)
+ end if
+
+ end subroutine calc_vloc
+
+ 
 !!=================================================================
 !! NAME
 !! opt_proj
@@ -1783,102 +1886,9 @@ end subroutine calc_shapef
  if (pshead%vale_meshsz==0) pspfmt="paw3"
  if (pshead%vlocopt/=2)     pspfmt="paw4"
 
-!Meshes definitions (if necessary define a logarithmic radial grid)
-!--- Use of an auxilliary log grid
- if (loggrd%uselog) then
-  loggrd%rad_step=(pawrad%rad(pshead%wav_meshsz)*(one-tol12))*exp(-loggrd%log_step*dble(loggrd%meshsz-2))
-  mtyp=3;rstep=loggrd%rad_step;lstep=loggrd%log_step
-  wavmeshsz=loggrd%meshsz
-  prjmeshsz=pshead%prj_meshsz
-  coremeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%core_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
-  if (pshead%vale_meshsz>0) then
-   valemeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%vale_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
-  else
-   valemeshsz=0
-  end if
-  if (pshead%vlocopt==0) then
-   vlocmeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%sph_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
-  else
-   vlocmeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%vloc_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
-  endif
-  allocate(rr_log(max(wavmeshsz,coremeshsz,valemeshsz,vlocmeshsz)));rr_log(1)=zero
-  do ir=2,max(wavmeshsz,coremeshsz,valemeshsz,vlocmeshsz)
-   rr_log(ir)=loggrd%rad_step*exp(loggrd%log_step*dble(ir-2))
-  enddo
-  write(std_out,'(3(/,2x,a),2(/,2x,a,g10.4),4(/,2x,a,i4))') &
-&    'Atompaw2Abinit info:',&
-&    '  All quantities (except nl projectors) are transfered',&
-&    '  into a logarithmic grid (r(i)=A*exp[B(i-2)])...',&
-&    '  Log. grid parameters: rad_step=',loggrd%rad_step,&
-&    '                        log_step=',loggrd%log_step,&
-&    '                        Size       =',wavmeshsz,&
-&    '                        Size (core)=',coremeshsz,&
-&    '                        Size (vale)=',valemeshsz,&
-&    '                        Size (Vloc)=',vlocmeshsz
- else
-!--- No use of an auxilliary log grid
-  mtyp=pshead%mesh_type;rstep=pshead%rad_step;lstep=pshead%log_step
-  wavmeshsz=min(pshead%sph_meshsz+5,pshead%wav_meshsz)
-  prjmeshsz=pshead%prj_meshsz
-  coremeshsz=pshead%core_meshsz
-  valemeshsz=pshead%vale_meshsz
-  if (pshead%vlocopt==0)then
-   vlocmeshsz=pshead%sph_meshsz
-  else
-   vlocmeshsz=pshead%vloc_meshsz
-  endif
- endif
-!--- Build mesh definitions
- nmesh=1;iwavmesh=1
- meshtp(1)=mtyp;meshsz(1)=wavmeshsz;radstp(1)=rstep;logstp(1)=lstep
- if (loggrd%uselog.or.wavmeshsz/=prjmeshsz) then
-  nmesh=nmesh+1;iprjmesh=nmesh;meshsz(nmesh)=pshead%prj_meshsz
-  meshtp(nmesh)=pshead%mesh_type;radstp(nmesh)=pshead%rad_step;logstp(nmesh)=pshead%log_step
- else
-  iprjmesh=iwavmesh
- endif
- if (wavmeshsz/=coremeshsz) then
-  if (prjmeshsz/=coremeshsz) then
-   nmesh=nmesh+1;icoremesh=nmesh;meshsz(nmesh)=coremeshsz
-   meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
-  else
-   icoremesh=iprjmesh
-  endif
- else
-  icoremesh=iwavmesh
- endif
- if (wavmeshsz/=vlocmeshsz) then
-  if(prjmeshsz/=vlocmeshsz) then
-   if(coremeshsz/=vlocmeshsz) then
-    nmesh=nmesh+1;ivlocmesh=nmesh;meshsz(nmesh)=vlocmeshsz
-    meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
-   else
-    ivlocmesh=icoremesh
-   endif
-  else
-   ivlocmesh=iprjmesh
-  endif
- else
-  ivlocmesh=iwavmesh
- endif
- if (wavmeshsz/=valemeshsz) then
-  if(prjmeshsz/=valemeshsz) then
-   if(coremeshsz/=valemeshsz) then
-    if(vlocmeshsz/=valemeshsz) then
-     nmesh=nmesh+1;ivalemesh=nmesh;meshsz(nmesh)=valemeshsz
-     meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
-    else
-     ivalemesh=ivlocmesh
-    endif
-   else
-    ivalemesh=icoremesh
-   endif
-  else
-   ivalemesh=iprjmesh
-  endif
- else
-  ivalemesh=iwavmesh
- endif
+ call meshes_def(coremeshsz,icoremesh,iprjmesh,ivalemesh,ivlocmesh,&
+ &    iwavmesh,nmesh,nmesh_max,meshtp,meshsz,loggrd,logstp,prjmeshsz,&
+ &    rr_log,valemeshsz,vlocmeshsz,wavmeshsz,pshead,pawrad,radstp)
 
 !Some translations AtomPAW -> ABINIT
  call NullifyGrid(Grid_core);call NullifyGrid(Grid_vale)
@@ -2119,6 +2129,7 @@ end subroutine calc_shapef
 
 !Close the file and end
  close(funit)
+
  if (loggrd%uselog) deallocate(rr_log)
  if (pshead%core_meshsz>0) call DestroyGrid(Grid_core)
  if (pshead%vale_meshsz>0) call DestroyGrid(Grid_vale)
@@ -2350,6 +2361,56 @@ end subroutine calc_shapef
 
 !!=================================================================
 !! NAME
+!! read_inputstring
+!!
+!! FUNCTION
+!! Read the file echoing the atompaw input file
+!! and transfer it into a character string
+!!
+!! INPUTS
+!!  ifinput= unit number of the file to read
+!!
+!! OUTPUT
+!!  input_string=character string containing the file
+!!
+!! PARENTS
+!  xml2abinit
+!!=================================================================
+
+ subroutine read_inputstring(ifinput,input_string)
+
+ integer,intent(in) :: ifinput
+ character(len=*) :: input_string
+
+!------------------------------------------------------------------
+!---- Local variables
+!------------------------------------------------------------------
+
+ integer :: OK
+ character(len=132) :: inputline
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+ open(ifinput,file='dummy',form='formatted')
+ read(ifinput,'(a)',iostat=OK,end=10) inputline
+ if (OK/=0) return
+ input_string=trim(inputline)
+ do
+   read(ifinput,'(a)',iostat=OK,end=10) inputline
+   if (OK/=0) exit
+   write(unit=input_string,fmt='(3a)') trim(input_string),char(10),trim(inputline)
+ enddo
+ return
+10 continue
+ close(ifinput)
+
+ end subroutine read_inputstring
+
+
+!!=================================================================
+!! NAME
 !! grid2pawrad
 !!
 !! FUNCTION
@@ -2496,9 +2557,9 @@ end subroutine calc_shapef
  end if
 
  ii=meshsz;do while(abs(ff(ii))<eps.and.ii>0);ii=ii-1;enddo
-  if (ii<=0) then
-     simp=zero;return
-  end if
+ if (ii<=0) then
+   simp=zero;return
+ end if
  nn=min(ii+1,meshsz)
 
  if (nn>=5) then
@@ -2611,6 +2672,162 @@ end subroutine calc_shapef
 
  end subroutine gauleg
 
+
+!!=================================================================
+!! NAME
+!! meshes_defs
+!!
+!! FUNCTION
+!! Determine meshes definitions
+!! (if necessary define a reduced logarithmic radial grid)
+!!
+!! INPUTS
+!!  pshead
+!!  pawrad
+!!  loggrd
+!!  nmesh_max
+!!
+!! OUTPUT
+!!  nmesh
+!!  icoremesh,iprjmesh,ivalemesh,ivlocmesh,iwavmesh
+!!  coremeshsz,prjmeshsz,valemeshsz,vlocmeshsz,wavmeshsz
+!!  meshsz(nmesh_max),meshtp(nmesh_max)
+!!  radstp(nmesh_max),logstp(nmesh_max)
+!!
+!! PARENTS
+!!
+!!=================================================================
+
+subroutine meshes_def(coremeshsz,icoremesh,iprjmesh,ivalemesh,ivlocmesh,&
+&          iwavmesh,nmesh,nmesh_max,meshtp,meshsz,loggrd,&
+&          logstp,prjmeshsz,rr_log,valemeshsz,vlocmeshsz,&
+&          wavmeshsz,pshead,pawrad,radstp)
+
+ type(pshead_type),intent(in)   :: pshead
+ type(pawrad_type),intent(inout)   :: pawrad
+ type(loggrd_type),intent(inout)   :: loggrd
+ integer, intent(in) :: nmesh_max
+ integer,intent(inout) :: nmesh
+ integer,intent(inout) :: icoremesh,iprjmesh,ivalemesh,ivlocmesh,iwavmesh
+ integer,intent(inout) :: coremeshsz,prjmeshsz,valemeshsz,vlocmeshsz,wavmeshsz
+ integer ,intent(inout):: meshsz(nmesh_max),meshtp(nmesh_max)
+ real(dp),intent(inout) :: radstp(nmesh_max),logstp(nmesh_max)
+
+!------------------------------------------------------------------
+!---- Local variables
+!------------------------------------------------------------------
+
+ integer :: ib,ii,il,ilmn,ir
+ integer :: jlmn,mtyp
+ real(dp) :: rstep,lstep
+ type(GridInfo) :: Grid_core,Grid_vale
+ real(dp), allocatable ,intent(inout):: rr_log(:)
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+  radstp=zero;logstp=zero
+ 
+!--- Use of an auxilliary log grid
+ if (loggrd%uselog) then
+  loggrd%rad_step=(pawrad%rad(pshead%wav_meshsz)*(one-tol12))*exp(-loggrd%log_step*dble(loggrd%meshsz-2))
+  mtyp=3;rstep=loggrd%rad_step;lstep=loggrd%log_step
+  wavmeshsz=loggrd%meshsz
+  prjmeshsz=pshead%prj_meshsz
+  coremeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%core_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
+  if (pshead%vale_meshsz>0) then
+   valemeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%vale_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
+  else
+   valemeshsz=0
+  end if
+  if (pshead%vlocopt==0) then
+   vlocmeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%sph_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
+  else
+   vlocmeshsz=int((one+tol12)*log(pshead%rad_step*dble(pshead%vloc_meshsz-1)/loggrd%rad_step)/loggrd%log_step)+2
+  endif
+  allocate(rr_log(max(wavmeshsz,coremeshsz,valemeshsz,vlocmeshsz)));rr_log(1)=zero
+  do ir=2,max(wavmeshsz,coremeshsz,valemeshsz,vlocmeshsz)
+   rr_log(ir)=loggrd%rad_step*exp(loggrd%log_step*dble(ir-2))
+  enddo
+  write(std_out,'(3(/,2x,a),2(/,2x,a,g10.4),4(/,2x,a,i4))') &
+&    'Atompaw2Abinit info:',&
+&    '  All quantities (except nl projectors) are transfered',&
+&    '  into a logarithmic grid (r(i)=A*exp[B(i-2)])...',&
+&    '  Log. grid parameters: rad_step=',loggrd%rad_step,&
+&    '                        log_step=',loggrd%log_step,&
+&    '                        Size       =',wavmeshsz,&
+&    '                        Size (core)=',coremeshsz,&
+&    '                        Size (vale)=',valemeshsz,&
+&    '                        Size (Vloc)=',vlocmeshsz
+ else
+
+!--- No use of an auxilliary log grid
+  mtyp=pshead%mesh_type;rstep=pshead%rad_step;lstep=pshead%log_step
+  wavmeshsz=min(pshead%sph_meshsz+5,pshead%wav_meshsz)
+  prjmeshsz=pshead%prj_meshsz
+  coremeshsz=pshead%core_meshsz
+  valemeshsz=pshead%vale_meshsz
+  if (pshead%vlocopt==0)then
+   vlocmeshsz=pshead%sph_meshsz
+  else
+   vlocmeshsz=pshead%vloc_meshsz
+  endif
+ endif
+
+!--- Build mesh definitions
+ nmesh=1;iwavmesh=1
+ meshtp(1)=mtyp;meshsz(1)=wavmeshsz;radstp(1)=rstep;logstp(1)=lstep
+ if (loggrd%uselog.or.wavmeshsz/=prjmeshsz) then
+  nmesh=nmesh+1;iprjmesh=nmesh;meshsz(nmesh)=pshead%prj_meshsz
+  meshtp(nmesh)=pshead%mesh_type;radstp(nmesh)=pshead%rad_step;logstp(nmesh)=pshead%log_step
+ else
+  iprjmesh=iwavmesh
+ endif
+ if (wavmeshsz/=coremeshsz) then
+  if (prjmeshsz/=coremeshsz) then
+   nmesh=nmesh+1;icoremesh=nmesh;meshsz(nmesh)=coremeshsz
+   meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
+  else
+   icoremesh=iprjmesh
+  endif
+ else
+  icoremesh=iwavmesh
+ endif
+ if (wavmeshsz/=vlocmeshsz) then
+  if(prjmeshsz/=vlocmeshsz) then
+   if(coremeshsz/=vlocmeshsz) then
+    nmesh=nmesh+1;ivlocmesh=nmesh;meshsz(nmesh)=vlocmeshsz
+    meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
+   else
+    ivlocmesh=icoremesh
+   endif
+  else
+   ivlocmesh=iprjmesh
+  endif
+ else
+  ivlocmesh=iwavmesh
+ endif
+ if (wavmeshsz/=valemeshsz) then
+  if(prjmeshsz/=valemeshsz) then
+   if(coremeshsz/=valemeshsz) then
+    if(vlocmeshsz/=valemeshsz) then
+     nmesh=nmesh+1;ivalemesh=nmesh;meshsz(nmesh)=valemeshsz
+     meshtp(nmesh)=mtyp;radstp(nmesh)=rstep;logstp(nmesh)=lstep
+    else
+     ivalemesh=ivlocmesh
+    endif
+   else
+    ivalemesh=icoremesh
+   endif
+  else
+   ivalemesh=iprjmesh
+  endif
+ else
+  ivalemesh=iwavmesh
+ endif
+
+ end subroutine meshes_def
 
 !!=================================================================
 END Module ABINITInterface

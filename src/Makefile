@@ -6,7 +6,7 @@ SRCS =	abinitinterface.f90 aeatom.f90 anderson_driver.f90 atomdata.f90 \
 	general_mod.f90 globalmath.f90 gridmod.f90 hf_mod.f90 hf_pseudo.f90 \
 	interpolation_mod.f90 ldagga_mod.f90 numerov_mod.f90 paw_sub.f90 \
 	pkginfo.f90 pseudo.f90 pseudo_sub.f90 pseudodata.f90 pwscfinterface.f90 \
-	radialsr.f90 report_mod.f90 search_sort.f90 libxc_mod.F90
+	radialsr.f90 report_mod.f90 search_sort.f90 libxc_mod.F90 xmlinterface.f90
 
 
 OBJS =	abinitinterface.o aeatom.o anderson_driver.o atomdata.o \
@@ -15,7 +15,7 @@ OBJS =	abinitinterface.o aeatom.o anderson_driver.o atomdata.o \
 	general_mod.o globalmath.o gridmod.o hf_mod.o hf_pseudo.o \
 	interpolation_mod.o ldagga_mod.o numerov_mod.o paw_sub.o \
 	pkginfo.o pseudo.o pseudo_sub.o pseudodata.o pwscfinterface.o \
-	radialsr.o report_mod.o search_sort.o libxc_mod.o
+	radialsr.o report_mod.o search_sort.o libxc_mod.o xmlinterface.o
 
 include make.inc
 
@@ -49,7 +49,7 @@ anderson_driver.o: globalmath.o
 atomdata.o:
 atompaw_lib.o:
 atompaw_prog.o: globalmath.o aeatom.o atomdata.o atompaw_report.o \
-	 pseudo.o abinitinterface.o pwscfinterface.o pkginfo.o
+	 pseudo.o abinitinterface.o pwscfinterface.o xmlinterface.o pkginfo.o
 atompaw_report.o: atomdata.o fock.o globalmath.o gridmod.o pseudo.o pseudodata.o \
 	libxc_mod.o
 blockdavidson_mod.o: globalmath.o search_sort.o
@@ -85,3 +85,4 @@ pwscfinterface.o: globalmath.o atomdata.o excor.o gridmod.o \
 radialsr.o: globalmath.o gridmod.o atomdata.o
 report_mod.o: atomdata.o gridmod.o excor.o
 search_sort.o:
+xmlinterface.o: atomdata.o globalmath.o gridmod.o excor.o pseudo.o pkginfo.o

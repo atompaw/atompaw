@@ -2,6 +2,7 @@ Module fock
   Use atomdata
   Use gridmod
   Use globalmath
+
   IMPLICIT NONE
 
  CONTAINS

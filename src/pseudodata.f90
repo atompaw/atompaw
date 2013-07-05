@@ -98,8 +98,13 @@ MODULE pseudodata
          ALLOCATE(PAW%lmbd(Orbit%norbit,mxbase),stat=ok)
          IF (ok/=0) STOP 'Allocation error 5 in InitPAW'
          PAW%lmbd=0.d0
+      ELSE
+         nullify(PAW%lmbd)
       ENDIF
-
+      ALLOCATE(PAW%valencemap(Orbit%norbit),stat=ok)
+      IF (ok/=0) STOP 'Allocation error 6 in InitPAW'
+      ALLOCATE(PAW%OCCwfn,PAW%TOCCwfn,stat=ok)
+      IF (ok/=0) STOP 'Allocation error 7 in InitPAW'
     END SUBROUTINE InitPAW
 
   Subroutine DestroyPAW(PAW)
@@ -153,8 +158,14 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%mLic)) DEALLOCATE(PAW%mLic)
     If (ASSOCIATED(PAW%mLcc)) DEALLOCATE(PAW%mLcc)
     If (ASSOCIATED(PAW%Dcj)) DEALLOCATE(PAW%Dcj)
-    If (ASSOCIATED(PAW%OCCwfn)) Call DestroyOrbit(PAW%OCCwfn)
-    If (ASSOCIATED(PAW%TOCCwfn)) Call DestroyOrbit(PAW%TOCCwfn)
+    If (ASSOCIATED(PAW%OCCwfn)) then
+      call DestroyOrbit(PAW%OCCwfn)
+      DEALLOCATE(PAW%OCCwfn)
+    end if
+    If (ASSOCIATED(PAW%TOCCwfn)) then
+      call DestroyOrbit(PAW%TOCCwfn)
+      DEALLOCATE(PAW%TOCCwfn)
+    end if
   End Subroutine DestroyPAW
 
 End module pseudodata

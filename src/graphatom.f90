@@ -9,6 +9,7 @@ PROGRAM graphatom
   USE graphatom_report
 
   IMPLICIT NONE
+
   INTEGER :: i,iargc
   CHARACTER(80) :: verbose
   LOGICAL :: lotsofoutput=.false.

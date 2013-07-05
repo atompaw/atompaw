@@ -1353,10 +1353,8 @@ END SUBROUTINE Smoothfunc
     enddo
     close(88)
 
-
     DEALLOCATE(VNC,wfn,p,dum,XX,twfn,tX,rvx,trvx)
   END SUBROUTINE troullier_HF
-
 
 END MODULE hf_pseudo
 

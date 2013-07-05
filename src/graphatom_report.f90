@@ -2,6 +2,7 @@ MODULE Graphatom_report
   USE atomdata
   USE gridmod
   USE report_mod
+
   IMPLICIT NONE
 
 CONTAINS

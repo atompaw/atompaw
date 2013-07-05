@@ -28,9 +28,8 @@ MODULE hf_mod
 
   LOGICAL, PRIVATE :: verboseoutput
   REAL(8), PRIVATE :: previouserror, currenterror
-
-
   REAL(8), PARAMETER, PRIVATE :: thrsh=1.d-7,tol=1.d-10
+
 CONTAINS
 
   SUBROUTINE HF_tmp(Gridin,Orbitin,Potin,FCin,SCFin)

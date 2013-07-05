@@ -72,17 +72,12 @@ CONTAINS
     ww=0; jj=0;
    balpha2=inverse_fine_structure**2
    alpha2=1.d0/balpha2
-   !write(6,*) 'in Azeroexpand', alpha2,nz,n
    jj(1:n)=(Grid%r(1:n) + &
 &       0.25d0*alpha2*(energy*Grid%r(1:n)-Pot%rv(1:n)))
    angm=l*(l+1)
    ww(2:n)=(Pot%rv(2:n)/Grid%r(2:n)-energy) &
 &     + angm/(Grid%r(2:n)*jj(2:n))
    ww(1)=0
-     !do i=1,n
-     !write(101,'(i5,1p,8e15.7)') i,Grid%r(i),jj(i),ww(i)
-     !enddo
-     !stop
 
    if (.not.finitenucleus) then
       gamma=sqrt(angm+1.d0-alpha2*nz**2)
@@ -104,9 +99,6 @@ CONTAINS
        c1=-MB*l/(2*MA*(l+1))
        c2=(-MA*MA*(energy-Pot%v0)*MB*c1*(l+1))/(MA*(4*l+6))
    endif
-    ! do i=2,n
-    !   write(97,'(1p,5e15.7)') Grid%r(i),Pot%rv(i)/Grid%r(i),ww(i),jj(i)/Grid%r(i)
-    ! enddo
 
   end subroutine Azeroexpand
 
@@ -140,7 +132,6 @@ CONTAINS
           wfn(i+1)=(1+rr*(c1+rr*c2))*(rr**(l+1))
           lwfn(i+1)=(l+rr*((l+1)*c1+rr*(l+2)*c2))*(rr**(l+1))/M
        endif
-       !write(6,'(i5,1p,3e15.7)') i+1,rr,wfn(i+1),lwfn(i+1)
 
     enddo
 
@@ -310,7 +301,6 @@ CONTAINS
     err=n*nz*(h**4)
     convrez=convre
     IF (nz>0.001d0) convrez=convre*nz
-    !     write(6,*) 'expected error = ',err
     ierr=0
 
     WRITE(6,*) 'z , l = ',nz,l
@@ -320,23 +310,14 @@ CONTAINS
     call Azeroexpand(Grid,Pot,l,energy)
     lwfn=0;zz=0;yy=0;
     call wfnsrinit(Grid,l,p1,lwfn,istart)
-       !do i=1,istart
-       !   write(6,'(1p,2e15.7)') Grid%r(i),p1(i)
-       !enddo
-
-
     !
-    !  start outward integration
-
+    !start outward integration
     call prepareforcfdsol(Grid,1,istart,n,p1,lwfn,yy,zz)
     call cfdsol(Grid,zz,yy,istart,n)
     call getwfnfromcfdsol(1,n,yy,p1)
     node=countnodes(1,n,p1)
 
     WRITE(6,*) ' nodes at e=0  ', node
-       !do i=1,n
-       !   write(6,'(1p,4e15.7)') Grid%r(i),p1(i),jj(i),ww(i)
-       !enddo
 
     mxroot=node+1
     ntroot=node
@@ -388,7 +369,6 @@ CONTAINS
           !    write(100+icount,'(1p,2e15.7)') Grid%r(i),p1(i)
           !  enddo
           rout=Gfirstderiv(Grid,match,p1)/p1(match)
-            ! write(6,*) 'node,match,rin,rout',node,(iroot-1),match,rin,rout
           ! check whether node = (iroot-1)
           !   not enough nodes -- raise energy
           IF (node.LT.iroot-1) THEN
@@ -447,13 +427,11 @@ CONTAINS
                 EXIT BigIter
              ENDIF
              IF (ABS(dele).GT.convrez) THEN
-                !write(6,*) 'iter with dele' , iter,dele
                 energy=energy+dele
                 ! if energy is out of range, pick random energy in correct range
                 IF (emin-energy.GT.convrez.OR.energy-emax.GT.convrez)         &
 &                    energy=emin+(emax-emin)*ranx()
                 ifac=2
-                !write(6,*) 'continuing with iter dele', iter,dele
              ENDIF
           ENDIF
        ENDDO BigIter !iter

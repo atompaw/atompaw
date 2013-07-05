@@ -1,4 +1,5 @@
 MODULE GlobalMath
+
   IMPLICIT NONE
 
   REAL(8) :: pi , machine_precision , machine_zero , machine_infinity
@@ -1520,10 +1521,6 @@ End Subroutine
     ENDIF
 
   END FUNCTION THRJ2
-
-
-
-
 
 END MODULE GlobalMath
 

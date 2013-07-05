@@ -2,8 +2,8 @@
 !   Module for interpolation of functions between different grids
 !    Based on DeBoor's cubic splines
 Module interpolation_mod
-   Implicit none
 
+   Implicit none
 
    CONTAINS
 
@@ -182,4 +182,5 @@ Module interpolation_mod
          c(4,i-1) = (divdf3/dtau)*(6.d0/dtau)
       enddo
  END subroutine cubspl
+
 END Module interpolation_mod

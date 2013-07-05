@@ -1144,8 +1144,6 @@ CONTAINS
        Call Filter(n,Orbit%wfn(:,io),machine_zero)
     ENDDO
 
-    ALLOCATE(PAW%OCCwfn,PAW%TOCCwfn)
-    ALLOCATE(PAW%valencemap(Orbit%norbit))
     call CopyOrbit(Orbit,PAW%OCCwfn)
     call CopyOrbit(Orbit,PAW%TOCCwfn)
     PAW%valencemap=-13

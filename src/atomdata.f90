@@ -1,5 +1,7 @@
 MODULE atomdata
 
+  IMPLICIT NONE
+
   TYPE OrbitInfo
      CHARACTER(132) :: exctype
      INTEGER :: nps, npp, npd ,npf, npg, norbit
@@ -51,7 +53,7 @@ CONTAINS
 
   SUBROUTINE InitOrbit(Orbit,norbit,n,exctype)
     TYPE (OrbitInfo), INTENT(INOUT) :: Orbit
-    INTEGER, INTENT(IN) :: norbit
+    INTEGER, INTENT(IN) :: n,norbit
     CHARACTER(*),INTENT(IN) :: exctype
     INTEGER :: ok
     Orbit%norbit=norbit;Orbit%exctype=TRIM(exctype)
@@ -124,8 +126,8 @@ CONTAINS
 
   SUBROUTINE DestroyFC(FC)
     TYPE (FCInfo), INTENT(INOUT) :: FC
-       IF (ASSOCIATED(FC%valeden)) DEALLOCATE(FC%valeden)
-       IF (ASSOCIATED(FC%coreden)) DEALLOCATE(FC%coreden)
+    IF (ASSOCIATED(FC%valeden)) DEALLOCATE(FC%valeden)
+    IF (ASSOCIATED(FC%coreden)) DEALLOCATE(FC%coreden)
   END SUBROUTINE DestroyFC
 
   SUBROUTINE InitPot(Pot,n)
@@ -140,10 +142,10 @@ CONTAINS
 
   SUBROUTINE DestroyPot(Pot)
     TYPE (PotentialInfo), INTENT(INOUT) :: Pot
-       IF (ASSOCIATED(Pot%rv)) DEALLOCATE(Pot%rv)
-       IF (ASSOCIATED(Pot%rvn)) DEALLOCATE(Pot%rvn)
-       IF (ASSOCIATED(Pot%rvh)) DEALLOCATE(Pot%rvh)
-       IF (ASSOCIATED(Pot%rvx)) DEALLOCATE(Pot%rvx)
+    IF (ASSOCIATED(Pot%rv)) DEALLOCATE(Pot%rv)
+    IF (ASSOCIATED(Pot%rvn)) DEALLOCATE(Pot%rvn)
+    IF (ASSOCIATED(Pot%rvh)) DEALLOCATE(Pot%rvh)
+    IF (ASSOCIATED(Pot%rvx)) DEALLOCATE(Pot%rvx)
   END SUBROUTINE DestroyPot
 
   SUBROUTINE CopyPot(SPot,CPot)
@@ -168,8 +170,8 @@ CONTAINS
     SCF%iter=0
     SCF%delta=0.d0;SCF%eone=0.d0;SCF%ekin=0.d0;SCF%estatic=0.d0
     SCF%ecoul=0.d0;SCF%eexc=0.d0;SCF%oepcs=0.d0;SCF%etot=0.d0
-    valekin=0.d0;SCF%valecoul=0.d0;SCF%valeexc=0.d0
-    corekin=0.d0;SCF%evale=0.d0
+    SCF%valekin=0.d0;SCF%valecoul=0.d0;SCF%valeexc=0.d0
+    SCF%corekin=0.d0;SCF%evale=0.d0
   END SUBROUTINE InitSCF
 
   SUBROUTINE CopySCF(SSCF,CSCF)

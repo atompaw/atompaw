@@ -11,11 +11,11 @@
 !  The method is defined by eq's: 2.1, 8.2, 7.7
 !
 !******************************************************************************
-
 MODULE anderson_driver
   USE globalmath
 
   IMPLICIT NONE!!!!!!
+
   SAVE
 
   TYPE Anderson_Context  !** Anderson Mixing context

@@ -15,7 +15,6 @@ MODULE ldagga_mod
   TYPE(PotentialInfo), PRIVATE, POINTER :: Potwk
   TYPE(FCInfo), PRIVATE, POINTER :: FCwk
   TYPE(SCFInfo), PRIVATE, POINTER :: SCFwk
-
   TYPE(Anderson_context), PRIVATE :: AC
 
 CONTAINS

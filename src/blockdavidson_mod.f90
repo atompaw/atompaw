@@ -1,8 +1,8 @@
 MODULE BlockDavidson_mod
   USE globalmath
   USE search_sort
-  IMPLICIT NONE
 
+  IMPLICIT NONE
 
   REAL(8), ALLOCATABLE, PRIVATE :: A(:,:),O(:,:),v(:,:),f(:,:),w(:),hv(:),ov(:)
   REAL(8), PARAMETER, PRIVATE :: base_eps=1.d-6
@@ -18,13 +18,9 @@ CONTAINS
 
     INTEGER :: ndim,i,ns
 
-    !WRITE(6,*) 'in Init', nvec,dup
-    !CALL flush(6)
     ns=nvec*dup
     ndim=SIZE(vec,1)
     eps=MIN(SQRT(base_eps),base_eps*REAL(ndim))
-    !WRITE(6,*) 'ndim ', ndim, ns
-    !CALL flush(6)
 
     ALLOCATE(A(ns,ns),O(ns,ns),w(ns),v(ns,ns), &
 &        f(ndim,ns),hv(ndim),ov(ndim), stat=i)
@@ -70,8 +66,6 @@ CONTAINS
     DO iter=1,mxiter
        CALL shift4(v1,v2,v3,v4,delta)
        IF (iter>=4.AND.(v4<eps.AND.v4>v3))THEN
-          !WRITE(6,*) 'returning from Block Davidson with ', &
-          !&    'iter, delta = ', iter,delta
           CALL EndBlockDavidson
           RETURN
 
@@ -79,12 +73,8 @@ CONTAINS
           start=1; finish=nvec; last=finish
 
           DO i=1,nvec
-             !WRITE(6,*) 'loop,i ', iter,i
-             !CALL flush(6)
              f(:,i)=vec(:,i)
              CALL ressub(f(:,i),hv,ov,eig(i))
-             !WRITE(6,*) 'i eig ', i,eig(i)
-             !CALL flush(6)
           ENDDO
 
           DO k=1,dup-1
@@ -116,7 +106,6 @@ CONTAINS
 
           CALL Diagonalizer(finish,ns,i,A,O,w,v)
 
-          !WRITE(6,*) 'Finished Diagonalizer with i = ', i
           IF (i < nvec) THEN
              WRITE(6,*) 'Too few eigenvalues',i,nvec
              STOP
@@ -125,10 +114,8 @@ CONTAINS
           delta=0
           DO i=1,nvec
              IF(i<=ntest) delta=delta+ABS(w(i)-eig(i))
-             !WRITE(6,'("EIGEN UPDATE", i5, 1p,4e15.7)')i,w(i),Eig(i),w(i)-Eig(i)
              Eig(i)=w(i)
           ENDDO
-          !WRITE(6,*) 'loop, delta ', iter,delta
 
           Vec=0
           DO i=1,nvec
@@ -143,11 +130,10 @@ CONTAINS
     CALL EndBlockDavidson
     WRITE(6,*) ' BlockDavidson did not converge '
 
-
   END SUBROUTINE BlockDavidson
 
-  SUBROUTINE Diagonalizer(VecSize, ArraySize, NewSize, Hbase, Obase, &
-&      Eigen,  Vec)
+
+  SUBROUTINE Diagonalizer(VecSize,ArraySize,NewSize,Hbase,Obase,Eigen,Vec)
     INTEGER,          INTENT(IN)  :: VecSize
     INTEGER,          INTENT(IN)  :: ArraySize
     INTEGER,          INTENT(OUT) :: NewSize
@@ -180,11 +166,8 @@ CONTAINS
 
     CALL DGESVD('A','A',k,k,C,k,S,U,k,VT,k,WORK,LWORK,i)
 
-    !WRITE(6,*) 'Completed SVD with i = ',i
-
     ii=0
     DO i=1,VecSize
-       !WRITE(6,*) 'i,S(i) ', i,S(i)
        IF (S(i)>tol) THEN
           ii=ii+1
        ELSE
@@ -193,7 +176,6 @@ CONTAINS
     ENDDO
     IF (ii>0) THEN
        NewSize=ii
-       !WRITE(6,*) 'NewSize = ',Newsize
     ELSE
        WRITE(6,*) 'Error in Diagonalizer -- Obase is singular '
        STOP
@@ -222,10 +204,6 @@ CONTAINS
     Work=1.e10
     Work(1:NewSize)=Eigen(1:NewSize)
     CALL Insertion_Sort(work(1:Newsize),LUT(1:Newsize),.TRUE.)
-    !DO i=1,Newsize
-    !WRITE(6,*) 'sort eig', i,LUT(i),work(LUT(i))
-    !CALL flush(6)
-    !ENDDO
     Eigen(1:Newsize)=work(LUT(1:NewSize))
     Vec=0
     DO i=1,NewSize

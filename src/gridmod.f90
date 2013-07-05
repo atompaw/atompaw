@@ -4,8 +4,7 @@ MODULE gridmod
   IMPLICIT NONE
 
   INTEGER, PARAMETER, PRIVATE :: lineargrid=1  ! r(i)=h*(i-1)
-  INTEGER, PARAMETER, PRIVATE :: loggrid=2  ! r(i)=r0*(exp(h*(i-1))-1)
-
+  INTEGER, PARAMETER, PRIVATE :: loggrid=2     ! r(i)=r0*(exp(h*(i-1))-1)
 
   TYPE GridInfo
      INTEGER :: TYPE

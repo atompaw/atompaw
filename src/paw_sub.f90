@@ -225,25 +225,24 @@ Module paw_sub
 
  END SUBROUTINE psbes
 
+ SUBROUTINE trunk(Grid,f,rstart,rend)
+   TYPE (GridInfo), INTENT(IN) :: Grid
+   REAL(8),  INTENT(INOUT) :: f(:)
+   REAL(8),  INTENT(IN) :: rstart,rend
 
-    SUBROUTINE trunk(Grid,f,rstart,rend)
-      TYPE (GridInfo), INTENT(IN) :: Grid
-      REAL(8),  INTENT(INOUT) :: f(:)
-      REAL(8),  INTENT(IN) :: rstart,rend
+   INTEGER :: i,n
+   REAL(8) :: r,delta,arg
 
-      INTEGER :: i,n
-      REAL(8) :: r,delta,arg
+   delta=rend-rstart
 
-      delta=rend-rstart
-
-      DO i=1,Grid%n
-         r=Grid%r(i)
-         IF (r>rstart .AND. r<=rend) THEN
-            arg=pi*(r-rstart)/delta
-            f(i)=f(i)*(SIN(arg)/arg)**2
-         ENDIF
-         IF (r>rend) f(i)=0
-      ENDDO
-    END SUBROUTINE trunk
+   DO i=1,Grid%n
+      r=Grid%r(i)
+      IF (r>rstart .AND. r<=rend) THEN
+         arg=pi*(r-rstart)/delta
+         f(i)=f(i)*(SIN(arg)/arg)**2
+      ENDIF
+      IF (r>rend) f(i)=0
+   ENDDO
+ END SUBROUTINE trunk
 
 END MODULE paw_sub

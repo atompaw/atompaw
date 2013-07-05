@@ -787,7 +787,7 @@ CONTAINS
     REAL(8) :: Qcore,tQcore
     LOGICAL :: even
 
-    n=Grid%n ; irc=PAW%irc; lr=min(irc+20,n)
+    n=Grid%n ; irc=PAW%irc; lr=min(irc+20,n) ; nbase=PAW%nbase
     ll=MAXVAL(PAW%TOCCWFN%l(:)); ll=MAX(ll,PAW%lmax); ll=2*ll
     ALLOCATE(arg(n),dum(n),rh(n),trh(n),d(n),td(n))
     arg=0;   dum=0
@@ -817,8 +817,6 @@ CONTAINS
     arg=dum*PAW%hatden; arg(1)=0; arg(2:n)=arg(2:n)/Grid%r(2:n)
     PAW%Eaionhat=integrator(Grid,arg)
     write(6,*) 'Eaionhat  ', PAW%Eaionhat
-
-    nbase=PAW%nbase
 
     DO ib=1,nbase
        l=PAW%l(ib)

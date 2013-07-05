@@ -20,7 +20,7 @@ Module ABINITInterface
  use pseudo
  use interpolation_mod
  use pkginfo
-!-- use libxc_mod
+ use libxc_mod
 
  implicit none
 
@@ -504,15 +504,14 @@ Module ABINITInterface
   pshead%pspxc_abinit=7
  elseif (trim(ADJUSTL(exctype))=="GGA-PBE") then
   pshead%pspxc_abinit=11
-!---- commented out by NAWH for testing new version  
-!-- else if (have_libxc) then
-!--  call libxc_getid(id)
-!--  if (id(1)>=0.and.id(2)>=0) then
-!--   pshead%pspxc_abinit=-(1000*id(1)+id(2))
-!--  else
-!--   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type !"
-!--   stop
-!--  end if
+ else if (have_libxc) then
+  call libxc_getid(id)
+  if (id(1)>=0.and.id(2)>=0) then
+   pshead%pspxc_abinit=-(1000*id(1)+id(2))
+  else
+   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type !"
+   stop
+  end if
  else
   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type !"
   stop
@@ -523,7 +522,6 @@ Module ABINITInterface
  if (gaussianshapefunction) then
   pshead%shape_type=1
   pshead%lambda=2
-  !pshead%sigma=PAW%rc_shap/SQRT(LOG(one/gaussparam))
   pshead%sigma=PAW%gausslength
  else if (besselshapefunction) then
   pshead%shape_type=3
@@ -668,8 +666,8 @@ Module ABINITInterface
  end if
  if (pawrso%userso) then
   write(std_out,'(a,2x,a,f4.1,a,f3.1,a,g6.1,a)') ch10,&
-    'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) [',&
-    pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
+&   'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) [',&
+&   pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
  else
   write(std_out,'(a,2x,a)') ch10,'No Real Space Optimization of projectors'
  end if
@@ -697,8 +695,8 @@ Module ABINITInterface
  end if
  if (loggrd%uselog) then
   write(std_out,'(a,2x,a,i3,a,f5.3,a)') ch10,&
-    'Logarithmic grid: Number of pts, logarithmic step [',&
-    loggrd_size_def,', ',loggrd_step_def,']'
+&   'Logarithmic grid: Number of pts, logarithmic step [',&
+&   loggrd_size_def,', ',loggrd_step_def,']'
  else
   write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
  end if

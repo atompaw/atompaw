@@ -11,7 +11,7 @@ Module exxdata
      INTEGER :: zero_index      ! index of most extended wave function
      INTEGER :: lmax    ! maximum l value of bound states
      REAL(8) :: betaL   ! expontial decay of zero_index wfn
-     REAL(8) :: grad2   ! Dot_Product(grad,grad) 
+     REAL(8) :: grad2   ! Dot_Product(grad,grad)
      INTEGER :: matchpoint  ! beyond this grid point use asymptotic form
      REAL(8), POINTER :: rVxref(:),coreshift(:)
      REAL(8), POINTER :: rVxKLI(:),rDVxKLI(:)

@@ -1,4 +1,5 @@
 MODULE pseudodata
+  Use gridmod
   Use atomdata
 
   IMPLICIT NONE
@@ -25,9 +26,6 @@ MODULE pseudodata
      REAL(8), POINTER :: Kop(:,:)    ! for storing K|phi>
      REAL(8), POINTER :: eig(:),occ(:),ck(:),vrc(:)
      REAL(8), POINTER :: oij(:,:),dij(:,:),wij(:,:)
-     !** L=0 matrix elements for atomic SC calculations
-     REAL(8), POINTER :: tvij(:,:),vhatij(:,:),kin(:,:)
-     REAL(8), POINTER :: v0ij(:,:),vhijkl(:,:,:,:)
      !********** modified parameters for use with KS and HF
      REAL(8), POINTER :: rVf(:),rtVf(:),g(:,:)
      REAL(8), POINTER :: Kij(:,:),Vfij(:,:),mLij(:,:,:),DR(:,:,:,:,:)
@@ -46,9 +44,66 @@ MODULE pseudodata
 
   CONTAINS
 
+    SUBROUTINE InitPAW(PAW,Grid,Orbit)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(OrbitInfo), INTENT(IN) :: Orbit
+      Type(PseudoInfo), INTENT(INOUT) :: PAW
+      INTEGER :: io,l,n,mxbase,nbase,ok
+      CALL DestroyPAW(PAW)
+!     Compute initial size of basis
+      n=Grid%n
+      nbase=0
+      DO l=0,PAW%lmax
+         DO io=1,Orbit%norbit    ! cycle through all configurations
+            IF (Orbit%l(io).EQ.l.AND.(.NOT.Orbit%iscore(io))) THEN
+               nbase=nbase+1
+            ENDIF
+         ENDDO
+      ENDDO
+      mxbase=nbase+5*max(1,PAW%lmax) !Estimate excess
+      PAW%nbase=nbase
+      WRITE(6,*) 'Found ', nbase,' valence basis functions '
+      WRITE(6,*) 'Allocating for ', mxbase, ' total basis functions'
+      ALLOCATE(PAW%projshape(n),PAW%hatden(n),PAW%hatpot(n),&
+&        PAW%hatshape(n),PAW%vloc(n),PAW%rveff(n),PAW%abinitvloc(n),&
+&        PAW%abinitnohat(n),PAW%AErefrv(n),PAW%rvx(n),PAW%trvx(n),&
+&        PAW%den(n),PAW%tden(n),PAW%core(n),PAW%tcore(n),&
+&        stat=ok)
+      IF (ok/=0) STOP 'Allocation error 1 in InitPAW'
+      PAW%projshape=0.d0;PAW%hatden=0.d0;PAW%hatpot=0.d0
+      PAW%hatshape=0.d0;PAW%vloc=0.d0;PAW%rveff=0.d0
+      PAW%abinitvloc=0.d0;PAW%abinitnohat=0.d0
+      PAW%AErefrv=0.d0;PAW%rvx=0.d0;PAW%trvx=0.d0
+      PAW%den=0.d0;PAW%tden=0.d0;PAW%core=0.d0;PAW%tcore=0.d0
+      ALLOCATE(PAW%phi(n,mxbase),PAW%tphi(n,mxbase),PAW%tp(n,mxbase),&
+&        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
+&        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
+&        PAW%ck(mxbase),PAW%vrc(mxbase),PAW%Kop(n,mxbase),PAW%rng(mxbase),&
+&        stat=ok)
+      IF (ok/=0) STOP 'Allocation error 2 in InitPAW'
+      PAW%phi=0.d0;PAW%tphi=0.d0;PAW%tp=0.d0
+      PAW%ophi=0.d0;PAW%otphi=0.d0;PAW%otp=0.d0
+      PAW%eig=0.d0;PAW%occ=0.d0;PAW%vrc=0.d0;PAW%ck=0.d0;PAW%Kop=0.d0
+      PAW%np=0;PAW%l=0
+      PAW%rng=Grid%n
+      ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),PAW%wij(mxbase,mxbase),&
+&              stat=ok)
+      IF (ok/=0) STOP 'Allocation error 3 in InitPAW'
+      PAW%oij=0.d0;PAW%dij=0.d0;PAW%wij=0.d0
+      ALLOCATE(PAW%rVf(n),PAW%rtVf(n),PAW%Kij(mxbase,mxbase),PAW%Vfij(mxbase,mxbase),&
+&              stat=ok)
+      IF (ok/=0) STOP 'Allocation error 4 in InitPAW'
+      PAW%rVf=0.d0;PAW%rtVf=0.d0;PAW%Kij=0.d0;PAW%Vfij=0.d0
+      IF (Orbit%exctype=='HF') THEN
+         ALLOCATE(PAW%lmbd(Orbit%norbit,mxbase),stat=ok)
+         IF (ok/=0) STOP 'Allocation error 5 in InitPAW'
+         PAW%lmbd=0.d0
+      ENDIF
+
+    END SUBROUTINE InitPAW
+
   Subroutine DestroyPAW(PAW)
     Type(PseudoInfo), INTENT(INOUT) :: PAW
-
     If (ASSOCIATED(PAW%vloc)) DEALLOCATE(PAW%vloc)
     If (ASSOCIATED(PAW%abinitvloc)) DEALLOCATE(PAW%abinitvloc)
     If (ASSOCIATED(PAW%abinitnohat)) DEALLOCATE(PAW%abinitnohat)
@@ -82,11 +137,6 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%oij)) DEALLOCATE(PAW%oij)
     If (ASSOCIATED(PAW%dij)) DEALLOCATE(PAW%dij)
     If (ASSOCIATED(PAW%wij)) DEALLOCATE(PAW%wij)
-    If (ASSOCIATED(PAW%tvij)) DEALLOCATE(PAW%tvij)
-    If (ASSOCIATED(PAW%vhatij)) DEALLOCATE(PAW%vhatij)
-    If (ASSOCIATED(PAW%kin)) DEALLOCATE(PAW%kin)
-    If (ASSOCIATED(PAW%v0ij)) DEALLOCATE(PAW%v0ij)
-    If (ASSOCIATED(PAW%vhijkl)) DEALLOCATE(PAW%vhijkl)
     If (ASSOCIATED(PAW%rVf)) DEALLOCATE(PAW%rVf)
     If (ASSOCIATED(PAW%rtVf)) DEALLOCATE(PAW%rtVf)
     If (ASSOCIATED(PAW%g)) DEALLOCATE(PAW%g)
@@ -105,7 +155,6 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%Dcj)) DEALLOCATE(PAW%Dcj)
     If (ASSOCIATED(PAW%OCCwfn)) Call DestroyOrbit(PAW%OCCwfn)
     If (ASSOCIATED(PAW%TOCCwfn)) Call DestroyOrbit(PAW%TOCCwfn)
-  
   End Subroutine DestroyPAW
 
 End module pseudodata

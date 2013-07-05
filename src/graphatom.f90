@@ -1,4 +1,4 @@
-PROGRAM graphatom  
+PROGRAM graphatom
   !*************************************************************
   !  program to calculate the self-consistent density functional
   !    atom ground state for atom with atomic number nz
@@ -18,8 +18,8 @@ PROGRAM graphatom
        call UpperCase(verbose)
        if (TRIM(verbose)=='VERBOSE') lotsofoutput=.true.
   endif
-  
-  
+
+
   CALL Init_GlobalConstants()
   CALL Init_SCFatom()
   CALL SCFatom('AE',lotsofoutput)

@@ -17,11 +17,11 @@
 
 module libxc_mod
 
+ use globalmath
 #if defined HAVE_LIBXC
  use xc_f90_types_m
  use libxc_funcs_m
  use xc_f90_lib_m
- use globalmath
 #endif
 
  implicit none

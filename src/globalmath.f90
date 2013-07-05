@@ -142,12 +142,11 @@ CONTAINS
        INTEGER, INTENT(IN) :: l
        REAL(8), INTENT(IN) :: val
        REAL(8), INTENT(OUT) :: jl,jlp,nl,nlp
-     
+
        REAL(8) :: x
 
        if (val<1.d-8) then
-          write(6,*) 'error in bessandneumfunc   -- argument should  be > 0', &
-               val
+          write(6,*) 'error in bessandneumfunc   -- argument should  be > 0',val
           stop
        endif
 
@@ -165,7 +164,7 @@ CONTAINS
           nlp=-3*COS(val)*(1-2.d0/val**2)/val-SIN(val)*(1-6.d0/val**2)
        else
           write(6,*) 'Error in bessandneumfunc ;  '&
-              ,'Only l<=2 has been programmed so far '
+&             ,'Only l<=2 has been programmed so far '
           stop
        endif
 
@@ -223,15 +222,19 @@ CONTAINS
     RETURN
   END SUBROUTINE mkname
 
-  SUBROUTINE linsol(a,b,kk,det)
-    REAL(8), INTENT(INOUT) :: a(:,:),b(:)
-    INTEGER, INTENT(IN) :: kk
+  SUBROUTINE linsol(a,b,kk,la,ra,lb,det)
+    INTEGER, INTENT(IN) :: kk,la,ra,lb
+    REAL(8), INTENT(INOUT) :: a(la,ra),b(lb)
     REAL(8), OPTIONAL, INTENT(OUT) :: det
 
     REAL(8) :: d,s,r
     INTEGER :: kkm,i,j,k,l,ipo,n,kmo
 
-    d = 1.00000d0
+    d = 1.d0
+    if (kk>min(la,ra,lb)) then
+       write(6,*) 'Dimension error in linsol ', la,ra,lb,kk
+       stop
+    endif
     kkm=kk-1
     IF (kkm == 0) THEN
        b(1)=b(1)/a(1,1)
@@ -286,18 +289,22 @@ CONTAINS
     ENDIF
     !write(6,*) 'determinant from linsol ' , d
     IF(ABS(d).LT.1.d-10) WRITE(6,*) '**warning from linsol --',&
-         'determinant too small --',d
-    If (present(det)) det=d     
+&        'determinant too small --',d
+    If (present(det)) det=d
   END SUBROUTINE linsol
 
-  SUBROUTINE minverse(a,kk)
-    REAL(8), INTENT(INOUT) :: a(:,:)
-    INTEGER, INTENT(IN) :: kk
+  SUBROUTINE minverse(a,kk,la,ra)
+    INTEGER, INTENT(IN) :: kk,la,ra
+    REAL(8), INTENT(INOUT) :: a(la,ra)
 
     REAL(8) :: d,s,r
-    REAL(8), ALLOCATABLE :: ai(:,:)
+    REAL(8), allocatable :: ai(:,:)
     INTEGER :: kkm,i,j,k,l,ipo,n,kmo
 
+    if (kk>min(la,ra)) then
+       write(6,*) 'Dimension error in minverse ', la,ra,kk
+       stop
+    endif
     ALLOCATE(ai(kk,kk),stat=i)
     IF (i/=0) THEN
        WRITE(6,*) 'Allocation error in minverse',i,kk
@@ -309,7 +316,7 @@ CONTAINS
        ai(i,i)=1
     ENDDO
 
-    d = 1.00000d0
+    d = 1.0d0
     kkm=kk-1
     IF (kkm == 0) THEN
        ai(1,1)=ai(1,1)/a(1,1)
@@ -367,11 +374,16 @@ CONTAINS
           ENDDO
        ENDDO
     ENDIF
-    a=ai
+    a=0.d0
+    do i=1,kk
+       do j=1,kk
+          a(i,j)=ai(i,j)
+       enddo
+    enddo
     DEALLOCATE(ai)
 
     IF(ABS(d).LT.1.d-10) WRITE(6,*) '**warning from linsol --',&
-         'determinant too small --',d
+&        'determinant too small --',d
   END SUBROUTINE minverse
 
   FUNCTION factorial(n)
@@ -464,8 +476,8 @@ CONTAINS
     CALL DATE_AND_TIME(DateStr, TimeStr)
 
     FmtStr=' ' // DateStr(5:6) // '/' // DateStr(7:8) // '/' // DateStr(1:4) // &
-         ', ' // TimeStr(1:2) // ':' // TimeStr(3:4) // ':' // &
-         TimeStr(5:10)
+&        ', ' // TimeStr(1:2) // ':' // TimeStr(3:4) // ':' // &
+&        TimeStr(5:10)
 
     WRITE(Unit, '(a,a)')  TRIM(Text), TRIM(FmtStr)
 
@@ -494,7 +506,6 @@ Subroutine PrintDateStr(text)
 
   Return
 End Subroutine
-
 
 
   FUNCTION stripchar(inputchar)
@@ -627,7 +638,7 @@ End Subroutine
      CHARACTER(*), INTENT(IN) :: in1,in2
 
      INTEGER :: i
-  
+
      checkline2=.false.
      call UpperCase(inputline)
 
@@ -1036,9 +1047,9 @@ End Subroutine
     INTEGER I,JINT
     !S    REAL
     DOUBLE PRECISION ::  &
-         A,ARG,B,C,D,DEL,FOUR,HALF,P,ONE,Q,RESULT,SIXTEN,SQRPI,  &
-         TWO,THRESH,X,XBIG,XDEN,XHUGE,XINF,XMAX,XNEG,XNUM,XSMALL,&
-         Y,YSQ,ZERO
+&        A,ARG,B,C,D,DEL,FOUR,HALF,P,ONE,Q,RESULT,SIXTEN,SQRPI,  &
+&        TWO,THRESH,X,XBIG,XDEN,XHUGE,XINF,XMAX,XNEG,XNUM,XSMALL,&
+&        Y,YSQ,ZERO
     DIMENSION A(5),B(4),C(9),D(8),P(6),Q(5)
     LOGICAL :: goto300
     !------------------------------------------------------------------
@@ -1048,15 +1059,15 @@ End Subroutine
     !S   1     SQRPI/5.6418958354775628695E-1/,THRESH/0.46875E0/,
     !S   2     SIXTEN/16.0E0/
     DATA FOUR,ONE,HALF,TWO,ZERO/4.0D0,1.0D0,0.5D0,2.0D0,0.0D0/, &
-         SQRPI/5.6418958354775628695D-1/,THRESH/0.46875D0/,      &
-         SIXTEN/16.0D0/
+&        SQRPI/5.6418958354775628695D-1/,THRESH/0.46875D0/,     &
+&        SIXTEN/16.0D0/
     !------------------------------------------------------------------
     !  Machine-dependent constants
     !------------------------------------------------------------------
     !S    DATA XINF,XNEG,XSMALL/3.40E+38,-9.382E0,5.96E-8/,
     !S   1     XBIG,XHUGE,XMAX/9.194E0,2.90E3,4.79E37/
     DATA XINF,XNEG,XSMALL/1.79D308,-26.628D0,1.11D-16/,  &
-         XBIG,XHUGE,XMAX/26.543D0,6.71D7,2.53D307/
+&        XBIG,XHUGE,XMAX/26.543D0,6.71D7,2.53D307/
     !------------------------------------------------------------------
     !  Coefficients for approximation to  erf  in first interval
     !------------------------------------------------------------------
@@ -1065,11 +1076,11 @@ End Subroutine
     !S   2       1.85777706184603153E-1/
     !S    DATA B/2.36012909523441209E01,2.44024637934444173E02,
     !S   1       1.28261652607737228E03,2.84423683343917062E03/
-    DATA A/3.16112374387056560D00,1.13864154151050156D02,  &
-         3.77485237685302021D02,3.20937758913846947D03,   &
+    DATA A/3.16112374387056560D00,1.13864154151050156D02, &
+&        3.77485237685302021D02,3.20937758913846947D03,   &
          1.85777706184603153D-1/
     DATA B/2.36012909523441209D01,2.44024637934444173D02,  &
-         1.28261652607737228D03,2.84423683343917062D03/
+&        1.28261652607737228D03,2.84423683343917062D03/
     !------------------------------------------------------------------
     !  Coefficients for approximation to  erfc  in second interval
     !------------------------------------------------------------------
@@ -1083,14 +1094,14 @@ End Subroutine
     !S   2       3.29079923573345963E03,4.36261909014324716E03,
     !S   3       3.43936767414372164E03,1.23033935480374942E03/
     DATA C/5.64188496988670089D-1,8.88314979438837594D0, &
-         6.61191906371416295D01,2.98635138197400131D02, &
-         8.81952221241769090D02,1.71204761263407058D03, &
-         2.05107837782607147D03,1.23033935479799725D03, &
-         2.15311535474403846D-8/
+&       6.61191906371416295D01,2.98635138197400131D02, &
+&        8.81952221241769090D02,1.71204761263407058D03, &
+&        2.05107837782607147D03,1.23033935479799725D03, &
+&        2.15311535474403846D-8/
     DATA D/1.57449261107098347D01,1.17693950891312499D02, &
-         5.37181101862009858D02,1.62138957456669019D03,  &
-         3.29079923573345963D03,4.36261909014324716D03,  &
-         3.43936767414372164D03,1.23033935480374942D03/
+&        5.37181101862009858D02,1.62138957456669019D03,  &
+&        3.29079923573345963D03,4.36261909014324716D03,  &
+&        3.43936767414372164D03,1.23033935480374942D03/
     !------------------------------------------------------------------
     !  Coefficients for approximation to  erfc  in third interval
     !------------------------------------------------------------------
@@ -1101,11 +1112,11 @@ End Subroutine
     !S   1       5.27905102951428412E-1,6.05183413124413191E-2,
     !S   2       2.33520497626869185E-3/
     DATA P/3.05326634961232344D-1,3.60344899949804439D-1, &
-         1.25781726111229246D-1,1.60837851487422766D-2, &
-         6.58749161529837803D-4,1.63153871373020978D-2/
+&        1.25781726111229246D-1,1.60837851487422766D-2, &
+&        6.58749161529837803D-4,1.63153871373020978D-2/
     DATA Q/2.56852019228982242D00,1.87295284992346047D00, &
-         5.27905102951428412D-1,6.05183413124413191D-2, &
-         2.33520497626869185D-3/
+&        5.27905102951428412D-1,6.05183413124413191D-2, &
+&        2.33520497626869185D-3/
     !------------------------------------------------------------------
     Goto300 = .FALSE.
     X = ARG
@@ -1282,8 +1293,7 @@ End Subroutine
     ENDIF
     LWORK=MAX(200,n*n)
 
-    ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),&
-         STAT=i)
+    ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
@@ -1336,15 +1346,14 @@ End Subroutine
     If (many<1.or.many>n) then
        Write(6,*) 'Error in SOlveAXeqBM -- n, many ', n, many
        stop
-    endif   
+    endif
     IF (n == 1) THEN
        B(1)=B(1)/A(1,1)
        RETURN
     ENDIF
     LWORK=MAX(200,n*n)
 
-    ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),&
-         STAT=i)
+    ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
@@ -1361,7 +1370,7 @@ End Subroutine
          write(6,*) 'Used SV  ',i,S(i)
           xx=DOT_PRODUCT(U(1:n,i),B(1:n))/S(i)
           X(1:n)=X(1:n)+xx*(VT(i,1:n))
-       else   
+       else
          write(6,*) 'UnUsed SV  ',i,S(i)
        ENDIF
     ENDDO
@@ -1393,8 +1402,7 @@ End Subroutine
     ENDIF
     LWORK=MAX(200,n*n)
 
-    ALLOCATE(C(n,n),X(n),WORK(LWORK),S(n),&
-         STAT=i)
+    ALLOCATE(C(n,n),X(n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
@@ -1438,8 +1446,8 @@ End Subroutine
 
     LWORK=8*n*m; LIWORK=8*MAX(n,m); kk=MIN(n,m)
     allocate (u(m,m),vt(n,n),s(kk),&
-           work(LWORK),IWORK(LIWORK) )
-    
+&         work(LWORK),IWORK(LIWORK) )
+
     s=0.d0;  u=0.d0;  vt=0.d0
     call  dgesdd('A',m,n,MN,m,s,u,m,vt,n,work,LWORK,IWORK,ok)
     write(6,*) 'dgesdd completed with info = ', ok
@@ -1455,7 +1463,7 @@ End Subroutine
        enddo
        endif
     enddo
-          
+
     deallocate (u,vt,s,work,IWORK )
   END SUBROUTINE SVDINVERSE
 
@@ -1505,10 +1513,10 @@ End Subroutine
        THRJ2=0;
     ELSE
        THRJ2 = factorial(BigJ/2)/( &
-            factorial(BigJ/2-J1) *factorial(BigJ/2-J2)*factorial(BigJ/2 - J3));
+&           factorial(BigJ/2-J1) *factorial(BigJ/2-J2)*factorial(BigJ/2 - J3));
        THRJ2 = THRJ2*THRJ2
        THRJ2=  THRJ2* ( factorial(BigJ - 2*J1)*factorial(BigJ - 2*J2)* &
-              factorial(BigJ - 2*J3)/factorial(BigJ +1) )
+&             factorial(BigJ - 2*J3)/factorial(BigJ +1) )
     ENDIF
 
   END FUNCTION THRJ2

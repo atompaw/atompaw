@@ -9,113 +9,6 @@ MODULE general_mod
 
 CONTAINS
 
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  Copy_OrbitInfo(source,copy)
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Copy_OrbitInfo(SOrbit,COrbit)
-    TYPE(OrbitInfo),INTENT(INOUT)::SOrbit
-    TYPE(OrbitInfo),INTENT(INOUT)::COrbit
-
-    INTEGER::norbit,n
-
-    COrbit%nps=SOrbit%nps
-    COrbit%npp=SOrbit%npp
-    COrbit%npd=SOrbit%npd
-    COrbit%npf=SOrbit%npf
-    COrbit%npg=SOrbit%npg
-    COrbit%norbit=SOrbit%norbit
-    COrbit%exctype=SOrbit%exctype
-
-    norbit=SOrbit%norbit ; n=SIZE(SOrbit%den,1)
-
-    ALLOCATE(COrbit%np(norbit),COrbit%l(norbit),COrbit%eig(norbit))
-    ALLOCATE(COrbit%wfn(n,norbit),COrbit%iscore(norbit),COrbit%occ(norbit))
-    ALLOCATE(COrbit%den(n))
-
-    COrbit%np(1:norbit)=SOrbit%np(1:norbit)
-    COrbit%l(1:norbit)=SOrbit%l(1:norbit)
-    COrbit%eig(1:norbit)=SOrbit%eig(1:norbit)
-    COrbit%occ(1:norbit)=SOrbit%occ(1:norbit)
-    COrbit%wfn(:,1:norbit)=SOrbit%wfn(:,1:norbit)
-    COrbit%iscore(1:norbit)=SOrbit%iscore(1:norbit)
-    COrbit%den=SOrbit%den
-
-    ! Special for HF/KLI
-    If (SOrbit%exctype == "HF".or.SOrbit%exctype == "EXXKLI") then
-        ALLOCATE(COrbit%X(n,norbit),COrbit%lqp(norbit,norbit))
-          COrbit%X(:,1:norbit)=SOrbit%X(:,1:norbit)
-          COrbit%lqp(1:norbit,1:norbit)=SOrbit%lqp(1:norbit,1:norbit)
-    Else
-        Nullify(COrbit%X)      
-        Nullify(SOrbit%X)      
-        Nullify(COrbit%lqp)      
-        Nullify(SOrbit%lqp)      
-    Endif      
-            
-  END SUBROUTINE Copy_OrbitInfo
-
-  SUBROUTINE Dealloc_OrbitInfo(COrbit)
-    TYPE(OrbitInfo),INTENT(INOUT)::COrbit
-
-    DEALLOCATE(COrbit%np,COrbit%l,COrbit%eig,COrbit%wfn,COrbit%iscore,&
-          COrbit%occ,COrbit%den)
-    If (Associated(COrbit%X)) DEALLOCATE(COrbit%X)      
-    If (Associated(COrbit%lqp)) DEALLOCATE(COrbit%lqp)      
-    
-  END SUBROUTINE Dealloc_OrbitInfo
-
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  Copy_PotentialInfo(source,copy)
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Copy_PotentialInfo(SPot,CPot)
-    TYPE(PotentialInfo),INTENT(IN)::SPot
-    TYPE(PotentialInfo),INTENT(INOUT)::CPot
-
-    INTEGER::norbit,n
-
-    CPot%nz=SPot%nz
-    CPot%sym=SPot%sym
-    CPot%q=SPot%q
-    CPot%v0=SPot%v0
-    CPot%v0p=SPot%v0p
-
-    n=SIZE(SPot%rv,1)
-    ALLOCATE(CPot%rv(n),CPot%rvn(n),CPot%rvh(n),CPot%rvx(n))
-
-    CPot%rv(1:n)=SPot%rv(1:n)
-    CPot%rvn(1:n)=SPot%rvn(1:n)
-    CPot%rvh(1:n)=SPot%rvh(1:n)
-    CPot%rvx(1:n)=SPot%rvx(1:n)
-
-  END SUBROUTINE Copy_PotentialInfo
-
-  SUBROUTINE Dealloc_PotentialInfo(CPot)
-    TYPE(PotentialInfo),INTENT(INOUT)::CPot
-
-    DEALLOCATE(CPot%rv,CPot%rvn,CPot%rvh,CPot%rvx)
-  END SUBROUTINE Dealloc_PotentialInfo
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  Copy_SCFInfo(source,copy)
-!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE Copy_SCFInfo(SSCF,CSCF)
-    TYPE(SCFInfo),INTENT(IN)::SSCF
-    TYPE(SCFInfo),INTENT(INOUT)::CSCF
-
-    CSCF%iter=SSCF%iter
-    CSCF%delta=SSCF%delta
-    CSCF%eone=SSCF%eone
-    CSCF%ekin=SSCF%ekin
-    CSCF%ecoul=SSCF%ecoul
-    CSCF%estatic=SSCF%estatic
-    CSCF%eexc=SSCF%eexc
-    CSCF%etot=SSCF%etot
-    CSCF%valekin=SSCF%valekin
-    CSCF%valecoul=SSCF%valecoul
-    CSCF%valeexc=SSCF%valeexc
-    CSCF%corekin=SSCF%corekin
-    CSCF%evale=SSCF%evale
-  END SUBROUTINE Copy_SCFInfo  
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
   !      Given new potential rvin, generate new Orbit%wfn,Orbit%eig,Pot%den
@@ -131,15 +24,14 @@ CONTAINS
     !  program to calculate wavefunctions given potential rvin
 
     INTEGER :: icount,i,j,k,n,it,start,np,ierr,nroot,s1,s2
-    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr,nz
-    REAL(8) :: h,emin
+    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr
+    REAL(8) :: h,emin,nz
     REAL(8), ALLOCATABLE :: dum(:)
     LOGICAL :: OK
 
     n=Grid%n; h=Grid%h;    nz=Pot%nz
     success=.TRUE.
 
-    
     allocate(dum(n))
 
     Pot%rv=rvin
@@ -164,7 +56,7 @@ CONTAINS
           CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-               l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
           IF (.NOT.OK) THEN
              success=.FALSE.
              RETURN
@@ -184,7 +76,7 @@ CONTAINS
        ELSE
     !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-               l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
           IF (.NOT.OK) THEN
              success=.FALSE.
              RETURN
@@ -204,7 +96,7 @@ CONTAINS
        ELSE
     !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-               l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
           IF (.NOT.OK) THEN
              success=.FALSE.
              RETURN
@@ -224,7 +116,7 @@ CONTAINS
        ELSE
     !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-               l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
           IF (.NOT.OK) THEN
              success=.FALSE.
              RETURN
@@ -243,7 +135,7 @@ CONTAINS
           CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-               l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
        ENDIF
        IF (.NOT.OK) THEN
           success=.FALSE.
@@ -266,13 +158,13 @@ CONTAINS
     LOGICAL, OPTIONAL :: noalt
 
     REAL(8) :: ecoul,eex,etot,ekin,eone,h,x,v0,qcal,etxc,small,rescale,electrons
-    INTEGER :: icount,i,j,k,l,m,n,io,norbit
+    INTEGER :: icount,i,j,k,l,m,n,io
     REAL(8), ALLOCATABLE :: dum(:)
     REAL(8) :: small0=1.d-6
     INTEGER :: counter=1
 
 
-    n=Grid%n; h=Grid%h;   norbit=Orbit%norbit
+    n=Grid%n; h=Grid%h
     small=small0
 
     ALLOCATE(dum(n),STAT=k)
@@ -283,7 +175,7 @@ CONTAINS
 
     !update density
     Orbit%den(1:n)=0.d0
-    DO io=1,norbit
+    DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
           DO i=1,n
              IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
@@ -295,13 +187,13 @@ CONTAINS
     qcal=integrator(Grid,Orbit%den)
     !WRITE(6,*) 'qcal = ', qcal
 
-    ! for FC, Big change here , electrons are total , not valence anymore! 
+    ! for FC, Big change here , electrons are total , not valence anymore!
     electrons=Pot%q
     rescale=electrons/qcal
     Orbit%den(1:n)=Orbit%den(1:n)*rescale
     !WRITE(6,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
 
-    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)     
+    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
 
     dum=0
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
@@ -310,16 +202,15 @@ CONTAINS
     !WRITE(6,*) ' n  l     occupancy       energy'
     ekin=0.0d0 ; if (frozencorecalculation) ekin=SCF%corekin
     eone=0.0d0
-    DO io=1,norbit
+    DO io=1,Orbit%norbit
        if(.not.frozencorecalculation &
-            .or.frozencorecalculation.and.(.not.Orbit%iscore(io))) then
-         !WRITE(6,'(i2,1x,i2,4x,1p2e15.7)') &
-         !   Orbit%np(io),Orbit%l(io),&
-         !   Orbit%occ(io),Orbit%eig(io)
+&          .or.frozencorecalculation.and.(.not.Orbit%iscore(io))) then
+         !WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') &
+         !&  Orbit%np(io),Orbit%l(io),&
+         !&  Orbit%occ(io),Orbit%eig(io)
          eone=eone+Orbit%occ(io)*Orbit%eig(io)
          IF (counter>1.and..not.present(noalt)) THEN
-            CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io)&
-                 ,Pot%rv,x)
+            CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
          ELSE
             CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
          ENDIF
@@ -336,7 +227,7 @@ CONTAINS
   END SUBROUTINE Get_KinCoul
 
   SUBROUTINE Get_FCKinCoul(Grid,Pot,Orbit,FC,SCF,noalt)
-    !  program to calculate Frozencore part of 
+    !  program to calculate Frozencore part of
     !    Kinetic energy and Coulomb Energies from Orbit%wfn
     !  Valence energy defined in paper --
     !    U. von Barth and C. D. Gelatt, Phys. Rev. B 21, 2222(1980)
@@ -349,12 +240,12 @@ CONTAINS
     LOGICAL, OPTIONAL :: noalt
 
     REAL(8) :: tv,tc,x,y,electrons,vcoul,ccoul,vnucl,rescale
-    INTEGER :: icount,i,j,k,l,m,n,io,norbit
+    INTEGER :: icount,i,j,k,l,m,n,io
     REAL(8), ALLOCATABLE :: dum(:)
     REAL(8) :: qcal,small,small0=1.d-6
     INTEGER :: firsttime=0
 
-    n=Grid%n;   norbit=Orbit%norbit
+    n=Grid%n
     small=small0
 
     ALLOCATE(dum(n),STAT=k)
@@ -363,22 +254,21 @@ CONTAINS
        STOP
     ENDIF
 
-    
+
      write(6,*) 'In Get_FCKinCoul ', firsttime
     !update density  and calculated  kinetic energy
     Orbit%den(1:n)=0.d0
     FC%valeden(1:n)=0.d0     ;   tv=0 ; tc=0; SCF%eone=0
-    DO io=1,norbit
+    DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
           If(Orbit%iscore(io)) THEN
             If (firsttime==0) then
               If(present(noalt)) then
                   CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
               else
-                  CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io)&
-                     ,Pot%rv,x)
+                  CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
               endif
-              tc=tc+Orbit%occ(io)*x      
+              tc=tc+Orbit%occ(io)*x
             Endif
           Else
               FC%valeden(:)=FC%valeden(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)
@@ -391,7 +281,7 @@ CONTAINS
     ENDDO
 
     write(6,*) 'eone = ', SCF%eone
- 
+
     if (firsttime==0) SCF%corekin=tc
     firsttime=1
     SCF%valekin=tv
@@ -408,8 +298,7 @@ CONTAINS
     x=FC%zvale
     CALL poisson(Grid,x,FC%valeden,dum,vcoul,y)  !valence-valence
 
-    dum(2:n)=(dum(2:n)*FC%coreden(2:n)+Pot%rvn(2:n)*FC%valeden(2:n)) &
-                /Grid%r(2:n)
+    dum(2:n)=(dum(2:n)*FC%coreden(2:n)+Pot%rvn(2:n)*FC%valeden(2:n))/Grid%r(2:n)
     dum(1)=0.d0
     SCF%valecoul=vcoul+integrator(Grid,dum)
 
@@ -428,8 +317,8 @@ CONTAINS
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(INOUT) :: Pot
 
-    INTEGER :: n,nz
-    REAL(8) :: h,q,v0,v0p
+    INTEGER :: n
+    REAL(8) :: h,q,nz,v0,v0p
     REAL(8) :: r,RR
     INTEGER :: i,j,k
 
@@ -450,24 +339,23 @@ CONTAINS
     TYPE(GridInfo) ,INTENT(IN):: Grid
     TYPE(OrbitInfo) ,INTENT(INOUT):: Orbit
 
-    Integer :: l,lmax,norbit,many,io,n
+    Integer :: l,lmax,many,io,n
     REAL(8), ALLOCATABLE :: wfn(:,:)
 
     lmax=MAXVAL(Orbit%l)
-    norbit=Orbit%norbit
     n=Grid%n
-    allocate (wfn(n,norbit))
+    allocate (wfn(n,Orbit%norbit))
 
     lmax=MAXVAL(Orbit%l)
     DO l=0,lmax
        wfn=0;many=0
-       DO io=1,norbit
+       DO io=1,Orbit%norbit
           IF(Orbit%l(io)==l) THEN
             if (frozencorecalculation.AND.Orbit%iscore(io)) then
                many=many+1
                wfn(:,many)=Orbit%wfn(:,io)
             else
-               CALL gramschmidt(Grid,many,wfn,Orbit%wfn(:,io))   
+               CALL gramschmidt(Grid,many,wfn,Orbit%wfn(:,io))
                many=many+1
                Orbit%wfn(:,io)=wfn(:,many)
                CALL ADJUSTSIGN(Orbit%wfn(:,io),3)
@@ -521,7 +409,7 @@ CONTAINS
 !       If (j<n+1) then
 !            Orbit%wfn(j:n,io)=0.d0
 !            write(6,*) 'Adjusted orbit ', io,'  at r = ', &
-!                   Grid%r(j), Orbit%wfn(j-1,io)
+!&                  Grid%r(j), Orbit%wfn(j-1,io)
 !       endif
 !     else
 !       do io=1,Orbit%norbit
@@ -540,7 +428,7 @@ CONTAINS
 !       enddo
 !     endif
 !  END SUBROUTINE Adjustnodes
-!             
+!
 
 END  MODULE general_mod
 

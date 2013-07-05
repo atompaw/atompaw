@@ -1,6 +1,6 @@
 MODULE BlockDavidson_mod
-  USE search_sort
   USE globalmath
+  USE search_sort
   IMPLICIT NONE
 
 
@@ -27,7 +27,7 @@ CONTAINS
     !CALL flush(6)
 
     ALLOCATE(A(ns,ns),O(ns,ns),w(ns),v(ns,ns), &
-         f(ndim,ns),hv(ndim),ov(ndim), stat=i)
+&        f(ndim,ns),hv(ndim),ov(ndim), stat=i)
     IF (i/=0) THEN
        WRITE(6,*) 'Error in InitBlock...', ns,ndim,i
        STOP
@@ -71,7 +71,7 @@ CONTAINS
        CALL shift4(v1,v2,v3,v4,delta)
        IF (iter>=4.AND.(v4<eps.AND.v4>v3))THEN
           !WRITE(6,*) 'returning from Block Davidson with ', &
-          !     'iter, delta = ', iter,delta
+          !&    'iter, delta = ', iter,delta
           CALL EndBlockDavidson
           RETURN
 
@@ -100,9 +100,9 @@ CONTAINS
 
           !open (8,file='starting', form='formatted')
           !do i=1,Size(hv)
-          !   write(8,'(i5, 1p50e15.7)') i,(f(i,j),j=1,finish)
+          !   write(8,'(i5, 1p,50e15.7)') i,(f(i,j),j=1,finish)
           !enddo
-          !close(8) 
+          !close(8)
           !stop
 
           A=0; O=0
@@ -125,7 +125,7 @@ CONTAINS
           delta=0
           DO i=1,nvec
              IF(i<=ntest) delta=delta+ABS(w(i)-eig(i))
-             !WRITE(6,'("EIGEN UPDATE", i5, 1p4e15.7)')i,w(i),Eig(i),w(i)-Eig(i)
+             !WRITE(6,'("EIGEN UPDATE", i5, 1p,4e15.7)')i,w(i),Eig(i),w(i)-Eig(i)
              Eig(i)=w(i)
           ENDDO
           !WRITE(6,*) 'loop, delta ', iter,delta
@@ -147,7 +147,7 @@ CONTAINS
   END SUBROUTINE BlockDavidson
 
   SUBROUTINE Diagonalizer(VecSize, ArraySize, NewSize, Hbase, Obase, &
-       Eigen,  Vec)
+&      Eigen,  Vec)
     INTEGER,          INTENT(IN)  :: VecSize
     INTEGER,          INTENT(IN)  :: ArraySize
     INTEGER,          INTENT(OUT) :: NewSize
@@ -199,16 +199,16 @@ CONTAINS
        STOP
     ENDIF
 
-    C=0 ; 
+    C=0 ;
     DO i=1,NewSize
        DO j=1,Newsize
-          C(i,j)=C(i,j)+& 
-               DOT_PRODUCT(U(:,i),MATMUL(Hbase,VT(j,:)))/S(i)     
+          C(i,j)=C(i,j)+&
+&              DOT_PRODUCT(U(:,i),MATMUL(Hbase,VT(j,:)))/S(i)
        ENDDO
     ENDDO
 
     CALL DGEEV('N', 'V', NewSize, C(1,1), ArraySize, Eigen, &
-         S, U, ArraySize, U, ArraySize, Work, LWork, Info)
+&        S, U, ArraySize, U, ArraySize, Work, LWork, Info)
 
     !WRITE(6,*) ' completed Hmat diagonalization with Info=',Info
     !WRITE(6,*) 'h ', Eigen(1:NewSize)
@@ -221,7 +221,7 @@ CONTAINS
 
     Work=1.e10
     Work(1:NewSize)=Eigen(1:NewSize)
-    CALL Insertion_Sort(work(1:Newsize),LUT(1:Newsize),.TRUE.) 
+    CALL Insertion_Sort(work(1:Newsize),LUT(1:Newsize),.TRUE.)
     !DO i=1,Newsize
     !WRITE(6,*) 'sort eig', i,LUT(i),work(LUT(i))
     !CALL flush(6)
@@ -230,7 +230,7 @@ CONTAINS
     Vec=0
     DO i=1,NewSize
        Vec(1:VecSize,i)=&
-            MATMUL(TRANSPOSE(VT(1:NewSize,1:VecSize)),U(1:NewSize,LUT(i)))
+&           MATMUL(TRANSPOSE(VT(1:NewSize,1:VecSize)),U(1:NewSize,LUT(i)))
     ENDDO
 
     DEALLOCATE(C,U,VT,WORK,S,LUT)

@@ -70,7 +70,7 @@ CONTAINS
          t(4,i)=m(i)*(m(i)-1)*(m(i)-2)
       ENDDO
       n=4
-      CALL linsol(t,Coef,n)
+      CALL linsol(t,Coef,n,4,4,4)
     END SUBROUTINE EvaluateP
 
     !***************************************************************
@@ -104,11 +104,11 @@ CONTAINS
          t(6,1)=2*Coef10;  t(6,2)=2*l+5
 
          n=6
-         CALL linsol(t,Coef,n)
+         CALL linsol(t,Coef,n,6,6,6)
 
          old=Coef10; Coef10=Coef10+Coef(1)
-         !WRITE(6,'("EvaluateTp: iter",i5,1p2e15.7)') iter,Coef(1),Coef10
-         !WRITE(6,'("Coef: ",1p6e15.7)')Coef10,(Coef(i),i=2,6)
+         !WRITE(6,'("EvaluateTp: iter",i5,1p,2e15.7)') iter,Coef(1),Coef10
+         !WRITE(6,'("Coef: ",1p,6e15.7)')Coef10,(Coef(i),i=2,6)
          Coef(1)=Coef10
       ENDDO
 
@@ -212,7 +212,7 @@ CONTAINS
 
     REAL(8) :: x,y
 
-    !   Orthogonalize 
+    !   Orthogonalize
     x=genoverlap(Grid,PAW,nr,l,wfn1,wfn2)
     y=genoverlap(Grid,PAW,nr,l,wfn2,wfn2)
 
@@ -254,8 +254,8 @@ CONTAINS
     IF (besselshapefunction) THEN
        CALL shapebes(al,ql,l,PAW%rc_shap)
        DO i=1,PAW%irc_shap
-          qr=ql(1)*r(i);CALL jbessel(jbes1,dum1,dum2,0,0,qr)
-          qr=ql(2)*r(i);CALL jbessel(jbes2,dum1,dum2,0,0,qr)
+          qr=ql(1)*r(i);CALL jbessel(jbes1,dum1,dum2,l,0,qr)
+          qr=ql(2)*r(i);CALL jbessel(jbes2,dum1,dum2,l,0,qr)
           den(i)=(al(1)*jbes1+al(2)*jbes2)*r(i)**2
        ENDDO
        IF (n>PAW%irc_shap) den(PAW%irc_shap+1:n)=0.d0
@@ -268,13 +268,15 @@ CONTAINS
        den=den/con
     ENDIF
 
-    vhat=0
+    a(1:n)=den(1:n)*(r(1:n)**l)
+    write(6,*) 'hatpotL check l ', l,integrator(Grid,a)
 
+    vhat=0
     CALL apoisson(Grid,l,n,den,vhat(1:n))
 
     ! apoisson returns vhat*r
     !DO i=1,n
-    !   WRITE (78+l,'(i5,1p5e15.7)') i,Grid%r(i),den(i),vhat(i)
+    !   WRITE (78+l,'(i5,1p,5e15.7)') i,Grid%r(i),den(i),vhat(i)
     !ENDDO
     vhat(2:n)=vhat(2:n)/r(2:n)
     CALL extrapolate(Grid,vhat)
@@ -453,7 +455,7 @@ CONTAINS
     angm=l*(l+1)
     DO i=2,irc
        dum(i)=dum(i)+PAW%otphi(i,ib)*(tdel2(i)-&
-            angm*PAW%otphi(i,ic)/(Grid%r(i)**2))
+&           angm*PAW%otphi(i,ic)/(Grid%r(i)**2))
     ENDDO
     tij=integrator(Grid,dum,1,irc)
 
@@ -464,7 +466,8 @@ CONTAINS
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PseudoInfo), INTENT(IN) :: PAW
     TYPE(FCInfo), INTENT(IN) :: FC
-    INTEGER, INTENT(IN) :: nz,ib,ic
+    INTEGER, INTENT(IN) :: ib,ic
+    REAL(8), INTENT(IN) :: nz
     REAL(8), INTENT(OUT) :: vij
 
     INTEGER :: n,i,ok,irc
@@ -491,7 +494,7 @@ CONTAINS
     dum(1)=0
     DO i=2,irc
        dum(i)=PAW%ophi(i,ib)*PAW%ophi(i,ic)*dum(i)/r(i)-&
-            PAW%otphi(i,ib)*PAW%otphi(i,ic)*(PAW%vloc(i)+d1(i)/r(i))
+&           PAW%otphi(i,ib)*PAW%otphi(i,ic)*(PAW%vloc(i)+d1(i)/r(i))
     ENDDO
     vij=integrator(Grid,dum,1,irc)
 
@@ -521,7 +524,7 @@ CONTAINS
     dum(1)=0
     DO i=2,irc
        dum(i)=(PAW%ophi(i,ib)*PAW%ophi(i,ic)*PAW%AErefrv(i)-&
-            PAW%otphi(i,ib)*PAW%otphi(i,ic)*PAW%rveff(i))/r(i)
+&           PAW%otphi(i,ib)*PAW%otphi(i,ic)*PAW%rveff(i))/r(i)
     ENDDO
     vij=integrator(Grid,dum,1,irc)
 
@@ -561,7 +564,7 @@ CONTAINS
     ENDDO
     DEALLOCATE(bm)
   END SUBROUTINE calcwij
-  
+
   SUBROUTINE FillHat(Grid,PAW)
     TYPE(GridInfo) , INTENT(IN):: Grid
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
@@ -580,7 +583,7 @@ CONTAINS
   END SUBROUTINE FillHat
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_Energy_EXX_smoothpseudo             !!!!	
+  !!  Get_Energy_EXX_smoothpseudo             !!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_Energy_EXX_pseudo(Grid,PAW,eex)
     TYPE(gridinfo), INTENT(IN) :: Grid
@@ -624,8 +627,8 @@ CONTAINS
                    IF (wgt>threshold) THEN
                       wgt=wgt*(2*ll+1)   ! because of apoisson convention
                       call Calc_Moment(Grid,PAW,phi(1:n,io),phi(1:n,jo),&
-                              li,lj,ll,dum)
-                      ddum=wfp+dum 
+&                             li,lj,ll,dum)
+                      ddum=wfp+dum
                       CALL apoisson(Grid,ll,n,ddum,dum)
                       CALL apoisson(Grid,ll,n,ar,ch)
                       ddum(2:n)=(dum(2:n)*ddum(2:n))/r(2:n)
@@ -686,7 +689,7 @@ CONTAINS
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_Energy_EXX_onecenter_pseudo             !!!!	
+  !!  Get_Energy_EXX_onecenter_pseudo             !!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_Energy_EXX_pseudo_one(Grid,PAW,eex)
     TYPE(gridinfo), INTENT(IN) :: Grid
@@ -752,18 +755,18 @@ CONTAINS
 
        write(6,*) 'Get_Energy_EXX_pseudo_one val-val: ', eex
 
-       If   (PAW%ncoreshell>0) then     
+       If   (PAW%ncoreshell>0) then
          do k=1,PAW%ncoreshell
             do ib=1,nbasis
                do jb=1,nbasis
                   if (PAW%l(ib)==PAW%l(jb)) then
                       eex=eex-PAW%wij(ib,jb)*PAW%DRVC(k,ib,jb)
                   endif
-               enddo   
+               enddo
             enddo
          enddo
          write(6,*) 'Get_Energy_EXX_pseudo_one corrected: ', eex
-        endif       
+        endif
   END SUBROUTINE Get_Energy_EXX_pseudo_one
 
 
@@ -778,7 +781,7 @@ CONTAINS
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
 
     INTEGER :: io,jo,ko,lo,ll,lmax,i,j,k,l,n,norbit,nbase,ib,jb,kb,lb,irc
-    INTEGER :: llmin, llmax,lp,lr,ishft
+    INTEGER :: llmin, llmax,lp,lr
     REAL(8), ALLOCATABLE :: arg(:),dum(:),rh(:),trh(:),d(:),td(:)
     REAL(8) :: x,y,z,rr
     REAL(8) :: Qcore,tQcore
@@ -786,406 +789,395 @@ CONTAINS
 
     n=Grid%n ; irc=PAW%irc; lr=min(irc+20,n)
     ll=MAXVAL(PAW%TOCCWFN%l(:)); ll=MAX(ll,PAW%lmax); ll=2*ll
-
-!    ALLOCATE(PAW%rVf(n),PAW%rtVf(n),PAW%g(n,ll+1))
-    ALLOCATE(PAW%rVf(n),PAW%rtVf(n))
     ALLOCATE(arg(n),dum(n),rh(n),trh(n),d(n),td(n))
     arg=0;   dum=0
-
-    PAW%rVf=0;  PAW%rtVf=0; !PAW%g=0
+    ALLOCATE(PAW%mLij(nbase,nbase,ll+1),PAW%DR(nbase,nbase,nbase,nbase,ll+1))
+    PAW%mLij=0.d0;PAW%DR=0.d0
 
     CALL poisson(Grid,Qcore,PAW%core,dum,y)
     PAW%rVf=-2*Pot%nz+dum
 
     CALL poisson(Grid,tQcore,PAW%tcore,dum,y)
-	PAW%rtVf=Grid%r*PAW%vloc + dum + &
-	(-Pot%nz + Qcore - tQcore)*PAW%hatpot
-	!DO l=0,ll
+        PAW%rtVf=Grid%r*PAW%vloc + dum + &
+&       (-Pot%nz + Qcore - tQcore)*PAW%hatpot
+        !DO l=0,ll
         !      CALL hatL(Grid,PAW,l,PAW%g(:,l+1))
-	!ENDDO
+        !ENDDO
 
-	OPEN(1001,file='rvf',form='formatted')
-	DO i=1,n
-	WRITE(1001,'(1p30e15.7)') Grid%r(i),PAW%rVf(i),PAW%rtVf(i),&
-            PAW%hatpot(i), PAW%hatden(i),(PAW%g(i,l+1),l=0,ll)
-	ENDDO
-        CLOSE(1001)
+    OPEN(1001,file='rvf',form='formatted')
+    DO i=1,n
+      WRITE(1001,'(1p,30e15.7)') Grid%r(i),PAW%rVf(i),PAW%rtVf(i),&
+&       PAW%hatpot(i), PAW%hatden(i),(PAW%g(i,l+1),l=0,ll)
+    ENDDO
+    CLOSE(1001)
 
-      arg=PAW%tcore+(-Pot%nz + Qcore - tQcore)*PAW%hatden
-      CALL poisson(Grid,y,arg,dum,PAW%Eaion)
-      write(6,*) 'Eaion  ', y, PAW%Eaion
-      arg=dum*PAW%hatden; arg(1)=0; arg(2:n)=arg(2:n)/Grid%r(2:n)
-      PAW%Eaionhat=integrator(Grid,arg)
-      write(6,*) 'Eaionhat  ', PAW%Eaionhat
+    arg=PAW%tcore+(-Pot%nz + Qcore - tQcore)*PAW%hatden
+    CALL poisson(Grid,y,arg,dum,PAW%Eaion)
+    write(6,*) 'Eaion  ', y, PAW%Eaion
+    arg=dum*PAW%hatden; arg(1)=0; arg(2:n)=arg(2:n)/Grid%r(2:n)
+    PAW%Eaionhat=integrator(Grid,arg)
+    write(6,*) 'Eaionhat  ', PAW%Eaionhat
 
-	nbase=PAW%nbase
-	ALLOCATE(PAW%Kij(nbase,nbase),PAW%Vfij(nbase,nbase),&
-	  PAW%mLij(nbase,nbase,ll+1),PAW%DR(nbase,nbase,nbase,nbase,ll+1))
-	PAW%Kij=0; PAW%mLij=0;  PAW%DR=0
+    nbase=PAW%nbase
 
-	DO ib=1,nbase
-           l=PAW%l(ib)
-	   DO jb=1,nbase
-	     IF (PAW%l(jb)==l) THEN
-	     !CALL kinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb),l,x,lr)
-             !CALL kinetic_ij(Grid,PAW%otphi(:,ib),PAW%otphi(:,jb),l,y,lr)
-	     CALL deltakinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb), &
-                PAW%otphi(:,ib),PAW%otphi(:,jb),l,x,PAW%irc)
-	     WRITE(6,'(" Kinetic ", 3i5, 1p3e15.7)') ib,jb,l,x
-	     PAW%Kij(ib,jb)=x
-	     dum=PAW%ophi(:,ib)*PAW%ophi(:,jb)*PAW%rVf - &
-	     PAW%otphi(:,ib)*PAW%otphi(:,jb)*PAW%rtVf
-             dum(2:n)=dum(2:n)/Grid%r(2:n)
-	     dum(1)=0
-             PAW%VFij(ib,jb)=integrator(Grid,dum,1,lr)
-	     WRITE(6,'(" Fix pot ", 3i5, 1p3e15.7)') ib,jb,l,PAW%VFij(ib,jb)
-	     ENDIF
-	   ENDDO
-	ENDDO
-
-	! Average equivalent terms
-	DO ib=1,nbase
-	DO jb=ib,nbase
-	IF(jb>ib) THEN
-	x=PAW%Kij(ib,jb); y=PAW%Kij(jb,ib)
-       x=0.5d0*(x+y)
-	PAW%Kij(ib,jb)=x; PAW%Kij(jb,ib)=x
-	x=PAW%VFij(ib,jb); y=PAW%VFij(jb,ib)
-        x=0.5d0*(x+y)
-	PAW%VFij(ib,jb)=x; PAW%VFij(jb,ib)=x
-	ENDIF
-	ENDDO
-	ENDDO
-
-	DO ib=1,nbase
-	DO jb=1,nbase
-	llmin=ABS(PAW%l(ib)-PAW%l(jb))
-        llmax=PAW%l(ib)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	DO i=1,irc
-           rr=Grid%r(i)
-	   dum(i)=(rr**l)*(PAW%ophi(i,ib)*PAW%ophi(i,jb) &
-			-PAW%otphi(i,ib)*PAW%otphi(i,jb))
-	ENDDO
-        PAW%mLij(ib,jb,l+1)=integrator(Grid,dum,1,irc)
-	WRITE(6,'("mLij ",3i5,1pe15.7)') ib,jb,l,PAW%mLij(ib,jb,l+1)
-	ENDDO
-	ENDDO
-	ENDDO
-
-	! Average equivalent terms
-	DO ib=1,nbase
-	DO jb=ib,nbase
-	IF (jb>ib) THEN
-	llmin=ABS(PAW%l(ib)-PAW%l(jb))
-        llmax=PAW%l(ib)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	x=PAW%mLij(ib,jb,l+1); y=PAW%mLij(jb,ib,l+1)
-        x=0.5d0*(x+y)
-	PAW%mLij(ib,jb,l+1)=x; PAW%mLij(jb,ib,l+1)=x
-	ENDDO
-	ENDIF
-	ENDDO
-	ENDDO
-
-	WRITE(6,*) 'DR matrix elements '
-	DO ib=1,nbase
-	DO jb=1,nbase
-	d=PAW%ophi(:,ib)*PAW%ophi(:,jb)
-	td=PAW%otphi(:,ib)*PAW%otphi(:,jb)
-	llmin=ABS(PAW%l(ib)-PAW%l(jb))
-        llmax=PAW%l(ib)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	CALL apoisson(Grid,l,lr,d,rh)
-	arg=td+PAW%mLij(ib,jb,l+1)*PAW%g(:,l+1)
-        CALL apoisson(Grid,l,lr,arg,trh)
-	DO kb=1,nbase
-	DO lb=1,nbase
-        lp=llmax+PAW%l(kb)+PAW%l(lb)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
-			l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
-	arg=PAW%otphi(:,kb)*PAW%otphi(:,lb)+&
-        PAW%mLij(kb,lb,l+1)*PAW%g(:,l+1)
-	dum(1:lr)=PAW%ophi(1:lr,kb)*PAW%ophi(1:lr,lb)*rh(1:lr)&
-                   - arg(1:lr)*trh(1:lr)
-	dum(1)=0; dum(2:lr)=dum(2:lr)/Grid%r(2:lr)
-        PAW%DR(ib,jb,kb,lb,l+1)=integrator(Grid,dum,1,lr)
-        !if (abs(PAW%DR(ib,jb,kb,lb,l+1))>100.d0) then
-        !   write(6,*) 'problem', ib,jb,kb,lb,l+1,PAW%DR(ib,jb,kb,lb,l+1),&
-        !        PAW%mLij(kb,lb,l+1)
-        !   open(unit=1001,file='stuff',form='formatted')
-        !   do i=1,lr
-        !      write(1001,'(1p20e15.7)') &
-        !       Grid%r(i),PAW%ophi(i,kb),PAW%ophi(i,lb), &
-        !         PAW%otphi(i,kb),PAW%otphi(i,lb),PAW%g(i,l+1),rh(i),trh(i)
-        !   enddo
-        !  close(1001)
-        !  stop
-        ! endif
-	WRITE(6,'(5i5,1pe20.10)') ib,jb,kb,lb,l, &
-        PAW%DR(ib,jb,kb,lb,l+1)
-	ENDIF
-	ENDDO  !lb
-	ENDDO  !kb
-	ENDDO  !l
-	ENDDO   !jb
-	ENDDO    !ib
-
-	! Average equivalent terms
-	DO ib=1,nbase
-	DO jb=ib,nbase
-	llmin=ABS(PAW%l(ib)-PAW%l(jb))
-        llmax=PAW%l(ib)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	DO kb=1,nbase
-	DO lb=kb,nbase
-        lp=llmax+PAW%l(kb)+PAW%l(lb)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
-			l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
-	arg(1)=PAW%DR(ib,jb,kb,lb,l+1)
-	arg(2)=PAW%DR(ib,jb,lb,kb,l+1)
-	arg(3)=PAW%DR(jb,ib,kb,lb,l+1)
-	arg(4)=PAW%DR(jb,ib,lb,kb,l+1)
-        x=0.25d0*(arg(1)+arg(2)+arg(3)+arg(4))
-	PAW%DR(ib,jb,kb,lb,l+1)=x
-	PAW%DR(ib,jb,lb,kb,l+1)=x
-	PAW%DR(jb,ib,kb,lb,l+1)=x
-	PAW%DR(jb,ib,lb,kb,l+1)=x
-	ENDIF
-	ENDDO  !lb
-	ENDDO  !kb
-	ENDDO  !l
-	ENDDO   !jb
-	ENDDO    !ib
-
-        If (TRIM(PAW%exctype)=="EXXKLI".OR.TRIM(PAW%exctype)=="HF") &
-                  Call COREVAL_EXX(Grid,PAW)
-
-	IF (TRIM(PAW%exctype)=="HF") THEN
-	norbit=PAW%TOCCWFN%norbit
-	ALLOCATE(PAW%mLic(nbase,norbit,ll+1),PAW%DRC(nbase,nbase,norbit,ll+1),&
-	PAW%mLcc(norbit,norbit,ll+1),PAW%DRCC(nbase,norbit,norbit,ll+1),&
-	PAW%DRCjkl(norbit,nbase,nbase,nbase,ll+1),&
-	PAW%Dcj(norbit,nbase),PAW%TOCCWFN%lqp(norbit,norbit))
-	PAW%mLic=0; PAW%DRC=0; PAW%mLcc=0;   PAW%DRCC=0;   PAW%Dcj=0;
-	PAW%DRCjkl=0; PAW%TOCCWFN%lqp=0
-
-        lr=MAX(lr,PAW%coretailpoints)
-        write(6,*) 'lr for core treatment ', lr
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO jb=1,nbase
-	llmin=ABS(PAW%TOCCWFN%l(io)-PAW%l(jb))
-        llmax=PAW%TOCCWFN%l(io)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	DO i=1,n
-        rr=Grid%r(i)
-	dum(i)=(rr**l)*(PAW%OCCWFN%wfn(i,io)*PAW%ophi(i,jb) &
-			-PAW%TOCCWFN%wfn(i,io)*PAW%otphi(i,jb))
-	ENDDO
-        PAW%mLic(jb,io,l+1)=integrator(Grid,dum,1,lr)
-	WRITE(6,'("mLic ",3i5,1pe15.7)') jb,io,l,PAW%mLic(jb,io,l+1)
-	ENDDO
-	ENDDO
-	ENDIF
-	ENDDO
-
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO jo=1,norbit
-	IF (PAW%TOCCWFN%iscore(jo)) THEN
-	llmin=ABS(PAW%TOCCWFN%l(io)-PAW%TOCCWFN%l(jo))
-        llmax=PAW%TOCCWFN%l(io)+PAW%TOCCWFN%l(jo)
-	DO l=llmin,llmax,2
-	DO i=1,n
-        rr=Grid%r(i)
-	dum(i)=(rr**l)*&
-	(PAW%OCCWFN%wfn(i,io)*PAW%OCCWFN%wfn(i,jo) &
-	 -PAW%TOCCWFN%wfn(i,io)*PAW%TOCCWFN%wfn(i,jo))
-	ENDDO
-        PAW%mLcc(jo,io,l+1)=integrator(Grid,dum,1,lr)
-	WRITE(6,'("mLcc ",3i5,1pe15.7)') jo,io,l,&
-        PAW%mLcc(jo,io,l+1)
-	ENDDO
-	ENDIF
-	ENDDO
-	ENDIF
-	ENDDO
-
-	WRITE(6,*) 'DRC matrix elements '
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO ib=1,nbase
-	d=PAW%ophi(:,ib)*PAW%OCCWFN%wfn(:,io)
-	td=PAW%otphi(:,ib)*PAW%TOCCWFN%wfn(:,io)
-	llmin=ABS(PAW%l(ib)-PAW%TOCCWFN%l(io))
-        llmax=PAW%l(ib)+PAW%TOCCWFN%l(io)
-	DO l=llmin,llmax,2
-	CALL apoisson(Grid,l,lr,d,rh)
-	arg=td+PAW%mLic(ib,io,l+1)*PAW%g(:,l+1)
-        CALL apoisson(Grid,l,n,arg,trh)
-	DO jb=1,nbase
-        lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)).AND. &
-			l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
-	arg=PAW%otphi(:,jb)*PAW%TOCCWFN%wfn(:,io) +&
-        PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
-	dum=PAW%ophi(:,jb)*PAW%OCCWFN%wfn(:,io)*rh - arg*trh
-	dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
-        PAW%DRC(ib,jb,io,l+1)=integrator(Grid,dum,1,lr)
-	WRITE(6,'(4i5,1pe20.10)') ib,jb,io,l, &
-        PAW%DRC(ib,jb,io,l+1)
-	ENDIF
-	ENDDO  !jb
-	ENDDO  !l
-	ENDDO    !ib
-	ENDIF
-	ENDDO    !io
-
-	! Average equivalent terms
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO ib=1,nbase
-	llmin=ABS(PAW%l(ib)-PAW%TOCCWFN%l(io))
-        llmax=PAW%l(ib)+PAW%TOCCWFN%l(io)
-	DO l=llmin,llmax,2
-	DO jb=ib,nbase
-        lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)).AND. &
-			l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
-	arg(1)=PAW%DRC(ib,jb,io,l+1)
-	arg(2)=PAW%DRC(jb,ib,io,l+1)
-        x=0.5d0*(arg(1)+arg(2))
-	PAW%DRC(ib,jb,io,l+1)=x
-	PAW%DRC(jb,ib,io,l+1)=x
-	ENDIF
-	ENDDO
-	ENDDO
-	ENDDO
-	ENDIF
-	ENDDO
-
-	WRITE(6,*) 'DRCC matrix elements '
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO jo=1,norbit
-	IF (PAW%TOCCWFN%iscore(jo)) THEN
-	d=PAW%OCCWFN%wfn(:,jo)*PAW%OCCWFN%wfn(:,io)
-	td=PAW%TOCCWFN%wfn(:,jo)*PAW%TOCCWFN%wfn(:,io)
-	llmin=ABS(PAW%TOCCWFN%l(jo)-PAW%TOCCWFN%l(io))
-        llmax=PAW%TOCCWFN%l(jo)+PAW%TOCCWFN%l(io)
-	DO l=llmin,llmax,2
-	CALL apoisson(Grid,l,lr,d,rh)
-	arg=td+PAW%mLcc(jo,io,l+1)*PAW%g(:,l+1)
-        CALL apoisson(Grid,l,lr,arg,trh)
-	DO jb=1,nbase
-        lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)) &
-			.AND.l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
-	arg=PAW%otphi(:,jb)*PAW%TOCCWFN%wfn(:,io) +&
-        PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
-	dum=PAW%ophi(:,jb)*PAW%OCCWFN%wfn(:,io)*rh - arg*trh
-	dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
-        PAW%DRCC(jb,jo,io,l+1)=integrator(Grid,dum,1,lr)
-	WRITE(6,'(4i5,1pe20.10)') jb,jo,io,l, &
-        PAW%DRCC(jb,jo,io,l+1)
-	ENDIF
-	ENDDO  !jb
-	ENDDO  !l
-	ENDIF
-	ENDDO    !jo
-	ENDIF
-	ENDDO    !io
-
-	WRITE(6,*) 'Dcj matrix elements '
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-        l=PAW%TOCCWFN%l(io)
-	DO jb=1,nbase
-	IF (PAW%l(jb)==l) THEN
-	!CALL kinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),&
-        !			PAW%ophi(:,jb),l,x,lr)
-	!CALL kinetic_ij(Grid,PAW%TOCCWFN%wfn(:,io),&
-	!		PAW%otphi(:,jb),l,y,lr)
-        CALL deltakinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),PAW%ophi(:,jb), &
-                   PAW%TOCCWFN%wfn(:,io),PAW%otphi(:,jb),l,x,PAW%irc)        
-	!WRITE(6,'(" Kinetic ", 3i5, 1p3e15.7)') io,jb,l,x,y,x-y
-	PAW%Dcj(io,jb)=x
-	dum=PAW%OCCWFN%wfn(:,io)*PAW%ophi(:,jb)*PAW%rVf - &
-	PAW%TOCCWFN%wfn(:,io)*PAW%otphi(:,jb)*PAW%rtVf
-        dum(2:n)=dum(2:n)/Grid%r(2:n)
-	dum(1)=0
-        x=integrator(Grid,dum,1,lr)
-	!WRITE(6,'(" Fix pot ", 3i5, 1p3e15.7)') io,jb,l,x
-	PAW%Dcj(io,jb)=PAW%Dcj(io,jb)+x
-	WRITE(6,'(3i5,1pe15.7)') io,jb,l,PAW%Dcj(io,jb)
-	ENDIF
-	ENDDO
-	ENDIF
-	ENDDO
-
-	WRITE(6,*) 'DRCjkl matrix elements '
-	DO io=1,norbit
-	IF (PAW%TOCCWFN%iscore(io)) THEN
-	DO jb=1,nbase
-	d=PAW%OCCWFN%wfn(:,io)*PAW%ophi(:,jb)
-	td=PAW%TOCCWFN%wfn(:,io)*PAW%otphi(:,jb)
-	llmin=ABS(PAW%TOCCWFN%l(io)-PAW%l(jb))
-        llmax=PAW%TOCCWFN%l(io)+PAW%l(jb)
-	DO l=llmin,llmax,2
-	CALL apoisson(Grid,l,lr,d,rh)
-	arg=td+PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
-        CALL apoisson(Grid,l,lr,arg,trh)
-	DO kb=1,nbase
-	DO lb=1,nbase
-        lp=llmax+PAW%l(kb)+PAW%l(lb)
-	even=.FALSE.
-	IF (2*(lp/2)==lp) even=.TRUE.
-	IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
-			l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
-	arg=PAW%otphi(:,kb)*PAW%otphi(:,lb)+&
-        PAW%mLij(kb,lb,l+1)*PAW%g(:,l+1)
-	dum=PAW%ophi(:,kb)*PAW%ophi(:,lb)*rh - arg*trh
-	dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
-        PAW%DRCjkl(io,jb,kb,lb,l+1)=integrator(Grid,dum,1,lr)
-	WRITE(6,'(5i5,1pe20.10)') io,jb,kb,lb,l, &
-        PAW%DRCjkl(io,jb,kb,lb,l+1)
-	ENDIF
-	ENDDO  !lb
-	ENDDO  !kb
-	ENDDO  !l
-	ENDDO   !jb
-	ENDIF
-	ENDDO    !io
-	ENDIF
-
-	WRITE(6,*) ' Completed SPMatrixElements'; CALL flush(6)
-
-   !  Calculate atomic energy from PAW matrix elements
-       PAW%tkin=0; PAW%tion=0; PAW%tvale=0;PAW%txc=0;PAW%Ea=0;PAW%Etotal=0
-       PAW%Eaxc=0
-     
-    PAW%den=0; PAW%tden=0
     DO ib=1,nbase
        l=PAW%l(ib)
-       CALL kinetic(Grid,PAW%otphi(:,ib),PAW%l(ib),x)
-       PAW%tkin=PAW%tkin+PAW%occ(ib)*x
-       PAW%den=PAW%den+PAW%occ(ib)*(PAW%phi(:,ib))**2
-       PAW%tden=PAW%tden+PAW%occ(ib)*(PAW%tphi(:,ib))**2
+       DO jb=1,nbase
+         IF (PAW%l(jb)==l) THEN
+           !CALL kinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb),l,x,lr)
+           !CALL kinetic_ij(Grid,PAW%otphi(:,ib),PAW%otphi(:,jb),l,y,lr)
+           CALL deltakinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb), &
+&               PAW%otphi(:,ib),PAW%otphi(:,jb),l,x,PAW%irc)
+           WRITE(6,'(" Kinetic ", 3i5, 1p,3e15.7)') ib,jb,l,x
+           PAW%Kij(ib,jb)=x
+           dum=PAW%ophi(:,ib)*PAW%ophi(:,jb)*PAW%rVf - &
+&          PAW%otphi(:,ib)*PAW%otphi(:,jb)*PAW%rtVf
+           dum(2:n)=dum(2:n)/Grid%r(2:n)
+           dum(1)=0
+           PAW%VFij(ib,jb)=integrator(Grid,dum,1,lr)
+           WRITE(6,'(" Fix pot ", 3i5, 1p,3e15.7)') ib,jb,l,PAW%VFij(ib,jb)
+         ENDIF
+       ENDDO
+    ENDDO
+
+    ! Average equivalent terms
+    DO ib=1,nbase
+      DO jb=ib,nbase
+        IF(jb>ib) THEN
+          x=PAW%Kij(ib,jb); y=PAW%Kij(jb,ib)
+          x=0.5d0*(x+y)
+          PAW%Kij(ib,jb)=x; PAW%Kij(jb,ib)=x
+          x=PAW%VFij(ib,jb); y=PAW%VFij(jb,ib)
+          x=0.5d0*(x+y)
+          PAW%VFij(ib,jb)=x; PAW%VFij(jb,ib)=x
+        ENDIF
+      ENDDO
+    ENDDO
+
+    DO ib=1,nbase
+      DO jb=1,nbase
+        llmin=ABS(PAW%l(ib)-PAW%l(jb))
+        llmax=PAW%l(ib)+PAW%l(jb)
+        DO l=llmin,llmax,2
+          DO i=1,irc
+            rr=Grid%r(i)
+            dum(i)=(rr**l)*(PAW%ophi(i,ib)*PAW%ophi(i,jb) &
+&               -PAW%otphi(i,ib)*PAW%otphi(i,jb))
+          ENDDO
+          PAW%mLij(ib,jb,l+1)=integrator(Grid,dum,1,irc)
+          WRITE(6,'("mLij ",3i5,1p,1e15.7)') ib,jb,l,PAW%mLij(ib,jb,l+1)
+        ENDDO
+      ENDDO
+    ENDDO
+
+    ! Average equivalent terms
+    DO ib=1,nbase
+      DO jb=ib,nbase
+        IF (jb>ib) THEN
+          llmin=ABS(PAW%l(ib)-PAW%l(jb))
+          llmax=PAW%l(ib)+PAW%l(jb)
+          DO l=llmin,llmax,2
+            x=PAW%mLij(ib,jb,l+1); y=PAW%mLij(jb,ib,l+1)
+            x=0.5d0*(x+y)
+            PAW%mLij(ib,jb,l+1)=x; PAW%mLij(jb,ib,l+1)=x
+          ENDDO
+        ENDIF
+      ENDDO
+    ENDDO
+
+    WRITE(6,*) 'DR matrix elements '
+    DO ib=1,nbase
+      DO jb=1,nbase
+        d=PAW%ophi(:,ib)*PAW%ophi(:,jb)
+        td=PAW%otphi(:,ib)*PAW%otphi(:,jb)
+        llmin=ABS(PAW%l(ib)-PAW%l(jb))
+        llmax=PAW%l(ib)+PAW%l(jb)
+        DO l=llmin,llmax,2
+          CALL apoisson(Grid,l,lr,d,rh)
+          arg=td+PAW%mLij(ib,jb,l+1)*PAW%g(:,l+1)
+          CALL apoisson(Grid,l,lr,arg,trh)
+          DO kb=1,nbase
+            DO lb=1,nbase
+              lp=llmax+PAW%l(kb)+PAW%l(lb)
+              even=.FALSE.
+              IF (2*(lp/2)==lp) even=.TRUE.
+              IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
+&                 l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
+                arg=PAW%otphi(:,kb)*PAW%otphi(:,lb)+&
+&               PAW%mLij(kb,lb,l+1)*PAW%g(:,l+1)
+                dum(1:lr)=PAW%ophi(1:lr,kb)*PAW%ophi(1:lr,lb)*rh(1:lr)&
+&                 - arg(1:lr)*trh(1:lr)
+                dum(1)=0; dum(2:lr)=dum(2:lr)/Grid%r(2:lr)
+                PAW%DR(ib,jb,kb,lb,l+1)=integrator(Grid,dum,1,lr)
+                !if (abs(PAW%DR(ib,jb,kb,lb,l+1))>100.d0) then
+                !   write(6,*) 'problem', ib,jb,kb,lb,l+1,PAW%DR(ib,jb,kb,lb,l+1),&
+                !&       PAW%mLij(kb,lb,l+1)
+                !   open(unit=1001,file='stuff',form='formatted')
+                !   do i=1,lr
+                !      write(1001,'(1p,20e15.7)') &
+                !&      Grid%r(i),PAW%ophi(i,kb),PAW%ophi(i,lb), &
+                !&        PAW%otphi(i,kb),PAW%otphi(i,lb),PAW%g(i,l+1),rh(i),trh(i)
+                !   enddo
+                !   close(1001)
+                !   stop
+                ! endif
+                WRITE(6,'(5i5,1p,1e20.10)') ib,jb,kb,lb,l, &
+&                     PAW%DR(ib,jb,kb,lb,l+1)
+              ENDIF
+            ENDDO  !lb
+          ENDDO  !kb
+        ENDDO  !l
+      ENDDO  !jb
+    ENDDO  !ib
+
+    ! Average equivalent terms
+    DO ib=1,nbase
+      DO jb=ib,nbase
+        llmin=ABS(PAW%l(ib)-PAW%l(jb))
+        llmax=PAW%l(ib)+PAW%l(jb)
+        DO l=llmin,llmax,2
+          DO kb=1,nbase
+            DO lb=kb,nbase
+              lp=llmax+PAW%l(kb)+PAW%l(lb)
+              even=.FALSE.
+              IF (2*(lp/2)==lp) even=.TRUE.
+              IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
+&                 l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
+                arg(1)=PAW%DR(ib,jb,kb,lb,l+1)
+                arg(2)=PAW%DR(ib,jb,lb,kb,l+1)
+                arg(3)=PAW%DR(jb,ib,kb,lb,l+1)
+                arg(4)=PAW%DR(jb,ib,lb,kb,l+1)
+                x=0.25d0*(arg(1)+arg(2)+arg(3)+arg(4))
+                PAW%DR(ib,jb,kb,lb,l+1)=x
+                PAW%DR(ib,jb,lb,kb,l+1)=x
+                PAW%DR(jb,ib,kb,lb,l+1)=x
+                PAW%DR(jb,ib,lb,kb,l+1)=x
+              ENDIF
+            ENDDO  !lb
+          ENDDO  !kb
+        ENDDO  !l
+      ENDDO   !jb
+    ENDDO    !ib
+
+    If (TRIM(PAW%exctype)=="EXXKLI".OR.TRIM(PAW%exctype)=="HF") &
+&     Call COREVAL_EXX(Grid,PAW)
+
+    IF (TRIM(PAW%exctype)=="HF") THEN
+      norbit=PAW%TOCCWFN%norbit
+      ALLOCATE(PAW%mLic(nbase,norbit,ll+1),PAW%DRC(nbase,nbase,norbit,ll+1),&
+&     PAW%mLcc(norbit,norbit,ll+1),PAW%DRCC(nbase,norbit,norbit,ll+1),&
+&     PAW%DRCjkl(norbit,nbase,nbase,nbase,ll+1),&
+&     PAW%Dcj(norbit,nbase),PAW%TOCCWFN%lqp(norbit,norbit))
+      PAW%mLic=0.d0; PAW%DRC=0.d0; PAW%mLcc=0.d0; PAW%DRCC=0.d0; PAW%Dcj=0.d0
+      PAW%DRCjkl=0.d0; PAW%TOCCWFN%lqp=0.d0
+      lr=MAX(lr,PAW%coretailpoints)
+      write(6,*) 'lr for core treatment ', lr
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO jb=1,nbase
+            llmin=ABS(PAW%TOCCWFN%l(io)-PAW%l(jb))
+            llmax=PAW%TOCCWFN%l(io)+PAW%l(jb)
+            DO l=llmin,llmax,2
+              DO i=1,n
+                rr=Grid%r(i)
+                dum(i)=(rr**l)*(PAW%OCCWFN%wfn(i,io)*PAW%ophi(i,jb) &
+&                     -PAW%TOCCWFN%wfn(i,io)*PAW%otphi(i,jb))
+              ENDDO
+              PAW%mLic(jb,io,l+1)=integrator(Grid,dum,1,lr)
+              WRITE(6,'("mLic ",3i5,1p,1e15.7)') jb,io,l,PAW%mLic(jb,io,l+1)
+            ENDDO
+          ENDDO
+        ENDIF
+      ENDDO
+
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO jo=1,norbit
+            IF (PAW%TOCCWFN%iscore(jo)) THEN
+              llmin=ABS(PAW%TOCCWFN%l(io)-PAW%TOCCWFN%l(jo))
+              llmax=PAW%TOCCWFN%l(io)+PAW%TOCCWFN%l(jo)
+              DO l=llmin,llmax,2
+                DO i=1,n
+                  rr=Grid%r(i)
+                  dum(i)=(rr**l)*&
+&                    (PAW%OCCWFN%wfn(i,io)*PAW%OCCWFN%wfn(i,jo) &
+&                    -PAW%TOCCWFN%wfn(i,io)*PAW%TOCCWFN%wfn(i,jo))
+                ENDDO
+                PAW%mLcc(jo,io,l+1)=integrator(Grid,dum,1,lr)
+                WRITE(6,'("mLcc ",3i5,1p,1e15.7)') jo,io,l,&
+&               PAW%mLcc(jo,io,l+1)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDIF
+      ENDDO
+
+      WRITE(6,*) 'DRC matrix elements '
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO ib=1,nbase
+            d=PAW%ophi(:,ib)*PAW%OCCWFN%wfn(:,io)
+            td=PAW%otphi(:,ib)*PAW%TOCCWFN%wfn(:,io)
+            llmin=ABS(PAW%l(ib)-PAW%TOCCWFN%l(io))
+            llmax=PAW%l(ib)+PAW%TOCCWFN%l(io)
+            DO l=llmin,llmax,2
+              CALL apoisson(Grid,l,lr,d,rh)
+              arg=td+PAW%mLic(ib,io,l+1)*PAW%g(:,l+1)
+              CALL apoisson(Grid,l,n,arg,trh)
+              DO jb=1,nbase
+                lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
+                even=.FALSE.
+                IF (2*(lp/2)==lp) even=.TRUE.
+                IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)).AND. &
+&                   l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
+                  arg=PAW%otphi(:,jb)*PAW%TOCCWFN%wfn(:,io) +&
+&                     PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
+                  dum=PAW%ophi(:,jb)*PAW%OCCWFN%wfn(:,io)*rh - arg*trh
+                  dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
+                      PAW%DRC(ib,jb,io,l+1)=integrator(Grid,dum,1,lr)
+                  WRITE(6,'(4i5,1p,1e20.10)') ib,jb,io,l, &
+&                     PAW%DRC(ib,jb,io,l+1)
+                ENDIF
+              ENDDO  !jb
+            ENDDO  !l
+          ENDDO    !ib
+        ENDIF
+      ENDDO    !io
+
+      ! Average equivalent terms
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO ib=1,nbase
+            llmin=ABS(PAW%l(ib)-PAW%TOCCWFN%l(io))
+            llmax=PAW%l(ib)+PAW%TOCCWFN%l(io)
+            DO l=llmin,llmax,2
+              DO jb=ib,nbase
+                lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
+                even=.FALSE.
+                IF (2*(lp/2)==lp) even=.TRUE.
+                IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)).AND. &
+&                   l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
+                  arg(1)=PAW%DRC(ib,jb,io,l+1)
+                  arg(2)=PAW%DRC(jb,ib,io,l+1)
+                  x=0.5d0*(arg(1)+arg(2))
+                  PAW%DRC(ib,jb,io,l+1)=x
+                  PAW%DRC(jb,ib,io,l+1)=x
+                ENDIF
+              ENDDO
+            ENDDO
+          ENDDO
+        ENDIF
+      ENDDO
+
+      WRITE(6,*) 'DRCC matrix elements '
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO jo=1,norbit
+            IF (PAW%TOCCWFN%iscore(jo)) THEN
+              d=PAW%OCCWFN%wfn(:,jo)*PAW%OCCWFN%wfn(:,io)
+              td=PAW%TOCCWFN%wfn(:,jo)*PAW%TOCCWFN%wfn(:,io)
+              llmin=ABS(PAW%TOCCWFN%l(jo)-PAW%TOCCWFN%l(io))
+              llmax=PAW%TOCCWFN%l(jo)+PAW%TOCCWFN%l(io)
+              DO l=llmin,llmax,2
+                CALL apoisson(Grid,l,lr,d,rh)
+                arg=td+PAW%mLcc(jo,io,l+1)*PAW%g(:,l+1)
+                CALL apoisson(Grid,l,lr,arg,trh)
+                DO jb=1,nbase
+                  lp=llmax+PAW%l(jb)+PAW%TOCCWFN%l(io)
+                  even=.FALSE.
+                  IF (2*(lp/2)==lp) even=.TRUE.
+                  IF (even.AND.l.GE.ABS(PAW%l(jb)-PAW%TOCCWFN%l(io)) &
+&                    .AND.l.LE.(PAW%l(jb)+PAW%TOCCWFN%l(io)))  THEN
+                    arg=PAW%otphi(:,jb)*PAW%TOCCWFN%wfn(:,io) +&
+&                       PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
+                    dum=PAW%ophi(:,jb)*PAW%OCCWFN%wfn(:,io)*rh - arg*trh
+                    dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
+                    PAW%DRCC(jb,jo,io,l+1)=integrator(Grid,dum,1,lr)
+                    WRITE(6,'(4i5,1p,1e20.10)') jb,jo,io,l,PAW%DRCC(jb,jo,io,l+1)
+                  ENDIF
+                ENDDO  !jb
+              ENDDO  !l
+            ENDIF
+          ENDDO    !jo
+        ENDIF
+      ENDDO    !io
+
+      WRITE(6,*) 'Dcj matrix elements '
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          l=PAW%TOCCWFN%l(io)
+          DO jb=1,nbase
+            IF (PAW%l(jb)==l) THEN
+              !CALL kinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),&
+              !&           PAW%ophi(:,jb),l,x,lr)
+              !CALL kinetic_ij(Grid,PAW%TOCCWFN%wfn(:,io),&
+              !&       PAW%otphi(:,jb),l,y,lr)
+              CALL deltakinetic_ij(Grid,PAW%OCCWFN%wfn(:,io),PAW%ophi(:,jb), &
+&                  PAW%TOCCWFN%wfn(:,io),PAW%otphi(:,jb),l,x,PAW%irc)
+              !WRITE(6,'(" Kinetic ", 3i5, 1p,3e15.7)') io,jb,l,x,y,x-y
+              PAW%Dcj(io,jb)=x
+              dum=PAW%OCCWFN%wfn(:,io)*PAW%ophi(:,jb)*PAW%rVf - &
+&             PAW%TOCCWFN%wfn(:,io)*PAW%otphi(:,jb)*PAW%rtVf
+              dum(2:n)=dum(2:n)/Grid%r(2:n)
+              dum(1)=0
+              x=integrator(Grid,dum,1,lr)
+              !WRITE(6,'(" Fix pot ", 3i5, 1p,3e15.7)') io,jb,l,x
+              PAW%Dcj(io,jb)=PAW%Dcj(io,jb)+x
+              WRITE(6,'(3i5,1p,e15.7)') io,jb,l,PAW%Dcj(io,jb)
+            ENDIF
+          ENDDO
+        ENDIF
+      ENDDO
+
+      WRITE(6,*) 'DRCjkl matrix elements '
+      DO io=1,norbit
+        IF (PAW%TOCCWFN%iscore(io)) THEN
+          DO jb=1,nbase
+            d=PAW%OCCWFN%wfn(:,io)*PAW%ophi(:,jb)
+            td=PAW%TOCCWFN%wfn(:,io)*PAW%otphi(:,jb)
+            llmin=ABS(PAW%TOCCWFN%l(io)-PAW%l(jb))
+            llmax=PAW%TOCCWFN%l(io)+PAW%l(jb)
+            DO l=llmin,llmax,2
+              CALL apoisson(Grid,l,lr,d,rh)
+              arg=td+PAW%mLic(jb,io,l+1)*PAW%g(:,l+1)
+              CALL apoisson(Grid,l,lr,arg,trh)
+              DO kb=1,nbase
+                DO lb=1,nbase
+                  lp=llmax+PAW%l(kb)+PAW%l(lb)
+                  even=.FALSE.
+                  IF (2*(lp/2)==lp) even=.TRUE.
+                  IF (even.AND.l.GE.ABS(PAW%l(kb)-PAW%l(lb)).AND. &
+&                     l.LE.(PAW%l(kb)+PAW%l(lb)))  THEN
+                    arg=PAW%otphi(:,kb)*PAW%otphi(:,lb)+&
+&                   PAW%mLij(kb,lb,l+1)*PAW%g(:,l+1)
+                    dum=PAW%ophi(:,kb)*PAW%ophi(:,lb)*rh - arg*trh
+                    dum(1)=0; dum(2:n)=dum(2:n)/Grid%r(2:n)
+                    PAW%DRCjkl(io,jb,kb,lb,l+1)=integrator(Grid,dum,1,lr)
+                    WRITE(6,'(5i5,1p,1e20.10)') io,jb,kb,lb,l, &
+&                   PAW%DRCjkl(io,jb,kb,lb,l+1)
+                  ENDIF
+                ENDDO  !lb
+              ENDDO  !kb
+            ENDDO  !l
+          ENDDO   !jb
+        ENDIF
+      ENDDO    !io
+    ENDIF
+
+    WRITE(6,*) ' Completed SPMatrixElements'; CALL flush(6)
+
+!   Calculate atomic energy from PAW matrix elements
+    PAW%tkin=0; PAW%tion=0; PAW%tvale=0;PAW%txc=0;PAW%Ea=0
+    PAW%Etotal=0;PAW%Eaxc=0;PAW%den=0; PAW%tden=0
+    DO ib=1,nbase
+      l=PAW%l(ib)
+      CALL kinetic(Grid,PAW%otphi(:,ib),PAW%l(ib),x)
+      PAW%tkin=PAW%tkin+PAW%occ(ib)*x
+      PAW%den=PAW%den+PAW%occ(ib)*(PAW%phi(:,ib))**2
+      PAW%tden=PAW%tden+PAW%occ(ib)*(PAW%tphi(:,ib))**2
     ENDDO
     write(6,*) 'smooth kinetic ', PAW%tkin
 
-    arg=0
     arg=PAW%den+FC%coreden-PAW%tden-PAW%tcore
     x=-Pot%nz+integrator(Grid,arg,1,irc)
     write(6,*) 'q00 for atom ', x
@@ -1200,18 +1192,18 @@ CONTAINS
     PAW%tvale=PAW%tvale+PAW%tion
 
     IF (TRIM(PAW%exctype)=="HF".or.TRIM(PAW%exctype)=="EXX".or.&
-         TRIM(PAW%exctype)=="EXXKLI") THEN
-       !CALL Get_Energy_EXX(Grid,PAW%TOCCWFN,x) ! not correct need moment
-       CALL Get_Energy_EXX_pseudo(Grid,PAW,x)
-       write(6,*) 'Warning: does not include core contributions'
+&       TRIM(PAW%exctype)=="EXXKLI") THEN
+      !CALL Get_Energy_EXX(Grid,PAW%TOCCWFN,x) ! not correct need moment
+      CALL Get_Energy_EXX_pseudo(Grid,PAW,x)
+      write(6,*) 'Warning: does not include core contributions'
     ELSE
-       arg=PAW%tden+PAW%tcore
-       CALL exch(Grid,arg,dum,y,x)
+      arg=PAW%tden+PAW%tcore
+      CALL exch(Grid,arg,dum,y,x)
     ENDIF
     write(6,*) 'Smooth exchange-correlation contribution ', x
     PAW%txc=x   ; PAW%tvale=PAW%tvale+PAW%txc
-    
-   ! one center terms
+
+!   one center terms
     arg=PAW%den-PAW%tden
     x=integrator(Grid,arg,1,irc)
     write(6,*) 'valence Q', x
@@ -1219,130 +1211,123 @@ CONTAINS
 
     PAW%wij=0
     do io=1,nbase
-       l=PAW%l(io);arg=0
-       DO ib=1,nbase
-          IF (PAW%l(ib).EQ.l)                                       &
-               arg(ib)=overlap(Grid,PAW%otp(:,ib),PAW%tphi(:,io),1,irc)
-       ENDDO
-      
-       DO ib=1,nbase
-          do jb=1,nbase
-             if (PAW%l(ib)==PAW%l(jb)) &
-                 PAW%wij(ib,jb)=PAW%wij(ib,jb)+PAW%occ(io)*arg(ib)*arg(jb)
-          enddo
-       enddo
-     enddo
-
-     do ib=1,nbase
+      l=PAW%l(io);arg=0
+      DO ib=1,nbase
+        IF (PAW%l(ib).EQ.l) &
+&         arg(ib)=overlap(Grid,PAW%otp(:,ib),PAW%tphi(:,io),1,irc)
+      ENDDO
+      DO ib=1,nbase
         do jb=1,nbase
-           write(6,*) 'wij', ib,jb,PAW%wij(ib,jb)
+          if (PAW%l(ib)==PAW%l(jb)) &
+&             PAW%wij(ib,jb)=PAW%wij(ib,jb)+PAW%occ(io)*arg(ib)*arg(jb)
         enddo
-     enddo
-     DO ib=1,nbase
-        do jb=1,nbase
-           if (PAW%l(ib)==PAW%l(jb)) then
-              PAW%Ea=PAW%Ea+PAW%wij(ib,jb)*(PAW%Kij(ib,jb)+PAW%VFij(ib,jb))
-              x=0
-              do kb=1,nbase
-                 do lb=1,nbase
-                    if (PAW%l(kb)==PAW%l(lb)) then
-                       x=x+PAW%wij(kb,lb)*PAW%DR(ib,jb,kb,lb,1)
-                    endif
-                 enddo
-               enddo
-               PAW%Ea=PAW%Ea+0.5d0*x*PAW%wij(ib,jb)
-            endif
-         enddo
       enddo
- 
-      write(6,*) 'Ea up to exchange-correlation terms ', PAW%Ea
+    enddo
+
+    do ib=1,nbase
+      do jb=1,nbase
+        write(6,*) 'wij', ib,jb,PAW%wij(ib,jb)
+      enddo
+    enddo
+    DO ib=1,nbase
+      do jb=1,nbase
+        if (PAW%l(ib)==PAW%l(jb)) then
+          PAW%Ea=PAW%Ea+PAW%wij(ib,jb)*(PAW%Kij(ib,jb)+PAW%VFij(ib,jb))
+          x=0
+          do kb=1,nbase
+            do lb=1,nbase
+              if (PAW%l(kb)==PAW%l(lb)) then
+                x=x+PAW%wij(kb,lb)*PAW%DR(ib,jb,kb,lb,1)
+              endif
+            enddo
+          enddo
+          PAW%Ea=PAW%Ea+0.5d0*x*PAW%wij(ib,jb)
+        endif
+      enddo
+    enddo
+
+    write(6,*) 'Ea up to exchange-correlation terms ', PAW%Ea
 
     IF (TRIM(PAW%exctype)=="HF".or.TRIM(PAW%exctype)=="EXX".or.&
-         TRIM(PAW%exctype)=="EXXKLI") THEN
-       CALL Get_Energy_EXX_pseudo_one(Grid,PAW,x)
-       write(6,*) 'one-center HF exchange', x
-       PAW%Ea=PAW%Ea+x; PAW%Eaxc=x
+&       TRIM(PAW%exctype)=="EXXKLI") THEN
+      CALL Get_Energy_EXX_pseudo_one(Grid,PAW,x)
+      write(6,*) 'one-center HF exchange', x
+      PAW%Ea=PAW%Ea+x; PAW%Eaxc=x
     ELSE
-       arg=PAW%tden+PAW%tcore
-       CALL exch(Grid,arg,dum,y,x,irc)
-       arg=PAW%den+FC%coreden
-       CALL exch(Grid,arg,dum,y,z,irc)
-       write(6,*) ' one center xc ', z,x,z-x
-       PAW%Ea=PAW%Ea+z-x; PAW%Eaxc=z-x
+      arg=PAW%tden+PAW%tcore
+      CALL exch(Grid,arg,dum,y,x,irc)
+      arg=PAW%den+FC%coreden
+      CALL exch(Grid,arg,dum,y,z,irc)
+      write(6,*) ' one center xc ', z,x,z-x
+      PAW%Ea=PAW%Ea+z-x; PAW%Eaxc=z-x
     ENDIF
 
     PAW%Etotal=PAW%tvale+PAW%Ea
-     write(6,*) 'Energy terms ', PAW%tvale, PAW%Ea, PAW%Etotal
+    write(6,*) 'Energy terms ', PAW%tvale, PAW%Ea, PAW%Etotal
 
-   !Needed by atompaw2abinit  
-     ishft=5
-     if (usingloggrid(Grid)==.false.) ishft=25
-
-
-     PAW%mesh_size=PAW%irc+ishft
-     PAW%coretailpoints=MAX(PAW%coretailpoints,PAW%mesh_size)
+    PAW%mesh_size=PAW%irc+Grid%ishift
+    PAW%coretailpoints=MAX(PAW%coretailpoints,PAW%mesh_size)
 
 
-   DEALLOCATE(arg,dum,rh,trh,d,td)
+    DEALLOCATE(arg,dum,rh,trh,d,td)
+
   END SUBROUTINE SPMatrixElements
 
-  
-   SUBROUTINE COREVAL_EXX(Grid,PAW)
+
+  SUBROUTINE COREVAL_EXX(Grid,PAW)
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
-
       INTEGER :: i,k, io,ib,ic,nbase,li,lj,l
       REAL(8) :: accum,term
       REAL(8), ALLOCATABLE :: f(:)
 
       nbase=PAW%nbase
-          k=0            ! core-valence terms
-          do io=1,PAW%OCCWFN%norbit
-             if (PAW%OCCWFN%iscore(io)) then
-                li=PAW%OCCWFN%l(io)
-                do ib=1,PAW%nbase
-                   do ic=1,PAW%nbase
-                      if (PAW%l(ib)==PAW%l(ic)) then
-                         k=k+1
-                      endif
-                   enddo
-                enddo
-              endif
-           enddo
-     PAW%ncoreshell=k
-     if(k>0) then
-       ALLOCATE (PAW%DRVC(k,nbase,nbase),f(k)); PAW%DRVC=0
-                !!!!WRITE(ifatompaw,'("  COREVAL_LIST   ",i10)') k
-                !!!!WRITE(ifatompaw,'("  COREVAL_R      ")') 
-          i=0;f=0
-          do io=1,PAW%OCCWFN%norbit
-             if (PAW%OCCWFN%iscore(io)) then
-                i=i+1
-                li=PAW%OCCWFN%l(io)
-                do ib=1,PAW%nbase
-                   lj=PAW%l(ib)
-                   do ic=1,PAW%nbase
-                      if (PAW%l(ib)==PAW%l(ic)) then
-                         f(i)=0
-                         do l=abs(li-lj),(li+lj),2
-                           call EXXwgt(1.d0,1.d0,1,li,2,lj,l,accum)
-                           call CondonShortley(Grid,l,PAW%OCCWFN%wfn(:,io), &
-                              PAW%ophi(:,ib),PAW%OCCWFN%wfn(:,io), &
-                              PAW%ophi(:,ic),term)
-                              f(i)=f(i)+2*accum*term !EXXwgt returns 1/2*3J
-                              write(6,*) 'core-val CondonShortley',&
-                                    i,li,lj,l,2*accum,term
-                         enddo
-                        !!!!!WRITE(ifatompaw,'(3i10,1pe25.17)') i, ib,ic,f(i)
-                        PAW%DRVC(i,ib,ic)=f(i)
-                      endif
-                   enddo   !ic
-                enddo   !ib
-              endif
-           enddo   !norbit
+      k=0            ! core-valence terms
+      do io=1,PAW%OCCWFN%norbit
+        if (PAW%OCCWFN%iscore(io)) then
+          li=PAW%OCCWFN%l(io)
+          do ib=1,PAW%nbase
+            do ic=1,PAW%nbase
+              if (PAW%l(ib)==PAW%l(ic)) k=k+1
+            enddo
+          enddo
+        endif
+      enddo
+      PAW%ncoreshell=k
+      if(k>0) then
+        ALLOCATE (PAW%DRVC(k,nbase,nbase),f(k)); PAW%DRVC=0
+        !!!!WRITE(ifatompaw,'("  COREVAL_LIST   ",i10)') k
+        !!!!WRITE(ifatompaw,'("  COREVAL_R      ")')
+        i=0;f=0
+        do io=1,PAW%OCCWFN%norbit
+          if (PAW%OCCWFN%iscore(io)) then
+            i=i+1
+            li=PAW%OCCWFN%l(io)
+            do ib=1,PAW%nbase
+              lj=PAW%l(ib)
+              do ic=1,PAW%nbase
+                if (PAW%l(ib)==PAW%l(ic)) then
+                  f(i)=0
+                  do l=abs(li-lj),(li+lj),2
+                    call EXXwgt(1.d0,1.d0,1,li,2,lj,l,accum)
+                    call CondonShortley(Grid,l,PAW%OCCWFN%wfn(:,io), &
+&                          PAW%ophi(:,ib),PAW%OCCWFN%wfn(:,io), &
+&                          PAW%ophi(:,ic),term)
+                    f(i)=f(i)+2*accum*term !EXXwgt returns 1/2*3J
+                    write(6,*) 'core-val CondonShortley',&
+&                              i,li,lj,l,2*accum,term
+                  enddo
+                  !!!!!WRITE(ifatompaw,'(3i10,1p,1e25.17)') i, ib,ic,f(i)
+                  PAW%DRVC(i,ib,ic)=f(i)
+                endif
+              enddo   !ic
+            enddo   !ib
+          endif
+        enddo   !norbit
 
-     DEALLOCATE(f)
-    endif
+        DEALLOCATE(f)
+      endif
+
    END SUBROUTINE COREVAL_EXX
 
 END MODULE pseudo_sub

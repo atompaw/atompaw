@@ -7,9 +7,9 @@ Module exx_pseudo
    USE gridmod
    USE pseudodata
    USE pseudo_sub
- 
+
    IMPLICIT NONE
- 
+
    INTEGER, PRIVATE :: S_n,S_nocc,S_nbase,S_irc,S_constr
    INTEGER, ALLOCATABLE, TARGET, PRIVATE  :: S_l(:),S_bmap(:),S_omap(:)
    REAL(8), ALLOCATABLE, TARGET, PRIVATE  :: S_gvv(:,:),S_tgvv(:,:)
@@ -32,7 +32,7 @@ Module exx_pseudo
         TYPE(PseudoInfo), INTENT(INOUT) :: PAW
         REAL(8), INTENT(INOUT) :: rtvx(:)
 
-        INTEGER :: i,j,k,l,n,io,jo,norbit
+        INTEGER :: i,j,k,l,n,io,jo
         REAL(8), ALLOCATABLE :: dum1(:),dum2(:),dum3(:),den(:),tden(:)
         REAL(8) :: occ
 
@@ -40,8 +40,7 @@ Module exx_pseudo
         Allocate(dum1(n),dum2(n),dum3(n),den(n),tden(n))
 
         rtvx=0;dum1=0;dum2=0;den=0;tden=0
-        norbit=PAW%TOCCWFN%norbit
-        do io=1,norbit
+        do io=1,PAW%TOCCWFN%norbit
            occ=PAW%TOCCWFN%occ(io)
            den=den+occ*PAW%OCCwfn%wfn(:,io)**2
            tden=tden+occ*PAW%tOCCwfn%wfn(:,io)**2
@@ -50,9 +49,9 @@ Module exx_pseudo
            call Calc_tdexdphi_io(Grid,PAW,io,dum3)
                PAW%tOCCwfn%X(:,io)=dum3
            dum1=dum1+occ*(PAW%OCCwfn%X(:,io)*PAW%OCCwfn%wfn(:,io) &
-                          + (PAW%OCCwfn%wfn(:,io)**2)*HSZ%U(io)*Grid%r)
+&                         + (PAW%OCCwfn%wfn(:,io)**2)*HSZ%U(io)*Grid%r)
            dum2=dum2+occ*(PAW%tOCCwfn%X(:,io)*PAW%tOCCwfn%wfn(:,io) &
-                          + (PAW%tOCCwfn%wfn(:,io)**2)*HSZ%U(io)*Grid%r)
+&                         + (PAW%tOCCwfn%wfn(:,io)**2)*HSZ%U(io)*Grid%r)
         enddo
 
         rtvx(1)=0; dum3=0
@@ -71,15 +70,15 @@ Module exx_pseudo
 
        OPEN(1001,file='checkpseudovx',form='formatted')
           do i=1,n
-             write(1001,'(1p16e15.7)') Grid%r(i),dum1(i),dum2(i),dum3(i),&
-                 rtvx(i),den(i),tden(i)
+             write(1001,'(1p,16e15.7)') Grid%r(i),dum1(i),dum2(i),dum3(i),&
+&                rtvx(i),den(i),tden(i)
           enddo
        CLOSE(1001)
 
        OPEN(1001,file='checkagain',form='formatted')
           do i=1,n
-             write(1001,'(1p50e15.7)') Grid%r(i),(PAW%OCCWFN%wfn(i,io),&
-                 PAW%tOCCWFN%wfn(i,io),io=1,norbit)
+             write(1001,'(1p,50e15.7)') Grid%r(i),(PAW%OCCWFN%wfn(i,io),&
+&                PAW%tOCCWFN%wfn(i,io),io=1,PAW%TOCCWFN%norbit)
           enddo
        CLOSE(1001)
 
@@ -96,12 +95,12 @@ Module exx_pseudo
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: r(:)
     TYPE(OrbitInfo), POINTER :: Orbit, tOrbit
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),arg(:),dum(:),dum1(:)
-    INTEGER :: i,j,k,n,m,l,ll,li,lj,lmin,lmax,jo,ok,norbit
+    INTEGER :: i,j,k,n,m,l,ll,li,lj,lmin,lmax,jo,ok
     INTEGER :: nu,nup,ni,nj
     REAL(8) :: occ,term,term1,wgt,occi,occj,rc,uvjo
     REAL(8), PARAMETER :: threshold=1.d-8
@@ -110,10 +109,9 @@ Module exx_pseudo
     n=Grid%n
     Orbit=>PAW%OCCwfn
     tOrbit=>PAW%tOCCwfn
-    norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),arg(n),dum(n),dum1(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_expot_io allocation error:', n,norbit,ok
+       WRITE(6,*) 'calc_expot_io allocation error:', n,Orbit%norbit,ok
        STOP
     ENDIF
 
@@ -123,7 +121,7 @@ Module exx_pseudo
     occ=orbit%occ(io)
     if(occ<threshold) return
     li=Orbit%l(io);ni=Orbit%np(io)
-    DO jo=1,norbit
+    DO jo=1,Orbit%norbit
        occj=Orbit%occ(jo);vl=0
           lj=Orbit%l(jo);nj=Orbit%np(jo)
           IF(occj>threshold) THEN
@@ -151,7 +149,7 @@ Module exx_pseudo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  Assumes tildeg(r) = \sum_n=1^N C_n r^{lead+n+l}
- 
+
   SUBROUTINE EXX_pseudoVx(Grid,Orbit,PAWin,trvx)
      Type(Gridinfo), TARGET,  INTENT(IN) :: Grid
      Type(Orbitinfo), INTENT(IN) :: Orbit
@@ -178,7 +176,7 @@ Module exx_pseudo
      n=Grid%n; S_n=n;  irc=PAW%irc; S_irc=irc
 
      Inquire(file='in_parameters',exist=parameterfileexists)
-     
+
      If(parameterfileexists) then
          Open(1002,file='in_parameters')
             do
@@ -189,8 +187,8 @@ Module exx_pseudo
             READ(1002,*)  svdcut
             WRITE(6,*) 'Modified SVD Cutoff ', svdcut
          close(1002)
-     endif       
-        
+     endif
+
      trvx=0
 
 !     nocc=0; nbase=PAW%nbase
@@ -199,10 +197,10 @@ Module exx_pseudo
 !       enddo
 !
 !     ALLOCATE(S_bmap(nocc),S_omap(nocc),S_E(nocc),S_l(nocc),S_U(nocc),&
-!           S_W(n,nocc),S_X(nbase,nocc),S_Vx(nbase,nocc), S_shift(n), &
-!           S_dExdtphi(n,nocc),S_UOphi(n,nocc),S_Vxvale(n),S_tVxvale(n))
+!&          S_W(n,nocc),S_X(nbase,nocc),S_Vx(nbase,nocc), S_shift(n), &
+!&          S_dExdtphi(n,nocc),S_UOphi(n,nocc),S_Vxvale(n),S_tVxvale(n))
 !     ALLOCATE(trvx0(n),d(n),d1(n),d2(n),d3(n),v(n),arg(irc),F2(n,nocc),&
-!            F(n),rho(n))
+!&           F(n),rho(n))
 !
 !     map=>S_bmap
 !     S_nocc=nocc; S_nbase=nbase;
@@ -263,11 +261,11 @@ Module exx_pseudo
 !                 do ib=1,nbase
 !                    if (PAW%l(ib)==lp) then
 !                       d=PAW%ophi(:,ib)*PAW%ophi(:,map(iq))*v - &
-!                             PAW%otphi(:,ib)*PAW%otphi(:,map(iq))*trvx0
+!&                            PAW%otphi(:,ib)*PAW%otphi(:,map(iq))*trvx0
 !                       d(1)=0; d(2:n)=d(2:n)/Grid%r(2:n)
 !                       S_X(ib,ip)=S_X(ib,ip)-wgt*integrator(Grid,d,1,irc)
 !                       write(6,*) 'Check ',ib,ip,integrator(Grid,d,1,irc),&
-!                         integrator(Grid,d)
+!&                        integrator(Grid,d)
 !                    endif
 !                 enddo
 !              ENDIF
@@ -281,13 +279,13 @@ Module exx_pseudo
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
 !        S_U(ip)=integrator(Grid,d)
 !        write(6,*) 'Checking U ', ip,map(ip),integrator(Grid,d),&
-!           HSZ%Uvale(S_omap(ip))
+!&          HSZ%Uvale(S_omap(ip))
 !        d=d-HSZ%Uvale(S_omap(ip))*PAW%ophi(:,map(ip))**2
 !        write(6,*) 'FC rhs',ip,integrator(Grid,d),integrator(Grid,d,1,irc)
 !        d=S_W(:,ip)*PAW%otphi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
 !        write(6,*) 'Checking dtEx ', ip,map(ip),&
-!             integrator(Grid,d)+S_X(map(ip),ip),S_X(map(ip),ip)
+!&            integrator(Grid,d)+S_X(map(ip),ip),S_X(map(ip),ip)
 !        d=F2(:,ip)*PAW%ophi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
 !        write(6,*) 'Checking dEx ', ip,map(ip),integrator(Grid,d)
@@ -301,7 +299,7 @@ Module exx_pseudo
 !           else
 !              !if (S_l(iq)==S_l(ip)) then
 !              !F(:)=F(:)-occp*HSZ%LMBDvale(S_omap(ip),S_omap(iq))&
-!              !   *PAW%otphi(:,map(ip))*PAW%otphi(:,map(iq))
+!&             !   *PAW%otphi(:,map(ip))*PAW%otphi(:,map(iq))
 !              !endif
 !           endif
 !        enddo
@@ -329,17 +327,17 @@ Module exx_pseudo
 !             d=HSZ%rVxVale(:)*PAW%ophi(:,ib)*PAW%ophi(:,S_bmap(ip))
 !             d(1)=0; d(2:n)=d(2:n)/Gridwk%r(2:n)
 !             S_Vx(ib,ip)=integrator(Gridwk,d,1,irc)
-!          endif         
-!          write(6,'(" vx ",2i5,1pe15.7)') ib,ip,S_Vx(ib,ip)
+!          endif
+!          write(6,'(" vx ",2i5,1p,1e15.7)') ib,ip,S_Vx(ib,ip)
 !       enddo
 !    enddo
-!  
+!
 !    ! Note that S_W is r*(desired function)
 !
 !     Open(1001,file='testF1',form='formatted')
 !     do i=1,n
-!        write(1001,'(1p50e15.7)') Grid%r(i),HSZ%rVxvale(i),&
-!             (S_W(i,ip),F2(i,ip),ip=1,nocc)
+!        write(1001,'(1p,50e15.7)') Grid%r(i),HSZ%rVxvale(i),&
+!&            (S_W(i,ip),F2(i,ip),ip=1,nocc)
 !     enddo
 !     close(1001)
 !
@@ -348,20 +346,20 @@ Module exx_pseudo
 !           write(6,*) 'X  ', ip,ib,S_X(ib,ip)
 !        enddo
 !     enddo
-!   
-!   call Init_trvx(Grid,irc,HSZ%rVxvale,trvx) 
+!
+!   call Init_trvx(Grid,irc,HSZ%rVxvale,trvx)
 !   S_Vxvale=HSZ%rVxvale; S_tVxvale=trvx
 !
 !     Open(1001,file='trvx0',form='formatted')
 !     do i=1,n
-!        write(1001,'(1p50e15.7)') Grid%r(i),trvx(i),HSZ%rVxvale(i),&
-!                         HSZ%rVxcore(i)
+!        write(1001,'(1p,50e15.7)') Grid%r(i),trvx(i),HSZ%rVxvale(i),&
+!&                        HSZ%rVxcore(i)
 !     enddo
 !     close(1001)
 !
 !   arg(1:irc)=trvx(1:irc)
 !   CALL InitAnderson_dr(AC,6,5,irc,0.1d0,1.d3,100,&
-!                  1.d-8,1.d-16,.TRUE.)
+!&                 1.d-8,1.d-16,.TRUE.)
 !   CALL DoAndersonMix(AC,arg,xxx,tVXsub1,success)
 !   trvx(1:irc)=arg(1:irc)
 !      WRITE(6,*) 'Finished trvx iter # ',AC%CurIter,AC%res
@@ -369,8 +367,8 @@ Module exx_pseudo
 !
 !     Open(1001,file='trvx',form='formatted')
 !     do i=1,n
-!        write(1001,'(1p50e15.7)') Grid%r(i),trvx(i),HSZ%rVxvale(i),&
-!                         HSZ%rVxcore(i)
+!        write(1001,'(1p,50e15.7)') Grid%r(i),trvx(i),HSZ%rVxvale(i),&
+!&                        HSZ%rVxcore(i)
 !     enddo
 !     close(1001)
 !
@@ -425,38 +423,38 @@ Module exx_pseudo
     REAL(8) :: r1u1,r2u2,r3u3,d0rc, d1rc,d2rc,rc,x
     REAL(8) :: u1,u2,u3
     REAL(8), ALLOCATABLE :: d1(:),d2(:)
-    
+
     n=Grid%n
     ALLOCATE(d1(n),d2(n))
-    
+
     CALL derivative(Grid,trvxin,d1)
     CALL derivative(Grid,d1,d2)
-  
+
     d0rc=trvxin(p)
     d1rc=d1(p)
     d2rc=d2(p)
     rc=Grid%r(p)
 
     r2u2 = (-d0rc + rc*d1rc -(1.0d0/3.0d0)*rc*rc*d2rc)*3
-    r3u3 = (rc*d1rc -d0rc - r2u2)*(1.0d0/2.0d0)    
+    r3u3 = (rc*d1rc -d0rc - r2u2)*(1.0d0/2.0d0)
     r1u1 = d0rc - r2u2 - r3u3
-    
+
     u1 = r1u1/rc;
     u2 = r2u2/(rc*rc)
     u3 = r3u3/(rc**3)
-    
+
     trvxout=trvxin
-    
+
     do i=1,p
        x = Grid%r(i)
        trvxout(i) = x*u1 + x*x*u2 + x*x*x*u3
-    enddo  
-    
+    enddo
+
      open(unit=2001,file='rvxsmooth.txt')
      n=Grid%n
      do i=1,n
-           write(2001,'(1p6e15.7)') Grid%r(i), trvxin(i),trvxout(i)
-     enddo 
+           write(2001,'(1p,6e15.7)') Grid%r(i), trvxin(i),trvxout(i)
+     enddo
      close(2001)
 
   END SUBROUTINE Init_trvx
@@ -473,12 +471,12 @@ Module exx_pseudo
     REAL(8) ,POINTER :: r(:)
 
     n=Grid%n
-    ALLOCATE(Temp1(n),Temp2(n)) 
-    r=>Grid%r 
+    ALLOCATE(Temp1(n),Temp2(n))
+    r=>Grid%r
     irc = PAW%irc
 
     Temp1 = PAW%ophi(:,alpha)*PAW%ophi(:,beta) - &
-       PAW%otphi(:,alpha)*PAW%otphi(:,beta) 
+&      PAW%otphi(:,alpha)*PAW%otphi(:,beta)
     Temp1 = Temp1 * (r(:)**k)
     n1 = integrator(Grid,Temp1,1,irc)
     rho(:)=(r(:)**(k+2))*PAW%hatshape(:)
@@ -513,7 +511,7 @@ Module exx_pseudo
     rv=>PAW%rVeff
 
     allocate(shift(n),tg(n,nocc),tu(n),rhs(n),tw(n),&
-     dvx(nbase,nocc))
+&    dvx(nbase,nocc))
     shift=0;grad=0
 
    !  Matrix element of \tilde{V}_x = w (input)
@@ -521,26 +519,26 @@ Module exx_pseudo
        dvx(:,ip)=0; l=PAW%l(S_bmap(ip))  ;
        do ib=1,nbase
           if (l==PAW%l(ib)) THEN
-          tu(1:irc)=w(1:irc)*PAW%otphi(1:irc,ib)*PAW%otphi(1:irc,S_bmap(ip)) 
+          tu(1:irc)=w(1:irc)*PAW%otphi(1:irc,ib)*PAW%otphi(1:irc,S_bmap(ip))
           tu(1)=0; tu(2:irc)=tu(2:irc)/Gridwk%r(2:irc)
           dvx(ib,ip)=S_Vx(ib,ip)-integrator(Gridwk,tu,1,irc)
-          endif         
-          write(6,'(" dvx ",2i5,1pe15.7)') ib,ip,dvx(ib,ip)
+          endif
+          write(6,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
        enddo
     enddo
     call flush(6)
     tw=S_tVxvale
-    tw(1:irc)=w(1:irc)   
-    shift=0 ; 
+    tw(1:irc)=w(1:irc)
+    shift=0 ;
     do ip=1,nocc
        occ=PAW%occ(S_bmap(ip))
        energy=S_E(ip)
        l=S_l(ip)
        rhs=0;
        rhs(2:n)=S_dExdtphi(2:n,ip)  &
-             -tw(2:n)*PAW%otphi(2:n,S_bmap(ip))/Gridwk%r(2:n)
+&            -tw(2:n)*PAW%otphi(2:n,S_bmap(ip))/Gridwk%r(2:n)
        rhs(2:n)=rhs(2:n)-S_UOphi(2:n,ip)
-       
+
        do ib=1,nbase
           if (l==PAW%l(ib)) then
              rhs(:)=rhs(:)-dvx(ib,ip)*PAW%otp(:,ib)
@@ -548,9 +546,9 @@ Module exx_pseudo
        enddo
 
       write(6,*)' Check smooth rhs ip ', ip,  &
-                 overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)),1,irc),&
-                 overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)))
-    
+&                overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)),1,irc),&
+&                overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)))
+
 
       call inhomo_numerov_SVD_bv(Gridwk,l,irc+1,energy,tol,rv,rhs,S_tgvv(:,ip))
 
@@ -559,9 +557,9 @@ Module exx_pseudo
       do ib=1,nbase
          if (l==PAW%l(ib)) then
             write(6,*) ' ip ib <g|p> = ', ip,ib ,&
-              overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
+&             overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
             write(6,*) ' ip ib <g|tphi> = ', &
-              overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
+&             overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
          endif
       enddo
    enddo   !ip
@@ -578,25 +576,25 @@ Module exx_pseudo
     err=DOT_PRODUCT(grad(1:irc),grad(1:irc))
     en=err
     S_shift=shift
- 
-    WRITE(6,'("PAWiter",i5,1pe20.12,1p2e15.7)')fcount,en
+
+    WRITE(6,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
 
     call mkname(fcount,stuff)
     open(1001,file='pseudo.'//TRIM(stuff),form='formatted')
     do i=1,n
-       write(1001,'(1p15e15.7)') Gridwk%r(i),tw(i),shift(i),&
-                  (S_tgvv(i,ip),ip=1,nocc),&
-                  (S_tgvv(i,ip)*PAW%tphi(i,S_bmap(ip)),ip=1,nocc)
+       write(1001,'(1p,15e15.7)') Gridwk%r(i),tw(i),shift(i),&
+&                 (S_tgvv(i,ip),ip=1,nocc),&
+&                 (S_tgvv(i,ip)*PAW%tphi(i,S_bmap(ip)),ip=1,nocc)
     enddo
     close(1001)
 
     fcount=fcount+1
     deallocate(shift,tg,tu,rhs,tw,dvx)
-    
+
   END SUBROUTINE tVXsub0
 
 !!!!!!!
-!  tVXsub1  
+!  tVXsub1
 !!!!!!!
   SUBROUTINE tVXsub1(w,en,grad,err,success,update)
     REAL(8), INTENT(INOUT) :: w(:)
@@ -620,7 +618,7 @@ Module exx_pseudo
     rv=>PAW%rVeff
 
     allocate(shift(n),tg(n,nocc),tu(n),rhs(n,nbase+1),tw(n),&
-     dvx(nbase,nocc))
+&    dvx(nbase,nocc))
     shift=0;grad=0
 
    !  Matrix element of \tilde{V}_x = w (input)
@@ -628,26 +626,26 @@ Module exx_pseudo
        dvx(:,ip)=0; l=PAW%l(S_bmap(ip))  ;
        do ib=1,nbase
           if (l==PAW%l(ib)) THEN
-          tu(1:irc)=w(1:irc)*PAW%otphi(1:irc,ib)*PAW%otphi(1:irc,S_bmap(ip)) 
+          tu(1:irc)=w(1:irc)*PAW%otphi(1:irc,ib)*PAW%otphi(1:irc,S_bmap(ip))
           tu(1)=0; tu(2:irc)=tu(2:irc)/Gridwk%r(2:irc)
           dvx(ib,ip)=S_Vx(ib,ip)-integrator(Gridwk,tu,1,irc)
-          endif         
-          write(6,'(" dvx ",2i5,1pe15.7)') ib,ip,dvx(ib,ip)
+          endif
+          write(6,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
        enddo
     enddo
     call flush(6)
     tw=S_tVxvale
     tw(1:irc)=w(1:irc)
-    shift=0 ; 
+    shift=0 ;
     do ip=1,nocc
        occ=PAW%occ(S_bmap(ip))
        energy=S_E(ip)
        l=S_l(ip)
        rhs=0;
        rhs(2:n,1)=S_dExdtphi(2:n,ip)  &
-             -tw(2:n)*PAW%otphi(2:n,S_bmap(ip))/Gridwk%r(2:n)
+&            -tw(2:n)*PAW%otphi(2:n,S_bmap(ip))/Gridwk%r(2:n)
        rhs(2:n,1)=rhs(2:n,1)-S_UOphi(2:n,ip)
-       
+
        many=1
        do ib=1,nbase
           if (l==PAW%l(ib)) then
@@ -677,9 +675,9 @@ Module exx_pseudo
       do ib=1,nbase
          if (l==PAW%l(ib)) then
             write(6,*) ' ip ib <g|p> = ', ip,ib ,&
-              overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
+&             overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
             write(6,*) ' ip ib <g|tphi> = ', &
-              overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
+&             overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
          endif
       enddo
    enddo   !ip
@@ -695,20 +693,20 @@ Module exx_pseudo
     err=DOT_PRODUCT(grad(1:irc),grad(1:irc))
     en=err
     S_shift=shift
- 
-    WRITE(6,'("PAWiter",i5,1pe20.12,1p2e15.7)')fcount,en
+
+    WRITE(6,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
 
     call mkname(fcount,stuff)
     open(1001,file='pseudo.'//TRIM(stuff),form='formatted')
     do i=1,n
-       write(1001,'(1p15e15.7)') Gridwk%r(i),tw(i),shift(i),&
-          (S_gvv(i,ip),S_tgvv(i,ip),PAW%otphi(i,S_bmap(ip)),ip=1,nocc)
+       write(1001,'(1p,15e15.7)') Gridwk%r(i),tw(i),shift(i),&
+&         (S_gvv(i,ip),S_tgvv(i,ip),PAW%otphi(i,S_bmap(ip)),ip=1,nocc)
     enddo
     close(1001)
 
     fcount=fcount+1
     deallocate(shift,tg,tu,rhs,tw,dvx)
-    
+
   END SUBROUTINE tVXsub1
 
    SUBROUTINE FindVX(mxloop,n,threshold,arg,trvx)
@@ -722,7 +720,7 @@ Module exx_pseudo
       INTEGER :: loop,i
       INTEGER, parameter :: mxl=50
       REAL(8), parameter :: mix=0.2d0
-      CHARACTER(4) :: nm 
+      CHARACTER(4) :: nm
       trvx=arg
       Do loop=1,mxloop*10
          CALL InitAnderson_dr(AC,6,2,n,0.001d0,1.d1,mxl,1.d-6,1.d-6,.true.)
@@ -738,8 +736,8 @@ Module exx_pseudo
            call mkname(loop,nm)
               Open(1001,file='anal'//TRIM(nm),form='formatted')
                  do i=1,n
-                    write(1001,'(1p20e15.7)') Gridwk%r(i),trvx(i),S_shift(i),&
-                             trvx(i)+mix*arg(i)
+                    write(1001,'(1p,20e15.7)') Gridwk%r(i),trvx(i),S_shift(i),&
+&                            trvx(i)+mix*arg(i)
                  enddo
               close(1001)
          if (xxx<threshold) then
@@ -756,7 +754,7 @@ Module exx_pseudo
   SUBROUTINE multisolv(in,l,mult,energy,rv,rhs,res)
     INTEGER, INTENT(IN):: in,l,mult
     REAL(8), INTENT(IN):: energy,rv(:),rhs(:,:)
-    REAL(8), INTENT(INOUT):: res(:)       
+    REAL(8), INTENT(INOUT):: res(:)
 
     integer :: i,io,jo,ib,many,n,nbase
     integer, ALLOCATABLE :: map(:)
@@ -766,22 +764,22 @@ Module exx_pseudo
     n=S_n; res=0
     nbase=PAW%nbase
     allocate(map(nbase),M(nbase,nbase),MM(nbase,nbase),MMM(nbase,nbase),&
-       tw(n,nbase+1),tu(n),c(nbase),cc(nbase))
+&      tw(n,nbase+1),tu(n),c(nbase),cc(nbase))
 
     many=0; map=0
     do ib=1,nbase
        if (l==PAW%l(ib)) then
-          many=many+1; map(many)=ib; 
+          many=many+1; map(many)=ib;
        endif
     enddo
-       
+
     if (mult-1/=many) then
          write(6,*) 'Error in multisolv ', mult,many
          stop
     endif
 
     call inhomo_numerov_SVD_bvm(Gridwk,l,n-1,mult,energy,tol,rv,rhs(:,1:mult),&
-              tw(:,1:mult))
+&             tw(:,1:mult))
 
     MMM=0; M=0
     do io=1,many
@@ -789,7 +787,7 @@ Module exx_pseudo
           tu(:)=PAW%otp(:,map(io))*tw(:,jo+1)
           MMM(io,jo)=integrator(Gridwk,tu)
           M(io,jo)=PAW%dij(map(io),map(jo))-&
-                 energy*PAW%oij(map(io),map(jo))
+&                energy*PAW%oij(map(io),map(jo))
           enddo
        enddo
        MM=0
@@ -812,9 +810,9 @@ Module exx_pseudo
             cc(io)=cc(io)-M(io,jo)*c(jo)
          enddo
       enddo
- 
+
       MMM=MM
-      call linsol(MMM,cc,many)
+      call linsol(MMM,cc,many,nbase,nbase,nbase)
 
       write(6,*) ' linsol results '
       do io=1,many
@@ -827,7 +825,7 @@ Module exx_pseudo
       enddo
 
     deallocate(map,M,MM,MMM,tw,tu,c,cc)
- 
+
   END SUBROUTINE multisolv
 
   SUBROUTINE Calc_w(Grid,PAW,io,w)
@@ -862,7 +860,7 @@ Module exx_pseudo
 
     OPEN(unit=2001,file='w.txt')
     DO i=1,n
-       WRITE(2001,'(1p50e15.7)') r(i), (w(i,j),j=1,nbase)
+       WRITE(2001,'(1p,50e15.7)') r(i), (w(i,j),j=1,nbase)
     ENDDO
     CLOSE(2001)
 
@@ -894,7 +892,7 @@ Module exx_pseudo
 
     OPEN(unit=2001,file='uio.txt')
     DO i=1,n
-       WRITE(2001,'(1p6e15.7)') r(i), u(i)
+       WRITE(2001,'(1p,6e15.7)') r(i), u(i)
     ENDDO
     CLOSE(2001)
 

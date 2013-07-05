@@ -5,7 +5,7 @@ Module paw_sub
    IMPLICIT NONE
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  Support routines for PAW calculations; 
+!  Support routines for PAW calculations;
 !     Several of these routines were written by Marc Torrent of CEA
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -46,9 +46,9 @@ Module paw_sub
     X(i)=scale*func(i+irc-np2-1)/(xx**(l+1))
    enddo
 
-   call linsol(A,X,np)
+   call linsol(A,X,np,np,np,np)
    !write(6,*) 'Completed linsol with coefficients'
-   !write(6,'(1p10e15.7)') (X(i),i=1,np)
+   !write(6,'(1p,10e15.7)') (X(i),i=1,np)
 
    do i=1,np
     Ci(i)=X(i)/rc**(l+2*i-1)
@@ -154,7 +154,7 @@ Module paw_sub
     end do
    end do
    scale=1/(rc-r(irc-1))**3;yy=yy*scale;zz=zz*scale ! Scale to limit rounding error in linsol
-   call linsol(yy,zz,6)
+   call linsol(yy,zz,6,6,6,6)
    zz(3)=2.d0*zz(3);zz(4)=6.d0*zz(4)
    X(np+1:np+4)=zz(1:4)
 
@@ -169,9 +169,9 @@ Module paw_sub
    enddo
 
    scale=(rc/(rc-r(irc-1)))**2;A=A*scale;X=X*scale ! Scale to limit rounding error in linsol
-   call linsol(A,X,np+4)
+   call linsol(A,X,np+4,np+4,np+4,np+4)
    !write(6,*) 'Completed linsol with coefficients'
-   !write(6,'(1p10e15.7)') (X(i),i=1,np+4)
+   !write(6,'(1p,10e15.7)') (X(i),i=1,np+4)
 
    Ci(1:np)=X(1:np)
 

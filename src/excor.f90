@@ -2,6 +2,7 @@ MODULE excor
   USE atomdata
   USE globalmath
   USE gridmod
+  USE libxc_mod
 
   IMPLICIT NONE
 
@@ -11,6 +12,7 @@ MODULE excor
   INTEGER, PRIVATE, PARAMETER :: LDA_PW=14
   INTEGER, PRIVATE, PARAMETER :: GGA_PBE=16
   INTEGER, PRIVATE, PARAMETER :: GGA_PBESOL=18
+  INTEGER, PRIVATE, PARAMETER :: LIBXC=-1
 
   ! Parameters for the Perdew-Wang (PRB 45,13244 (1992)) LDA correlation
   REAL(8), PRIVATE, PARAMETER :: AA=0.0310907d0
@@ -28,9 +30,9 @@ MODULE excor
   REAL(8), PRIVATE, PARAMETER :: betorig = 0.06672455060314922d0
   REAL(8), PRIVATE, PARAMETER :: gamm = 0.03109069086965489503494086371273d0
 
-  ! Parameters from new PBEsol 
+  ! Parameters from new PBEsol
   !      (arXiv:0711.0156v2 [cond-mat.mtrl-sci] 22 Feb 2008)
-  !   http://chem.ps.uci.edu/~kieron/dft/pubs/PBEsol.html   
+  !   http://chem.ps.uci.edu/~kieron/dft/pubs/PBEsol.html
   REAL(8), PRIVATE, PARAMETER :: musol = 0.123456790123456d0
   REAL(8), PRIVATE, PARAMETER :: betsol = 0.046d0
 
@@ -43,20 +45,30 @@ CONTAINS
   !***********************************************************
 
   SUBROUTINE initexch
+    integer :: id(2)=(/0,0/)
+    CHARACTER(132) :: xcname
     !  choose form of exchange-correlation potential
     CALL Uppercase(exctype)
+    WRITE(6,*)
 
     SELECT CASE(TRIM(exctype))
     CASE default
-       itype = LDA_PW
-       exctype='LDA-PW'
-       WRITE(6,*) 'Perdew-Wang correlation'
+      IF (have_libxc) THEN
+        call libxc_getid_fromname(exctype,id,xcname_short=xcname)
+        call libxc_init_func(id,1)
+        itype = LIBXC
+        exctype=trim(xcname)
+      ELSE
+        itype = LDA_PW
+        exctype='LDA-PW'
+        WRITE(6,*) 'Perdew-Wang correlation'
+      END IF
     CASE('LDA-PW')
        itype = LDA_PW
        WRITE(6,*) 'Perdew-Wang correlation'
     CASE('GGA-PBE')
        itype = GGA_PBE
-       WRITE(6,*) 'Perdew - Burke - Ernzerhof GGA'
+       WRITE(6,*) 'Perdew-Burke-Ernzerhof GGA'
        mu=muorig
        beta=betorig
        betabygamm=beta/gamm
@@ -67,6 +79,7 @@ CONTAINS
        beta=betsol
        betabygamm=beta/gamm
     END SELECT
+    WRITE(6,*)
 
   END SUBROUTINE initexch
 
@@ -84,7 +97,7 @@ CONTAINS
         write(if,*) 'Perdew-Burke-Ernzerhof modified (PBEsol) GGA'
         write(if,*) 'http://chem.ps.uci.edu/~kieron/dft/pubs/PBEsol.html'
      END SELECT
- 
+
   END SUBROUTINE Report_EXC
 
   !**********************************************************
@@ -123,8 +136,8 @@ CONTAINS
 
     !decdrs=-(2.d0*AA*a1)*ddlog(1.d0+1.d0/(2*AA*pprs)) &
     decdrs=-(2.d0*AA*a1)*term &
-         +((1.d0+a1*rs)*((b1+3*b3*rs)/(2.d0*SQRT(rs))+&
-         b2+2*b4*rs))/(pprs*(pprs+1.d0/(2.d0*AA)))
+&        +((1.d0+a1*rs)*((b1+3*b3*rs)/(2.d0*SQRT(rs))+&
+&        b2+2*b4*rs))/(pprs*(pprs+1.d0/(2.d0*AA)))
 
     vxc = (4.d0/3.d0)*ex+ec-(decdrs*rs)/3.d0
 
@@ -165,6 +178,10 @@ CONTAINS
     ks=SQRT(4.d0*kf/pi)
     s=g/(2.d0*kf*n)
     t=g/(2.d0*ks*n)
+    IF (s*s > machine_infinity .or. t*t > machine_infinity)  THEN
+       fxc=0.d0; dfxcdn=0.d0; dfxcdgbg=0.d0
+       RETURN
+    ENDIF
 
     ex=-3.d0*kf/(4.d0*pi)
     pprs=SQRT(rs)*(b1+b3*rs)+rs*(b2+b4*rs)
@@ -183,25 +200,25 @@ CONTAINS
     dFds = (2.d0*mu*s)/(1.d0+(mu/kappa)*(s**2))**2
     dFdsbg = ((2.d0*mu)/(1.d0+(mu/kappa)*(s**2))**2)/(2.d0*kf*n)
     dHdt = (2.d0*t*beta*gamm*(1.d0+2.d0*At2))/&
-         ((gamm*ppt+beta*t*t*(1.d0+At2))*ppt)
+&        ((gamm*ppt+beta*t*t*(1.d0+At2))*ppt)
     dHdtbg = ((2.d0*beta*gamm*(1.d0+ &
-         2.d0*At2))/((gamm*ppt+beta*t*t*(1.d0+At2))*ppt))/(2.d0*ks*n)
+&        2.d0*At2))/((gamm*ppt+beta*t*t*(1.d0+At2))*ppt))/(2.d0*ks*n)
     !decdrs=-(2.d0*AA*a1)*ddlog(1.d0+1.d0/(2*AA*pprs)) &
     decdrs=-(2.d0*AA*a1)*term &
-         +((1.d0+a1*rs)*((b1+3*b3*rs)/(2.d0*SQRT(rs))+ &
-           b2+2*b4*rs))/(pprs*(pprs+1.d0/(2.d0*AA)))
+&        +((1.d0+a1*rs)*((b1+3*b3*rs)/(2.d0*SQRT(rs))+ &
+&          b2+2*b4*rs))/(pprs*(pprs+1.d0/(2.d0*AA)))
     dHdA=((2.d0+At2)*(At2*t*t*t*t*beta*gamm))/&
-         ((gamm*ppt+beta*t*t*(1.d0+At2))*ppt)
+&        ((gamm*ppt+beta*t*t*(1.d0+At2))*ppt)
     dAdrs=-ddexp(-ec/gamm)*A*A*decdrs/beta
     dHdrs=dHdA*dAdrs
 
     dfxcdn = (4.d0/3.d0)*ex*(Fx-dFds*s)+ec-(decdrs*rs)/3.d0+H-(dHdrs*rs)/3.d0 &
-         - (7.d0/6.d0)*dHdt*t
+&        - (7.d0/6.d0)*dHdt*t
 
     dfxcdgbg = ex*dFdsbg/(2.d0*kf) + dHdtbg/(2.d0*ks)
 
     IF ((ABS(fxc).GT.1.d65).OR.(ABS(dfxcdn).GT.1.d65).OR.&
-              (ABS(dfxcdgbg).GT.1.d65)) THEN
+&             (ABS(dfxcdgbg).GT.1.d65)) THEN
        WRITE(6,*) 'Problem in PBE',n,g,rs,s,t,ec,A,H
     ENDIF
 
@@ -274,7 +291,7 @@ CONTAINS
     Npts=Grid%n
     IF (PRESENT(fin)) Npts=fin
     ALLOCATE(gradient(Npts),gradmag(Npts),gxc(Npts),dgxcdr(Npts), &
-         fxc(Npts),stat=i)
+&        fxc(Npts),stat=i)
     IF (i /=0) THEN
        WRITE(6,*) 'error in radialexcpbe allocation ', Npts,i
        STOP
@@ -293,7 +310,7 @@ CONTAINS
        vxc(i)=dfxcdn
        gxc(i)=dfxcdgbg*gradient(i)
 
-       !write(201,'(i5,1p6e15.7)') i,Grid%r(i),density(i),gradient(i),vxc(i),gxc(i)
+       !write(201,'(i5,1p,6e15.7)') i,Grid%r(i),density(i),gradient(i),vxc(i),gxc(i)
     ENDDO
 
     ! if (.not.scalarrelativistic) then
@@ -311,7 +328,7 @@ CONTAINS
     CALL extrapolate(Grid,vxc)
 
     !Do i=1,Npts
-    !  write(202,'(i5,1p6e15.7)') i,Grid%r(i),density(i),fxc(i),vxc(i),dgxcdr(i)
+    !  write(202,'(i5,1p,6e15.7)') i,Grid%r(i),density(i),fxc(i),vxc(i),dgxcdr(i)
     !enddo
 
     Exc = integrator(Grid,fxc,1,Npts)
@@ -335,6 +352,7 @@ CONTAINS
     REAL(8), INTENT(OUT), OPTIONAL :: v0,v0p
 
     REAL(8), ALLOCATABLE ::  tmpd(:),tmpv(:),dum(:)
+    REAL(8), ALLOCATABLE :: exci(:),dfxcdgbg(:),gxc(:),dgxcdr(:),grad(:),gradmag(:)
     REAL(8) :: fpi
     INTEGER :: i,n,i1,i2
     REAL(8) :: r,r2,rho,exc,vxc
@@ -345,7 +363,7 @@ CONTAINS
     rvxc=0;etxc=0;eexc=0
     if (PRESENT(v0)) v0=0
     if (PRESENT(v0p)) v0p=0
-    
+
     If (itype==GGA_PBE.or.itype==GGA_PBESOL) then !!!!!!!PBE form!!!!!!
        ALLOCATE(tmpd(n),tmpv(n))
 
@@ -407,8 +425,36 @@ CONTAINS
           v0p=tmpd(1)
        ENDIF
        DEALLOCATE(tmpd,tmpv,dum)
+    ELSE IF (itype==LIBXC.and.have_libxc) then !!!!! External LibXC library !!!!!
+       allocate(tmpd(n),tmpv(n),exci(n))
+       tmpd(2:n)=den(2:n)/(fpi*(Grid%r(2:n)**2))
+       call extrapolate(Grid,tmpd)
+       if (libxc_isgga()) then
+        allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
+        call derivative(Grid,tmpd,grad,1,n)
+        gradmag=ABS(grad)
+        call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,vxcgr=dfxcdgbg)
+        gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+        call derivative(Grid,gxc,dgxcdr,1,n)
+        tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
+        call extrapolate(Grid,tmpv)
+        deallocate(grad,gradmag,gxc,dfxcdgbg)
+       else
+        call libxc_getvxc(n,exci,tmpv,1,tmpd)
+       end if
+       rvxc(1:n)=tmpv(1:n)*Grid%r(1:n)
+       exci(1:n)=exci(1:n)*tmpd(1:n)*fpi*Grid%r(1:n)**2
+       eexc=integrator(Grid,exci,1,n)
+       if (present(v0).and.present(v0p)) then
+        call derivative(Grid,tmpv,tmpd,1,15)
+        v0=tmpv(1);v0p=tmpd(1)
+       endif
+       tmpv(1:n)=tmpv(1:n)*den(1:n)
+       etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
+       deallocate(tmpd,tmpv,exci)
+       WRITE(6,*) 'etxc,eexc = ',etxc,eexc
     else
-       WRITE(6,*) 'Warning: ', itype,' no results returned '
+       WRITE(6,*) 'Warning (EXCOR): ', itype,' no results returned !'
        STOP
     END if
   END SUBROUTINE exch

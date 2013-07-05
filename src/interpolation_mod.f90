@@ -53,7 +53,7 @@ Module interpolation_mod
 
      !close(300+nacount)
      !close(500+nacount)
-     
+
      deallocate(c)
    END SUBROUTINE interpfunc
 
@@ -62,7 +62,7 @@ Module interpolation_mod
 !!   http://pages.cs.wisc.edu/~deboor/pgs/cubspl.f
 !!   Transformed into fortran 90 and REAL(8)
       subroutine cubspl ( tau, c, n, ibcbeg, ibcend )
-!  from  * a practical guide to splines *  by c. de boor    
+!  from  * a practical guide to splines *  by c. de boor
 !     ************************  input  ***************************
 !     n = number of data points. assumed to be .ge. 2.
 !     (tau(i), c(1,i), i=1,...,n) = abscissae and ordinates of the
@@ -168,7 +168,7 @@ Module interpolation_mod
    29 c(4,n) = g*c(3,n-1) + c(4,n)
       c(2,n) = (g*c(2,n-1) + c(2,n))/c(4,n)
 !carry out back substitution
-   30 j = l 
+   30 j = l
    40    c(2,j) = (c(2,j) - c(3,j)*c(2,j+1))/c(4,j)
          j = j - 1
          if (j .gt. 0)                  go to 40

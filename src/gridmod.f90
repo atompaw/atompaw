@@ -168,7 +168,7 @@ CONTAINS
        wgt(i1)=Grid%h/2; wgt(istart)=wgt(istart)+Grid%h/2
     ENDIF
     if (Grid%type==loggrid) wgt(i1:i2)=wgt(i1:i2)*Grid%drdu(i1:i2)
-    
+
   END SUBROUTINE INTWGT
 
   !*****************************************************************
@@ -231,9 +231,9 @@ CONTAINS
     !
     !        normal exit
     a=hh*(-yy+6.d0*y(ndim-3)-18.d0*y(ndim-2)+10.d0*y(ndim-1)          &
-         +3.d0*y(ndim))
+&        +3.d0*y(ndim))
     z(ndim)=hh*(3.d0*yy-16.d0*y(ndim-3)+36.d0*y(ndim-2)               &
-         -48.d0*y(ndim-1)+25.d0*y(ndim))
+&        -48.d0*y(ndim-1)+25.d0*y(ndim))
     z(ndim-1)=a
     z(ndim-2)=c
     z(ndim-3)=b
@@ -378,7 +378,7 @@ CONTAINS
     n=Grid%n
     h=Grid%h
 
-    rv=0
+    rv=0.d0
     q=integrator(Grid,den)
     write(6,*) 'In poisson q = ', q; call flush(6)
 
@@ -465,57 +465,53 @@ CONTAINS
     n=Grid%n
     h=Grid%h
 
-    rv=0
+    rv=0.d0
     q=integrator(Grid,den)
 
-    IF (Grid%type==loggrid) THEN
-
-       ALLOCATE(aa(n),bb(n),cc(n),dd(n),stat=i)
-       IF (i/=0) THEN
-          WRITE(6,*) 'Error in allocating arrays in poisson',i,n
-          STOP
-       ENDIF
-
-       DO jr=n,2,-1
-          ir=n-jr+1
-          aa(ir)=den(jr)*Grid%drdu(jr)
-          bb(ir)=den(jr)*Grid%drdu(jr)/Grid%r(jr)
-       END DO
-       aa(n)=aa(n-3)+3.d0*(aa(n-1)-aa(n-2))
-       bb(n)=bb(n-3)+3.d0*(bb(n-1)-bb(n-2))
-
-       cc(1)=0.d0;dd(1)=0.d0
-       DO ir=3,n,2
-          cc(ir)  =cc(ir-2)+h/3.d0*(aa(ir-2)+4.d0*aa(ir-1)+aa(ir))
-          cc(ir-1)=cc(ir-2)+h/3.d0*(1.25d0*aa(ir-2)+2.0d0*aa(ir-1)-0.25d0*aa(ir))
-          dd(ir)  =dd(ir-2)+h/3.d0*(bb(ir-2)+4.d0*bb(ir-1)+bb(ir))
-          dd(ir-1)=dd(ir-2)+h/3.d0*(1.25d0*bb(ir-2)+2.d0*bb(ir-1)-0.25d0*bb(ir))
-       END DO
-       IF (MOD(n,2)==0) THEN
-          cc(n)=cc(n-2)+h/3.d0*(aa(n-2)+4.d0*aa(n-1)+aa(n))
-          dd(n)=dd(n-2)+h/3.d0*(bb(n-2)+4.d0*bb(n-1)+bb(n))
-       END IF
-
-       rv(1)=0.d0
-       DO ir=2,n
-          jr=n-ir+1
-          rv(ir)=2.d0*(dd(jr)*Grid%r(ir)+(cc(n)-cc(jr)))
-       END DO
-       !
-       !  calculate ecoul
-       !
-       DO i=2,n
-          aa(i)=den(i)*rv(i)/Grid%r(i)
-       ENDDO
-       aa(1)=0
-       ecoul=0.5d0*integrator(Grid,aa)
-       !WRITE(6,*) 'ecoul = ',ecoul
-       DEALLOCATE(aa,bb,cc,dd)
-
-    ELSE
-       WRITE(6,*) 'Error in subroutine poisson.marc -- must be loggrid'
+    ALLOCATE(aa(n),bb(n),cc(n),dd(n),stat=i)
+    IF (i/=0) THEN
+       WRITE(6,*) 'Error in allocating arrays in poisson',i,n
        STOP
     ENDIF
+
+    DO jr=n,2,-1
+       ir=n-jr+1
+       aa(ir)=den(jr)*Grid%drdu(jr)
+       bb(ir)=den(jr)*Grid%drdu(jr)/Grid%r(jr)
+    END DO
+
+    cc=0.d0
+    cc(5)=aa(n-4);cc(4)=aa(n-3);cc(3)=aa(n-2);cc(2)=aa(n-1)
+    call extrapolate(Grid,cc);aa(n)=cc(1)
+    cc(5)=bb(n-4);cc(4)=bb(n-3);cc(3)=bb(n-2);cc(2)=bb(n-1)
+    call extrapolate(Grid,cc);bb(n)=cc(1)
+
+    cc(1)=0.d0;dd(1)=0.d0
+    DO ir=3,n,2
+       cc(ir)  =cc(ir-2)+h/3.d0*(aa(ir-2)+4.d0*aa(ir-1)+aa(ir))
+       cc(ir-1)=cc(ir-2)+h/3.d0*(1.25d0*aa(ir-2)+2.0d0*aa(ir-1)-0.25d0*aa(ir))
+       dd(ir)  =dd(ir-2)+h/3.d0*(bb(ir-2)+4.d0*bb(ir-1)+bb(ir))
+       dd(ir-1)=dd(ir-2)+h/3.d0*(1.25d0*bb(ir-2)+2.d0*bb(ir-1)-0.25d0*bb(ir))
+    END DO
+    IF (MOD(n,2)==0) THEN
+       cc(n)=cc(n-2)+h/3.d0*(aa(n-2)+4.d0*aa(n-1)+aa(n))
+       dd(n)=dd(n-2)+h/3.d0*(bb(n-2)+4.d0*bb(n-1)+bb(n))
+    END IF
+
+    rv(1)=0.d0
+    DO ir=2,n
+       jr=n-ir+1
+       rv(ir)=2.d0*(dd(jr)*Grid%r(ir)+(cc(n)-cc(jr)))
+    END DO
+
+    !  calculate ecoul
+    aa(1)=0.d0
+    do i=2,n
+     aa(i)=den(i)*rv(i)/Grid%r(i)
+    end do
+    ecoul=0.5d0*integrator(Grid,aa)
+
+    DEALLOCATE(aa,bb,cc,dd)
 
   END SUBROUTINE poisson_marc
 
@@ -581,7 +577,7 @@ CONTAINS
        a=0; angm=l*(l+1)
        DO i=2,irc-1
           IF (i>2) a(i)=-1.2d0+&
-               0.1d0*h2*(0.25d0+angm*Grid%rr02(i-1)/Grid%r(i-1)**2)
+&              0.1d0*h2*(0.25d0+angm*Grid%rr02(i-1)/Grid%r(i-1)**2)
           c(i)=-1.2d0+0.1d0*h2*(0.25d0+angm*Grid%rr02(i+1)/Grid%r(i+1)**2)
           b(i)=2.4d0+h2*(0.25d0+angm*Grid%rr02(i)/Grid%r(i)**2)
        ENDDO
@@ -627,9 +623,9 @@ CONTAINS
     TYPE (GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(INOUT) :: v(:)  ! assume v(2),v(3)...  given
 
-    !v(1)=v(4)+3*(v(2)-v(3))    !second order formula
-    !v(1))=4*v(2)-6*v(3)+4*v(4)-v(5)     ! third order formula
-    v(1)=5*v(2)-10*v(3)+10*v(4)-5*v(5)+v(6)   ! fourth order formula
+    !v(1)=v(4)+3.d0*(v(2)-v(3))                         !second order formula
+    !v(1))=4.d0*v(2)-6.d0*v(3)+4.d0*v(4)-v(5)           ! third order formula
+    v(1)=5.d0*v(2)-10.d0*v(3)+10.d0*v(4)-5.d0*v(5)+v(6) ! fourth order formula
 
   END SUBROUTINE extrapolate
 
@@ -797,7 +793,7 @@ CONTAINS
     a=0
     a(2:8)=proj(2:8)/(Grid%r(2:8)**(l+1))
     CALL extrapolate(Grid,a)
-    !write(6,'("extrapolate ",1p9e15.7)') a(1:8)
+    !write(6,'("extrapolate ",1p,9e15.7)') a(1:8)
     wfn=0
     wfn(2)=-a(1)*(Grid%r(2)**(l+3))/(4*l+6.d0)
 
@@ -863,7 +859,7 @@ CONTAINS
     ENDIF
 
     ! assume wfn(r) ~ r**(l+1) for r->0 for homogeneous solution
-    !   
+    !
 
     zeroval=0
 
@@ -890,8 +886,8 @@ CONTAINS
        c(i)=10*b(i)+b(i-1)+b(i+1)
     ENDDO
 
-    b=-2.4d0-h2*a   ; 
-    ! zero value extrapolation 
+    b=-2.4d0-h2*a   ;
+    ! zero value extrapolation
     b(1)=b(1)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     a=1.2d0-0.1d0*h2*a
     p=0;p(2:mn-1)=a(1:mn-2)
@@ -918,7 +914,7 @@ CONTAINS
   !      Returns coefficients to solve
   ![   d^2     l(l+1)   rv(r)         ]
   ![ - ---  +  ------ + ----  -energy ] g(r) =  rhs(r)*(unknown func(r))
-  ![   dr^2      r^2      r           ] 
+  ![   dr^2      r^2      r           ]
   !
   !  coefficients a(i), b(i), etc. indexed to Grid%r(i)
   !  It is assumed that g(mn)=0 and rhs(mn)=0
@@ -953,7 +949,7 @@ CONTAINS
        !xx=Grid%rr02(1)*xx/Grid%pref(1)
     ENDIF
 
-    a(2:mn)=-2.4d0-h2*b(2:mn)   ; 
+    a(2:mn)=-2.4d0-h2*b(2:mn)   ;
     ! zero value extrapolation       ! not used
     !a(2)=a(2)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     b(2:mn)=1.2d0-0.1d0*h2*b(2:mn)
@@ -970,7 +966,7 @@ CONTAINS
   !      Returns sol(r) for equation
   ![   d^2     l(l+1)   rv(r)         ]
   ![ - ---  +  ------ + ----  -energy ] sol(r) =  -rhs(r)
-  ![   dr^2      r^2      r           ] 
+  ![   dr^2      r^2      r           ]
   !
   !  It is assumed that sol(nr)=0 and rhs(nr)=0; in general nr=n
   !*************************************************************
@@ -989,9 +985,9 @@ CONTAINS
 
     n=Grid%n;  nn=nr-1; LWORK=8*nn*nn
     ALLOCATE (a(n),b(n),c(n),d(n),u(nn,nn),vt(nn,nn),s(nn),&
-         MN(nn,nn),work(LWORK),IWORK(8*nn) )
+&        MN(nn,nn),work(LWORK),IWORK(8*nn) )
 
-    ! assume rhs(r) ~ r**(l+3) for r->0 
+    ! assume rhs(r) ~ r**(l+3) for r->0
 
     zeroval=0
 
@@ -1013,11 +1009,11 @@ CONTAINS
        xx=Grid%rr02(1)*xx/Grid%pref(1)
     ENDIF
 
-    a(2:nr)=-2.4d0-h2*b(2:nr)   ; 
+    a(2:nr)=-2.4d0-h2*b(2:nr)   ;
     ! zero value extrapolation      ! not used
     a(2)=a(2)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     b(2:nr)=1.2d0-0.1d0*h2*b(2:nr)
-    c=0; c(2)=10*d(2)+d(3); c(nr)=10*d(nr)+d(nr-1); 
+    c=0; c(2)=10*d(2)+d(3); c(nr)=10*d(nr)+d(nr-1);
     do i=3,nr-1
        c(i)=10*d(i)+d(i-1)+d(i+1)
     enddo
@@ -1046,7 +1042,7 @@ CONTAINS
        IF (s(i)>scale) THEN
           xx=Dot_Product(c(2:nr),u(:,i))/s(i)
           sol(2:nr)=sol(2:nr)+xx*vt(i,:)
-       ELSE   
+       ELSE
           WRITE(6,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
@@ -1063,10 +1059,10 @@ CONTAINS
   !      Returns sol(r) for equation
   ![   d^2     l(l+1)   rv(r)         ]
   ![ - ---  +  ------ + ----  -energy ] sol(r) =  rhs(r)
-  ![   dr^2      r^2      r           ] 
+  ![   dr^2      r^2      r           ]
   !
   !  It is assumed that sol(nr+1)=is given and sol(r) is determined
-  !      for r<Grid%r(nr) 
+  !      for r<Grid%r(nr)
   !    rhs(nr+1) is accessed also
   !*************************************************************
   SUBROUTINE inhomo_numerov_SVD_bv(Grid,l,nr,energy,tol,rv,rhs,sol,phi)
@@ -1084,7 +1080,7 @@ CONTAINS
 
     n=Grid%n;  nn=nr-1; LWORK=8*nn*nn
     ALLOCATE (a(n),b(n),c(n),d(n),u(nn,nn),vt(nn,nn),s(nn),&
-         MN(nn,nn),work(LWORK),IWORK(8*nn) )
+&        MN(nn,nn),work(LWORK),IWORK(8*nn) )
 
     If (nr>n-1) then
        write(6,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
@@ -1109,8 +1105,8 @@ CONTAINS
        xx=Grid%rr02(1)*xx/Grid%pref(1)
     ENDIF
 
-    a(2:n)=-2.4d0-h2*b(2:n)   ; 
-    ! zero value extrapolation 
+    a(2:n)=-2.4d0-h2*b(2:n)   ;
+    ! zero value extrapolation
     a(2)=a(2)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     b(2:n)=1.2d0-0.1d0*h2*b(2:n)
     c=0; c(2)=10*d(2)+d(3);
@@ -1143,7 +1139,7 @@ CONTAINS
           xx=Dot_Product(c(2:nr),u(:,i))/s(i)
           sol(2:nr)=sol(2:nr)+xx*vt(i,:)
           !WRITE(6,*) 'i s = ', i,s(i)
-       ELSE   
+       ELSE
           WRITE(6,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
@@ -1161,11 +1157,11 @@ CONTAINS
   !      Returns sol(r) for equation
   ![   d^2     l(l+1)   rv(r)         ]
   ![ - ---  +  ------ + ----  -energy ] sol(r) =  rhs(r,i)
-  ![   dr^2      r^2      r           ] 
+  ![   dr^2      r^2      r           ]
   !
   !    for k=1,2, .. mult
   !  It is assumed that sol(nr+1)=is given and sol(r) is determined
-  !      for r<Grid%r(nr) 
+  !      for r<Grid%r(nr)
   !    rhs(nr+1) is accessed also
   !*************************************************************
   SUBROUTINE inhomo_numerov_SVD_bvm(Grid,l,nr,mult,energy,tol,rv,rhs,sol)
@@ -1182,7 +1178,7 @@ CONTAINS
 
     n=Grid%n;  nn=nr-1; LWORK=8*nn*nn
     ALLOCATE (a(n),b(n),c(n,mult),d(n,mult),u(nn,nn),vt(nn,nn),s(nn),&
-         MN(nn,nn),work(LWORK),IWORK(8*nn) )
+&        MN(nn,nn),work(LWORK),IWORK(8*nn) )
 
     If (nr>n-1) then
        write(6,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
@@ -1209,8 +1205,8 @@ CONTAINS
        xx=Grid%rr02(1)*xx/Grid%pref(1)
     ENDIF
 
-    a(2:n)=-2.4d0-h2*b(2:n)   ; 
-    ! zero value extrapolation 
+    a(2:n)=-2.4d0-h2*b(2:n)   ;
+    ! zero value extrapolation
     a(2)=a(2)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     b(2:n)=1.2d0-0.1d0*h2*b(2:n)
     c=0; c(2,:)=10*d(2,:)+d(3,:);
@@ -1245,7 +1241,7 @@ CONTAINS
           sol(2:nr,j)=sol(2:nr,j)+xx*vt(i,:)
           !WRITE(6,*) 'i s = ', i,s(i)
          enddo
-       ELSE   
+       ELSE
           WRITE(6,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
@@ -1306,8 +1302,8 @@ CONTAINS
        c(i)=10*b(i)+b(i-1)+b(i+1)
     ENDDO
 
-    b=-2.4d0-h2*a   ; 
-    ! zero value extrapolation 
+    b=-2.4d0-h2*a   ;
+    ! zero value extrapolation
     b(1)=b(1)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
     a=1.2d0-0.1d0*h2*a
     p=0;p(2:mn-1)=a(1:mn-2)
@@ -1452,7 +1448,7 @@ CONTAINS
     DO i=1,2
        DO j=1,2
           tmpz(i,j,:)=tmpz(i,j,:)*Grid%h
-          IF (Grid%TYPE==loggrid) tmpz(i,j,:)=tmpz(i,j,:)*Grid%drdu(:)
+          if (Grid%TYPE==loggrid) tmpz(i,j,1:mesh)=tmpz(i,j,1:mesh)*Grid%drdu(1:mesh)
        ENDDO
     ENDDO
 
@@ -1648,7 +1644,7 @@ CONTAINS
 
   !******************************************************************
   !  subroutine deltakinetic_ij(Grid,wfn1,wfn2,twfn1,twfn2,l,ekin,last)
-  !       calculates difference matrix element  of kinetic energy for 
+  !       calculates difference matrix element  of kinetic energy for
   !         all electron functions wfn1 and wfn2
   !         and pseudo functions twfn1 and twfn2
   !        with orbital angular momentum l
@@ -1686,7 +1682,7 @@ CONTAINS
 
     DO i=1,n
        arg1(i)=(dfdr1(i)*dfdr2(i)-tdfdr1(i)*tdfdr2(i))&
-            +(l*(l+1))*(arg1(i)*arg2(i)-targ1(i)*targ2(i))
+&           +(l*(l+1))*(arg1(i)*arg2(i)-targ1(i)*targ2(i))
     ENDDO
 
     ekin=integrator(Grid,arg1,1,n)
@@ -1735,12 +1731,12 @@ CONTAINS
     FindGridIndex=0
     IF (Grid%type==lineargrid) THEN
        FindGridIndex=rpoint/Grid%h+1
-       IF (Grid%h*(FindGridIndex-1)<rpoint) FindGridIndex=FindGridIndex+1
+       IF (Grid%h*(FindGridIndex-1)<rpoint-1.d-10) FindGridIndex=FindGridIndex+1
     ELSEIF (Grid%type==loggrid) THEN
        r0=Grid%drdu(1)
        FindGridIndex=LOG(rpoint/r0+1)/Grid%h+1
-       IF (r0*EXP(Grid%h*(FindGridIndex-1))<rpoint) &
-            FindGridIndex=FindGridIndex+1
+       IF (r0*EXP(Grid%h*(FindGridIndex-1))<rpoint-1.d-10) &
+&           FindGridIndex=FindGridIndex+1
     ENDIF
   END FUNCTION FindGridIndex
 
@@ -1755,9 +1751,9 @@ CONTAINS
     REAL(8), INTENT(IN) :: f(:),h
 
     INTEGER :: i,n
- 
+
     n=SIZE(f)
-    secondderiv=0   
+    secondderiv=0
 
     if (index==1.and.n>=5) THEN
        secondderiv=(70*f(1)-208*f(2)+228*f(3)-112*f(4)+22*f(5))/(24*h*h)
@@ -1765,7 +1761,7 @@ CONTAINS
        secondderiv=(22*f(1)-40*f(2)+12*f(3)+8*f(4)-2*f(5))/(24*h*h)
     else if (index>2.and.index<=n-2) THEN
        secondderiv=-(f(index-2)+f(index+2))/12 + &
-         4*(f(index-1)+f(index+1))/3 - 5*f(index)/2
+&        4*(f(index-1)+f(index+1))/3 - 5*f(index)/2
        secondderiv=secondderiv/(h*h)
     else if (index>=5.and.index==n-1)   THEN
        secondderiv=(-2*f(n-4)+8*f(n-3)+12*f(n-2)-40*f(n-1)+22*f(n))/(24*h*h)
@@ -1790,7 +1786,7 @@ CONTAINS
     INTEGER :: n
 
     n=SIZE(f)
-    firstderiv=0   
+    firstderiv=0
 
     if (index==1.and.n>=5) THEN
        firstderiv=(-25*f(1)+48*f(2)-36*f(3)+16*f(4)-3*f(5))/(12*h)
@@ -1828,7 +1824,7 @@ CONTAINS
        Gsecondderiv=secondderiv(index,g,Grid%h)
     ELSEIF  (Grid%type==loggrid) THEN
        Gsecondderiv=(secondderiv(index,g,Grid%h)&
-             -firstderiv(index,g,Grid%h))/Grid%rr02(index)
+&            -firstderiv(index,g,Grid%h))/Grid%rr02(index)
     ENDIF
 
   END FUNCTION Gsecondderiv
@@ -1867,13 +1863,13 @@ CONTAINS
 
     IF (Grid%type==lineargrid) THEN
        WRITE(unit,*) ' Radial integration grid is linear '
-       WRITE(unit,'(" h = ", 1pe15.7,"   n = ",i9," rmax = ", 1pe15.7)')&
-            Grid%h,Grid%n,Grid%r(Grid%n)
+       WRITE(unit,'(" h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)')&
+&       Grid%h,Grid%n,Grid%r(Grid%n)
     ELSEIF (Grid%type==loggrid) THEN
        WRITE(unit,*) ' Radial integration grid is logarithmic '
        WRITE(unit,&
-            '("r0 = ",1pE15.7," h = ", 1pe15.7,"   n = ",i9," rmax = ", 1pe15.7)')&
-            Grid%drdu(1), Grid%h, Grid%n,Grid%r(Grid%n)
+&       '("r0 = ",1p,1E15.7," h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)')&
+&       Grid%drdu(1), Grid%h, Grid%n,Grid%r(Grid%n)
     ENDIF
   END SUBROUTINE reportgrid
 
@@ -1901,7 +1897,8 @@ CONTAINS
   !    assumes form r(i)=(h/Z)*(exp(h*(i-1))-1);   r0=h/Z
   !*********************************************************************
    SUBROUTINE findh(Z,range,n,hval,r0)
-     INTEGER, INTENT(IN) :: Z,n
+     REAL(8), INTENT(IN) :: Z
+     INTEGER, INTENT(IN) :: n
      REAL(8), INTENT(IN) :: range
      REAL(8), INTENT(INOUT) :: hval,r0
 
@@ -1936,15 +1933,15 @@ CONTAINS
 
   end subroutine findh
 
-  
+
   !*********************************************************************
   !  subroutine findh_given_r0(Z,range,r0,n,hval)
   !    find hval for fixed number of input grid points n in loggrid case
   !    assumes form r(i)=(r0/Z)*(exp(h*(i-1))-1);
   !*********************************************************************
    SUBROUTINE findh_given_r0(Z,range,r0,n,hval)
-     INTEGER, INTENT(IN) :: Z,n
-     REAL(8), INTENT(IN) :: range,r0
+     INTEGER, INTENT(IN) :: n
+     REAL(8), INTENT(IN) :: Z,range,r0
      REAL(8), INTENT(INOUT) :: hval
 
      REAL(8) :: h0,dh,f,df
@@ -1958,7 +1955,7 @@ CONTAINS
   !  subroutine findh_worse(Z,range,n,hval,r0)
   !    find hval for fixed number of input grid points n in loggrid case
   !    assumes form r(i)=(h/(Z**1/3))*(exp(h*(i-1))-1); r0=(h/(Z**1/3)
-  !       Note: this choice of r0 does poor job for some integrals 
+  !       Note: this choice of r0 does poor job for some integrals
   !                    than r0=h/Z
   !*********************************************************************
   SUBROUTINE findh_worse(Z,range,n,hval,r0)
@@ -2001,7 +1998,7 @@ CONTAINS
   !******************************************************************
   ! subroutine initgrid(Grid,h,range,r0)
   !******************************************************************
-  SUBROUTINE Init_grid(Grid,h,range,r0)
+  SUBROUTINE InitGrid(Grid,h,range,r0)
     TYPE (GridInfo), INTENT(INOUT) :: Grid
     REAL(8), INTENT(IN) :: range
     REAL(8), INTENT(IN) :: h
@@ -2014,7 +2011,7 @@ CONTAINS
        Grid%type=loggrid
        n=LOG(range/r0+1)/h+1
        Grid%ishift=5
-       IF (ABS(r0*(EXP(h*(n-1))-1)-range)>1.d-5) n=n+1
+       IF (r0*(EXP(h*(n-1))-1)<range-1.d-5) n=n+1
        Grid%h=h
        Grid%n=n
        WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
@@ -2033,7 +2030,7 @@ CONTAINS
        Grid%type=lineargrid
        n=range/h+1
        Grid%ishift=25
-       IF (h*(n-1)<range) n=n+1
+       IF (h*(n-1)<range-1.d-5) n=n+1
        Grid%n=n
        Grid%h=h
        WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
@@ -2044,10 +2041,35 @@ CONTAINS
        ENDIF
        DO i=1,n
           Grid%r(i)=(Grid%h*(i-1))
+          Grid%drdu(i)=1.d0
        ENDDO
+       NULLIFY(Grid%pref)
+       NULLIFY(Grid%rr02)
     ENDIF
 
-  END SUBROUTINE Init_grid
+  END SUBROUTINE InitGrid
+
+  !******************************************************************
+  ! subroutine destroygrid(Grid)
+  !******************************************************************
+  SUBROUTINE DestroyGrid(Grid)
+    TYPE (GridInfo), INTENT(INOUT) :: Grid
+    IF (ASSOCIATED(Grid%r)) DEALLOCATE(Grid%r)
+    IF (ASSOCIATED(Grid%drdu)) DEALLOCATE(Grid%drdu)
+    IF (ASSOCIATED(Grid%pref)) DEALLOCATE(Grid%pref)
+    IF (ASSOCIATED(Grid%rr02)) DEALLOCATE(Grid%rr02)
+  END SUBROUTINE DestroyGrid
+
+  !******************************************************************
+  ! subroutine nullifygrid(Grid)
+  !******************************************************************
+  SUBROUTINE NullifyGrid(Grid)
+    TYPE (GridInfo), INTENT(INOUT) :: Grid
+    NULLIFY(Grid%r)
+    NULLIFY(Grid%drdu)
+    NULLIFY(Grid%pref)
+    NULLIFY(Grid%rr02)
+  END SUBROUTINE NullifyGrid
 
   SUBROUTINE ClassicalTurningPoint(Grid,rv,l,energy,turningpoint)
     TYPE(GridInfo), INTENT(IN) :: Grid
@@ -2112,7 +2134,7 @@ CONTAINS
     REAL(8) :: h,x,norm
     INTEGER :: i,j,k,l,n,irc
 
-    k=Size(f) 
+    k=Size(f)
 
     norm=overlap(Grid,f,f,1,k)
     IF (many>0) THEN
@@ -2143,7 +2165,7 @@ CONTAINS
       REAL(8) :: c0,c1,c2,predy,corry,predz,corrz,err,diff
       INTEGER :: i,j,k,m,n,it,last
       INTEGER, parameter :: maxit=10
-      
+
       diff=machine_precision*1000
       n=Grid%n
       if (many.gt.n.or.many.lt.6) then
@@ -2167,53 +2189,53 @@ CONTAINS
         yp(i)=c1+2*c2*Grid%r(i)
         z(i)=yp(i)
         zp(i)=2*c2
-        write(6,'("init",1p5e16.7)') Grid%r(i),y(i),yp(i),z(i),zp(i)
+        write(6,'("init",1p,5e16.7)') Grid%r(i),y(i),yp(i),z(i),zp(i)
       enddo
-      
+
       write(6,*) 'Starting iterations with h = ', Grid%h
       If(Grid%type==loggrid) then
-        zp(1:6)= Grid%drdu(1:6)*(yp(1:6)+Grid%drdu(1:6)*2*c2)     
+        zp(1:6)= Grid%drdu(1:6)*(yp(1:6)+Grid%drdu(1:6)*2*c2)
         yp(1:6)= Grid%drdu(1:6)*yp(1:6)
         z(1:6)=yp(1:6)
         A(2:many)=2*(l+1)*Grid%drdu(2:many)/Grid%r(2:many)-1.d0
         B(2:many)=(energy+2*ZZ/Grid%r(2:many)-ve(2:many))*Grid%rr02(2:many)
         C(1:many)=C(1:many)*Grid%rr02(1:many)
       Else
-        A(2:many)=2*(l+1)/Grid%r(2:many)  
+        A(2:many)=2*(l+1)/Grid%r(2:many)
         B(2:many)=(energy+2*ZZ/Grid%r(2:many)-ve(2:many))
-      ENDIF  
-      
+      ENDIF
+
       Do i=6,many-1
             predy=y(i-5)+0.3d0*Grid%h*(26.d0*yp(i-2) &
-                + 11.d0*(yp(i)+yp(i-4))-14.d0*(yp(i-1)+yp(i-3)))
+&               + 11.d0*(yp(i)+yp(i-4))-14.d0*(yp(i-1)+yp(i-3)))
             y(i+1)=predy
             predz=z(i-5)+0.3d0*Grid%h*(26.d0*zp(i-2) &
-                + 11.d0*(zp(i)+zp(i-4))-14.d0*(zp(i-1)+zp(i-3)))
+&               + 11.d0*(zp(i)+zp(i-4))-14.d0*(zp(i-1)+zp(i-3)))
             z(i+1)=predz
             yp(i+1)=z(i+1)
             zp(i+1)=C(i+1)-A(i+1)*z(i+1)-B(i+1)*y(i+1)
          Do it=1,maxit
             last=it
             corry=y(i-3)+0.04444444444444444d0*Grid%h*(12*yp(i-1) &
-                +7.d0*(yp(i+1)+yp(i-3))+32.d0*(yp(i)+yp(i-2)))     
+&               +7.d0*(yp(i+1)+yp(i-3))+32.d0*(yp(i)+yp(i-2)))
             corrz=z(i-3)+0.04444444444444444d0*Grid%h*(12*zp(i-1) &
-                +7.d0*(zp(i+1)+zp(i-3))+32.d0*(zp(i)+zp(i-2)))     
-            !write(800,'(i5,1p8e16.7)') it,Grid%r(i), y(i+1),corry,z(i+1),corrz
+&               +7.d0*(zp(i+1)+zp(i-3))+32.d0*(zp(i)+zp(i-2)))
+            !write(800,'(i5,1p,8e16.7)') it,Grid%r(i), y(i+1),corry,z(i+1),corrz
             err= abs(corry-y(i+1))+abs(corrz-z(i+1))
             if (err<diff) exit
             z(i+1)=corrz
             y(i+1)=corry
             yp(i+1)=z(i+1)
             zp(i+1)=C(i+1)-A(i+1)*z(i+1)-B(i+1)*y(i+1)
-        Enddo        
+        Enddo
         !Write(6,*) 'Completed PC ', i,last
         If (last==maxit) write(6,*) 'Warning from Pred-Corr',i,err
-    Enddo         
+    Enddo
     Do i=1,many
        wfn(i)=(Grid%r(i)**(l+1))*y(i)
     Enddo
-       wfn(1:many)=wfn(1:many)/wfn(many)    
-      
+       wfn(1:many)=wfn(1:many)/wfn(many)
+
       deallocate(z,y,zp,yp,A,B,C)
    END SUBROUTINE
 
@@ -2253,7 +2275,7 @@ CONTAINS
          write(6,*) 'Error in midrange_numerov -- istart > many ', istart
          stop
      endif
-     
+
 
     p(1:istart)=wfn(1:istart)
     angm=l*(l+1)
@@ -2290,28 +2312,5 @@ CONTAINS
     DEALLOCATE(a,b,c,p)
 
   END SUBROUTINE midrange_numerov
-
-!******************************************************************
-! subroutine destroygrid(Grid)
-!******************************************************************
-  SUBROUTINE DestroyGrid(Grid)
-    TYPE (GridInfo), INTENT(INOUT) :: Grid
-       IF (ASSOCIATED(Grid%r)) DEALLOCATE(Grid%r)
-       IF (ASSOCIATED(Grid%drdu)) DEALLOCATE(Grid%drdu)
-       IF (ASSOCIATED(Grid%pref)) DEALLOCATE(Grid%pref)
-       IF (ASSOCIATED(Grid%rr02)) DEALLOCATE(Grid%rr02)
-  END SUBROUTINE DestroyGrid
-                                  
-!******************************************************************
-! subroutine nullifygrid(Grid)
-!******************************************************************
-  SUBROUTINE NullifyGrid(Grid)
-    TYPE (GridInfo), INTENT(INOUT) :: Grid
-       NULLIFY(Grid%r)
-       NULLIFY(Grid%drdu)
-       NULLIFY(Grid%pref)
-       NULLIFY(Grid%rr02) 
-  END SUBROUTINE NullifyGrid
-
 
 END MODULE gridmod

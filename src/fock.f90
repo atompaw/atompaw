@@ -6,7 +6,7 @@ Module fock
 
  CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_Energy_EXX					!!!!	
+  !!  Get_Energy_EXX					!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_Energy_EXX(Grid,Orbit,eex)
     TYPE(gridinfo), INTENT(IN) :: Grid
@@ -65,7 +65,7 @@ Module fock
   END SUBROUTINE Get_Energy_EXX
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_Energy_EXX_VV       !!!!	
+  !!  Get_Energy_EXX_VV       !!!!
   !!   Valence - valence part of the Fock exchange energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_Energy_EXX_VV(Grid,Orbit,eex)
@@ -127,7 +127,7 @@ Module fock
   END SUBROUTINE Get_Energy_EXX_VV
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_Energy_EXX_VC       !!!!	
+  !!  Get_Energy_EXX_VC       !!!!
   !!   Valence - core part of the Fock exchange energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_Energy_EXX_VC(Grid,Orbit,eex)
@@ -213,10 +213,10 @@ Module fock
     ELSE
        ThreeJ=(-1)**(BigJ/2);
        ThreeJ=  ThreeJ* ( factorial(BigJ - &
-            2*J1)*factorial(BigJ - 2*J2)*factorial(BigJ - &
-            2*J3)/factorial(BigJ +1) )**(1.0d0/2.0d0);
+&           2*J1)*factorial(BigJ - 2*J2)*factorial(BigJ - &
+&           2*J3)/factorial(BigJ +1) )**(1.0d0/2.0d0);
        ThreeJ = ThreeJ*factorial(BigJ/2)/( &
-            factorial(BigJ/2-J1) *factorial(BigJ/2-J2)*factorial(BigJ/2 - J3));
+&           factorial(BigJ/2-J1) *factorial(BigJ/2-J2)*factorial(BigJ/2 - J3));
     ENDIF
 
     ThreeJ=ThreeJ*ThreeJ
@@ -224,14 +224,14 @@ Module fock
     ! Occ factors
     IF (nj /= ni)   wgt = 0.5d0*occi*occj*ThreeJ;
     IF( (nj == ni).AND.(ll /= 0))   &
-         wgt = 0.5d0*ThreeJ*occi*(occj-1)*VV/(VV-1);
+&        wgt = 0.5d0*ThreeJ*occi*(occj-1)*VV/(VV-1);
     IF((nj == ni).AND.(ll == 0))    wgt = occi;
 
   END SUBROUTINE EXXwgt
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
-! Subroutine to calculate Condon-Shortley integral 
+! Subroutine to calculate Condon-Shortley integral
 !
 !   RL = \int_0^\infty dr dr' r<^L     w1(r)*w2(r)*w3(r')*w4(r')
 !                             --
@@ -251,7 +251,7 @@ Module fock
 
     n=Grid%n
     allocate(arg(n),dum(n))
-         arg(:)=w1(:)*w2(:)       
+         arg(:)=w1(:)*w2(:)
          CALL apoisson(Grid,L,n,arg,dum)
          dum(2:n)=dum(2:n)*w3(2:n)*w4(2:n)/Grid%r(2:n)
          dum(1)=0
@@ -267,7 +267,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)
@@ -312,8 +312,8 @@ Module fock
        !vl(1)=0;vl(2:n)=vl(2:n)/Grid%r(2:n)
        !do ko=1,norbit
        !   if(Orbit%l(ko)==li) then
-       !     write(6,'("vx sum", 4i4,2x,1pe15.7)') &
-       !            io,jo,ko,jo,overlap(Grid,Orbit%wfn(:,ko),vl)
+       !     write(6,'("vx sum", 4i4,2x,1p,1e15.7)') &
+       !&           io,jo,ko,jo,overlap(Grid,Orbit%wfn(:,ko),vl)
        !   endif
        !enddo
     ENDDO   !jo
@@ -324,7 +324,7 @@ Module fock
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Calc_Xp(Grid,Orbit,ni,li,wfn,res)
-  !      calculate X_p for possibly 
+  !      calculate X_p for possibly
   !        unoccupied state with angular moment li, stored in wfn(:)
   !         Note: ni should not be equal to real shell index
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -332,8 +332,8 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: ni,li
-    REAL(8), INTENT(IN) :: wfn(:) 
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(IN) :: wfn(:)
+    REAL(8), INTENT(OUT) :: res(:)
     INTEGER, OPTIONAL, INTENT(IN) :: lng
 
     REAL(8), POINTER :: phi(:,:),r(:)
@@ -358,7 +358,7 @@ Module fock
 
     res=0.d0
     occ=1.d0
-    
+
     DO jo=1,norbit
        occj=Orbit%occ(jo); vl=0.d0
        IF (occj>threshold) THEN
@@ -390,7 +390,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)
@@ -455,7 +455,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)
@@ -520,7 +520,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)
@@ -589,7 +589,7 @@ Module fock
     tol=tol0
     n=Grid%n
     ALLOCATE(wfp(n),vl(n),dum(n),ddum(n),stat=ok)
-    IF (ok/=0) THEN 
+    IF (ok/=0) THEN
        WRITE(6,*) 'calc_psi allocation error:', n,ok
        STOP
     ENDIF
@@ -642,7 +642,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)
@@ -695,7 +695,7 @@ Module fock
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(OrbitInfo), INTENT(IN):: Orbit
     INTEGER, INTENT(IN) :: io
-    REAL(8), INTENT(OUT) :: res(:) 
+    REAL(8), INTENT(OUT) :: res(:)
 
     REAL(8), POINTER :: phi(:,:),r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:)

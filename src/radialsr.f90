@@ -7,7 +7,7 @@
 !        from formalism of Shadwick, Talman, and Norman, Comp. Phys. Comm.
 !      54, 95-102 (1989)  found to be unstable
 !   09-16-06  NAWH
-!*****************************************************************    
+!*****************************************************************
 MODULE radialsr
   USE GlobalMath
   USE gridmod
@@ -33,11 +33,10 @@ CONTAINS
 
    n=Grid%n
    allocate(ww(n),jj(n), stat=i)
-        if (i/=0) then
-           write(6,*)  'Allocate_scalar_relativistic: error in allocation ',&
-                       i,n
-           stop
-        endif
+   if (i/=0) then
+      write(6,*)  'Allocate_scalar_relativistic: error in allocation ',i,n
+      stop
+   endif
 
  End subroutine Allocate_scalar_relativistic
 
@@ -63,38 +62,38 @@ CONTAINS
    Real(8), INTENT(IN) :: energy
    Integer, optional, INTENT(IN) :: nr
 
-   Integer :: i,j,k,n,nz
-   Real(8) :: xx,yy,angm,alpha2,balpha2
+   Integer :: i,j,k,n
+   Real(8) :: nz,xx,yy,angm,alpha2,balpha2
 
    n=Grid%n
    if (present(nr)) n=min(n,nr)
 
    nz=Pot%nz
-    ww=0; jj=0;  
+    ww=0; jj=0;
    balpha2=inverse_fine_structure**2
    alpha2=1.d0/balpha2
    !write(6,*) 'in Azeroexpand', alpha2,nz,n
    jj(1:n)=(Grid%r(1:n) + &
-        0.25d0*alpha2*(energy*Grid%r(1:n)-Pot%rv(1:n)))
+&       0.25d0*alpha2*(energy*Grid%r(1:n)-Pot%rv(1:n)))
    angm=l*(l+1)
    ww(2:n)=(Pot%rv(2:n)/Grid%r(2:n)-energy) &
-      + angm/(Grid%r(2:n)*jj(2:n))
+&     + angm/(Grid%r(2:n)*jj(2:n))
    ww(1)=0
      !do i=1,n
-     !write(101,'(i5,1p8e15.7)') i,Grid%r(i),jj(i),ww(i)
+     !write(101,'(i5,1p,8e15.7)') i,Grid%r(i),jj(i),ww(i)
      !enddo
      !stop
 
    if (.not.finitenucleus) then
       gamma=sqrt(angm+1.d0-alpha2*nz**2)
       c1=-((2.d0*balpha2)/(nz*(2*gamma+1)))*((1-gamma)*&
-           (1+0.25d0*alpha2*(energy-Pot%v0))+alpha2*nz**2+&
-           0.5d0*((nz*alpha2)**2)*(energy-Pot%v0))
+&          (1+0.25d0*alpha2*(energy-Pot%v0))+alpha2*nz**2+&
+&          0.5d0*((nz*alpha2)**2)*(energy-Pot%v0))
       xx=2*nz*(1+alpha2*(energy-Pot%v0)+3*(0.25*alpha2*(energy-Pot%v0))**2)&
-       +0.25d0*alpha2*Pot%v0p*(alpha2*nz*nz+2*(gamma-1))
+&      +0.25d0*alpha2*Pot%v0p*(alpha2*nz*nz+2*(gamma-1))
       yy=(1+gamma)*(1+0.25d0*alpha2*(energy-Pot%v0))+alpha2*nz*nz+&
-           0.5d0*((alpha2*nz)**2)*(energy-Pot%v0)
-      c2=-(xx+yy*c1)/(2*(gamma+1)*alpha2*nz)  
+&          0.5d0*((alpha2*nz)**2)*(energy-Pot%v0)
+      c2=-(xx+yy*c1)/(2*(gamma+1)*alpha2*nz)
       !write(6,*) 'Azeroexpand: ', gamma,c1,c2
       MA=0; MB=0
 
@@ -106,11 +105,11 @@ CONTAINS
        c2=(-MA*MA*(energy-Pot%v0)*MB*c1*(l+1))/(MA*(4*l+6))
    endif
     ! do i=2,n
-    !   write(97,'(1p5e15.7)') Grid%r(i),Pot%rv(i)/Grid%r(i),ww(i),jj(i)/Grid%r(i)
+    !   write(97,'(1p,5e15.7)') Grid%r(i),Pot%rv(i)/Grid%r(i),ww(i),jj(i)/Grid%r(i)
     ! enddo
 
   end subroutine Azeroexpand
-   
+
 !*******************************************************************
 ! SUBROUTINE wfnsrinit(Grid,l,wfn,lwfn,istart)
 !*******************************************************************
@@ -126,7 +125,7 @@ CONTAINS
     INTEGER :: i,j,n
 
     wfn=0; lwfn=0
-    
+
     istart=6
     do i=1,istart
        rr=Grid%r(i+1)
@@ -135,18 +134,18 @@ CONTAINS
           lwfn(i+1)=(gamma-1)+rr*(c1*gamma+rr*c2*(gamma+1))
           wfn(i+1)=wfn(i+1)*(rr**gamma)
           lwfn(i+1)=lwfn(i+1)*(rr**gamma)/jj(i+1)
-       
+
        else   ! finite nucleus case
           M=MA-MB*rr
           wfn(i+1)=(1+rr*(c1+rr*c2))*(rr**(l+1))
           lwfn(i+1)=(l+rr*((l+1)*c1+rr*(l+2)*c2))*(rr**(l+1))/M
        endif
-       !write(6,'(i5,1p3e15.7)') i+1,rr,wfn(i+1),lwfn(i+1)
-       
+       !write(6,'(i5,1p,3e15.7)') i+1,rr,wfn(i+1),lwfn(i+1)
+
     enddo
 
   End SUBROUTINE wfnsrinit
-    
+
  subroutine wfnsrasym(Grid,wfn,lwfn,energy,iend)
   ! returns the solution of the scalar relativistic equations near r=inf
   !  using exp(-x*r) for upper component
@@ -165,7 +164,7 @@ CONTAINS
 
     wfn=0; lwfn=0
     n=Grid%n
-   
+
     m=1+0.25d0*energy/(inverse_fine_structure**2)
     x=sqrt(-m*energy)
     !write(6,*) ' in wfnsrasym with x = ',x
@@ -175,7 +174,7 @@ CONTAINS
        lwfn(i)=-wfn(i)*(x+1.d0/Grid%r(i))/m
     enddo
   end subroutine wfnsrasym
-  
+
   !**********************************************************************
   !      subroutine unboundsr(Grid,Pot,nr,l,energy,wfn,nodes)
   !  pgm to solve radial scalar relativistic equation for unbound states
@@ -183,7 +182,7 @@ CONTAINS
   !
   !    with potential rv/r, given in uniform linear or log mesh of n points
   !   assuming p(r)=C*r**(l+1)*polynomial(r) for r==0;
-  !   
+  !
   !  nz=nuclear charge
   !
   !  Does not use Noumerov algorithm -- but uses coupled first-order
@@ -199,7 +198,7 @@ CONTAINS
     REAL(8), INTENT(INOUT) :: wfn(:)
     INTEGER, INTENT(INOUT) :: nodes
 
-    INTEGER :: n,nz,i,j,k,ierr,istart
+    INTEGER :: n,i,j,k,ierr,istart
     REAL(8) :: scale
     REAL(8), allocatable :: lwfn(:),zz(:,:,:),yy(:,:)
 
@@ -230,7 +229,7 @@ CONTAINS
     call filter(nr,wfn,machine_zero)
     scale=1.d0/overlap(Grid,wfn(1:nr),wfn(1:nr),1,nr)
     scale=SIGN(SQRT(scale),wfn(nr-2))
-    wfn(1:nr)=wfn(1:nr)*scale  
+    wfn(1:nr)=wfn(1:nr)*scale
 
     deallocate(lwfn,yy,zz)
 
@@ -276,8 +275,8 @@ CONTAINS
 
     REAL(8), POINTER :: rv(:),eig(:),wfn(:,:)
     REAL(8), ALLOCATABLE :: p1(:),p2(:),dd(:)
-    INTEGER :: nz,n
-    REAL(8) :: h,v0,v0p
+    INTEGER :: n
+    REAL(8) :: nz,h,v0,v0p
     REAL(8) :: err,convrez,energy,zeroval
     REAL(8) :: scale,emax,best,rout
     REAL(8) :: arg,r,r2,veff,pppp1,rin,dele,x,rvp1,pnp1,bnp1
@@ -310,7 +309,7 @@ CONTAINS
     rv=>Pot%rv
     err=n*nz*(h**4)
     convrez=convre
-    IF (nz.GT.0) convrez=convre*nz
+    IF (nz>0.001d0) convrez=convre*nz
     !     write(6,*) 'expected error = ',err
     ierr=0
 
@@ -322,7 +321,7 @@ CONTAINS
     lwfn=0;zz=0;yy=0;
     call wfnsrinit(Grid,l,p1,lwfn,istart)
        !do i=1,istart
-       !   write(6,'(1p2e15.7)') Grid%r(i),p1(i)
+       !   write(6,'(1p,2e15.7)') Grid%r(i),p1(i)
        !enddo
 
 
@@ -336,9 +335,9 @@ CONTAINS
 
     WRITE(6,*) ' nodes at e=0  ', node
        !do i=1,n
-       !   write(6,'(1p4e15.7)') Grid%r(i),p1(i),jj(i),ww(i)
+       !   write(6,'(1p,4e15.7)') Grid%r(i),p1(i),jj(i),ww(i)
        !enddo
-    
+
     mxroot=node+1
     ntroot=node
     IF (mxroot.LT.nroot) THEN
@@ -351,7 +350,7 @@ CONTAINS
     mxroot=min0(mxroot,nroot)
     !
     IF (nz.EQ.0) energy=-ABS(emin)
-    IF (nz.NE.0) energy=-1.1d0*(nz/(l+1.d0))**2 
+    IF (nz.NE.0) energy=-1.1d0*(nz/(l+1.d0))**2
     emin=energy-err
     emax=0.d0
 
@@ -386,7 +385,7 @@ CONTAINS
 
           !icount=icount+1
           !  do i=1,match+6
-          !    write(100+icount,'(1P2e15.7)') Grid%r(i),p1(i)
+          !    write(100+icount,'(1p,2e15.7)') Grid%r(i),p1(i)
           !  enddo
           rout=Gfirstderiv(Grid,match,p1)/p1(match)
             ! write(6,*) 'node,match,rin,rout',node,(iroot-1),match,rin,rout
@@ -402,7 +401,7 @@ CONTAINS
                 ierr=ierr+9*(10**(iroot-1))
                 WRITE(6,*) 'boundsr error -- emin too high',l,nz,emin,energy
                 do i=2,n
-                   write(999,'(1p4e15.7)') Grid%r(i),jj(i)/Grid%r(i),ww(i),Pot%rv(i)
+                   write(999,'(1p,4e15.7)') Grid%r(i),jj(i)/Grid%r(i),ww(i),Pot%rv(i)
                 enddo
                 STOP
              ENDIF
@@ -424,10 +423,10 @@ CONTAINS
              x=ABS(dele)
              IF (x.LT.best) THEN
                 scale=SQRT(scale)
-                p1(1:n)=p1(1:n)*scale 
+                p1(1:n)=p1(1:n)*scale
                 k=start+iroot-1
                 call filter(n,p1,machine_zero)
-                wfn(1:n,k)=p1(1:n) 
+                wfn(1:n,k)=p1(1:n)
                 eig(k)=energy
                 !write(6,*) 'root',l,iroot,eig(k),emin,emax
                 best=x
@@ -452,7 +451,7 @@ CONTAINS
                 energy=energy+dele
                 ! if energy is out of range, pick random energy in correct range
                 IF (emin-energy.GT.convrez.OR.energy-emax.GT.convrez)         &
-                     energy=emin+(emax-emin)*ranx()
+&                    energy=emin+(emax-emin)*ranx()
                 ifac=2
                 !write(6,*) 'continuing with iter dele', iter,dele
              ENDIF
@@ -479,7 +478,7 @@ CONTAINS
 
     ! icount=icount+1
     ! do i=1,n
-    !   write(100+icount,'(1p25e15.6)') Grid%r(i),(wfn(i,j),j=start,start+nroot)
+    !   write(100+icount,'(1p,25e15.6)') Grid%r(i),(wfn(i,j),j=start,start+nroot)
     ! enddo
     DEALLOCATE(p1,p2,dd,lwfn,yy,zz)
              write(6,*) 'returning from boundsr -- ierr=',ierr

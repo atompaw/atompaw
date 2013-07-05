@@ -196,7 +196,7 @@ CONTAINS
        DO i = 1, j
           k = LUT(i)
           LUT(i) = LUT(A_Size - i + 1)
-          LUT(A_Size - i + 1) = k 
+          LUT(A_Size - i + 1) = k
        END DO
     END IF
 
@@ -242,7 +242,7 @@ CONTAINS
        DO i = 1, j
           k = LUT(i)
           LUT(i) = LUT(A_Size - i + 1)
-          LUT(A_Size - i + 1) = k 
+          LUT(A_Size - i + 1) = k
        END DO
     END IF
 

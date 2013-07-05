@@ -21,7 +21,7 @@ CONTAINS
     WRITE(IF,*) '    Exch        contribution :  ',SCF%eexc
       SCF%etot=SCF%ekin+SCF%estatic+SCF%eexc
     WRITE(IF,*) '    Ratio Pot/Kin            :  ',&
-                   (SCF%estatic+SCF%eexc)/SCF%ekin
+&                  (SCF%estatic+SCF%eexc)/SCF%ekin
    If (ColleSalvetti) then
     WRITE(IF,*) '    CS correlation           :  ',SCF%oepcs
     SCF%etot=SCF%etot+SCF%oepcs
@@ -33,7 +33,7 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE One_electron_energy_Report(Orbit,IF)
-    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit 
+    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit
     INTEGER, INTENT(IN) :: IF
 
     INTEGER :: io
@@ -44,20 +44,20 @@ CONTAINS
     IF (frozencorecalculation) THEN
        DO io=1,Orbit%norbit
           IF (.NOT.Orbit%iscore(io)) &
-               WRITE(IF,'(i2,1x,i2,4x,1p2e15.7)') &
-               Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+&              WRITE(IF,'(i2,1x,i2,4x,1p,2e15.7)') &
+&              Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
        ENDDO
     ELSE
        DO io=1,Orbit%norbit
-          WRITE(IF,'(i2,1x,i2,4x,1p2e15.7)') &
-               Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+          WRITE(IF,'(i2,1x,i2,4x,1p,2e15.7)') &
+&              Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
        ENDDO
     ENDIF
   END SUBROUTINE One_electron_energy_Report
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Core_Electron_Report(Orbit,FC,IF)
-    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit 
+    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit
     TYPE (FCinfo) ,INTENT(IN) :: FC
     INTEGER, INTENT(IN) :: IF
 
@@ -70,14 +70,14 @@ CONTAINS
     WRITE(IF,"(' n  l     occupancy            energy')")
     DO io=1,Orbit%norbit
        IF (Orbit%iscore(io)) &
-            WRITE(IF,'(i2,1x,i2,4x,1p2e15.7)') &
-            Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+&           WRITE(IF,'(i2,1x,i2,4x,1p,2e15.7)') &
+&           Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
     ENDDO
   END SUBROUTINE Core_Electron_Report
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Valence_Electron_Report(Orbit,FC,IF)
-    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit 
+    TYPE (Orbitinfo) ,INTENT(IN) :: Orbit
     TYPE (FCinfo) ,INTENT(IN) :: FC
     INTEGER, INTENT(IN) :: IF
 
@@ -91,8 +91,8 @@ CONTAINS
     WRITE(IF,"(' n  l     occupancy            energy')")
     DO io=1,Orbit%norbit
        IF (.not.Orbit%iscore(io)) &
-            WRITE(IF,'(i2,1x,i2,4x,1p2e15.7)') &
-            Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+&           WRITE(IF,'(i2,1x,i2,4x,1p,2e15.7)') &
+&           Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
     ENDDO
   END SUBROUTINE Valence_Electron_Report
 
@@ -115,7 +115,7 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  Report SCF AE
-  !      
+  !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Report_AESCF(Grid,AEPot,AEOrbit)
     TYPE(GridInfo), INTENT(IN) :: Grid
@@ -124,17 +124,17 @@ CONTAINS
     INTEGER i,j,n
 
     n=Grid%n
-    OPEN (unit=1001,file='AE_pot')    
-    DO i = 1,n      
-       WRITE(1001,'(1p7e15.7)') Grid%r(i),AEPot%rv(i) ,&
-            AEPOt%rvx(i),AEPot%rvh(i),AEPot%rvn(i),AEOrbit%den(i)
+    OPEN (unit=1001,file='AE_pot')
+    DO i = 1,n
+       WRITE(1001,'(1p,7e15.7)') Grid%r(i),AEPot%rv(i) ,&
+&           AEPOt%rvx(i),AEPot%rvh(i),AEPot%rvn(i),AEOrbit%den(i)
     ENDDO
     CLOSE(1001)
 
     OPEN (unit=1001,file='AE_wfn')
-    DO i = 1,n      
-       WRITE(1001,'(1p50e15.7)') Grid%r(i),&
-            (AEOrbit%wfn(i,j),j=1,AEOrbit%norbit)
+    DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Grid%r(i),&
+&           (AEOrbit%wfn(i,j),j=1,AEOrbit%norbit)
     ENDDO
     CLOSE(1001)
 
@@ -142,7 +142,7 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  Report SCF FC
-  !      
+  !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Report_FCSCF(Grid,FCPOT,FCOrbit)
     TYPE(GridInfo), INTENT(IN) :: Grid
@@ -152,18 +152,18 @@ CONTAINS
     INTEGER i,j,n
 
     n=Grid%n
-    OPEN (unit=2001,file='FC_Pot')    
-    DO i = 1,n      
-       WRITE(1001,'(1p7e15.7)') Grid%r(i),FCPot%rv(i) ,&
-            FCPot%rvx(i),FCPot%rvh(i),FCPot%rvn(i),FCOrbit%den(i)
+    OPEN (unit=2001,file='FC_Pot')
+    DO i = 1,n
+       WRITE(1001,'(1p,7e15.7)') Grid%r(i),FCPot%rv(i) ,&
+&           FCPot%rvx(i),FCPot%rvh(i),FCPot%rvn(i),FCOrbit%den(i)
     ENDDO
     CLOSE(2001)
 
 
     OPEN (unit=2001,file='FC_wfn')
-    DO i = 1,n      
-       WRITE(2001,'(1p50e15.7)') Grid%r(i),&
-            (FCOrbit%wfn(i,j),j=1,FCOrbit%norbit)
+    DO i = 1,n
+       WRITE(2001,'(1p,50e15.7)') Grid%r(i),&
+&           (FCOrbit%wfn(i,j),j=1,FCOrbit%norbit)
     ENDDO
     CLOSE(2001)
 
@@ -198,17 +198,17 @@ CONTAINS
           WRITE(ifen,*) 'Scalar relativistic calculation -- point nucleus'
        ELSE
           WRITE(ifen,*) &
-               'Scalar relativistic calculation -- finite (Gaussian) nucleus'
+&              'Scalar relativistic calculation -- finite (Gaussian) nucleus'
        ENDIF
     ELSE
        WRITE(ifen,*) 'Non-relativistic calculation'
     ENDIF
 
     IF (key=='AE'.OR.key=='NC') &
-         WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
+&        WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='FC'.OR.key=='SC') &
-         WRITE(ifen,*) '  FCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,*) '     for nz = ',Pot%nz
+&        WRITE(ifen,*) '  FCatom converged in',SCF%iter,' iterations'
+    WRITE(ifen,'(a,f7.2)') '     for nz = ',Pot%nz
     WRITE(ifen,*) '    delta  = ', SCF%delta
     CALL One_electron_energy_Report(Orbit,ifen)
     WRITE(ifen,*)

@@ -58,10 +58,10 @@ CONTAINS
     IF (firsttime<1) THEN
        io=Orbitwk%norbit
        ALLOCATE(HSZ%psi(n,io),HSZ%shift(n),HSZ%grad(n),HSZ%U(io),&
-            HSZ%Uref(io),HSZ%Ucore(io),HSZ%Uvale(io),HSZ%coreshift(n),&
-            HSZ%LMBD(io,io),HSZ%rVxcore(n),HSZ%psicore(n,io),&
-            HSZ%psivale(n,io),HSZ%psiref(n,io),HSZ%rVxref(n),HSZ%rVxvale(n),&
-            HSZ%LMBDref(io,io),HSZ%LMBDcore(io,io),HSZ%LMBDvale(io,io),stat=ok)
+&           HSZ%Uref(io),HSZ%Ucore(io),HSZ%Uvale(io),HSZ%coreshift(n),&
+&           HSZ%LMBD(io,io),HSZ%rVxcore(n),HSZ%psicore(n,io),&
+&           HSZ%psivale(n,io),HSZ%psiref(n,io),HSZ%rVxref(n),HSZ%rVxvale(n),&
+&           HSZ%LMBDref(io,io),HSZ%LMBDcore(io,io),HSZ%LMBDvale(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(6,*) 'Error in allocate HSZdata ', io,n,ok
           STOP
@@ -104,14 +104,14 @@ CONTAINS
        CALL Init_EXX_core(Gridwk,Orbitwk,arg,done)
        If (.not.done) then
            CALL InitAnderson_dr(AC,6,5,n,0.005d0,1.d3,mxloop1,&
-                  1.d-11,1.d-16,.TRUE.)
+&                 1.d-11,1.d-16,.TRUE.)
            CALL DoAndersonMix(AC,arg,en1,VXcoreSub,success)
            WRITE(6,*) 'Finished setupfrozencore ',AC%CurIter,AC%res
            CALL FreeAnderson(AC)
            do icount=1,nrestart/2
               call AdjustVcore(Gridwk,arg)
               CALL InitAnderson_dr(AC,6,5,n,0.005d0,1.d3,mxloop1,&
-                  1.d-11,1.d-16,.TRUE.)
+&                 1.d-11,1.d-16,.TRUE.)
               CALL DoAndersonMix(AC,arg,en1,VXcoreSub,success)
               WRITE(6,*) 'Finished setupfrozencore # ',icount ,AC%CurIter,AC%res
               CALL FreeAnderson(AC)
@@ -130,27 +130,27 @@ CONTAINS
            WRITE(6,*) 'Finished Anderson Mix FC', en1 ,' success = ', success
            WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
            x=MAXVAL(ABS(starg(1:HSZ%corerange)-(HSZ%rVxref(1:HSZ%corerange)-&
-                     arg(1:HSZ%corerange))))
+&                    arg(1:HSZ%corerange))))
            write(6,*) 'frozencore and set core max diff ' , x
            if (ABS(x)<0.001d0) then
               write(6,*) 'Frozencore consistent with setcore '
               arg=HSZ%rVxref-arg
-           else   
+           else
               starg=HSZ%rVxref-arg; HSZ%rVxcore=starg
               DO icount=1,nrestart
                   loop=mxloop1; errv=errv0;   zeroadjust=.TRUE.
                   CALL InitAnderson_dr(AC,6,5,n,0.005d0,1.d3,loop,&
-                     errv,1.d-16,.TRUE.)
+&                    errv,1.d-16,.TRUE.)
                   CALL AdjustV(Gridwk,arg,icount)
                   CALL DoAndersonMix(AC,arg,en1,EXX3Sub,success)
                   SCFwk%iter=AC%CurIter
                   SCFwk%delta=AC%res
                   CALL FreeAnderson(AC)
                   WRITE(6,*) 'Finished Anderson Mix ',&
-                     icount,en1 ,' success = ', success
+&                    icount,en1 ,' success = ', success
                   WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
                   x=MAXVAL(ABS(starg(1:HSZ%corerange)-&
-                    (HSZ%rVxref(1:HSZ%corerange)-arg(1:HSZ%corerange))))
+&                   (HSZ%rVxref(1:HSZ%corerange)-arg(1:HSZ%corerange))))
                   write(6,*) 'frozencore and set core max diff ' , x
                   if (ABS(x)<0.001d0) exit
                   starg=HSZ%rVxref-arg
@@ -211,7 +211,7 @@ CONTAINS
        If (frozencorecalculation) then
            CALL Get_FCKinCoul(Gridwk,Potwk,Orbitwk,FCwk,SCFwk)
            CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
-       Endif 
+       Endif
 
     CALL Report_EXX_functions(scftype)
 
@@ -301,7 +301,7 @@ CONTAINS
        IF (Orbit%norbit>1) THEN
           DO io=2, Orbit%norbit
              IF (Orbit%eig(io)<0.d0.AND.Orbit%occ(io)>1.d-5  &
-                  .AND.Orbit%eig(io)>x) THEN
+&                 .AND.Orbit%eig(io)>x) THEN
                 outer=io;x=Orbit%eig(outer)
              ENDIF
           ENDDO
@@ -377,7 +377,7 @@ CONTAINS
     n=Grid%n
     r=>Grid%r
     ALLOCATE(rvx0(n),rvx(n),f(n,many),arg(n),Coeff(many),m(many,many),&
-         arg_cs(n),stat=i)
+&        arg_cs(n),stat=i)
     IF (i/=0) THEN
        WRITE(6,*) 'Error in AdjustV allocation' ,n,i
        STOP
@@ -410,21 +410,21 @@ CONTAINS
     !HSZ%matchpoint=MAX(j,HSZ%matchpoint)
     !IF (icase>1.AND.matchpt>HSZ%matchpoint) THEN
     !   point=matchpt+5
-    !   WRITE(6,'( "AdjustV point ",i5,1pe15.7,2x,i5,1pe15.7)')&
-    !        point,Gridwk%r(point)
+    !   WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+    !&       point,Gridwk%r(point)
     !ELSE
     !   beta=SQRT(ABS(Orbitwk%eig(last)))
     !   arg=w+U(last)*Gridwk%r-rvx0
     !   i=HSZ%matchpoint
     !   j=FindGridindex(Gridwk,3.d0/beta)
     !   point=MINLOC(ABS(arg(i:j)),1)+i-1
-    !   WRITE(6,'( "AdjustV point ",i5,1pe15.7,2x,i5,1pe15.7)')&
-    !        point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
+    !   WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+    !&       point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
     !ENDIF
     write(6,*) 'In adjustv before beta ',Orbitwk%eig(last); call flush(6)
     f=0
     f(:,1)=Orbitwk%wfn(:,last)
-    if (f(n,1)<0.d0) f(:,1)=-f(:,1) 
+    if (f(n,1)<0.d0) f(:,1)=-f(:,1)
     do i=n,2,-1
        j=i
        if (f(i-1,1)<f(i,1)) exit
@@ -455,7 +455,7 @@ CONTAINS
     arg=arg*Orbitwk%wfn(:,last)-f(:,4); f(:,5)=arg
     arg(1)=0; arg(2:n)=arg(2:n)/Gridwk%r(2:n)
     val=integrator(Gridwk,arg)/integrator(Gridwk,f(:,3))
-    
+
     WRITE(6,*) 'AdjustV -- ', val
 
     rvx=0
@@ -466,8 +466,8 @@ CONTAINS
     CALL mkname(counter,stuff)
     OPEN (unit=1001,file='adjust'//TRIM(stuff),form='formatted')
     DO i=1,n
-       WRITE(1001,'(1p15E15.7)') r(i),w(i),rvx(i),rvx0(i),&
-            Orbitwk%den(i),Orbitwk%wfn(i,last),f(i,1:5)
+       WRITE(1001,'(1p,15E15.7)') r(i),w(i),rvx(i),rvx0(i),&
+&           Orbitwk%den(i),Orbitwk%wfn(i,last),f(i,1:5)
     ENDDO
     CLOSE(1001)
     w=rvx
@@ -502,7 +502,7 @@ CONTAINS
     n=Grid%n
     r=>Grid%r
     ALLOCATE(rvx0(n),rvx(n),f(n,many),arg(n),Coeff(many),m(many,many),&
-         arg_cs(n),stat=i)
+&        arg_cs(n),stat=i)
     IF (i/=0) THEN
        WRITE(6,*) 'Error in AdjustV allocation' ,n,i
        STOP
@@ -535,16 +535,16 @@ CONTAINS
     HSZ%matchpoint=MAX(j,HSZ%matchpoint)
     IF (icase>1.AND.matchpt>HSZ%matchpoint) THEN
        point=matchpt+5
-       WRITE(6,'( "AdjustV point ",i5,1pe15.7,2x,i5,1pe15.7)')&
-            point,Gridwk%r(point)
+       WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+&           point,Gridwk%r(point)
     ELSE
        beta=SQRT(ABS(Orbitwk%eig(last)))
        arg=w+U(last)*Gridwk%r-rvx0
        i=HSZ%matchpoint
        j=FindGridindex(Gridwk,3.d0/beta)
        point=MINLOC(ABS(arg(i:j)),1)+i-1
-       WRITE(6,'( "AdjustV point ",i5,1pe15.7,2x,i5,1pe15.7)')&
-            point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
+       WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+&           point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
     ENDIF
     HSZ%matchpoint=point
     matchpt=point
@@ -613,8 +613,8 @@ CONTAINS
     CALL mkname(counter,stuff)
     OPEN (unit=1001,file='adjust'//TRIM(stuff),form='formatted')
     DO i=1,n
-       WRITE(1001,'(1p15E15.7)') r(i),w(i),rvx(i),rvx0(i),&
-            Orbitwk%den(i),Orbitwk%wfn(i,last),f(i,2:many)
+       WRITE(1001,'(1p,15E15.7)') r(i),w(i),rvx(i),rvx0(i),&
+&           Orbitwk%den(i),Orbitwk%wfn(i,last),f(i,2:many)
     ENDDO
     CLOSE(1001)
     w=rvx
@@ -692,8 +692,8 @@ CONTAINS
 
     n=Gridwk%n
 
-    CALL   Copy_OrbitInfo(Orbitwk,tmpOrbit)
-    CALL   Copy_PotentialInfo(Potwk,tmpPot)
+    CALL CopyOrbit(Orbitwk,tmpOrbit)
+    CALL CopyPot(Potwk,tmpPot)
 
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
     tmpPot%rv=w
@@ -748,9 +748,9 @@ CONTAINS
        CALL One_electron_energy_Report(Orbitwk,6)
     ENDIF
 
-    DEALLOCATE (dum,tmpOrbit%np,tmpOrbit%l,tmpOrbit%eig,&
-         tmpOrbit%iscore,tmpOrbit%den,tmpPot%rvn,&
-         tmpOrbit%occ,tmpOrbit%wfn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
+    CALL DestroyPot(tmpPot)
+    CALL DestroyOrbit(tmpOrbit)
+    DEALLOCATE (dum)
 
   END SUBROUTINE  EXX1sub
 
@@ -788,7 +788,7 @@ CONTAINS
        ELSE
           vl(i)=-2.d0
        ENDIF
-       !write(6,'(1p15E15.7)') Grid%r(i),vl(i),Orbit%wfn(i,last)
+       !write(6,'(1p,15E15.7)') Grid%r(i),vl(i),Orbit%wfn(i,last)
     ENDDO
     j=m+1
     DO i=m+1,n
@@ -814,7 +814,7 @@ CONTAINS
     DO i=3,n
        IF (Orbit%wfn(i,last)*Orbit%wfn(i-1,last)<0.d0) j=i
     ENDDO
-    
+
     IF (j>n-1) j=n/10+1
     m=j+1
     DO i=j+1,n   ! Find last maximum
@@ -844,7 +844,7 @@ CONTAINS
     CALL DoAndersonMix(A_H,arg,energy,Hsub,OK)
 
     WRITE(6,*) ' Find_Hartree completed --  iter, delta = ',&
-         A_H%CurIter, A_H%res
+&        A_H%CurIter, A_H%res
 
     CALL FreeAnderson(A_H)
     DEALLOCATE(arg)
@@ -874,8 +874,8 @@ CONTAINS
     ENDIF
 
     WRITE(6,*) 'Starting Hartree '
-    CALL   Copy_OrbitInfo(Orbitwk,tmpOrbit)
-    CALL   Copy_PotentialInfo(Potwk,tmpPot)
+    CALL CopyOrbit(Orbitwk,tmpOrbit)
+    CALL CopyPot(Potwk,tmpPot)
 
     rv=tmpPot%rvn+w+tmpPot%rvx
     IF (frozencorecalculation) rv=rv+HSZ%rVxcore
@@ -929,15 +929,15 @@ CONTAINS
     ENDIF
 
     !call writestuff
-    DEALLOCATE (rv,tmpOrbit%np,tmpOrbit%l,tmpOrbit%eig,&
-         tmpOrbit%iscore,tmpOrbit%den,tmpPot%rvn,&
-         tmpOrbit%occ,tmpOrbit%wfn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
+    CALL DestroyPot(tmpPot)
+    CALL DestroyOrbit(tmpOrbit)
+    DEALLOCATE (rv)
 
   END SUBROUTINE Hsub
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  EXX3Sub									!!!!	
+!!!!  EXX3Sub									!!!!
 !!!!   w is rvx
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE EXX3Sub(w,energy,grad,err,success,update)
@@ -982,7 +982,7 @@ CONTAINS
 
     CALL One_electron_energy_Report(Orbitwk,6)
 
-    CALL   Copy_OrbitInfo(Orbitwk,EigOrbit)
+    CALL   CopyOrbit(Orbitwk,EigOrbit)
     IF (frozencorecalculation) CALL Updatewfn(Gridwk,Potwk,EigOrbit,rv,success)
 
     CALL SetIndex(Orbitwk)
@@ -1017,21 +1017,20 @@ CONTAINS
 
     IF (verboseoutput) CALL writestuff
 
-    WRITE(6,'("ASiter",i5,1pe20.12,1p2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(6,'("ASiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
     WRITE(6,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
 
     !CALL mkname(fcount,stuff)
     !OPEN (unit=1001,file='junk'//TRIM(stuff),form='formatted')
     !do i=1,n
-    !   write(1001,'(1p15E15.7)') Gridwk%r(i),w(i),dum(i)
+    !   write(1001,'(1p,15E15.7)') Gridwk%r(i),w(i),dum(i)
     !enddo
     !close(1001)
 
 
     fcount=fcount+1
+    CALL DestroyOrbit(eigOrbit)
     DEALLOCATE (dum,res,rv)
-    DEALLOCATE (eigOrbit%np,eigOrbit%l,eigOrbit%eig,eigOrbit%iscore,&
-         eigOrbit%den,eigOrbit%occ,eigOrbit%wfn)
 
   END SUBROUTINE  EXX3Sub
 
@@ -1052,7 +1051,7 @@ CONTAINS
 
     n=Grid%n;   LWORK=8*nn*nn
     ALLOCATE (a(n),b(n),c(n),d(n),u(nn,nn),vt(nn,nn),s(nn),&
-         work(LWORK),IWORK(8*nn) )
+&        work(LWORK),IWORK(8*nn) )
 
     CALL inhomo_numerov_coeff(Grid,l,nn+1,eig,rv,rhs,a,b,c,d)
 
@@ -1079,7 +1078,7 @@ CONTAINS
                 MN(j,k)=MN(j,k) + vt(i,j)*u(k,i)/s(i)
              ENDDO
           ENDDO
-       ELSE   
+       ELSE
           WRITE(6,*) 'i s = ', i,s(i); call flush(6)
        ENDIF
     ENDDO
@@ -1150,7 +1149,7 @@ CONTAINS
 
     Vxcore=0
 
-    rangeindex=0; k=0;  
+    rangeindex=0; k=0;
     DO io=1,norbit
        IF(Orbit%iscore(io)) THEN
           CALL GetRange(Orbit%wfn(:,io),smallwfn,i)
@@ -1190,13 +1189,13 @@ CONTAINS
              rhs(2:n)=vl(2:n)/Grid%r(2:n)
              st(:,io)=rhs(:)
              CALL inhomo_numerov_SVD(Grid,Orbit%l(io),rangeindex,&
-                  Orbit%eig(io),tol,rv,rhs,vl)
+&                 Orbit%eig(io),tol,rv,rhs,vl)
              g1(:,io)=vl
              accumshift=accumshift+occ*vl*Orbit%wfn(:,io)
              rhs(2:n)=Orbit%wfn(2:n,io)/Grid%r(2:n)
              CALL extrapolate(Grid,rhs)
              CALL Calc_g3(Grid,&
-                  Orbit%l(io),Orbit%eig(io),rv,rhs,tol,nn,MN)
+&                 Orbit%l(io),Orbit%eig(io),rv,rhs,tol,nn,MN)
              DO j=1,nn
                 DO i=1,nn
                    MNaccum(i,j)=MNaccum(i,j)+occ*Orbit%wfn(i+1,io)*MN(i,j)
@@ -1211,9 +1210,9 @@ CONTAINS
 
     OPEN (unit=1001,file='extra',form='formatted')
     DO i=1,n
-       WRITE(1001,'(1p15E15.7)') Gridwk%r(i),coreshift(i), &
-            accumshift(i),Vxcore(i),&
-            (g1(i,j),j=1,norbit),(st(i,j),j=1,norbit)
+       WRITE(1001,'(1p,15E15.7)') Gridwk%r(i),coreshift(i), &
+&           accumshift(i),Vxcore(i),&
+&           (g1(i,j),j=1,norbit),(st(i,j),j=1,norbit)
     ENDDO
     CLOSE(1001)
 
@@ -1241,7 +1240,7 @@ CONTAINS
     HSZ%LMBDcore=HSZ%LMBD; HSZ%LMBDvale=0
     rvcore=0
 
-    rangeindex=0; k=0;  
+    rangeindex=0; k=0;
     DO io=1,norbit
        IF(Orbit%iscore(io)) THEN
           CALL GetRange(Orbit%wfn(:,io),smallwfn,i)
@@ -1278,7 +1277,7 @@ CONTAINS
              if (ic==1) CALL InitialVx(Grid,Orbit%wfn(:,io),rvcore)
              HSZ%psicore(:,io)=HSZ%psi(:,io)
           ENDIF
-       ENDIF      
+       ENDIF
     Enddo
 
     If (ic==1) then
@@ -1297,10 +1296,10 @@ CONTAINS
              ENDIF
           ENDIF
        ENDDO
-   
+
        rvcore=rvcore/accumocc
 
-   
+
        accumocc=0
        do i=rangeindex+1,n
           accumocc=accumocc+ABS(rvcore(i))
@@ -1311,7 +1310,7 @@ CONTAINS
        rm=Grid%r(rangeindex)
        rvcore=0
        rvcore(2:rangeindex)=HSZ%rVxref(2:rangeindex)*&
-           (sin(Pi*Grid%r(2:rangeindex)/rm)/(Pi*Grid%r(2:rangeindex)/rm))**2
+&          (sin(Pi*Grid%r(2:rangeindex)/rm)/(Pi*Grid%r(2:rangeindex)/rm))**2
 
        call AdjustVcore(Grid,rvcore)
 
@@ -1319,7 +1318,7 @@ CONTAINS
    endif
     OPEN (unit=1001,file='exSetCore',form='formatted')
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Grid%r(i),(tmp(i,j),j=1,k)
+          WRITE(1001,'(1p,50e15.7)') Grid%r(i),(tmp(i,j),j=1,k)
        ENDDO
     CLOSE(1001)
 
@@ -1332,7 +1331,7 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!  Calc_dedv_v
 !!!     Solve  inhomogeneous equations for valence electrons only
-!!!       
+!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Calc_dedv_v(Grid,Pot,Orbit,rvxvale)
     TYPE(GridInfo), INTENT(IN):: Grid
@@ -1380,10 +1379,10 @@ CONTAINS
              ss(2:n)=(rvx(2:n)*phi(2:n,io))/r(2:n)
              vl=rhs
              dum=vl*phi(:,io)
-             U(io)=integrator(Gridwk,dum)            
+             U(io)=integrator(Gridwk,dum)
              rhs=rhs-U(io)*phi(:,io)
              CALL Calc_psi(Grid,&
-                  Orbitwk%l(io),Orbitwk%eig(io),rv,phi(:,io),rhs,dum)
+&                 Orbitwk%l(io),Orbitwk%eig(io),rv,phi(:,io),rhs,dum)
              psi(:,io)=dum
              HSZ%psicore(:,io)=HSZ%psiref(:,io)-psi(:,io)
              HSZ%Ucore(io)=HSZ%Uref(io)-U(io)
@@ -1392,8 +1391,8 @@ CONTAINS
              call inhomo_numerov_SVD_bv(Gridwk,l,300,energy,tol,rv,rhs,vl)
              call inhomo_numerov_SVD_bv(Gridwk,l,400,energy,tol,rv,rhs,dum)
              do i=1,n
-                write(200+counter,'(1p10e15.7)') r(i),phi(i,io),rhs(i),&
-                          st(i),ss(i),psi(i,io),vl(i),dum(i)
+                write(200+counter,'(1p,10e15.7)') r(i),phi(i,io),rhs(i),&
+&                         st(i),ss(i),psi(i,io),vl(i),dum(i)
              enddo
           ENDIF
       ENDIF
@@ -1429,7 +1428,7 @@ CONTAINS
        IF (.NOT.Orbit%iscore(io)) THEN
           occ=Orbit%occ(io)
           IF (occ>threshold) THEN
-             rhs=0; vl=0; 
+             rhs=0; vl=0;
              CALL Calc_dexdphi_io_c(Grid,Orbit,io,vl)
              rhs(2:n)=(-rvxcore(2:n)*phi(2:n,io)+vl(2:n))/Grid%r(2:n)
              vl=rhs*phi(:,io)
@@ -1448,7 +1447,7 @@ CONTAINS
              !   ENDIF
              !ENDDO
              CALL Calc_psi(Grid,&
-                  Orbit%l(io),Orbit%eig(io),rv,phi(:,io),rhs,vl)
+&                 Orbit%l(io),Orbit%eig(io),rv,phi(:,io),rhs,vl)
              HSZ%shift=HSZ%shift+2*occ*phi(:,io)*vl
              HSZ%psicore(:,io)=vl
              HSZ%psivale(:,io)=HSZ%psiref(:,io)-vl
@@ -1457,12 +1456,12 @@ CONTAINS
     ENDDO
 
     write(6,*) 'Returning from Calc_dedv_c with Uzero = ',&
-             HSZ%Ucore(HSZ%zero_index)
+&            HSZ%Ucore(HSZ%zero_index)
    deallocate(vl,dum,rhs)
   END SUBROUTINE Calc_dedv_c
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  VXcoreSub	
+!!!!  VXcoreSub
 !!!!    Subroutine to find Vxcore after SCF calculation
 !!!!   w is r*Vxcore
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1500,14 +1499,14 @@ CONTAINS
     k=HSZ%corerange
     err=DOT_PRODUCT(grad(1:k),grad(1:k))
 
-    WRITE(6,'("Coreiter",i5,1pe20.12,1p2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(6,'("Coreiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
     grad(k+1:n)=0    ! force core potential to be zero outside range
 
     !CALL mkname(fcount,stuff)
     !OPEN (unit=1001,file='junk'//TRIM(stuff),form='formatted')
     !do i=1,n
-    !   write(1001,'(1p25E15.7)') Gridwk%r(i),w(i),grad(i),&
-    !       (HSZ%psicore(i,io)*Orbitwk%wfn(i,io),io=1,Orbitwk%norbit)
+    !   write(1001,'(1p,25E15.7)') Gridwk%r(i),w(i),grad(i),&
+    !&      (HSZ%psicore(i,io)*Orbitwk%wfn(i,io),io=1,Orbitwk%norbit)
     !enddo
     !close(1001)
 
@@ -1517,7 +1516,7 @@ CONTAINS
 
   END SUBROUTINE VXcoreSub
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  VXvaleSub	
+!!!!  VXvaleSub
 !!!!    Subroutine to find Vxvale after SCF calculation
 !!!!   w is r*Vxvale
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1566,13 +1565,13 @@ CONTAINS
     k=HSZ%matchpoint
     err=DOT_PRODUCT(grad(1:k),grad(1:k))
 
-    WRITE(6,'("Valeiter",i5,1pe20.12,1p2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(6,'("Valeiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
     WRITE(6,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
 
     !CALL mkname(fcount,stuff)
     !OPEN (unit=1001,file='junk'//TRIM(stuff),form='formatted')
     !do i=1,n
-    !   write(1001,'(1p15E15.7)') Gridwk%r(i),w(i),grad(i)
+    !   write(1001,'(1p,15E15.7)') Gridwk%r(i),w(i),grad(i)
     !enddo
     !close(1001)
 
@@ -1660,7 +1659,7 @@ CONTAINS
              geqn(:,io)=rhs
              vl=rhs
              dum=vl*phi(:,io)
-             U(io)=integrator(Gridwk,dum)            
+             U(io)=integrator(Gridwk,dum)
              !DO jo=1,norbit
              !   IF (jo/=io) THEN
              !      IF (Orbit%l(jo)==Orbit%l(io)) THEN
@@ -1697,7 +1696,7 @@ CONTAINS
              !ENDDO
              geqn(:,io)=rhs    ! store for possible late use
              CALL Calc_psi(Grid,&
-                  Orbitwk%l(io),Orbitwk%eig(io),rv,phi(:,io),rhs,dum)
+&                 Orbitwk%l(io),Orbitwk%eig(io),rv,phi(:,io),rhs,dum)
              shift=shift+2*occ*phi(:,io)*dum
              psi(:,io)=dum
           ENDIF
@@ -1707,8 +1706,8 @@ CONTAINS
     !   check orthogonality   (should check for l values)
     !    do io=1,norbit
     !      do jo=1,norbit
-    !         write(6,'("Check Ortho ", 2i5,1pe15.7)') &
-    !                  io,jo,overlap(Grid,EigOrbitwk%wfn(:,jo),psi(:,io))
+    !         write(6,'("Check Ortho ", 2i5,1p,1e15.7)') &
+    !&                io,jo,overlap(Grid,EigOrbitwk%wfn(:,jo),psi(:,io))
     !      enddo
     !   enddo
 
@@ -1720,7 +1719,7 @@ CONTAINS
             HSZ%Ucore(io)=HSZ%Uref(io)-HSZ%Uvale(io)
             !do jo=1,norbit
             !   if (jo/=io) &
-            !    HSZ%LMBDcore(io,jo)=HSZ%LMBDref(io,jo)-HSZ%LMBDvale(io,jo)
+            !&   HSZ%LMBDcore(io,jo)=HSZ%LMBDref(io,jo)-HSZ%LMBDvale(io,jo)
             !enddo
          endif
       enddo
@@ -1731,7 +1730,7 @@ CONTAINS
             HSZ%U(io)=HSZ%Ucore(io)+HSZ%Uvale(io)
             !do jo=1,norbit
             !   if (jo/=io) &
-            !    HSZ%LMBD(io,jo)=HSZ%LMBDcore(io,jo)+HSZ%LMBDvale(io,jo)
+            !&   HSZ%LMBD(io,jo)=HSZ%LMBDcore(io,jo)+HSZ%LMBDvale(io,jo)
             !enddo
          endif
       enddo
@@ -1786,43 +1785,43 @@ CONTAINS
        ENDDO
        nmap=j
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HSZ%shift(i),&
-               (HSZ%psi(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HSZ%shift(i),&
+&              (HSZ%psi(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
        ENDDO
     ELSE
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
-               (HSZ%psi(i,j)*Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
+&              (HSZ%psi(i,j)*Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
        ENDDO
     ENDIF
     CLOSE(1001)
     OPEN (unit=1001,file='pot'//TRIM(stuff),form='formatted')
     DO i = 1,n
        IF (frozencorecalculation) THEN
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-               Potwk%rvh(i),Potwk%rvx(i),HSZ%rVxcore(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&              Potwk%rvh(i),Potwk%rvx(i),HSZ%rVxcore(i)
        ELSE
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-               Potwk%rvh(i),Potwk%rvx(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&              Potwk%rvh(i),Potwk%rvx(i)
        ENDIF
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='wfn'//TRIM(stuff),form='formatted')
     DO i = 1,n
-       WRITE(1001,'(1p50e15.7)') Gridwk%r(i), &
-            (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='psi'//TRIM(stuff),form='formatted')
     IF (frozencorecalculation) THEN
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-               (HSZ%psi(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&              (HSZ%psi(i,mmap(k)),k=1,nmap)
        ENDDO
     ELSE
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-               (HSZ%psi(i,j),j=1,Orbitwk%norbit)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&              (HSZ%psi(i,j),j=1,Orbitwk%norbit)
        ENDDO
     ENDIF
     CLOSE(1001)
@@ -1843,8 +1842,8 @@ CONTAINS
     WRITE(6,*) ' Summary of EXX orbitals '
     WRITE(6,"(' n  l     occupancy            energy              U')")
     DO io=1,Orbitwk%norbit
-       WRITE(6,'(i2,1x,i2,4x,1p3e15.7)') &
-            Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),HSZ%U(io)
+       WRITE(6,'(i2,1x,i2,4x,1p,3e15.7)') &
+&           Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),HSZ%U(io)
     ENDDO
 
     CALL mkname(counter,stuff)
@@ -1862,43 +1861,43 @@ CONTAINS
        ENDDO
        nmap=j
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
-               (HSZ%psi(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
+&              (HSZ%psi(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
        ENDDO
     ELSE
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
-               (HSZ%psi(i,j)*Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HSZ%shift(i) ,&
+&              (HSZ%psi(i,j)*Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
        ENDDO
     ENDIF
     CLOSE(1001)
     OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
     DO i = 1,n
        IF (frozencorecalculation) THEN
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-               Potwk%rvh(i),Potwk%rvx(i),HSZ%rVxcore(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&              Potwk%rvh(i),Potwk%rvx(i),HSZ%rVxcore(i)
        ELSE
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-               Potwk%rvh(i),Potwk%rvx(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&              Potwk%rvh(i),Potwk%rvx(i)
        ENDIF
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
     DO i = 1,n
-       WRITE(1001,'(1p50e15.7)') Gridwk%r(i), &
-            (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='psi'//sub//TRIM(stuff),form='formatted')
     IF (frozencorecalculation) THEN
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-               (HSZ%psi(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&              (HSZ%psi(i,mmap(k)),k=1,nmap)
        ENDDO
     ELSE
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-               (HSZ%psi(i,j),j=1,Orbitwk%norbit)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&              (HSZ%psi(i,j),j=1,Orbitwk%norbit)
        ENDDO
     ENDIF
     CLOSE(1001)
@@ -1928,9 +1927,9 @@ CONTAINS
     WRITE(6,"(' n  l     occupancy            energy              U           UC     UV')")
     DO jo=1,nmap
        io=mmap(jo)
-       WRITE(6,'(i2,1x,i2,4x,1p5e15.7)') &
-            Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),&
-                 HSZ%Uref(io), HSZ%Ucore(io),HSZ%Uvale(io)
+       WRITE(6,'(i2,1x,i2,4x,1p,5e15.7)') &
+&           Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),&
+&                HSZ%Uref(io), HSZ%Ucore(io),HSZ%Uvale(io)
     ENDDO
     !WRITE(6,*) '   Summary of LMBD values '
     !DO jo=1,nmap
@@ -1938,31 +1937,31 @@ CONTAINS
     !   WRITE(6,*) ' io, l: ',io,Orbitwk%l(io)
     !        do j=1,Orbitwk%norbit
     !           if (j/=io.and.Orbitwk%l(io)==Orbitwk%l(j)) &
-    !               WRITE(6,'(2i4,3x,1p3e15.7)') j,Orbitwk%l(j),&
-    !                HSZ%LMBDref(io,j),HSZ%LMBDcore(io,j),HSZ%LMBDvale(io,j)
+    !&              WRITE(6,'(2i4,3x,1p,3e15.7)') j,Orbitwk%l(j),&
+    !&               HSZ%LMBDref(io,j),HSZ%LMBDcore(io,j),HSZ%LMBDvale(io,j)
     !        enddo
     !ENDDO
 
     OPEN (unit=1001,file='shiftSetCore',form='formatted')
     n=Gridwk%n
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HSZ%shift(i),HSZ%coreshift(i),&
-               (HSZ%psicore(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap), &
-               (HSZ%psivale(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HSZ%shift(i),HSZ%coreshift(i),&
+&              (HSZ%psicore(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap), &
+&              (HSZ%psivale(i,mmap(k))*Orbitwk%wfn(i,mmap(k)),k=1,nmap)
        ENDDO
     CLOSE(1001)
 
     OPEN (unit=1001,file='potSetCore',form='formatted')
     DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-               Potwk%rvh(i),HSZ%rVxvale(i),HSZ%rVxcore(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&              Potwk%rvh(i),HSZ%rVxvale(i),HSZ%rVxcore(i)
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='psiSetCore',form='formatted')
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-               (HSZ%psicore(i,mmap(k)),k=1,nmap),&
-               (HSZ%psivale(i,mmap(k)),k=1,nmap)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&              (HSZ%psicore(i,mmap(k)),k=1,nmap),&
+&              (HSZ%psivale(i,mmap(k)),k=1,nmap)
        ENDDO
     CLOSE(1001)
 
@@ -1971,7 +1970,7 @@ CONTAINS
   END SUBROUTINE Reportandset_coreEXX_functions
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!  Get_FCEnergy_EXX                                  !!!!    
+  !!  Get_FCEnergy_EXX                                  !!!!
   !!   Valence part of the Fock exchange energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_FCEnergy_EXX(Grid,Orbit,FC,SCF)
@@ -1999,7 +1998,7 @@ CONTAINS
     write(6,*) 'Frozencore core exchange contribution ', FCeex
     call Get_Energy_EXX_VV(Grid,Orbit,x)
     write(6,*) 'Frozencore valence exchange contribution ', x
-    
+
     SCF%valeexc=FCeex+x
     SCF%evale=SCF%valekin+SCF%valecoul+SCF%valeexc
 
@@ -2013,7 +2012,7 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Colle Salvetti correlation energy
   ! Still using analytical wavefun and density
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   SUBROUTINE Get_Energy_CS(Grid,Orbit,csenergy)
     IMPLICIT NONE
@@ -2025,7 +2024,7 @@ CONTAINS
     INTEGER :: i,n,norbit,io
     REAL(8),ALLOCATABLE :: RealWfn(:,:),RealDen(:),eta(:),xi(:)
     REAL(8),ALLOCATABLE :: DerivRealWfn(:,:),DerivRealDen(:),&
-         Deriv2RealDen(:),LaplaceRealDen(:)
+&        Deriv2RealDen(:),LaplaceRealDen(:)
     REAL(8),ALLOCATABLE :: kernel(:),dum(:)
     REAL(8) :: a ,b ,c ,d ,factor
     REAL(8) :: ECS_1ST , ECS_2ND,ECS_3RD,ECS_4TH,ECS_5TH,ECS
@@ -2052,7 +2051,7 @@ CONTAINS
 
     ALLOCATE(RealWfn(n,norbit),RealDen(n),eta(n),xi(n))
     ALLOCATE(DerivRealWfn(n,norbit),DerivRealDen(n),&
-         Deriv2RealDen(n),LaplaceRealDen(n))
+&        Deriv2RealDen(n),LaplaceRealDen(n))
     ALLOCATE(kernel(n))
     ALLOCATE(dum(n))
 
@@ -2077,7 +2076,7 @@ CONTAINS
     !! Calc eta and xi
     eta(:)= 1.d0 + d/(RealDen(:)**(1.0d0/3.0d0))
     xi(:) =RealDen(:)**(5.0d0/3.0d0)*EXP(c*(RealDen(:)**(-1.0d0/3.0d0)))*eta(:)
-    xi(:) = 1.d0/xi(:) 
+    xi(:) = 1.d0/xi(:)
 
 
     ! To deal with eta diverge at long range
@@ -2095,7 +2094,7 @@ CONTAINS
     CALL derivative(Grid,DerivRealDen,Deriv2RealDen,1,n)
 
     LaplaceRealDen(:)=2*DerivRealDen(:)/Grid%r(:) +  &
-         Deriv2RealDen(:) !! Blows up at origin 
+&        Deriv2RealDen(:) !! Blows up at origin
     CALL extrapolate(Grid,LaplaceRealDen)  !! deal with the infinity at origin
 
 
@@ -2120,14 +2119,14 @@ CONTAINS
           kernel(:)= kernel(:) + 0.0d0
        ELSE
           kernel(:)=kernel(:) + &
-               2*Orbit%occ(io)*RealDen(:)*2*(RealWfn(:,io)**2)*&
-               factor/(Grid%r(:)**2)
+&              2*Orbit%occ(io)*RealDen(:)*2*(RealWfn(:,io)**2)*&
+&              factor/(Grid%r(:)**2)
        ENDIF
     ENDDO
 
     CALL extrapolate(Grid, kernel)
     kernel(:) =- a*b*(0.25d0)*xi(:)*(Grid%r(:)**2)*kernel(:)
-    ECS_2ND = integrator(Grid,kernel,1,n) 
+    ECS_2ND = integrator(Grid,kernel,1,n)
 
 
     !! Term 3
@@ -2136,13 +2135,13 @@ CONTAINS
     ECS_3RD = integrator(Grid,kernel,1,n)
 
 
-    !! Term 4 
+    !! Term 4
     kernel = 0.0d0
     kernel(:)=-a*b*xi(:)*(Grid%r(:)**2)*pi*(0.5d0)*RealDen(:)*LaplaceRealDen(:)
     ECS_4TH = integrator(Grid,kernel,1,n)
 
 
-    !! Term5 
+    !! Term5
     kernel = 0.0d0
     kernel(:) = - a*(Grid%r(:)**2)*(4.0d0)*pi*RealDen(:)/eta(:)
     ECS_5th = integrator(Grid,kernel,1,n)
@@ -2155,7 +2154,7 @@ CONTAINS
     WRITE(6,*) 'ECS is already Calculated' ,ECS
 
     DEALLOCATE(RealWfn,RealDen,eta,xi,DerivRealWfn,DerivRealDen,&
-         Deriv2RealDen,LaplaceRealDen,kernel,dum)
+&        Deriv2RealDen,LaplaceRealDen,kernel,dum)
 
 
   END SUBROUTINE Get_Energy_CS
@@ -2163,7 +2162,7 @@ CONTAINS
 
 !!!!!!
   !  Calc_decdphi_io
-!!!  
+!!!
   SUBROUTINE Calc_decdchi_io(Orbit,io,res)
     TYPE(OrbitInfo),INTENT(IN)::Orbit
     INTEGER,INTENT(IN)::io
@@ -2172,11 +2171,11 @@ CONTAINS
     REAL(8) :: a,b,c,d,ab
     REAL(8) ,ALLOCATABLE :: RealWfn(:,:),DerivRealWfn(:,:),Deriv2RealWfn(:,:)
     REAL(8) ,ALLOCATABLE :: RealDen(:),DerivRealDen(:),Deriv2RealDen(:),&
-         LaplaceRealDen(:)
+&        LaplaceRealDen(:)
     REAL(8) ,ALLOCATABLE :: eta(:),xi(:),dxidden(:),Derivxi(:),Deriv2xi(:),&
-         Derivxiden(:),Laplacexi(:)
+&        Derivxiden(:),Laplacexi(:)
     REAL(8) ,ALLOCATABLE :: Row1(:),Row2(:),Row3(:),Row4(:),Row5(:),&
-         Row6(:),Row7(:),decdchi(:),RowExtra(:)
+&        Row6(:),Row7(:),decdchi(:),RowExtra(:)
     REAL(8) ,ALLOCATABLE :: dum(:),dum1(:),dum2(:)
     REAL(8) :: small=1.d-6
     REAL(8) :: Inte1,Inte2,Inte3,Inte4,Inte5,Inte6,Inte7,InteAll7
@@ -2217,12 +2216,12 @@ CONTAINS
     ALLOCATE(RealDen(n),DerivRealDen(n),Deriv2RealDen(n),LaplaceRealDen(n))
     ALLOCATE(eta(n),xi(n),dxidden(n),Derivxi(n),Deriv2xi(n),Laplacexi(n))
     ALLOCATE(Row1(n),Row2(n),Row3(n),Row4(n),Row5(n),Row6(n),Row7(n),&
-         decdchi(n),RowExtra(n))
+&        decdchi(n),RowExtra(n))
     ALLOCATE(Derivxiden(n))
     ALLOCATE(dum(n),dum1(n),dum2(n))
 
     !-------Wave Function,Density,Eta,Xi Related----------------------------------------
-    ! Wavefunction Related 
+    ! Wavefunction Related
     DO IterOrbit=1,norbit
        DO i=2,n
           RealWfn(i,IterOrbit) = Orbit%wfn(i,IterOrbit)/Gridwk%r(i)
@@ -2233,12 +2232,12 @@ CONTAINS
 
     DO IterOrbit=1,norbit
        CALL derivative(Gridwk,RealWfn(:,IterOrbit),DerivRealWfn(:,IterOrbit),&
-            1,n)
+&           1,n)
        CALL derivative(Gridwk,DerivRealWfn(:,IterOrbit),&
-            Deriv2RealWfn(:,IterOrbit),1,n)
+&           Deriv2RealWfn(:,IterOrbit),1,n)
     ENDDO
 
-    ! Density Related 
+    ! Density Related
     DO i=2,n
        RealDen(i)=Orbit%den(i)/(4.0d0*pi*(Gridwk%r(i)**2))
     ENDDO
@@ -2246,18 +2245,18 @@ CONTAINS
 
     CALL derivative(Gridwk,RealDen,DerivRealDen,1,n)
     CALL derivative(Gridwk,DerivRealDen,Deriv2RealDen,1,n)
-    LaplaceRealDen(:)=2*DerivRealDen(:)/Gridwk%r(:) +  Deriv2RealDen(:)  
-    !! Blows up at origin 
+    LaplaceRealDen(:)=2*DerivRealDen(:)/Gridwk%r(:) +  Deriv2RealDen(:)
+    !! Blows up at origin
     CALL extrapolate(Gridwk,LaplaceRealDen)   !! deal with the infinity at origin
 
 
-    ! eta and Xi Related 
+    ! eta and Xi Related
     eta(:)= 1 + d/(RealDen(:)**(1.0d0/3.0d0))
     xi(:) =RealDen(:)**(5.0d0/3.0d0)*EXP(c*(RealDen(:)**(-1.0d0/3.0d0)))*eta(:)
-    xi(:) = 1/xi(:) 
+    xi(:) = 1/xi(:)
 
     dxidden(:)=(-5.0d0/3.0d0)/RealDen(:)+c/(3.0d0*RealDen(:)**(4.0d0/3.0d0))&
-         + d/(3.0d0*eta(:)*RealDen(:)**(4.0d0/3.0d0))
+&        + d/(3.0d0*eta(:)*RealDen(:)**(4.0d0/3.0d0))
     dxidden(:)=dxidden(:)*xi(:)
 
     CALL derivative(Gridwk,xi,Derivxi,1,n)
@@ -2277,11 +2276,11 @@ CONTAINS
     !  dum2(:)=dum(:)-dum1(:)
 
 
-    ! Row 1 
+    ! Row 1
     Row1 = 0.0d0
-    Row1(:)= -a/eta(:) - (a*d/3.0d0)*(RealDen(:)**(-1.0d0/3.0d0))/(eta(:)**2) 
+    Row1(:)= -a/eta(:) - (a*d/3.0d0)*(RealDen(:)**(-1.0d0/3.0d0))/(eta(:)**2)
 
-    Row1(:)= - Orbit%wfn(:,io)*Row1(:) 
+    Row1(:)= - Orbit%wfn(:,io)*Row1(:)
     Inte1=integrator(Gridwk,Row1,1,n)
 
 
@@ -2290,9 +2289,9 @@ CONTAINS
     DO IterOrbit=1,norbit
        IF(Orbit%l(IterOrbit) ==0 ) THEN
           Row2(:) = Row2(:) +2*Orbit%occ(IterOrbit)*(1.0d0/(4.0d0*pi))* &
-               RealDen(:)*(DerivRealWfn(:,IterOrbit)**2)  
+&              RealDen(:)*(DerivRealWfn(:,IterOrbit)**2)
        ELSE
-          ! Row2 needs to be accumlated , be careful ! 
+          ! Row2 needs to be accumlated , be careful !
           factor = Orbit%l(IterOrbit)*(Orbit%l(IterOrbit)+1)
           dum(:) = RealWfn(:,IterOrbit)/Gridwk%r(:)
           dum(:) = DerivRealWfn(:,IterOrbit)**2  + (factor*dum(:)**2)
@@ -2313,7 +2312,7 @@ CONTAINS
 
     ! Row4
     Row4 = 0.0d0
-    Row4(:) = Gridwk%r(:)*DerivRealWfn(:,io)*Derivxiden(:) 
+    Row4(:) = Gridwk%r(:)*DerivRealWfn(:,io)*Derivxiden(:)
     Row4(:) = ab*(0.5d0)*Row4(:)
     Inte4 = integrator(Gridwk,Row4,1,n)
 
@@ -2321,9 +2320,9 @@ CONTAINS
     Row5 = 0.0d0
     ! IF(Orbit%l(io) == 0 ) THEN
     !    Row5(:) = 0.0d0
-    ! ELSE 
+    ! ELSE
     !    factor = orbit%l(io)*(orbit%l(io)+1)
-    !    Row5(:)  = -ab*(0.5d0)*xi(:)*RealDen(:)*factor/(Gridwk%r(:)**2) 
+    !    Row5(:)  = -ab*(0.5d0)*xi(:)*RealDen(:)*factor/(Gridwk%r(:)**2)
     ! ENDIF
 
     Row5(:)= ( Potwk%rv(:)  - Gridwk%r(:)*Orbit%eig(io) )*RealWfn(:,io)
@@ -2333,7 +2332,7 @@ CONTAINS
     CALL extrapolate(Gridwk,Row5)
 
     dum(:)=Row4(:)+Row5(:)
-    XiaoTest=integrator(Gridwk,dum)   
+    XiaoTest=integrator(Gridwk,dum)
 
     WRITE(*,*) "XiaoTest" , XiaoTest
 
@@ -2346,7 +2345,7 @@ CONTAINS
     ! Row7
     Row7 = 0.0d0
     Row7(:) = -ab*(0.125d0)*(Laplacexi(:)*RealDen(:)+&
-         Derivxi(:)*DerivRealDen(:)+xi(:)*LaplaceRealDen(:))
+&        Derivxi(:)*DerivRealDen(:)+xi(:)*LaplaceRealDen(:))
     Row7(:) = -ab*(0.125d0)*xi(:)*LaplaceRealDen(:) + Row7(:)
     Row7(:) = Row7(:)*orbit%wfn(:,io)
 
@@ -2358,10 +2357,10 @@ CONTAINS
     DO IterOrbit=1,norbit
        IF(Orbit%l(IterOrbit) ==0 ) THEN
           RowExtra(:) = RowExtra(:) +&
-               2*Orbit%occ(IterOrbit)*(1.0d0/(4.0d0*pi))* &
-               RealDen(:)*(DerivRealWfn(:,IterOrbit)**2)  
+&              2*Orbit%occ(IterOrbit)*(1.0d0/(4.0d0*pi))* &
+&              RealDen(:)*(DerivRealWfn(:,IterOrbit)**2)
        ELSE
-          ! RowExtra needs to be accumlated , be careful ! 
+          ! RowExtra needs to be accumlated , be careful !
           factor = Orbit%l(IterOrbit)*(Orbit%l(IterOrbit)+1)
           dum(:) = RealWfn(:,IterOrbit)/Gridwk%r(:)
           dum(:) = DerivRealWfn(:,IterOrbit)**2  + (factor*dum(:)**2)
@@ -2375,11 +2374,11 @@ CONTAINS
 
     ! Sum up
     decdchi(:) = Row1(:) +  Row2(:) +  Row3(:) +  Row4(:) + &
-         Row5(:) +  Row6(:) +  Row7(:) + RowExtra(:)
+&        Row5(:) +  Row6(:) +  Row7(:) + RowExtra(:)
     InteAll7 = integrator(Gridwk,decdchi,1,n)
 
 
-    ! For Test Simple Case purpose Xiao 
+    ! For Test Simple Case purpose Xiao
     ! dum(:)= -exp(-alpha*Gridwk%r(:))*(Gridwk%r(:)**2)
     ! dum(:)= -Gridwk%r(:)*Orbit%wfn(:,1);
     ! dum(:)=decdchi(:)*dum(:)
@@ -2390,10 +2389,10 @@ CONTAINS
     res = decdchi
 
     DEALLOCATE(RealWfn,DerivRealWfn,Deriv2RealWfn, &
-         RealDen,DerivRealDen,Deriv2RealDen,LaplaceRealDen, &
-         eta,xi,dxidden,Derivxi,Deriv2xi,Laplacexi, &
-         Row1,Row2,Row3,Row4,Row5,Row6,Row7,decdchi,RowExtra,&
-         Derivxiden,dum,dum1,dum2)
+&        RealDen,DerivRealDen,Deriv2RealDen,LaplaceRealDen, &
+&        eta,xi,dxidden,Derivxi,Deriv2xi,Laplacexi, &
+&        Row1,Row2,Row3,Row4,Row5,Row6,Row7,decdchi,RowExtra,&
+&        Derivxiden,dum,dum1,dum2)
 
   END SUBROUTINE Calc_decdchi_io
 
@@ -2440,7 +2439,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Evaluate RR functions  !   not quite clear about 1/r 
+    ! Evaluate RR functions  !   not quite clear about 1/r
     RR=0
     DO ip=1,nvale
        CALL Calc_dexdphi_io_v(Gridwk,Orbitwk,map(ip),RR(:,ip))
@@ -2450,12 +2449,12 @@ CONTAINS
 
     OPEN(1001,file='RR', form='formatted')
     DO i=1,n
-       WRITE(1001,'(1p20E15.7)') Gridwk%r(i),(RR(i,ip),ip=1,nvale)
+       WRITE(1001,'(1p,20E15.7)') Gridwk%r(i),(RR(i,ip),ip=1,nvale)
     ENDDO
     CLOSE(1001)
 
 
-    ! Determine core match point 
+    ! Determine core match point
     x=1000000.d0
     DO io=1,norbit
        IF(Orbitwk%iscore(io)) THEN
@@ -2493,7 +2492,7 @@ CONTAINS
 
        x=Orbitwk%occ(io); term1=-bp*HSZ%psi(k+1,io)/hfac
        term2=Orbitwk%wfn(k+1,io)*&
-            HSZ%rVXref(k+1)/Gridwk%r(k+1)
+&           HSZ%rVXref(k+1)/Gridwk%r(k+1)
        term3=RR(k+1,ip)
        WRITE(6,*) 'term1,term2,term3 = ', term1,term2,term3
        DO i=1,k-1
@@ -2507,7 +2506,7 @@ CONTAINS
 
     OPEN(1001,file='stuff',form='formatted')
     DO i=1,k-1
-       WRITE(1001,'(1p10E15.7)') Gridwk%r(i+1),RV(i),LM(i,i)
+       WRITE(1001,'(1p,10E15.7)') Gridwk%r(i+1),RV(i),LM(i,i)
     ENDDO
     CLOSE(1001)
 
@@ -2569,7 +2568,7 @@ CONTAINS
        a(1:mn-1)=aa(1:mn-1)
        c=0; c(k)=1
 
-       b=-2.4d0-h2*a   ; 
+       b=-2.4d0-h2*a   ;
        b(1)=b(1)-0.1d0*h2*xx/((Grid%r(2)**(l+1))*(1.d0+st*Grid%r(2)))
        a=1.2d0-0.1d0*h2*a
        p=0;p(2:mn-1)=a(1:mn-2)
@@ -2601,7 +2600,7 @@ CONTAINS
     n=Grid%n;norbit=Orbit%norbit
 
     WRITE(ifo,*) HSZ%zero_index,HSZ%lmax,HSZ%betaL,HSZ%grad2,HSZ%matchpoint,&
-        HSZ%corerange
+&       HSZ%corerange
     WRITE(ifo,*)((HSZ%psi(i,io),i=1,n),io=1,norbit)
     WRITE(ifo,*)((HSZ%psicore(i,io),i=1,n),io=1,norbit)
     WRITE(ifo,*)((HSZ%psivale(i,io),i=1,n),io=1,norbit)
@@ -2611,7 +2610,7 @@ CONTAINS
     WRITE(ifo,*) (HSZ%Uvale(io),(HSZ%LMBDvale(jo,io),jo=1,norbit),io=1,norbit)
     WRITE(ifo,*) (HSZ%Uref(io),io=1,norbit)
     WRITE(ifo,*) (HSZ%rVxref(i),HSZ%rVxcore(i),HSZ%rVxvale(i),&
-              HSZ%shift(i),HSZ%coreshift(i),i=1,n)
+&             HSZ%shift(i),HSZ%coreshift(i),i=1,n)
 
   END SUBROUTINE EXXdump
 
@@ -2625,13 +2624,13 @@ CONTAINS
     n=Grid%n;norbit=Orbit%norbit
 
     READ(ifo,*) HSZ%zero_index,HSZ%lmax,HSZ%betaL,HSZ%grad2,HSZ%matchpoint,&
-        HSZ%corerange
+&       HSZ%corerange
     ALLOCATE(HSZ%psi(n,norbit),HSZ%U(norbit),HSZ%LMBD(norbit,norbit),&
-         HSZ%shift(n),HSZ%rVxref(n),HSZ%rVxcore(n),HSZ%rVxvale(n),&
-         HSZ%psicore(n,norbit),HSZ%psivale(n,norbit),HSZ%psicore(n,norbit),&
-         HSZ%psiref(n,norbit),HSZ%Ucore(norbit),HSZ%LMBDcore(norbit,norbit),&
-         HSZ%Uvale(norbit),HSZ%LMBDvale(norbit,norbit),HSZ%Uref(norbit),&
-         HSZ%coreshift(n))
+&        HSZ%shift(n),HSZ%rVxref(n),HSZ%rVxcore(n),HSZ%rVxvale(n),&
+&        HSZ%psicore(n,norbit),HSZ%psivale(n,norbit),HSZ%psicore(n,norbit),&
+&        HSZ%psiref(n,norbit),HSZ%Ucore(norbit),HSZ%LMBDcore(norbit,norbit),&
+&        HSZ%Uvale(norbit),HSZ%LMBDvale(norbit,norbit),HSZ%Uref(norbit),&
+&        HSZ%coreshift(n))
     READ(ifo,*)((HSZ%psi(i,io),i=1,n),io=1,norbit)
     READ(ifo,*)((HSZ%psicore(i,io),i=1,n),io=1,norbit)
     READ(ifo,*)((HSZ%psivale(i,io),i=1,n),io=1,norbit)
@@ -2641,7 +2640,7 @@ CONTAINS
     READ(ifo,*) (HSZ%Uvale(io),(HSZ%LMBDvale(jo,io),jo=1,norbit),io=1,norbit)
     READ(ifo,*) (HSZ%Uref(io),io=1,norbit)
     READ(ifo,*) (HSZ%rVxref(i),HSZ%rVxcore(i),HSZ%rVxvale(i),&
-              HSZ%shift(i),HSZ%coreshift(i),i=1,n)
+&             HSZ%shift(i),HSZ%coreshift(i),i=1,n)
 
   END SUBROUTINE EXXload
 

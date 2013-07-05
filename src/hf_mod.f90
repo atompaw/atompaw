@@ -57,7 +57,7 @@ CONTAINS
     TYPE(FCInfo) ,TARGET:: FCin
     TYPE(SCFInfo) ,TARGET:: SCFin
 
-    INTEGER :: i,n,io,icount,ok,loop,norbit,lng,l,many,np
+    INTEGER :: i,n,io,icount,ok,loop,lng,l,many,np
     REAL(8) :: en1,x,ecoul,v0,err
     REAL(8) :: errv0=1.d-7,errv
     REAL(8), PARAMETER :: mix=0.4d0
@@ -73,13 +73,13 @@ CONTAINS
 
     verboseoutput=lotsofoutput
 
-    n=Gridwk%n; norbit=Orbitwk%norbit
+    n=Gridwk%n
     IF (firsttime<1) THEN
             write(6,*) 'in HF_SCF '; call flush(6);
        io=Orbitwk%norbit
        ALLOCATE(HF%lmbd(io,io),HF%SumY(n,io),HF%lmany(io), &
-            HF%lmap(io,io), HF%emin(io),HF%emax(io),   &
-            HF%CSlmany(io), HF%CSlmap(io,io),stat=ok)
+&           HF%lmap(io,io), HF%emin(io),HF%emax(io),   &
+&           HF%CSlmany(io), HF%CSlmap(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(6,*) 'Error in allocate HFdata ', io,ok
           STOP
@@ -89,7 +89,7 @@ CONTAINS
        HF%lmax=0
        DO io=1,Orbitwk%norbit
           IF (Orbitwk%l(io)>HF%lmax) &
-               HF%lmax=Orbitwk%l(io)
+&              HF%lmax=Orbitwk%l(io)
           HF%emin(io)=-REAL(Potwk%nz**2)/Orbitwk%np(io)**2
           HF%emax(io)=-1.d-5
        ENDDO
@@ -99,7 +99,7 @@ CONTAINS
           HF%lmany(l+1)=0
           DO io=1,Orbitwk%norbit
              IF (Orbitwk%l(io)==l) THEN
-                HF%lmany(l+1)=HF%lmany(l+1)+1 
+                HF%lmany(l+1)=HF%lmany(l+1)+1
                 HF%lmap(l+1,HF%lmany(l+1))=io
              ENDIF
           ENDDO
@@ -120,11 +120,7 @@ CONTAINS
        firsttime=1
     ENDIF
 
-    IF (.not.ASSOCIATED(Orbitwk%X)) then
-       ALLOCATE(Orbitwk%X(n,norbit),Orbitwk%lqp(norbit,norbit),stat=ok)     
-       write(6,*) 'Orbitwk%X allocated', ASSOCIATED(Orbitwk%X); call flush(6)
-    ENDIF
-    IF(TRIM(scftype)=='AE'.OR.TRIM(scftype)=='NC') THEN  
+    IF(TRIM(scftype)=='AE'.OR.TRIM(scftype)=='NC') THEN
        err=1.d10; currenterror=err
        DO loop=1,mxloop
           WRITE(6,*) '----loop---- ',loop
@@ -256,7 +252,7 @@ CONTAINS
 
     success=.FALSE.
     CALL ORTHONORMALIZE(Grid,Orbit)
-    CALL Copy_OrbitInfo(Orbit,tmpOrbit)
+    CALL CopyOrbit(Orbit,tmpOrbit)
     r=>Grid%r
     rv=>Pot%rv
     lmbd=>HF%lmbd
@@ -278,9 +274,9 @@ CONTAINS
     DO io=1,norbit
        l=Orbit%l(io)
        res=0
-       res(2:n)=-HF%SumY(2:n,io)/r(2:n)   
+       res(2:n)=-HF%SumY(2:n,io)/r(2:n)
        DO jo=1,norbit
-          IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN 
+          IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN
              res=res+lmbd(jo,io)*Orbit%wfn(:,jo)
           ENDIF
        ENDDO
@@ -307,7 +303,7 @@ CONTAINS
           if (j>nodes)x=x-fixenergy
           if (j<nodes)x=x+fixenergy
           write(6,*) 'Rerunning inhomo with x = ',&
-                  x,j,nodes
+&                 x,j,nodes
        enddo
        dum=(Orbit%wfn(:,io)-tmpOrbit%wfn(:,io))**2
        err=err+Orbit%occ(io)*Integrator(Grid,dum)
@@ -319,14 +315,14 @@ CONTAINS
    ! CALL mkname(fcount,stuff)
    ! OPEN (unit=1001,file='hfwfn.'//TRIM(stuff),form='formatted')
    ! DO i=1,n
-   !    WRITE(1001,'(1p60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
-   !         tmpOrbit%wfn(i,io),io=1,norbit)
+   !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
+   !&        tmpOrbit%wfn(i,io),io=1,norbit)
    ! ENDDO
    ! CLOSE(1001)
 
    ! OPEN (unit=1001,file='pot.'//TRIM(stuff),form='formatted')
    ! DO i=1,n
-   !    WRITE(1001,'(1p60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),Orbit%den(i)
+   !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),Orbit%den(i)
    ! ENDDO
    ! CLOSE(1001)
 
@@ -345,14 +341,14 @@ CONTAINS
     fcount=fcount+1
 
     DEALLOCATE(res,dum)
-    CALL  Dealloc_OrbitInfo(tmpOrbit)
+    CALL  DestroyOrbit(tmpOrbit)
 
   END  SUBROUTINE HFIter
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  On input, Orbit contains orthonormal wfns
   !    Orthonormality is not checked, but it is essential
-  !     On output, wfns are "rotated" so that lambda is diagonal within closed 
+  !     On output, wfns are "rotated" so that lambda is diagonal within closed
   !              shell blocks diagonal
   !      Pot%rvh, Pot$rv, and HF%SumY are updated
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -377,7 +373,7 @@ CONTAINS
     lmbd=>HF%lmbd
     norbit=Orbit%norbit;lwork=norbit**2+10
     n=Grid%n
-    CALL Copy_OrbitInfo(Orbit,tmpOrbit)
+    CALL CopyOrbit(Orbit,tmpOrbit)
 
 
     ALLOCATE(A(norbit,norbit),w(norbit),work(lwork))
@@ -390,7 +386,7 @@ CONTAINS
        lmap=>HF%CSlmap
     ELSE
        WRITE(6,*) 'Error in HFDiag no matching type ', whichtype
-       STOP 
+       STOP
     ENDIF
 
     WRITE(6,*) ' Beginning HFDiag with fcount ', fcount
@@ -410,23 +406,23 @@ CONTAINS
           DO i=1,k
              DO j=1,k
                 A(i,j)=0.5d0*lmbd(lmap(l+1,i),lmap(l+1,j)) &
-                     +0.5d0*lmbd(lmap(l+1,j),lmap(l+1,i))
+&                    +0.5d0*lmbd(lmap(l+1,j),lmap(l+1,i))
              ENDDO
           ENDDO
           CALL dsyev('V','U',k,A,norbit,w,work,lwork,i)
           WRITE(6,*) 'returning form dsyev with info = ',i
           DO i=1,k
-             WRITE(6,'(i5,2x,1p15e15.7)') i,(A(i,j),j=1,k)
+             WRITE(6,'(i5,2x,1p,15e15.7)') i,(A(i,j),j=1,k)
           ENDDO
           DO i=1,k
              io=lmap(l+1,i)
-             WRITE(6,'("l,i,io, eig = ",3i5,2x,1p5E15.7)')  l,i,io,w(i)
+             WRITE(6,'("l,i,io, eig = ",3i5,2x,1p,5E15.7)')  l,i,io,w(i)
              Orbit%eig(io)=w(i)
              Orbit%wfn(:,io)=0.d0
              DO j=1,k
                 jo=lmap(l+1,j)
                 Orbit%wfn(:,io)=Orbit%wfn(:,io)+ &
-                     A(j,i)*tmpOrbit%wfn(:,jo)
+&                    A(j,i)*tmpOrbit%wfn(:,jo)
              ENDDO
           ENDDO
        ENDIF
@@ -443,14 +439,14 @@ CONTAINS
        DO jo=1,norbit
           IF (Orbit%l(io)==Orbit%l(jo)) THEN
              WRITE(6,*) io,jo,&
-                  overlap(Grid,Orbit%wfn(:,io),Orbit%wfn(:,jo))
+&                 overlap(Grid,Orbit%wfn(:,io),Orbit%wfn(:,jo))
           ENDIF
        ENDDO
     ENDDO
     WRITE(6,*) ' Ending HFDiag with fcount ', fcount; call flush(6)
 
     fcount=fcount+1
-    CALL Dealloc_OrbitInfo(tmpOrbit)
+    CALL DestroyOrbit(tmpOrbit)
     DEALLOCATE(A,w,work)
 
   END SUBROUTINE HFDiag
@@ -518,7 +514,7 @@ CONTAINS
     IF (frozencorecalculation) THEN
        CALL poisson(Grid,x,FCloc%valeden,dum,val,y)
        dum(1)=0;dum(2:n)=(Pot%rvn(2:n)*FCloc%valeden(2:n)+&
-            dum(2:n)*FCloc%coreden(2:n))/r(2:n)
+&           dum(2:n)*FCloc%coreden(2:n))/r(2:n)
        SCFloc%valecoul=integrator(Grid,dum)+val
     ENDIF
 
@@ -543,7 +539,7 @@ CONTAINS
           IF (Orbit%l(io)==Orbit%l(jo)) THEN
              x=0
              CALL kinetic_ij(Grid,Orbit%wfn(:,io),Orbit%wfn(:,jo),&
-                  Orbit%l(io),y)
+&                 Orbit%l(io),y)
              x=x+y ;t1=y
              IF(io==jo) THEN
                 SCFloc%ekin=SCFloc%ekin+Orbit%occ(io)*y
@@ -556,7 +552,7 @@ CONTAINS
              x=x+integrator(Grid,dum); t2=integrator(Grid,dum)
              x=x+overlap(Grid,Orbit%wfn(:,jo),res)
              t3=overlap(Grid,Orbit%wfn(:,jo),res)
-             WRITE(6,'("CHK lmbdD  ",3i5,2x,1p5e15.7)') l,jo,io,x,t1,t2,t3
+             WRITE(6,'("CHK lmbdD  ",3i5,2x,1p,5e15.7)') l,jo,io,x,t1,t2,t3
              lmbd(jo,io)=x
           ENDIF
        ENDDO
@@ -582,7 +578,7 @@ CONTAINS
     TYPE(OrbitInfo) ,INTENT(IN):: Orbit
     TYPE(PotentialInfo) ,INTENT(INOUT):: Pot
     TYPE(SCFInfo), INTENT(INOUT) :: SCF
-   
+
 
     INTEGER :: i,j,k,n,io,jo,lng,icount,many,l,norbit
     REAL(8) :: ecoul,v0,accum,val,en,x,y,t1,t2,t3
@@ -633,7 +629,7 @@ CONTAINS
        CALL kinetic_ij(Grid,Orbit%wfn(:,io),Orbit%wfn(:,io),l,y)
        SCF%ekin=SCF%ekin+Orbit%occ(io)*y
        if(frozencorecalculation.and..not.Orbit%iscore(io))  &
-             SCF%valekin=SCF%valekin+Orbit%occ(io)*y
+&            SCF%valekin=SCF%valekin+Orbit%occ(io)*y
     enddo
 
     CALL Total_Energy_Report(SCF,6)
@@ -704,7 +700,7 @@ CONTAINS
     !IF (frozencorecalculation) THEN    (assumed)
     CALL poisson(Grid,x,FCloc%valeden,dum,val,y)
     dum(1)=0;dum(2:n)=(Pot%rvn(2:n)*FCloc%valeden(2:n)+&
-         dum(2:n)*FCloc%coreden(2:n))/r(2:n)
+&        dum(2:n)*FCloc%coreden(2:n))/r(2:n)
     SCFloc%valecoul=integrator(Grid,dum)+val
     !ENDIF
 
@@ -743,7 +739,7 @@ CONTAINS
                 x=x+integrator(Grid,dum); t2=integrator(Grid,dum)
                 x=x+overlap(Grid,Orbit%wfn(:,jo),res)
                 t3=overlap(Grid,Orbit%wfn(:,jo),res)
-                WRITE(6,'("CHK lmbdV  ",3i5,2x,1p5e15.7)') l,io,jo,x,t1,t2,t3
+                WRITE(6,'("CHK lmbdV  ",3i5,2x,1p,5e15.7)') l,io,jo,x,t1,t2,t3
                 call flush(6)
                 lmbd(jo,io)=x
              ENDIF
@@ -791,7 +787,7 @@ CONTAINS
      END SUBROUTINE HFVterms
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  HFFCIter   -- Frozen core version; 
+!!!!  HFFCIter   -- Frozen core version;
 !!!!   assume not more than 1 valence shell as actually
 !!!!           close shell
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -826,7 +822,7 @@ CONTAINS
 
        success=.FALSE.
        CALL ORTHONORMALIZE(Grid,Orbit)
-       CALL Copy_OrbitInfo(Orbit,tmpOrbit)
+       CALL CopyOrbit(Orbit,tmpOrbit)
        r=>Grid%r
        rv=>Pot%rv
        lmbd=>HF%lmbd
@@ -849,9 +845,9 @@ CONTAINS
              Orbit%eig(io)=lmbd(io,io)
              l=Orbit%l(io)
              res=0
-             res(2:n)=-HF%SumY(2:n,io)/r(2:n)   
+             res(2:n)=-HF%SumY(2:n,io)/r(2:n)
              DO jo=1,norbit
-                IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN 
+                IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN
                    res=res+lmbd(jo,io)*Orbit%wfn(:,jo)
                 ENDIF
              ENDDO
@@ -874,14 +870,14 @@ CONTAINS
       ! CALL mkname(fcount,stuff)
       ! OPEN (unit=1001,file='FChfwfn.'//TRIM(stuff),form='formatted')
       ! DO i=1,n
-      !    WRITE(1001,'(1p60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
-      !         tmpOrbit%wfn(i,io),io=1,norbit)
+      !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
+      !&        tmpOrbit%wfn(i,io),io=1,norbit)
       ! ENDDO
       ! CLOSE(1001)
 
       ! OPEN (unit=1001,file='FCpot.'//TRIM(stuff),form='formatted')
       ! DO i=1,n
-      !    WRITE(1001,'(1p60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),Orbit%den(i)
+      !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),Orbit%den(i)
       ! ENDDO
       ! CLOSE(1001)
 
@@ -902,12 +898,12 @@ CONTAINS
        fcount=fcount+1
 
        DEALLOCATE(res,dum)
-       CALL  Dealloc_OrbitInfo(tmpOrbit)
+       CALL  DestroyOrbit(tmpOrbit)
 
      END  SUBROUTINE HFFCIter
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  HFVFCIter   -- Frozen core version with potential; 
+!!!!  HFVFCIter   -- Frozen core version with potential;
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      SUBROUTINE HFVFCIter(mix,tol,err,success)
        REAL(8), INTENT(IN) :: mix,tol
@@ -937,11 +933,11 @@ CONTAINS
           WRITE(6,*) 'Error -- subroutine HFVFCIter is only for Frozen core '
           STOP
        ENDIF
-       
+
 
        success=.FALSE.
        CALL ORTHONORMALIZE(Grid,Orbit)
-       CALL Copy_OrbitInfo(Orbit,tmpOrbit)
+       CALL CopyOrbit(Orbit,tmpOrbit)
        r=>Grid%r
        rv=>Pot%rv
        lmbd=>HF%lmbd
@@ -965,9 +961,9 @@ CONTAINS
              Orbit%eig(io)=lmbd(io,io)
              l=Orbit%l(io)
              res=0
-             res(2:n)=-HF%SumYVV(2:n,io)/r(2:n)   
+             res(2:n)=-HF%SumYVV(2:n,io)/r(2:n)
              DO jo=1,norbit
-                IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN 
+                IF (jo==io.OR.(Orbit%l(jo)==l.AND.Orbit%occ(jo)>threshold)) THEN
                    res=res+lmbd(jo,io)*Orbit%wfn(:,jo)
                 ENDIF
              ENDDO
@@ -990,15 +986,15 @@ CONTAINS
       ! CALL mkname(fcount,stuff)
       ! OPEN (unit=1001,file='FChfwfn.'//TRIM(stuff),form='formatted')
       ! DO i=1,n
-      !    WRITE(1001,'(1p60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
-      !         tmpOrbit%wfn(i,io),io=1,norbit)
+      !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),(Orbit%wfn(i,io),&
+      !&        tmpOrbit%wfn(i,io),io=1,norbit)
       ! ENDDO
       ! CLOSE(1001)
 
       ! OPEN (unit=1001,file='FCpot.'//TRIM(stuff),form='formatted')
       ! DO i=1,n
-      !    WRITE(1001,'(1p60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),&
-      !         HF%rvxcore(i),Orbit%den(i)
+      !    WRITE(1001,'(1p,60E15.7)') Grid%r(i),Pot%rv(i),Pot%rvh(i),&
+      !&        HF%rvxcore(i),Orbit%den(i)
       ! ENDDO
       ! CLOSE(1001)
 
@@ -1019,7 +1015,7 @@ CONTAINS
        fcount=fcount+1
 
        DEALLOCATE(res,dum)
-       CALL  Dealloc_OrbitInfo(tmpOrbit)
+       CALL  DestroyOrbit(tmpOrbit)
 
      END  SUBROUTINE HFVFCIter
 
@@ -1049,7 +1045,7 @@ CONTAINS
        ALLOCATE(dum(n))
        CALL poisson(Grid,x,FC%valeden,dum,val,y)
        dum(1)=0;dum(2:n)=(Pot%rvn(2:n)*FC%valeden(2:n)+&
-            dum(2:n)*FC%coreden(2:n))/Grid%r(2:n)
+&           dum(2:n)*FC%coreden(2:n))/Grid%r(2:n)
        SCF%valecoul=integrator(Grid,dum)+val
        CALL Get_Energy_EXX_VC(Grid,Orbit,x)
        CALL Get_Energy_EXX_VV(Grid,Orbit,y)
@@ -1063,7 +1059,7 @@ CONTAINS
        DO io=1,norbit
           IF (.NOT.Orbit%iscore(io)) THEN
              CALL kinetic_ij(Grid,Orbit%wfn(:,io),Orbit%wfn(:,io),&
-                  Orbit%l(io),y)
+&                 Orbit%l(io),y)
              SCF%valekin=SCF%valekin+Orbit%occ(io)*y
           ENDIF
        ENDDO
@@ -1075,8 +1071,8 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !    HFunocc
 !      solve HF equation for unoccupied continuum state
-!            No Lagrange multipliers used      
-!      
+!            No Lagrange multipliers used
+!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      SUBROUTINE HFunocc(Grid,Orbit,l,energy,rv,v0,v0p,wfn,lng,Xout)
        TYPE(GridInfo) , INTENT(IN) :: Grid
@@ -1087,7 +1083,7 @@ CONTAINS
        REAL(8), INTENT(INOUT) :: wfn(:)        ! unbound wfn
        INTEGER, INTENT(OUT) :: lng
        REAL(8), OPTIONAL, INTENT(OUT) :: Xout(:)
-       
+
        INTEGER :: i,j,k,n,io,jo,many,lmax,norbit,iter,nodes,flag,ZZ
        INTEGER :: istart,imtch
        REAL(8) :: ecoul,accum,val,en,xx,A,B,C,D,Coeff,kappa,jl,nl,jlp,nlp,norm
@@ -1123,21 +1119,21 @@ CONTAINS
             if (j>lng) lng=j
             range=Grid%r(lng)
        end do
-       write(6,*) 'HFunocc: range ', lng, range     
+       write(6,*) 'HFunocc: range ', lng, range
        write(6,*) 'Calculating HFunocc for range ', range, lng
-       
+
        imtch=1
        do i=1,lng
           imtch=i
           if(Grid%r(i)>rch) exit
-       enddo   
+       enddo
        write(6,*) 'Calculating HFunocc for imtch ', rch , &
-             Grid%r(imtch), imtch
-       
+&            Grid%r(imtch), imtch
+
        ALLOCATE(wfn0(n),ve(n),X(n),dum(n))
 
        istart=6
-       
+
        ZZ=(-rv(1)+0.001d0)/2
        write(6,*) 'ZZ = ', ZZ
        ve(2:n)=(rv(2:n)+2*ZZ)/Grid%r(2:n)
@@ -1145,9 +1141,9 @@ CONTAINS
        write(6,*) 've ', ve(1),ve(2),ve(3), ve(4),ve(5)
        wfn0=0
        wfn0(1:lng)=((Grid%r(1:lng)/r0)**(l+1))*(1-&
-             (float(ZZ)/(l+1))*Grid%r(1:lng))
+&            (float(ZZ)/(l+1))*Grid%r(1:lng))
        wfn0(1:lng)=wfn0(1:lng)/wfn0(lng)
-       
+
        Call Calc_Xp(Grid,Orbit,ni,l,wfn0,X,lng)
        X(2:lng)=X(2:lng)/Grid%r(2:lng)
        Call extrapolate(Grid,X)
@@ -1162,7 +1158,7 @@ CONTAINS
           xx=Grid%r(i);c0=1.d0;c1=-float(ZZ)/(l+1)
            c2=(dum(1)+ve(1)-energy+2*float(ZZ*ZZ)/(l+1))/(4*l+6)
           wfn(i)=((xx)**(l+1))*(c0+xx*(c1+xx*c2))
-       enddo             
+       enddo
        scale=wfn0(istart)/wfn(istart)
        wfn(1:istart)=wfn(1:istart)*scale
 
@@ -1185,40 +1181,40 @@ CONTAINS
              xx=Grid%r(i);c0=1.d0;c1=-float(ZZ)/(l+1)
               c2=(dum(1)+ve(1)-energy+2*float(ZZ*ZZ)/(l+1))/(4*l+6)
              wfn(i)=((xx/r0)**(l+1))*(c0+xx*(c1+xx*c2))
-          enddo             
+          enddo
           scale=wfn0(istart)/wfn(istart)
           wfn(1:istart)=wfn(1:istart)*scale
           CALL midrange_numerov(Grid,l,istart,lng,energy,rv,X,wfn)
           !wfn(1:lng)=wfn(1:lng)/wfn(lng)
           !do i=1,lng
-          !   write(600+iter,'(1p8e16.7)') Grid%r(i),wfn(i),wfn0(i),X(i)
-          !enddo   
+          !   write(600+iter,'(1p,8e16.7)') Grid%r(i),wfn(i),wfn0(i),X(i)
+          !enddo
           residue=sum(abs(wfn(1:lng)-wfn0(1:lng)))
           write(6,*) 'iter ', iter,residue
           if (residue<tol) then
                   success=.true.
                   exit
-          endif        
+          endif
           wfn0(1:lng)=wfn0(1:lng)*(1.d0-mix)+wfn(1:lng)*(mix)
           wfn0=wfn0/wfn0(lng)
-       enddo    
-                  
+       enddo
+
 
        IF (.NOT.success) THEN
           WRITE(6,*) 'Warning in HFunocc not converged ',l,energy,range,residue
           WRITE(6,*)  'stopping after dump ' , 800+icount
           do i=1,lng
            write(800+icount,'(1P3e15.7)')Grid%r(i),wfn0(i),wfn(i)
-          enddo    
+          enddo
           stop
 
        ENDIF
 
        !do i=2,lng
        !    write(800+icount,'(1P9e15.7)')Grid%r(i),wfn0(i),wfn(i),X(i), &
-       !         -Gsecondderiv(Grid,i,wfn0)+&
-       !          (l*(l+1)/r(i)**2+rv(i)/r(i)-energy)*wfn0(i)+X(i)
-       !enddo    
+       !&        -Gsecondderiv(Grid,i,wfn0)+&
+       !&         (l*(l+1)/r(i)**2+rv(i)/r(i)-energy)*wfn0(i)+X(i)
+       !enddo
 
        wfn=0
        wfn(1:lng)=wfn0(1:lng)
@@ -1227,7 +1223,7 @@ CONTAINS
        If (present(Xout)) then
                Xout=0
                Xout(1:lng)=X(1:lng)
-       ENdif        
+       ENdif
 
        DEALLOCATE(wfn0,ve,X)
 
@@ -1241,9 +1237,6 @@ CONTAINS
        INTEGER, SAVE :: counter=0
        CHARACTER(4) :: stuff
 
-       write(6,*) 'In Report_HF';call flush(6);
-       write(6,*) 'Assocated: ', ASSOCIATED(Orbitwk%X),ASSOCIATED(Orbitwk%lqp)
-       call flush(6)
        !!  store variables in Orbit datastructure
        Orbitwk%X=HF%SumY
        Orbitwk%lqp=HF%lmbd
@@ -1251,8 +1244,8 @@ CONTAINS
        WRITE(6,*) ' Summary of HF orbitals '
        WRITE(6,"(' n  l     occupancy            energy      ')")
        DO io=1,Orbitwk%norbit
-          WRITE(6,'(i2,1x,i2,4x,1p3e15.7)') &
-               Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io)
+          WRITE(6,'(i2,1x,i2,4x,1p,3e15.7)') &
+&              Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io)
        ENDDO
 
        CALL mkname(counter,stuff)
@@ -1274,41 +1267,41 @@ CONTAINS
           IF (nc>0) THEN
              OPEN (unit=1001,file='cwfn'//sub//TRIM(stuff),form='formatted')
              DO i = 1,n
-                WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-                     (Orbitwk%wfn(i,cmap(k)),k=1,nc)
+                WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&                    (Orbitwk%wfn(i,cmap(k)),k=1,nc)
              ENDDO
              CLOSE(1001)
           ENDIF
           IF (nv>0) THEN
              OPEN (unit=1001,file='vwfn'//sub//TRIM(stuff),form='formatted')
              DO i = 1,n
-                WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-                     (Orbitwk%wfn(i,vmap(k)),k=1,nv)
+                WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&                    (Orbitwk%wfn(i,vmap(k)),k=1,nv)
              ENDDO
              CLOSE(1001)
           ENDIF
        ELSE
           OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
           DO i = 1,n
-             WRITE(1001,'(1p50e15.7)') Gridwk%r(i), &
-                  (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+             WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&                 (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
           ENDDO
           CLOSE(1001)
        ENDIF
        OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
        DO i = 1,n
-          WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i)
+          WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i)
        ENDDO
        CLOSE(1001)
        OPEN (unit=1001,file='den'//sub//TRIM(stuff),form='formatted')
        IF (frozencorecalculation) then
           DO i = 1,n
-             WRITE(1001,'(1p50e15.7)') Gridwk%r(i), Orbitwk%den(i), &
-                FCwk%valeden(i), FCwk%coreden(i)
+             WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), Orbitwk%den(i), &
+&               FCwk%valeden(i), FCwk%coreden(i)
           ENDDO
        ELSE
           DO i = 1,n
-             WRITE(1001,'(1p50e15.7)') Gridwk%r(i), Orbitwk%den(i)
+             WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), Orbitwk%den(i)
           ENDDO
        ENDIF
        CLOSE(1001)
@@ -1317,16 +1310,16 @@ CONTAINS
           IF (nc>0) THEN
              OPEN (unit=1001,file='cfx'//sub//TRIM(stuff),form='formatted')
              DO i = 1,n
-                WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-                     (HF%sumY(i,cmap(k)),k=1,nc)
+                WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&                    (HF%sumY(i,cmap(k)),k=1,nc)
              ENDDO
              CLOSE(1001)
           ENDIF
           IF (nv>0) THEN
              OPEN (unit=1001,file='vfx'//sub//TRIM(stuff),form='formatted')
              DO i = 1,n
-                WRITE(1001,'(1p50e15.7)') Gridwk%r(i),&
-                     (HF%sumY(i,vmap(k)),k=1,nv)
+                WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),&
+&                    (HF%sumY(i,vmap(k)),k=1,nv)
              ENDDO
              CLOSE(1001)
           ENDIF
@@ -1335,10 +1328,10 @@ CONTAINS
              OPEN (unit=1001,file='cvfx'//sub//TRIM(stuff),form='formatted')
              OPEN (unit=1002,file='vvfx'//sub//TRIM(stuff),form='formatted')
              DO i = 1,n
-                WRITE(1001,'(1p50e15.7)') Gridwk%r(i),HF%rvxcore(i),&
-                     (HF%sumYCV(i,vmap(k)),k=1,nv)
-                WRITE(1002,'(1p50e15.7)') Gridwk%r(i),&
-                     (HF%sumYVV(i,vmap(k)),k=1,nv)
+                WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),HF%rvxcore(i),&
+&                    (HF%sumYCV(i,vmap(k)),k=1,nv)
+                WRITE(1002,'(1p,50e15.7)') Gridwk%r(i),&
+&                    (HF%sumYVV(i,vmap(k)),k=1,nv)
              ENDDO
              CLOSE(1001)
              CLOSE(1002)
@@ -1346,8 +1339,8 @@ CONTAINS
        ELSE
           OPEN (unit=1001,file='fx'//sub//TRIM(stuff),form='formatted')
           DO i = 1,n
-             WRITE(1001,'(1p50e15.7)') Gridwk%r(i), &
-                  (HF%sumY(i,j),j=1,Orbitwk%norbit)
+             WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&                 (HF%sumY(i,j),j=1,Orbitwk%norbit)
           ENDDO
           CLOSE(1001)
        ENDIF
@@ -1390,8 +1383,8 @@ CONTAINS
        READ(ifo,*) HF%lmax
 
        ALLOCATE(HF%emin(norbit),HF%emax(norbit),HF%lmbd(norbit,norbit),&
-            HF%SumY(n,norbit),HF%lmany(norbit),HF%CSlmany(norbit), &
-            HF%lmap(norbit,norbit),HF%CSlmap(norbit,norbit))
+&           HF%SumY(n,norbit),HF%lmany(norbit),HF%CSlmany(norbit), &
+&           HF%lmap(norbit,norbit),HF%CSlmap(norbit,norbit))
 
        READ(ifo,*) (HF%emin(io),HF%emax(io),io=1,norbit)
        READ(ifo,*) ((HF%lmbd(io,jo),io=1,norbit),jo=1,norbit)
@@ -1417,6 +1410,6 @@ CONTAINS
        If (ASSOCIATED(HF%lmap)) DEALLOCATE(HF%lmap)
        If (ASSOCIATED(HF%CSlmany)) DEALLOCATE(HF%CSlmany)
        If (ASSOCIATED(HF%CSlmap)) DEALLOCATE(HF%CSlmap)
-     
+
      End Subroutine DestroyHF
    END MODULE hf_mod

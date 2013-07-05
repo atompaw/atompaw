@@ -32,7 +32,7 @@ CONTAINS
        WRITE(6,*) 'Error in BoundNumerov ', i,n,k
        STOP
     ENDIF
- 
+
     vec=0
     count=0
     DO i=1,nroot
@@ -142,7 +142,7 @@ CONTAINS
 
   END SUBROUTINE tridiagmult
 
-  SUBROUTINE startBoundNumerov(Grid,rv,l) 
+  SUBROUTINE startBoundNumerov(Grid,rv,l)
     TYPE(GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(IN) :: rv(:)
     INTEGER, INTENT(IN) :: l
@@ -245,8 +245,8 @@ CONTAINS
     INTEGER, PARAMETER :: niter=1000
 
     REAL(8), ALLOCATABLE :: p1(:),p2(:),dd(:)
-    INTEGER :: nz,n,ierr
-    REAL(8) :: h,q
+    INTEGER :: n,ierr
+    REAL(8) :: h,q,nz
     REAL(8) :: err,convrez,energy,zeroval
     REAL(8) :: scale,emin,emax,best,rout,ppp
     REAL(8) :: arg,r,r2,veff,pppp1,rin,dele,x,rvp1,pnp1,bnp1
@@ -276,8 +276,8 @@ CONTAINS
     !write(6,*) 'in boundsch --' , emin, nz, l
     emax=0.d0
 
-    !WRITE(6,'("starting boundsch with eigenvalues -- ",1p20e15.7)') &
-    !     Eig(1:nroot)
+    !WRITE(6,'("starting boundsch with eigenvalues -- ",1p,20e15.7)') &
+    !&    Eig(1:nroot)
 
     DO iroot=1,nroot
        best=1.d10; dele=1.d10
@@ -332,7 +332,7 @@ CONTAINS
              IF (energy.LT.emin) THEN
                 ierr=ierr+9*(10**(iroot-1))
                 WRITE(6,*) 'newboundsch error -- emin too high',l,nz,emin,energy
-                RETURN 
+                RETURN
              ENDIF
              emax=MIN(emax,energy+1.d-5)
              energy=emin+(energy-emin)*ranx()
@@ -353,8 +353,8 @@ CONTAINS
              x=ABS(dele)
              IF (x.LT.best) THEN
                 scale=SQRT(scale)
-                p1(1:n)=p1(1:n)*scale 
-                Psi(1:n,iroot)=p1(1:n) 
+                p1(1:n)=p1(1:n)*scale
+                Psi(1:n,iroot)=p1(1:n)
                 Eig(iroot)=energy
                 !write(6,*) 'root',l,iroot,Eig(iroot),emin,emax
                 best=x
@@ -379,7 +379,7 @@ CONTAINS
                 energy=energy+dele
                 ! if energy is out of range, pick random energy in correct range
                 IF (emin-energy.GT.convrez.OR.energy-emax.GT.convrez)         &
-                     energy=emin+(emax-emin)*ranx()
+&                    energy=emin+(emax-emin)*ranx()
                 ifac=2
                 !write(6,*) 'continuing with iter dele', iter,dele
              ENDIF
@@ -404,11 +404,11 @@ CONTAINS
        ENDIF
     ENDDO !iroot
 
-    !WRITE(6,'("finish boundsch with eigenvalues -- ",1p20e15.7)') &
-    !     Eig(1:nroot)
+    !WRITE(6,'("finish boundsch with eigenvalues -- ",1p,20e15.7)') &
+    !&    Eig(1:nroot)
     DEALLOCATE(p1,p2,dd)
     !WRITE(6,*) 'returning from newboundsch -- ierr=',ierr
-    
+
   END SUBROUTINE newboundsch
 
   !*******************************************************************
@@ -418,8 +418,8 @@ CONTAINS
     ! returns the solution of the Schroedinger equation near r=0
     !  using power series expansion
     REAL(8) :: wfninit
-    INTEGER, INTENT(IN) :: nz,l
-    REAL(8), INTENT(IN) :: v0,v0p,energy,r
+    INTEGER, INTENT(IN) :: l
+    REAL(8), INTENT(IN) :: nz,v0,v0p,energy,r
 
     REAL(8) :: c1,c2,c3
 
@@ -455,7 +455,7 @@ CONTAINS
     INTEGER, PARAMETER :: last=5
 
     IF (energy>=0.d0) THEN
-       wfnend=0  
+       wfnend=0
        RETURN
     ENDIF
 
@@ -504,8 +504,8 @@ CONTAINS
     REAL(8), INTENT(INOUT) :: wfn(:)
     INTEGER, INTENT(INOUT) :: nodes
 
-    INTEGER :: n,nz,i,j,k,ierr
-    REAL(8) :: zeroval,scale
+    INTEGER :: n,i,j,k,ierr
+    REAL(8) :: nz,zeroval,scale
 
     n=Grid%n
     IF (nr > n) THEN
@@ -527,7 +527,7 @@ CONTAINS
     !
     scale=1.d0/overlap(Grid,wfn(1:nr),wfn(1:nr),1,nr)
     scale=SIGN(SQRT(scale),wfn(nr-2))
-    wfn(1:nr)=wfn(1:nr)*scale  
+    wfn(1:nr)=wfn(1:nr)*scale
 
   END SUBROUTINE unboundsch
 

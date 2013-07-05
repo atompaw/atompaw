@@ -50,7 +50,7 @@ CONTAINS
        l=PAW%l(ib)
        lng=min(n,PAW%rng(ib))
        ! Read matching radius
-       WRITE(6,'(3i5,1pe15.7)') ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
+       WRITE(6,'(3i5,1p,1e15.7)') ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
        READ(5,'(a)') inputline
        WRITE(ifinput,'(a)') TRIM(inputline)
        READ(inputline,*) rc
@@ -81,13 +81,13 @@ CONTAINS
        ENDDO
        DO i=thisrc,lng
           gpp=Gsecondderiv(Grid,i,PAW%tphi(:,ib))
-          PAW%Kop(i,ib)=-gpp+DBLE(l*(l+1))/(r(i)**2)*PAW%tphi(i,ib) 
+          PAW%Kop(i,ib)=-gpp+DBLE(l*(l+1))/(r(i)**2)*PAW%tphi(i,ib)
        ENDDO
     ! test
       !do i=1,n
-      !   write(200+ib,'(1p20e15.7)') r(i),PAW%Kop(i,ib),PAW%tp(i,ib),&
-      !       -Gsecondderiv(Grid,i,PAW%phi(:,ib))+&
-      !        DBLE(l*(l+1))/(r(i)**2)*PAW%phi(i,ib)
+      !   write(200+ib,'(1p,20e15.7)') r(i),PAW%Kop(i,ib),PAW%tp(i,ib),&
+      !&      -Gsecondderiv(Grid,i,PAW%phi(:,ib))+&
+      !&       DBLE(l*(l+1))/(r(i)**2)*PAW%phi(i,ib)
       !enddo
     !end test
     ENDDO     !nbase
@@ -99,10 +99,10 @@ CONTAINS
     DO io=1,norbit
        IF(PAW%valencemap(io)>0) THEN
           ib=PAW%valencemap(io)
-          PAW%TOCCWFN%wfn(:,io)=PAW%tphi(:,ib) 
+          PAW%TOCCWFN%wfn(:,io)=PAW%tphi(:,ib)
           !PAW%OCCWFN%wfn(:,io)=PAW%phi(:,ib)    !already set in setbasis
           write(6,*) 'io = ', io,ib
-       ELSE    ! presumably a core state     
+       ELSE    ! presumably a core state
           PAW%TOCCWFN%wfn(:,io)=0
           write(6,*) 'io =  core ', io
           !!! comment out code for extended core states
@@ -112,19 +112,19 @@ CONTAINS
           !   if (io<norbit) then
           !      do jo=io+1,norbit
           !         if (PAW%TOCCWFN%iscore(jo).and.PAW%TOCCWFN%l(jo)==l) &
-          !               last=.false.
+          !&              last=.false.
           !      enddo
           !   endif
           !   if (last) then
           !      IF (MAXVAL(ABS(PAW%OCCWFN%wfn(irc-np/2:irc+np/2,io))) &
-          !             >PAW%coretol) THEN
+          !&            >PAW%coretol) THEN
           !         CALL Smoothfunc(r,l,np,thisrc,n,PAW%OCCWFN%wfn(:,io), &
-          !                 PAW%TOCCWFN%wfn(:,io))
+          !&                PAW%TOCCWFN%wfn(:,io))
           !      ENDIF
           !   endif
           !else
           !    write(6,*) 'Something wrong -- should be core state ',&
-          !       io,PAW%TOCCWFN%l(io),PAW%TOCCWFN%eig(io),PAW%TOCCWFN%occ(io)
+          !&      io,PAW%TOCCWFN%l(io),PAW%TOCCWFN%eig(io),PAW%TOCCWFN%occ(io)
           !    stop
           !endif
        ENDIF
@@ -167,7 +167,7 @@ CONTAINS
        if (occ>1.d-5) then
           dum=dum+occ*PAW%OCCwfn%wfn(:,io)**2
           tdum=tdum+occ*PAW%TOCCwfn%wfn(:,io)**2
-       endif   
+       endif
        IF (PAW%OCCwfn%iscore(io)) THEN
           PAW%core=PAW%core+occ*PAW%OCCwfn%wfn(:,io)**2
           !PAW%tcore=PAW%tcore+occ*PAW%TOCCwfn%wfn(:,io)**2
@@ -181,67 +181,67 @@ CONTAINS
     tdum=0; tdum(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,tdum)
 
-    ! complete projector functions  ; 
+    ! complete projector functions  ;
     DO ib=1,nbase
        PAW%tp(:,ib)=PAW%Kop(:,ib)
        l=PAW%l(ib)
        lng=PAW%rng(ib)
-       CALL Calc_tXp_basis(Grid,PAW,ib,dum,lng); 
-       ! testing      
+       CALL Calc_tXp_basis(Grid,PAW,ib,dum,lng);
+       ! testing
        !arg=0
        !ni=PAW%np(ib)
        !DO jo=1,norbit
-       !   IF(PAW%valencemap(jo)==ib) THEN 
+       !   IF(PAW%valencemap(jo)==ib) THEN
        !      ni=jo
        !   ENDIF
        !ENDDO
        !CALL Calc_XP(Grid,PAW%OCCwfn,ni,PAW%l(ib),PAW%phi(:,ib),hat)
-        
+
        !DO i=1,n
-       !   WRITE(300+ib,'(1p20e15.7)') r(i),dum(i),hat(i)
+       !   WRITE(300+ib,'(1p,20e15.7)') r(i),dum(i),hat(i)
        !   arg(i)=   -Gsecondderiv(Grid,i,PAW%phi(:,ib))+&
-       !                 DBLE(l*(l+1))/(r(i)**2)*PAW%phi(i,ib)
+       !&                DBLE(l*(l+1))/(r(i)**2)*PAW%phi(i,ib)
        !ENDDO
        ! end testing
 
        dum(1)=0; dum(2:lng)=dum(2:lng)/r(2:lng)
        PAW%tp(1:lng,ib)=PAW%tp(1:lng,ib)+tdum(1:lng)*PAW%tphi(1:lng,ib)+&
-                 dum(1:lng)
+&                dum(1:lng)
        arg(2:n)=arg(2:n)+Pot%rv(2:n)*PAW%phi(2:n,ib)/r(2:n)+hat(2:n)/r(2:n)
        if (PAW%eig(ib)>0.d0) then
-          if (PAW%occ(ib)> 0.001d0) then     
+          if (PAW%occ(ib)> 0.001d0) then
             write(6,*) 'Problem with basis ib', &
-            ib,PAW%l(ib),PAW%eig(ib),PAW%occ(ib) 
+&           ib,PAW%l(ib),PAW%eig(ib),PAW%occ(ib)
             stop
           endif
-          PAW%tp(1:lng,ib)=PAW%tp(1:lng,ib)-PAW%eig(ib)*PAW%tphi(1:lng,ib)     
-          arg(:)=arg(:)-PAW%eig(ib)*PAW%phi(:,ib)     
+          PAW%tp(1:lng,ib)=PAW%tp(1:lng,ib)-PAW%eig(ib)*PAW%tphi(1:lng,ib)
+          arg(:)=arg(:)-PAW%eig(ib)*PAW%phi(:,ib)
        else
           ioo=0;joo=0
           DO io=1,norbit
              IF(PAW%valencemap(io)==ib) ioo=io
-          ENDDO   
+          ENDDO
           Do jo=1,norbit
              IF(PAW%OCCWFN%l(jo)==l.and..not.PAW%OCCWFN%iscore(jo)) then
               joo=jo
               PAW%tp(1:lng,ib)=PAW%tp(1:lng,ib)-&
-                     PAW%OCCWFN%lqp(joo,ioo)*PAW%TOCCWFN%wfn(1:lng,joo)
+&                    PAW%OCCWFN%lqp(joo,ioo)*PAW%TOCCWFN%wfn(1:lng,joo)
               arg(:)=arg(:)-&
-                     PAW%OCCWFN%lqp(joo,ioo)*PAW%OCCWFN%wfn(:,joo)
-              write(6,*) 'ioo,joo,lam', ioo,joo,PAW%OCCWFN%lqp(joo,ioo)       
-             ENDIF           
-          Enddo      
-       endif   
+&                    PAW%OCCWFN%lqp(joo,ioo)*PAW%OCCWFN%wfn(:,joo)
+              write(6,*) 'ioo,joo,lam', ioo,joo,PAW%OCCWFN%lqp(joo,ioo)
+             ENDIF
+          Enddo
+       endif
        !do i=1,n
-       !    write(900+ib,'(1p20e15.7)') r(i),PAW%tp(i,ib),arg(i)
-       !enddo    
+       !    write(900+ib,'(1p,20e15.7)') r(i),PAW%tp(i,ib),arg(i)
+       !enddo
     ENDDO
 
     open(123,file="tp",form="formatted")
     do i=1,n
-       write(123,'(1p50e15.7)') Grid%r(i),(PAW%tp(i,ib),ib=1,nbase)
+       write(123,'(1p,50e15.7)') Grid%r(i),(PAW%tp(i,ib),ib=1,nbase)
     enddo
-    close(123)   
+    close(123)
     ! Form orthogonalized projector functions
     DO ib=1,nbase
        PAW%ophi(:,ib)=PAW%phi(:,ib)
@@ -271,7 +271,7 @@ CONTAINS
              write(6,*) 'Overlap', ib,jb,aa(i,j)
           ENDDO
        ENDDO
-       ai=aa;CALL minverse(ai,icount)
+       ai=aa;CALL minverse(ai,icount,icount,icount)
 
        DO i=1,icount
           ib=omap(i)
@@ -288,7 +288,7 @@ CONTAINS
     DEALLOCATE(Ci,arg,dum,tdum,hat)
   END SUBROUTINE make_hf_tp_only
 
-  
+
   SUBROUTINE Smoothfunc(r,l,np,thisrc,n,wfnin,wfnout)
   REAL(8), INTENT(IN):: r(:),wfnin(:)
   INTEGER, INTENT(IN) :: l,np,thisrc,n
@@ -298,7 +298,7 @@ CONTAINS
   REAL(8) :: xx
   INTEGER :: i,j
 
-  ALLOCATE(Ci(np)) 
+  ALLOCATE(Ci(np))
   wfnout(:)=0
   CALL pspolyn(wfnin(:),Ci,r,l,np,thisrc,n)
   wfnout(:)=wfnin(:)
@@ -319,7 +319,7 @@ END SUBROUTINE Smoothfunc
     TYPE(GridInfo), INTENT(IN):: Grid
     TYPE(PseudoInfo), INTENT(IN):: PAW
     INTEGER, INTENT(IN) :: ib,lng
-    REAL(8), INTENT(OUT) :: tres(:) 
+    REAL(8), INTENT(OUT) :: tres(:)
 
     REAL(8), POINTER :: r(:)
     REAL(8), ALLOCATABLE :: wfp(:),vl(:),dum(:),arg(:),f(:),hat(:)
@@ -338,7 +338,7 @@ END SUBROUTINE Smoothfunc
     li=PAW%l(ib)
     ni=PAW%np(ib)
     DO jo=1,norbit
-       IF(PAW%valencemap(jo)==ib) THEN 
+       IF(PAW%valencemap(jo)==ib) THEN
           ni=jo
        ENDIF
     ENDDO
@@ -415,7 +415,7 @@ END SUBROUTINE Smoothfunc
           WRITE(6,*) 'overlap with core ', l,ic,x
      ENDIF
      CoreOverlap=x
-    
+
   END FUNCTION CoreOverlap
 
   ! HF version of generalized Graham-Schmidt orthogonalization of wfn1 to wfn2
@@ -430,7 +430,7 @@ END SUBROUTINE Smoothfunc
 
     REAL(8) :: x,y
 
-    !   Orthogonalize 
+    !   Orthogonalize
     x=HFgenoverlap(Grid,PAW,l,wfn1,wfn2)
     y=HFgenoverlap(Grid,PAW,l,wfn2,wfn2)
 
@@ -515,9 +515,9 @@ END SUBROUTINE Smoothfunc
        DO ib=1,PAW%nbase
           IF (PAW%l(ib)==li) THEN
              DO jb=1,PAW%nbase
-                IF (PAW%l(jb)==lj) THEN 
+                IF (PAW%l(jb)==lj) THEN
                    ml=ml+&
-                        o(io,ib)*o(jo,jb)*PAW%mLij(ib,jb,ll+1)*PAW%g(:,ll+1)
+&                       o(io,ib)*o(jo,jb)*PAW%mLij(ib,jb,ll+1)*PAW%g(:,ll+1)
                 ENDIF
              ENDDO
           ENDIF
@@ -638,7 +638,7 @@ END SUBROUTINE Smoothfunc
                    ENDDO
                 ENDIF
              ENDDO
-          ELSE       
+          ELSE
              DO ll=lmin,lmax,2
                 CALL EXXwgt(occ,occj,io,li,jo,lj,ll,wgt)
                 IF (wgt>threshold) THEN
@@ -652,7 +652,7 @@ END SUBROUTINE Smoothfunc
                                   DO lb=1,PAW%nbase
                                      IF (PAW%l(lb)==li) THEN
                                         x=x+o(jo,jb)*o(jo,kb)*o(io,lb)*&
-                                             PAW%DR(ib,jb,kb,lb,ll+1)
+&                                            PAW%DR(ib,jb,kb,lb,ll+1)
                                      ENDIF
                                   ENDDO
                                ENDIF
@@ -762,7 +762,7 @@ END SUBROUTINE Smoothfunc
                    Xcv=Xcv-wgt*x/occ
                 ENDIF
              ENDDO
-          ELSE       
+          ELSE
              DO ll=lmin,lmax,2
                 CALL EXXwgt(occ,occj,io,li,jo,lj,ll,wgt)
                 IF (wgt>threshold) THEN
@@ -775,7 +775,7 @@ END SUBROUTINE Smoothfunc
                                DO lb=1,PAW%nbase
                                   IF (PAW%l(lb)==li) THEN
                                      x=x+o(jo,jb)*o(jo,kb)*o(io,lb)*&
-                                          PAW%DRCjkl(ic,jb,kb,lb,ll+1)
+&                                         PAW%DRCjkl(ic,jb,kb,lb,ll+1)
                                   ENDIF
                                ENDDO
                             ENDIF
@@ -797,7 +797,7 @@ END SUBROUTINE Smoothfunc
   !     On input PAW%TOCCWFN  contains initial guess of smooth wfn's
   !        On output the guess is updated
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE PAWIter_HF(Grid,PAW,mix,err0,err,success)  
+  SUBROUTINE PAWIter_HF(Grid,PAW,mix,err0,err,success)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
     REAL(8) , INTENT(IN) :: mix,err0
@@ -809,7 +809,7 @@ END SUBROUTINE Smoothfunc
     REAL(8) , ALLOCATABLE :: arg(:),rhs(:),rv(:),aden(:),v1(:),v2(:),o(:,:)
     REAL(8) , ALLOCATABLE :: Xv(:,:),Xiv(:,:)
     TYPE(OrbitInfo), POINTER :: PSO
-    TYPE(OrbitInfo) :: tmpOrbit 
+    TYPE(OrbitInfo) :: tmpOrbit
     REAL(8) :: occ,x,y,q,v0term,en,val
     INTEGER :: fcount=0
     REAL(8), PARAMETER :: threshold=1.d-8
@@ -818,7 +818,7 @@ END SUBROUTINE Smoothfunc
     success=.FALSE.
     n=Grid%n; nbase=PAW%nbase; norbit=PAW%OCCWFN%norbit
     ALLOCATE(arg(n),rhs(n),rv(n),aden(n),v1(n),v2(n),tmap(norbit),&
-         o(norbit,nbase),Xv(n,norbit),Xiv(nbase,norbit))
+&        o(norbit,nbase),Xv(n,norbit),Xiv(nbase,norbit))
 
     PAW%tkin=0; PAW%tion=0; PAW%tvale=0; PAW%txc=0; PAW%Ea=0; PAW%Etotal=0
     PSO=>PAW%TOCCWFN
@@ -831,7 +831,7 @@ END SUBROUTINE Smoothfunc
              DO jo=1,io-1
                 IF (PSO%l(jo)==PSO%l(io).AND..NOT.PSO%iscore(jo)) THEN
                    CALL HFgenOrthog(Grid,PAW,PSO%l(io),&
-                        PSO%wfn(:,io),PSO%wfn(:,jo))
+&                       PSO%wfn(:,io),PSO%wfn(:,jo))
                    WRITE(6,*) 'orthog', io,jo
                 ENDIF
              ENDDO
@@ -854,7 +854,7 @@ END SUBROUTINE Smoothfunc
              else
                 x=HFgenoverlap(Grid,PAW,PSO%l(io),PSO%wfn(:,jo),PSO%wfn(:,io))
              endif
-            write(6,*) 'overlap ',io,jo,x                        
+            write(6,*) 'overlap ',io,jo,x
          endif
        enddo
     enddo
@@ -866,19 +866,19 @@ END SUBROUTINE Smoothfunc
        DO ib=1,PAW%nbase
           IF (l==PAW%l(ib)) THEN
              o(io,ib)=overlap(Grid,PSO%wfn(:,io),PAW%otp(:,ib))
-             WRITE(6,'("<p|psi> ", 2i5,1pe15.7)') io,ib,o(io,ib)
+             WRITE(6,'("<p|psi> ", 2i5,1p,1e15.7)') io,ib,o(io,ib)
           ENDIF
        ENDDO
     ENDDO
 
-    CALL Copy_OrbitInfo(PSO,tmpOrbit)
+    CALL CopyOrbit(PSO,tmpOrbit)
 
     rv=PAW%rtVf; PAW%tkin=0;   PAW%wij=0;    PSO%lqp=0
     PAW%tden=0;rhs=0;aden=0;x=0
     DO k=1,nocc
        io=tmap(k) ; l=PSO%l(io)
        occ=PSO%occ(io)
-       PAW%tden=PAW%tden+occ*(PSO%wfn(:,io))**2 
+       PAW%tden=PAW%tden+occ*(PSO%wfn(:,io))**2
        DO jo=1,PSO%norbit
           IF(PSO%l(jo)==l) THEN
              CALL kinetic_ij(Grid,PSO%wfn(:,io),PSO%wfn(:,jo),l,y)
@@ -916,7 +916,7 @@ END SUBROUTINE Smoothfunc
 
     DO k=1,nocc
        io=tmap(k);l=PSO%l(io)
-       arg=rv*(PSO%wfn(:,io)); 
+       arg=rv*(PSO%wfn(:,io));
        arg(1)=0; arg(2:n)=arg(2:n)/Grid%r(2:n)
        DO jo=1,PSO%norbit
           IF (PSO%l(jo)==l) THEN
@@ -932,9 +932,9 @@ END SUBROUTINE Smoothfunc
        DO jb=1,PAW%nbase
           IF (PAW%l(ib)==PAW%l(jb)) THEN
              PAW%dij(ib,jb)=PAW%dij(ib,jb) + PAW%Kij(ib,jb) + &
-                  PAW%VFij(ib,jb)+PAW%mLij(ib,jb,1)*v0term
+&                 PAW%VFij(ib,jb)+PAW%mLij(ib,jb,1)*v0term
              PAW%Ea=PAW%Ea + PAW%wij(ib,jb)*(PAW%Kij(ib,jb) + &
-                  PAW%VFij(ib,jb))
+&                 PAW%VFij(ib,jb))
              x=0;    !  accumulate Hartree term
              DO kb=1,PAW%nbase
                 DO lb=1,PAW%nbase
@@ -945,8 +945,8 @@ END SUBROUTINE Smoothfunc
              ENDDO
              PAW%dij(ib,jb)=PAW%dij(ib,jb)+x
              PAW%Ea=PAW%Ea + 0.5d0*PAW%wij(ib,jb)*x
-             write(6,'(" Dij chk again ", 3I5,1pe20.13)')ib,jb,PAW%l(ib),&
-                PAW%dij(ib,jb)
+             write(6,'(" Dij chk again ", 3I5,1p,1e20.13)')ib,jb,PAW%l(ib),&
+&               PAW%dij(ib,jb)
           ENDIF
        ENDDO
     ENDDO
@@ -962,7 +962,7 @@ END SUBROUTINE Smoothfunc
                 DO jb=1,PAW%nbase
                    IF (PAW%l(jb)==lj) THEN
                       PSO%lqp(jo,io)=PSO%lqp(jo,io)+&
-                           PAW%dij(ib,jb)*o(io,ib)*o(jo,jb)
+&                          PAW%dij(ib,jb)*o(io,ib)*o(jo,jb)
                    ENDIF
                 ENDDO
              ENDIF
@@ -980,7 +980,7 @@ END SUBROUTINE Smoothfunc
                 DO kb=1,PAW%nbase
                    DO lb=1,PAW%nbase
                       if (PAW%l(kb)==PAW%l(lb))  &
-                         x=x+PAW%wij(kb,lb)*PAW%DRCjkl(io,jb,kb,lb,1)
+&                        x=x+PAW%wij(kb,lb)*PAW%DRCjkl(io,jb,kb,lb,1)
                    ENDDO
                 ENDDO
                 DO j=1,nocc
@@ -1022,7 +1022,7 @@ END SUBROUTINE Smoothfunc
                 !WRITE(6,*) 'One center exchange',x
                 PSO%lqp(jo,io)=PSO%lqp(jo,io)+x
              ENDIF
-             WRITE(6,'("lqp jo,io ", 2i5,1pe15.7)') jo,io, PSO%lqp(jo,io)
+             WRITE(6,'("lqp jo,io ", 2i5,1p,1e15.7)') jo,io, PSO%lqp(jo,io)
           ENDIF
        ENDDO
        PSO%eig(io)=PSO%lqp(io,io)
@@ -1036,8 +1036,8 @@ END SUBROUTINE Smoothfunc
     WRITE(6,*) 'PAW%tkin                    ',PAW%tkin
     WRITE(6,*) 'PAW%tion                    ',PAW%tion
     WRITE(6,*) 'PAW%tvale                   ',PAW%tvale
-    WRITE(6,*) 'PAW%txc                     ',PAW%txc 
-    WRITE(6,*) 'PAW%Ea                      ',PAW%Ea  
+    WRITE(6,*) 'PAW%txc                     ',PAW%txc
+    WRITE(6,*) 'PAW%Ea                      ',PAW%Ea
 
     ! Solve inhomogeneous diffeq. and store result in tmpOrbit
     err=0;
@@ -1048,7 +1048,7 @@ END SUBROUTINE Smoothfunc
        rhs=-arg-en*PSO%wfn(:,io)
        DO jo=1,PSO%norbit
           if (io==jo.or.(PSO%l(jo)==l.and.PSO%occ(jo)>threshold)) &
-                   rhs=rhs+PSO%lqp(jo,io)*PSO%wfn(:,jo)
+&                  rhs=rhs+PSO%lqp(jo,io)*PSO%wfn(:,jo)
        ENDDO
        DO ib=1,PAW%nbase
           IF(PAW%l(ib)==l) THEN
@@ -1067,7 +1067,7 @@ END SUBROUTINE Smoothfunc
                           ENDIF
                        ENDDO
                    ENDIF
-                endif 
+                endif
              ENDDO
           rhs=rhs+PAW%otp(:,ib)*x
           ENDIF
@@ -1079,8 +1079,8 @@ END SUBROUTINE Smoothfunc
        arg=(PSO%wfn(:,io)-tmpOrbit%wfn(:,io))**2
        err=err+PSO%occ(io)*Integrator(Grid,arg)
        !do i=1,Grid%n
-       !   write(800+k,'(1p20e15.7)') Grid%r(i),PSO%wfn(i,io),&
-       !      tmpOrbit%wfn(i,io),rhs(i),rv(i)
+       !   write(800+k,'(1p,20e15.7)') Grid%r(i),PSO%wfn(i,io),&
+       !&     tmpOrbit%wfn(i,io),rhs(i),rv(i)
        !enddo
     ENDDO
 
@@ -1089,8 +1089,8 @@ END SUBROUTINE Smoothfunc
     call mkname(fcount,stuff)
      open(1001, file='hfpswfn.'//stuff,form='formatted')
        do i=1,Grid%n
-          write(1001,'(1p20e15.7)') Grid%r(i),(tmpOrbit%wfn(i,io),&
-                    PSO%wfn(i,io),io=1,PSO%norbit)
+          write(1001,'(1p,20e15.7)') Grid%r(i),(tmpOrbit%wfn(i,io),&
+&                   PSO%wfn(i,io),io=1,PSO%norbit)
        enddo
      close(1001)
 
@@ -1107,7 +1107,7 @@ END SUBROUTINE Smoothfunc
     ENDIF
     fcount=fcount+1
     DEALLOCATE(arg,rhs,rv,aden,v1,v2,tmap,o,Xv,Xiv)
-    CALL Dealloc_OrbitInfo(tmpOrbit)
+    CALL DestroyOrbit(tmpOrbit)
   END SUBROUTINE PAWIter_HF
 
 
@@ -1145,7 +1145,7 @@ END SUBROUTINE Smoothfunc
     r=>Grid%r
 
     write(6,*) 'After alloc ',n;call flush(6)
-    tres(:)=0.d0; 
+    tres(:)=0.d0;
     occ=1.d0
 
     DO l=0,ll
@@ -1156,7 +1156,7 @@ END SUBROUTINE Smoothfunc
 
     Open(33,file='hattest',form='formatted')
     do i=1,n
-      write(33,'(1p50e15.7)') Grid%r(i),(hat(i,l+1),l=0,ll)
+      write(33,'(1p,50e15.7)') Grid%r(i),(hat(i,l+1),l=0,ll)
     enddo
     close(33)
 
@@ -1173,7 +1173,7 @@ END SUBROUTINE Smoothfunc
           lmin=ABS(li-lj)
           wfp(1:last)=twfn(1:last)*PAW%TOCCwfn%wfn(1:last,jo)
           arg(1:last)=wfn(1:last)*PAW%OCCwfn%wfn(1:last,jo) - &
-               twfn(1:last)*PAW%TOCCwfn%wfn(1:last,jo)
+&              twfn(1:last)*PAW%TOCCwfn%wfn(1:last,jo)
           DO ll=lmin,lmax,2
              CALL EXXwgt(occ,occj,ni,li,jo,lj,ll,wgt)
              IF (wgt>threshold) THEN
@@ -1184,7 +1184,7 @@ END SUBROUTINE Smoothfunc
                 f(1:last)=wfp(1:last)+x*hat(1:last,ll+1)
                 CALL apoisson(Grid,ll,last,f,dum)
                 vl(1:last)=vl(1:last)- &
-                    wgt*dum(1:last)*PAW%TOCCwfn%wfn(1:last,jo)/occ
+&                   wgt*dum(1:last)*PAW%TOCCwfn%wfn(1:last,jo)/occ
              ENDIF
           ENDDO
        tres=tres+vl
@@ -1235,7 +1235,7 @@ END SUBROUTINE Smoothfunc
     write(6,*) ' Check rc', irc,rc,Grid%r(irc)
 
     ALLOCATE(VNC(n),wfn(n),twfn(n),p(n),dum(n),XX(n),tX(n),&
-                  rvx(n),trvx(n),stat=ok)
+&                 rvx(n),trvx(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(6,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
        STOP
@@ -1255,16 +1255,16 @@ END SUBROUTINE Smoothfunc
        Write(6,*) 'Error -- this version of Troulliers is for HF only'
        stop
     endif
-   
+
     rvx(1)=0.d0; rvx(2:lng)=XX(2:lng)*Grid%r(2:lng)/wfn(2:lng)
     VNC(1:lng)=Pot%rv(1:lng)+rvx(1:lng)
-            
+
     !do i=1,lng
     !    write(701,'(1P8E16.7)') Grid%r(i),wfn(i),XX(i),Pot%rv(i),VNC(i)
-    !enddo    
+    !enddo
     IF (wfn(irc)<0) then
-             wfn=-wfn;  
-     EndIF         
+             wfn=-wfn;
+     EndIF
     dum(1:irc)=(wfn(1:irc)**2)
     S=integrator(Grid,dum(1:irc),1,irc)
     A0=LOG(wfn(irc)/(rc**(l+1)))
@@ -1272,8 +1272,8 @@ END SUBROUTINE Smoothfunc
     C0=rc*(VNC(irc)-rc*e)-B0*(B0+2*l+2)
     D=-rc*(VNC(irc)-rc*Gfirstderiv(Grid,irc,VNC))-2*B0*C0-2*(l+1)*(C0-B0)
     F=rc*(2*VNC(irc)-rc*(2*Gfirstderiv(Grid,irc,VNC) &
-         -rc*Gsecondderiv(Grid,irc,VNC)))+&
-         4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
+&        -rc*Gsecondderiv(Grid,irc,VNC)))+&
+&        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
 
     WRITE(6,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
 
@@ -1292,7 +1292,7 @@ END SUBROUTINE Smoothfunc
        DO  i=1,irc
           x=(r(i)/rc)**2
           p(i)=x*(Coef(1)+x*(Coef(2)+x*(Coef(3)+&
-               x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+&              x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
           dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
        ENDDO
        Coef0old=Coef0
@@ -1301,7 +1301,7 @@ END SUBROUTINE Smoothfunc
        Coef0=(LOG(S/x))/2
 
        delta=ABS(Coef0-Coef0old)
-       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p2e15.7)') iter,Coef0,delta
+       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
     ENDDO
 
     WRITE(6,*) '  VNC converged in ', iter,'  iterations'
@@ -1314,15 +1314,15 @@ END SUBROUTINE Smoothfunc
     DO  i=2,nr
        x=(r(i)/rc)**2
        p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
-            x*(Coef(3)+x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+&           x*(Coef(3)+x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
        dpp=2*r(i)/(rc**2)*(Coef(1)+x*(2*Coef(2)+x*(3*Coef(3)+&
-            x*(4*Coef(4)+x*(5*Coef(5)+x*6*Coef(6))))))
+&           x*(4*Coef(4)+x*(5*Coef(5)+x*6*Coef(6))))))
        ddpp=(1/(rc**2))*(2*Coef(1)+x*(12*Coef(2)+x*(30*Coef(3)+&
-            x*(56*Coef(4)+x*(90*Coef(5)+x*132*Coef(6))))))
+&           x*(56*Coef(4)+x*(90*Coef(5)+x*132*Coef(6))))))
        dddpp=(r(i)/rc**4)*(24*Coef(2)+x*(120*Coef(3)+x*(336*Coef(4)+&
-            x*(720*Coef(5)+x*1320*Coef(6)))))
+&           x*(720*Coef(5)+x*1320*Coef(6)))))
        ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
-            x*(5040*Coef(5)+x*11880*Coef(6))))))
+&           x*(5040*Coef(5)+x*11880*Coef(6))))))
        IF (i==irc) THEN
           WRITE(6,*) 'check  dp ', dpp,  B0/rc
           WRITE(6,*) 'check ddp ', ddpp, C0/rc**2
@@ -1331,12 +1331,12 @@ END SUBROUTINE Smoothfunc
        ENDIF
        VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
        twfn(i)=(r(i)**(l+1))*EXP(p(i))
-       WRITE(88,'(1p6e15.7)') r(i),wfn(i),twfn(i),VNC(i)*r(i),rv(i),dum(i)
+       WRITE(88,'(1p,6e15.7)') r(i),wfn(i),twfn(i),VNC(i)*r(i),rv(i),dum(i)
     ENDDO
     CLOSE(88)
     x=overlap(Grid,twfn(1:irc),twfn(1:irc),1,irc)
     WRITE(6,*) 'check norm ',x,S; call flush(6)
-     
+
     twfn(irc:lng)=wfn(irc:lng)
     call Calc_tXp(Grid,PAW,ni,l,wfn,twfn,tX,lng)
     trvx(2:lng)=tX(2:lng)/twfn(2:lng)
@@ -1345,18 +1345,18 @@ END SUBROUTINE Smoothfunc
     !   need to remove exchange part
     PAW%rveff=Pot%rv
     PAW%rveff(1:irc)=VNC(1:irc)*r(1:irc)-trvx(1:irc)
-    
+
     open(88,file='checkvxc',form='formatted')
     do i=1,lng
-       write(88,'(1p50e15.7)') r(i),XX(i)*r(i),tX(i),rvx(i),trvx(i),VNC(i),&
-               rv(i),PAW%rveff(i)
-    enddo  
-    close(88) 
+       write(88,'(1p,50e15.7)') r(i),XX(i)*r(i),tX(i),rvx(i),trvx(i),VNC(i),&
+&              rv(i),PAW%rveff(i)
+    enddo
+    close(88)
 
 
     DEALLOCATE(VNC,wfn,p,dum,XX,twfn,tX,rvx,trvx)
   END SUBROUTINE troullier_HF
 
-  
+
 END MODULE hf_pseudo
 

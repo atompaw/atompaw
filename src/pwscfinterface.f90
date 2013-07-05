@@ -166,8 +166,8 @@ Module PWscfInterface
       WRITE(1001,'("             number_of_proj=""",i2,"""")')PAW%nbase
       WRITE(1001,'("                                    /> ")')
 
-      WRITE(1001,'("<PP_MESH dx=""",1pe20.13,""" mesh=""",i6,""" xmin=""",&
-&      1pe20.13,""" zmesh=""",1pe20.13,""">")')upfdx,upfmesh,upfxmin,upfzmesh
+      WRITE(1001,'("<PP_MESH dx=""",1p,1e20.13,""" mesh=""",i6,""" xmin=""",&
+&      1p,1e20.13,""" zmesh=""",1p,1e20.13,""">")')upfdx,upfmesh,upfxmin,upfzmesh
       WRITE(1001,'(" <PP_R type=""real"" size=""",i6,""" columns=""3"">")')&
 &                  upfmesh
       WRITE(1001,'(1p,3e25.17)') (upfr(i),i=1,upfmesh)
@@ -220,7 +220,7 @@ Module PWscfInterface
       if (gaussianshapefunction) stuff='GAUSSIAN'
       if (besselshapefunction) stuff='BESSEL'
       WRITE(1001,'("  <PP_AUGMENTATION q_with_l=""T"" nqf=""0"" cutoff_r=""",&
-&      1pe15.7,""" cutoff_r_index=""",i6,""" iraug=""",i6,&
+&      1p,1e15.7,""" cutoff_r_index=""",i6,""" iraug=""",i6,&
 &      """ nqlc=""",i3,""" lmax_aug=""",i3,""" shape=""",(a),&
 &      """ augmentation_epsilon=""1.d-12"">")')  PAW%rc,upfirc,upfirc,&
 &          2*PAW%lmax+1,2*PAW%lmax,TRIM(stuff)
@@ -233,7 +233,7 @@ Module PWscfInterface
       WRITE(1001,'("    <PP_MULTIPOLES type=""real"" size=""",&
 &       i6,""" columns=""3"">")') PAW%nbase*PAW%nbase*(2*PAW%lmax+1)
       WRITE(1001,'(1p,3e25.17)') (((PAW%mLij(i,j,k),i=1,PAW%nbase),&
-&                      j=1,PAW%nbase), k=1,(2*PAW%lmax+1)) 
+&                      j=1,PAW%nbase), k=1,(2*PAW%lmax+1))
       WRITE(1001,'("                                       </PP_MULTIPOLES>")')
       do io=1,PAW%nbase
          do jo=io,PAW%nbase
@@ -356,7 +356,7 @@ Module PWscfInterface
         ncore = ncore + 1
         WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I1," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
         WRITE(1001,'(" columns=""3"" index=""",I1,""" label=""",I1,A,""" n=""",I1,""" l=""",I1,""">")') &
-           ncore, AEOrbit%np(io), label(AEOrbit%l(io)+1), AEOrbit%np(io), AEOrbit%l(io)
+&          ncore, AEOrbit%np(io), label(AEOrbit%l(io)+1), AEOrbit%np(io), AEOrbit%l(io)
         upff=0;call interpfunc(n,Grid%r,AEOrbit%wfn(:,io),upfmesh,upfr,upff)
         call filter(upfmesh,upff,machine_zero)
         WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)

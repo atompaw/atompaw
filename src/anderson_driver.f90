@@ -20,7 +20,7 @@ MODULE anderson_driver
 
   TYPE Anderson_Context  !** Anderson Mixing context
      REAL(8)    :: NewMix    !** Amount of new vectors to mix, ie beta in paper.
-     INTEGER :: Nmax      !** Max number of vectors to keep 
+     INTEGER :: Nmax      !** Max number of vectors to keep
      INTEGER :: N         !** Current number of vectors in list
      INTEGER :: Slot      !** New fill Slot
      INTEGER :: VecSize   !** Size of each vector
@@ -106,16 +106,16 @@ CONTAINS
        AC%DupMatrix = AC%Matrix
        ! not needed (SVD) AC%DupMatrix(slot,slot) = (1+AC%w0) * AC%DupMatrix(slot,slot)
        !     Call ZHESV('L', Slot, 1, AC%DupMatrix(1,1), AC%Nmax, &
-       !          AC%IPIV(1), AC%Gamma(1), AC%Nmax, AC%Work(1), AC%LWork, i)
+       !&         AC%IPIV(1), AC%Gamma(1), AC%Nmax, AC%Work(1), AC%LWork, i)
 
        !     Call ZGESV(Slot, 1, AC%DupMatrix(1,1), AC%Nmax, AC%IPIV(1), &
-       !          AC%Gamma(1), AC%Nmax, i)
+       !&         AC%Gamma(1), AC%Nmax, i)
        !    Call ZGESV(currentdim, 1, AC%DupMatrix(1,1), AC%Nmax, AC%IPIV(1), &
-       !         AC%Gamma(1), AC%Nmax, i)
+       !&        AC%Gamma(1), AC%Nmax, i)
 
        n = AC%Nmax;   j= currentdim
        CALL DGESDD('A',j,j,AC%DupMatrix(1,1),n,AC%S(1), &
-            AC%U(1,1),n,AC%VT(1,1),n,AC%Work(1),AC%Lwork, AC%IPIV(1),i)
+&           AC%U(1,1),n,AC%VT(1,1),n,AC%Work(1),AC%Lwork, AC%IPIV(1),i)
        IF (i /= 0) THEN
           WRITE(AC%Err_Unit,*) 'Anderson_Mix: Error in DGESDD. Error=',i
           tmp = 0
@@ -124,7 +124,7 @@ CONTAINS
        END IF
 
        !WRITE(AC%Err_Unit,*) 'in Anderson_Mix -- completed SVD with values'
-       !WRITE(AC%Err_Unit,'(1p5e15.7)') (AC%S(i),i=1,j)
+       !WRITE(AC%Err_Unit,'(1p,5e15.7)') (AC%S(i),i=1,j)
 
        AC%Work(1:j) = AC%Gamma(1:j)
        AC%Gamma = 0
@@ -132,7 +132,7 @@ CONTAINS
        DO i=1,j
           IF (ABS(AC%S(i)).GT.tmp) THEN
              AC%Gamma(1:j)=AC%Gamma(1:j)+&
-                  (AC%VT(i,1:j))*DOT_PRODUCT(AC%U(1:j,i),AC%Work(1:j))/AC%S(i)
+&                 (AC%VT(i,1:j))*DOT_PRODUCT(AC%U(1:j,i),AC%Work(1:j))/AC%S(i)
           ENDIF
        ENDDO
 
@@ -178,17 +178,27 @@ CONTAINS
   !******************************************************************************
   !
   !  FreeAnderson - Frees all the data associated with the AC data structure
-  !    
+  !
   !      AC -Pointer to the Anderson context to free
   !
   !******************************************************************************
 
   SUBROUTINE FreeAnderson(AC)
-    TYPE (Anderson_Context), INTENT(INOUT) :: AC  
+    TYPE (Anderson_Context), INTENT(INOUT) :: AC
 
-    DEALLOCATE(AC%Xprev, AC%Fprev , AC%DX, AC%DF, AC%Matrix, AC%Gamma)
-    DEALLOCATE(AC%DupMatrix, AC%U, AC%VT, AC%Work, AC%RWork, AC%IPIV, AC%S)
-
+    IF (ASSOCIATED(AC%Matrix)) DEALLOCATE(AC%Matrix)
+    IF (ASSOCIATED(AC%Gamma)) DEALLOCATE(AC%Gamma)
+    IF (ASSOCIATED(AC%DF)) DEALLOCATE(AC%DF)
+    IF (ASSOCIATED(AC%Fprev)) DEALLOCATE(AC%Fprev)
+    IF (ASSOCIATED(AC%DX)) DEALLOCATE(AC%DX)
+    IF (ASSOCIATED(AC%Xprev)) DEALLOCATE(AC%Xprev)
+    IF (ASSOCIATED(AC%IPIV)) DEALLOCATE(AC%IPIV)
+    IF (ASSOCIATED(AC%S)) DEALLOCATE(AC%S)
+    IF (ASSOCIATED(AC%RWork)) DEALLOCATE(AC%RWork)
+    IF (ASSOCIATED(AC%U)) DEALLOCATE(AC%U)
+    IF (ASSOCIATED(AC%VT)) DEALLOCATE(AC%VT)
+    IF (ASSOCIATED(AC%Work)) DEALLOCATE(AC%Work)
+    IF (ASSOCIATED(AC%DupMatrix)) DEALLOCATE(AC%DupMatrix)
 
     RETURN
   END SUBROUTINE FreeAnderson
@@ -211,7 +221,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE InitAnderson_dr(AC,Err_Unit,Nmax,VecSize,NewMix,CondNo,&
-       MaxIter,err,toosmall,verbose)
+&      MaxIter,err,toosmall,verbose)
     TYPE (Anderson_Context), INTENT(INOUT)     :: AC
     INTEGER,                 INTENT(IN)  :: Err_Unit
     INTEGER,                 INTENT(IN)  :: Nmax
@@ -240,13 +250,13 @@ CONTAINS
     AC%CurIter=0
     !  AC%Lwork = 2*Nmax
     !  Allocate(AC%Gamma(Nmax), AC%Work(AC%Lwork), AC%Fprev(VecSize), &
-    !       AC%DF(VecSize, Nmax), AC%Matrix(Nmax, Nmax), AC%IPIV(Nmax), &
-    !       AC%DX(VecSize, Nmax), AC%Xprev(VecSize), &
-    !       AC%DupMatrix(Nmax, Nmax), STAT=i)
+    !&      AC%DF(VecSize, Nmax), AC%Matrix(Nmax, Nmax), AC%IPIV(Nmax), &
+    !&      AC%DX(VecSize, Nmax), AC%Xprev(VecSize), &
+    !&      AC%DupMatrix(Nmax, Nmax), STAT=i)
 
     ALLOCATE(AC%Xprev(VecSize), AC%Fprev(VecSize) , AC%DX(VecSize,Nmax), &
-         AC%DF(VecSize,Nmax), AC%Matrix(Nmax,Nmax) , AC%Gamma(Nmax), &
-         Stat=i)
+&        AC%DF(VecSize,Nmax), AC%Matrix(Nmax,Nmax) , AC%Gamma(Nmax), &
+&        Stat=i)
 
 
     IF (i /= 0) THEN
@@ -273,8 +283,8 @@ CONTAINS
     !WRITE(Err_Unit,*) 'Machaccur = ', AC%Machaccur
 
     ALLOCATE(AC%DupMatrix(Nmax,Nmax), AC%U(Nmax, Nmax), AC%VT(Nmax,Nmax), &
-         AC%Work(AC%Lwork), AC%RWork(AC%LRWork), AC%IPIV(8*Nmax), &
-         AC%S(Nmax), STAT=i)
+&        AC%Work(AC%Lwork), AC%RWork(AC%LRWork), AC%IPIV(8*Nmax), &
+&        AC%S(Nmax), STAT=i)
 
     AC%Matrix = 0
 
@@ -319,27 +329,27 @@ CONTAINS
        !write(6,*)' In ANDERSONMIX ', AC%CurIter,AC%res; call flush(6)
        if (err<AC%toosmall) THEN
              If(AC%writelots)&
-               WRITE(6,&
-          '("AndersonMix converged in ",i5," iterations with err = ",1pe15.7)')&
-               i, err
+&             WRITE(6,&
+&         '("AndersonMix converged in ",i5," iterations with err = ",1p,1e15.7)')&
+&              i, err
           EXIT
        endif
        CALL shift4(v1,v2,v3,v4,err)
        IF (i>=4.AND.OK) THEN
           IF ((.NOT.(v4.LE.v3.AND.v3.LE.v2 &
-               .AND.v2.LE.v1).AND.v4.LE.AC%err).OR.err<AC%toosmall) THEN
+&              .AND.v2.LE.v1).AND.v4.LE.AC%err).OR.err<AC%toosmall) THEN
              !
              !  converged result
              !
              success=.TRUE.
              If(AC%writelots)&
-               WRITE(6,&
-          '("AndersonMix converged in ",i5," iterations with err = ",1pe15.7)')&
-               i, err
+&              WRITE(6,&
+&         '("AndersonMix converged in ",i5," iterations with err = ",1p,1e15.7)')&
+&              i, err
              EXIT
           ENDIF
        ENDIF
-       If(AC%writelots)WRITE(6,'("AndersonMixIter ",i7,2x,1p2e20.12)') i,E,err
+       If(AC%writelots)WRITE(6,'("AndersonMixIter ",i7,2x,1p,2e20.12)') i,E,err
        IF (.NOT.OK) THEN
           CALL Anderson_ResetMix(AC)
           IF (i>1) THEN

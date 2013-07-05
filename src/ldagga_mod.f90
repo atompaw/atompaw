@@ -45,7 +45,7 @@ CONTAINS
     ALLOCATE(arg(n))
 
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex)
-    
+
     Potwk%rv=Potwk%rvh+Potwk%rvx
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
     Potwk%rv=Potwk%rv+Potwk%rvn
@@ -68,7 +68,7 @@ CONTAINS
   END SUBROUTINE LDAGGA_SCF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  LDAGGASub									!!!!	
+!!!!  LDAGGASub									!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE LDAGGASub(w,energy,residue,err,success,update)
     REAL(8), INTENT(INOUT) :: w(:)
@@ -94,8 +94,8 @@ CONTAINS
 
     n=Gridwk%n
 
-    CALL Copy_OrbitInfo(Orbitwk,tmpOrbit)
-    CALL Copy_PotentialInfo(Potwk,tmpPot)
+    CALL CopyOrbit(Orbitwk,tmpOrbit)
+    CALL CopyPot(Potwk,tmpPot)
 
     write(6,*) 'in LDAGGAsub before Updatewfn'; call flush(6)
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
@@ -107,7 +107,7 @@ CONTAINS
           if (Orbitwk%norbit>1) then
              do io = 2, Orbitwk%norbit
                  if (Orbitwk%eig(io)<0.d0.and.x<Orbitwk%eig(io)) &
-                       x=Orbitwk%eig(io)
+&                      x=Orbitwk%eig(io)
              enddo
           endif
           write(6,*) x,1.d0/sqrt(abs(x))
@@ -122,7 +122,7 @@ CONTAINS
           enddo
            write(6,*) 'Reset tmpPot ', j
            !write(6,*) '   Last points '
-           !   write(6,'(1p20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
+           !   write(6,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
 
            CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,tmpPot%rv,success)
        Endif
@@ -131,7 +131,7 @@ CONTAINS
 
     IF(frozencorecalculation) THEN
        DO io = 1 , Orbitwk%norbit
-          IF(Orbitwk%iscore(io)==.TRUE.) THEN
+          IF(Orbitwk%iscore(io)) THEN
              tmpOrbit%eig(io)=Orbitwk%eig(io)
              tmpOrbit%wfn(:,io)=Orbitwk%wfn(:,io)
           ENDIF
@@ -169,14 +169,13 @@ CONTAINS
        Orbitwk%wfn=tmpOrbit%wfn
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
-       
+
        Call One_electron_energy_Report(Orbitwk,6)
     ENDIF
 
     !write(6,*) 'in LDAGGAsub before end'; call flush(6)
-    DEALLOCATE (dum,tmpOrbit%np,tmpOrbit%l,tmpOrbit%eig,&
-         tmpOrbit%iscore,tmpOrbit%den,tmpPot%rvn,&
-         tmpOrbit%occ,tmpOrbit%wfn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
+    CALL DestroyOrbit(tmpOrbit)
+    DEALLOCATE (dum,tmpPot%rvn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
 
   END SUBROUTINE  LDAGGASub
 
@@ -185,14 +184,14 @@ CONTAINS
   !! Get_EXC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Get_EXC(Grid,Pot,Orbit,SCF)
-    !  program to calculate exc energy and potential 
+    !  program to calculate exc energy and potential
     !     assumes Orbit%den already known
     !     also assume kinetic and coulomb energies
     !       calculated and stored in SCF
     TYPE(Gridinfo), INTENT(INOUT) :: Grid
     TYPE(Potentialinfo), INTENT(INOUT) :: Pot
     TYPE(Orbitinfo), INTENT(INOUT) :: Orbit
-    TYPE(SCFInfo), INTENT(OUT) :: SCF 
+    TYPE(SCFInfo), INTENT(OUT) :: SCF
 
     REAL(8) :: eex,etot,etxc
     REAL(8), ALLOCATABLE :: dum(:)
@@ -210,7 +209,7 @@ CONTAINS
     dum=0
     dum(2:n)=Pot%rvx(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     WRITE(6,*) '    Total   (DC form)        :  ',&
-         SCF%eone-SCF%ecoul+eex-integrator(Grid,dum)
+&        SCF%eone-SCF%ecoul+eex-integrator(Grid,dum)
     DEALLOCATE(dum)
   END SUBROUTINE Get_EXC
 
@@ -222,13 +221,13 @@ CONTAINS
     !    valence kinetic and couloub terms
     !    to accumulate SCF%evale
     !     assumes Orbit%den already known
-    TYPE(SCFInfo), INTENT(INOUT) :: SCF 
+    TYPE(SCFInfo), INTENT(INOUT) :: SCF
 
     SCF%valeexc=SCF%eexc   !due to nonlinear dependence
                            ! of core and valence contributions
                            ! in lda and gga
-    SCF%evale=SCF%valekin+SCF%valecoul+SCF%valeexc   
-    
+    SCF%evale=SCF%valekin+SCF%valecoul+SCF%valeexc
+
   END SUBROUTINE Get_FCEXC
 
 
@@ -248,18 +247,18 @@ CONTAINS
     n=Gridwk%n
     DO i = 1,n
       if (frozencorecalculation) then
-       WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-            Potwk%rvh(i),Potwk%rvx(i)
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i)
       else
-       WRITE(1001,'(1p50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-            Potwk%rvh(i),Potwk%rvx(i)
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i)
       endif
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
     DO i = 1,n
-       WRITE(1001,'(1p50e15.7)') Gridwk%r(i), &
-            (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
     ENDDO
     CLOSE(1001)
 

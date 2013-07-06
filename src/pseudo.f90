@@ -161,7 +161,6 @@ CONTAINS
        if (i>0) Orthoindex=GRAMSCHMIDTORTHO
      i=0;i=INDEX(inputfileline,'SVDORTHO')
        if (i>0) Orthoindex=SVDORTHO
-     write(6,*) 'modrrkj -- Orthoindex - ', Orthoindex
    else if (TRIM(Projectortype)=='CUSTOM') then
     Projectorindex=CUSTOM
     i=0;i=INDEX(inputfileline,'BLOECHLPS')
@@ -191,47 +190,42 @@ CONTAINS
    if (TRIM(Orbit%exctype)=='HF') then
       PSindex=HARTREE_FOCK;Orthoindex=-13
    endif
-   write(PAW%Proj_description,'("Projector method:")')
+
+   if (PSindex==BLOECHLPS.and.Orthoindex==VANDERBILTORTHO) stop &
+&    'Vanderbilt orthogonalization not compatible with Bloechls projector scheme !'
+
+   write(PAW%Proj_description,'("Projector type:")')
+
    if (PSindex==BLOECHLPS) then
-     if (Orthoindex==VANDERBILTORTHO) stop &
-&  'Vanderbilt orthogonalization not compatible with Bloechls projector scheme !'
     write(PAW%Proj_description,'(a," Bloechl")') trim(PAW%Proj_description)
-   else
-    if (Orthoindex==VANDERBILTORTHO) &
-&   write(PAW%Proj_description,'(a," Vanderbilt (")') trim(PAW%Proj_description)
-    if (PSindex==POLYNOM) then
-     write(PAW%Proj_description,'(a,"polynomial pseudization")') &
+   else if (Projectorindex==MODRRKJ) then
+    write(PAW%Proj_description,'(a," modified RKKJ projectors")') &
 &            trim(PAW%Proj_description)
-    else if (PSindex==POLYNOM2) then
-     write(PAW%Proj_description,'(a,"improved polynomial pseudization")') &
+   else if (PSindex==POLYNOM) then
+    write(PAW%Proj_description,'(a," polynomial pseudization")') &
 &            trim(PAW%Proj_description)
-    else if (PSindex==RRKJ) then
-     write(PAW%Proj_description,'(a,"RRKJ pseudization")') &
+   else if (PSindex==POLYNOM2) then
+    write(PAW%Proj_description,'(a," improved polynomial pseudization")') &
+&            trim(PAW%Proj_description)
+   else if (PSindex==RRKJ) then
+    write(PAW%Proj_description,'(a," RRKJ pseudization")') &
 &         trim(PAW%Proj_description)
-    else if (PSindex==HARTREE_FOCK) then
-      write(PAW%Proj_description,&
-&               '(" HF projectors using Vanderbilt-like scheme")')
-    endif
-    if (Orthoindex==VANDERBILTORTHO) then
-     write(PAW%Proj_description,'(a,")")') trim(PAW%Proj_description)
-    else
-     write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
-&            trim(PAW%Proj_description)
-    endif
+   else if (PSindex==HARTREE_FOCK) then
+    write(PAW%Proj_description,'(" HF projectors using Vanderbilt-like scheme")')
    endif
-   If (Projectorindex==MODRRKJ) &
-&   write(PAW%Proj_description,&
-&      '(a, "Projector type: New recipe (modified RKKJ) projectors")')
-       If (Orthoindex==VANDERBILTORTHO) &
-&         write(PAW%Proj_description,'(a," + Vanderbilt ortho.")') &
-&            trim(PAW%Proj_description)
-       If (Orthoindex==GRAMSCHMIDTORTHO) &
-&         write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
-&            trim(PAW%Proj_description)
-       If (Orthoindex==SVDORTHO) &
-&         write(PAW%Proj_description,'(a," + SVD ortho.")') &
-&            trim(PAW%Proj_description)
-      write(6,*) PAW%Proj_description
+
+   if (Orthoindex==VANDERBILTORTHO) then
+    write(PAW%Proj_description,'(a," + Vanderbilt ortho.")') &
+&         trim(PAW%Proj_description)
+   else if (Orthoindex==GRAMSCHMIDTORTHO) then
+     write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
+&         trim(PAW%Proj_description)
+   else if (Orthoindex==SVDORTHO) then
+     write(PAW%Proj_description,'(a," + SVD ortho.")') &
+&         trim(PAW%Proj_description)
+   end if
+   
+   write(6,*) PAW%Proj_description
 
    gaussianshapefunction=.false.;besselshapefunction=.false.
    i=0;i=INDEX(inputfileline,'GAUSSIAN')

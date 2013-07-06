@@ -1,0 +1,30 @@
+* Main authors:
+
+  Natalie A. W. Holzwarth
+  Wake Forest University
+  Winston-Salem, NC 27109 - USA
+  natalie@wfu.edu
+
+  Marc Torrent
+  Commissariat a l'Energie Atomique et aux Energies Alternatives
+  DAM, DIF. F-91297 Arpajon - France
+  marc.torrent@cea.fr
+
+
+
+* Build system (autotools) contributor:
+  Yann Pouillon (ETSF, UPV/EHU, Donostian-San Sebastián, Spain)
+
+* XML output contributor:
+  Francois Jollet (CEA, Paris, France)
+
+* Quantum Espress output contributor:
+  Davide Ceresoli (ISTM, Milano, Italy)
+
+
+* Other contributors:
+  G. Eric. Matthews (WFU, USA)
+  Alan R. Tackett  (Vanderbilt U., USA)
+  Alan Wright (Sandia National Lab, USA)
+  Xiao Xu (WFU, USA)
+

@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Configuration script for 64sointel
+#
+
+# Allow for VPATH builds
+if test -x "./configure"; then
+  CFG_SCRIPT="./configure"
+elif test -x "../configure"; then
+  CFG_SCRIPT="../configure"
+else
+  echo "Error: could not find configure script"
+  exit 1
+fi
+
+# Libraries 
+LINALG_LIBS="-L/opt/intel/cmkl/9.0/lib/em64t/ -lmkl_lapack -lmkl_em64t \
+    -lmkl_lapack64  -lmkl -lvml -lguide -lpthread" 
+BLACS_LIBS="-L/opt/intel/cmkl/9.0/lib/em64t/ -lmkl_blacs \
+    -lmkl_blacs_intelmpi20 -lmkl_blacs_intelmpi" 
+SCALAPACK_LIBS="-L/opt/intel/cmkl/9.0/lib/em64t/ -lmkl_scalapack \
+    -lmkl_scalapacktesting_intel"
+
+# Run configure
+${CFG_SCRIPT} \
+  --with-linalg-libs="${SCALAPACK_LIBS} ${BLACS_LIBS} ${LINALG_LIBS}" \
+  FC="/opt/intel/compiler91/ifort/bin/ifort" \
+  FCFLAGS="-O2 -tpp7 -xW -mp" \
+  LDFLAGS="${FCFLAGS}"

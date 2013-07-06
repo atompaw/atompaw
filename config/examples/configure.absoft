@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Configuration script for absoft
+#
+
+# Allow for VPATH builds
+if test -x "./configure"; then
+  CFG_SCRIPT="./configure"
+elif test -x "../configure"; then
+  CFG_SCRIPT="../configure"
+else
+  echo "Error: could not find configure script"
+  exit 1
+fi
+
+# Run configure
+${CFG_SCRIPT} \
+  FC="/opt/absoft/bin/f90" \
+  FCFLAGS="-O2 -cpu:p7 -YCFRL=1 -YEXT_NAMES=LCS -B108" \
+  LDFLAGS="${FCFLAGS}" \
+  LIBS="-L/usr/lib -lm  -L/opt/absoft/lib -lU77 \
+    -L/opt/absoft-libs/lapack-3.0/lib/ -llapack -lblas"

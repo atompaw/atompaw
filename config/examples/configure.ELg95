@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# Configuration script for ELg95
+#
+
+# Allow for VPATH builds
+if test -x "./configure"; then
+  CFG_SCRIPT="./configure"
+elif test -x "../configure"; then
+  CFG_SCRIPT="../configure"
+else
+  echo "Error: could not find configure script"
+  exit 1
+fi
+
+# Run configure
+${CFG_SCRIPT} \
+  FC="/home/natalie/bin/g95" \
+  FCFLAGS="-g" \
+  LDFLAGS="${FCFLAGS}" \
+  LIBS="/home/natalie/EL/publiccode/LAPACK/lapack_g95.a \
+    /home/natalie/EL/publiccode/LAPACK/blas_g95.a \
+    -L/home/hatalie/bin/g95-install/lib/gcc-lib/i686-pc-gnu/4.0.1/"

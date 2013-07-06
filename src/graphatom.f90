@@ -10,7 +10,7 @@ PROGRAM graphatom
 
   IMPLICIT NONE
 
-  INTEGER :: i,iargc
+  INTEGER :: i,iargc,ifinput
   CHARACTER(80) :: verbose
   LOGICAL :: lotsofoutput=.false.
 
@@ -20,13 +20,16 @@ PROGRAM graphatom
        if (TRIM(verbose)=='VERBOSE') lotsofoutput=.true.
   endif
 
+  OPEN(ifinput,file='dummy',form='formatted')
 
   CALL Init_GlobalConstants()
-  CALL Init_SCFatom()
+  CALL SCFatom_Init(ifinput)
   CALL SCFatom('AE',lotsofoutput)
 
   CALL Report_Graphatom('AE',Grid,AEOrbit,AEPot,AESCF)
 
+  CLOSE(ifinput)
+  
   DO
      WRITE(6,*) ' Input 0  for plotting results and completing program (once)'
      WRITE(6,*) ' Input 1  for changing all-electron configuration (many)'

@@ -49,8 +49,7 @@ anderson_driver.o: globalmath.o
 atomdata.o:
 atompaw_lib.o:
 atompaw_prog.o: globalmath.o aeatom.o atomdata.o atompaw_report.o \
-	pseudo.o abinitinterface.o pwscfinterface.o xmlinterface.o pkginfo.o \
-	libxc_mod.o
+	 pseudo.o abinitinterface.o pwscfinterface.o xmlinterface.o pkginfo.o
 atompaw_report.o: atomdata.o fock.o globalmath.o gridmod.o pseudo.o pseudodata.o \
 	libxc_mod.o
 blockdavidson_mod.o: globalmath.o search_sort.o

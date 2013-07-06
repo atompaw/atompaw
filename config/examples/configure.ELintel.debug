@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# Configuration script for ELintel.debug
+#
+
+# Allow for VPATH builds
+if test -x "./configure"; then
+  CFG_SCRIPT="./configure"
+elif test -x "../configure"; then
+  CFG_SCRIPT="../configure"
+else
+  echo "Error: could not find configure script"
+  exit 1
+fi
+
+# Run configure
+${CFG_SCRIPT} \
+  FC="/opt/intel/compiler81/ifort/bin/ifort" \
+  FCFLAGS="-g -mp -static -C -d4" \
+  LDFLAGS="${FCFLAGS}" \
+  LIBS="/opt/intel81-libs/lapack-3.0.3/lib/liblapack.a \
+    /opt/intel81-libs/lapack-3.0.3/lib/libblas.a \
+    -L/opt/intel/compiler81/ifort/lib"

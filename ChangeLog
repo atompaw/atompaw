@@ -1,0 +1,322 @@
+==============================================================================
+=========                  ChangeLog for ATOMPAW v4.x                =========
+==============================================================================
+
+ 07-07-13 -- MT: Re-introduce "build system" (from v3.1.x)
+                 Now standard "configure;make" procedure is available
+
+ 07-06-13 -- MT: Transfer all changes appeared between v3.0.1.9 and v3.1.0.0
+ 07-06-13 -- MT: Cleaning, memory leak eradication
+ 07-05-13 -- MT: Transfer all corrections and cleaning introduced between
+                 v2.0 and v3.0.1.9 (not yet finished)
+
+ 04-23-13 -- In order to make programming/testing easy,
+             Natalie made the following  changes: (internal reference try30)
+             1. kept pkginfo.f90 static
+             2. Makefile does not link libxc_mod.F90 and commented all
+                references to it in abinitinterface.f90 for testing purposes
+             3. Made changes to abinitinterface.f90 to reflect slightly changed 
+                datastructures in atomdata.f90 -- does not yet work for hf
+             4. Tried to  impliment clean up routines such as DestroyPAW;
+                but these may not be complete
+             5. Load and save functions need to be updated.
+                They are useful if the atomic calculations take a long time
+                to converge. As written they take a command line argument.
+                Perhaps not needed??
+             6. No testing of the scalar relativistic case has been done,
+                and no provisions for scalar relativistic with Hartree-Fock
+                are implemented.
+             7. README file is not up to date
+             8. Changed options for output with keywords or index numbers
+                (for backward compatibility).No dataset output is generated
+                by default. The WRITE_XML subroutine skeleton is currently
+                in atompaw_report.f90 module.
+             9. Tried to remove excess output so that in "EXPLORE" mode the
+                output file is not overwhelming -- but more should be removed.
+            10. Many functions checked for consistency with 3.0.1.9
+                -- but details need further attention...
+
+==============================================================================
+=========   ChangeLog for MODATOMPAW (a modified version from v2.0)  =========
+==============================================================================
+
+03-30-08 -- tested removal of CoreShift from gradient residue
+03-31-08 -- removed CoreShift from data structures
+04-14-08 -- Try adding shift correction term and restructuring the
+               iteration loops
+04-23-08 -- Removed zero constrant from optimization and reinstated
+               AdjustV
+04-24-08 -- Play with function for AdjustV, add iteration loop to find
+               Vxcore in Frozencore case, removing CoreShift
+04-28-08 -- Fix Vxvale & Vxcore according to notes.  For frozencore
+                case FCPot%rvx holds r*Vxvale and HSZ%rVxcore must be added
+                to form correct Hamiltonian potential
+06-09-08 -- Attempt to adjust match point to stablize solutions for Row 3
+                elements
+11-26-08 -- From version with Xiao's Colle Salvetti code which is not
+                yet quite working; fixing some compatibility with old LDA
+12-24-08 -- Start to add atompaw functions back in
+01-02-09 -- atompaw functions up to unscreening are back in code.  Attempted
+                an alternative method of partitioning Vx into core and valence
+                contributions which unfortunately lead to a dead end.  Added
+                capability of dumping/loading all-electron results to speed
+                up PAW part, controlled with argument.  Also added possibility
+                of adjusting lineargrid mesh.
+03-28-09 -- Attempt to impose projector orthogonality constraints for multiple
+                projector per channel  case
+04-09-09 -- Revert to simple iteration procedure
+05-14-09 -- Start to program SVD grid method
+05-21-09 -- Modify inhomogeneous equation solvers; assume non-singular
+                behavior at origin for all l.
+06-29-09 -- Modify setcore to first find Vxcore and then iterate a few times
+                with Vxvale
+07-06-09 -- Modified frozencore energy so the core-valence contribution
+                of exchange energy is given by 
+                \int d^3r Vx^{core}(v)*\rho_{vale}(r)
+08-26-09 -- Version of code without inter-state orthogonalization (again).
+09-24-09 -- Copied code from directory
+          /home/natalie/EL4/developcode/EXXatompaw/OEP+HF_PAW/NoOrthog_PAW
+          in order to start programming Hartree Fock part
+12-28-09 -- HF portion including unbound states (not orthogonalized) working
+          plausibly
+05-21-10 -- Fixed loggrid grid so that n=2001 is fairly close to CFF results
+            in Hartree Fock.   Introduce new update scheme for EXX
+07-08-10 -- KLI scheme sort of demonstrated for all-electron case;   Restart
+            programming for PAW version.
+10-06-10 -- Modified HF code to include node counting in order to stabilize
+             solutions.
+01-22-11 -- Added new keywords and data for Core-electron output in HF/KLI 
+             calculations.
+07-04-11 -- Add keyword 'LOCALIZEDCOREEXCHANGE" to indicate that
+             \tilde{psi}_c == 0.
+
+
+==============================================================================
+========= ChangeLog for older versions of ATOMPAW (v1.x, v2.x, v3.x) =========
+==============================================================================
+
+              8-25-01 -- Version tested in ~/pgmwork/atompawwithatompaw
+              8-25-01 -- Changed the Broyden iteration scheme with an
+                         Anderson Mixing module similar to that used in
+                         pwpaw.
+              8-25-01 -- Replaced the exchange-correlation module with one
+                         that can either calculate the LDA (Perdew-Wang)
+                         or GGA (Perdew-Burke-Ernzerhof) as contolled by
+                         the keywords 'LDA-PW' or 'GGA-PBE', respectively.
+                         Currently, only those keywords work properly.
+                         Other LDA or GGA forms could easily be added.
+             11-05-01 -- Corrected Cp solver in bsolvtphi -- converges
+                          for more cases
+             12-12-01 -- Corrected infinite loop problem in fcsepatom
+             12-13-01 -- Replaced density convergence test with
+                            criterion based on onset of fluctuations
+             01-08-02 -- corrected small error in fcsepatom.f90
+             05-09-02 -- Made minor change to excorpbe.f90 in order
+                           to make the gradient term more stable
+                           following suggestion of Ryan Hatcher and
+                           also added symmetrization of VHartree
+                           terms following email discussion with
+                           Francois Jollet
+             08-03-02 -- Made minor change to frozencore pgm; simplified
+                           output to report only total energies and
+                           differences between total energies; fixed bug
+                           to allow calculation of configurations with
+                           zero valence electrons
+             10-27-02 -- Changed TPHI output for LCAO functions to ensure
+                           finite range. Each TPHI is modified within the
+                           range 6 < r < 10 bohr according to
+                                       ( sin(Pi*(r-rstart)/delta) )^2
+                               TPHI(r)*(--------------------------)
+                                       (  (Pi*(r-rstart)/delta)   )
+                           where rstart=6, delta=rend-rstart, rend=10.
+                           Note that the TPHI functions are not normalized.
+             01-10-03 -- Changed ftprod.f90 to reflect TPHI truncation.  Also
+                           introduced slight changes to make code compatible
+                           with absoft compiler.
+             07-09-03 -- Changes by Francois Jollet and Marc Torrent for
+                           compatibility with Abinit code. Also made the
+                           calculation of vlocfac automatic for setting it
+                           for aligning the valence s orbital as the local
+                           potential.  (If input sets |vlocfac| > 10^-7,
+                           the set value is kept.) Additional programing
+                           changes to gradually "modernize" the code were made,
+                           but since this is a very daunting task, we quit
+                           before breaking something.....
+             08-05-03 -- Tested code with intel 7.1 compiler, using ATLAS
+                           http://math-atlas.sourceforge.net/ library for
+                           blas.  Compilation with intel or absoft facilitated
+                           with script:
+                                makescript (intel or absoft) (atompaw or
+                                     frozencore or clean)
+                           Need to edit make.intel or make.absoft files
+                           for proper library locations and compiler flags.
+             04-30-04 -- Revised  atompaw to use modern Fortran 90 structures
+                           and to allow for new scheme for constructing Vloc
+                           (see NewatompawNotes.tex, NewatompawNotes.pdf)
+             07-13-04 -- "Modernized" program structure and introduced new options
+                           for vloc based on norm-conserving pseudopotential
+                           for l > lmax (largest l for projectors).
+             10-20-04 -- minor improvement to GGA algorithm
+             12-31-04 -- introduced core tail function to take into account
+                           frozen core density which extends beyond rc
+             01-03-05 -- implemented PAW-XML output according to the
+                           fsatom-pp@tddft.org project
+                         http://www.fysik.dtu.dk/campos/atomic_setup/paw_setup.html
+             01-08-05 -- using Alan Tackett's xmlword.f90 and xmlstrings.f90
+                           wrote xmlpaw.f90 to scan [atom].xml file and
+                           create [atom].atomicdata.fromxml file which compares
+                           very closely to original [atom].atomicdata file
+             09-13-05 -- Found slight error in pseudo.f90 in character length
+                           of PAW%Vloc_description (should be 256).  Also note
+                           that some compilers differ enough to change the
+                           the value of PAW%irc by +- 2, which seems not
+                           to make a significant difference in the end results.
+             12-20-05 -- Implemented option to construct basis and projector
+                            functions based on David Vanderbilt's ultra-soft
+                            pseudopotential paper  PRB 41, 7892 (1990)
+                            Requires input of r_i < r_c for each basis function.
+             01-17-06 -- Corrected XLM output for kinetic energy to be
+                            Hartree Units  (Thanks to Marc Torrent)
+             01-22-06 -- Added VLOCION output to atomicdata file -- form of
+                            ionic local potential needed by abinit, not used by
+                            pwpaw
+             01-23-06 -- Added INITOCC output to atomicdata file -- used by
+                            abinit, perhaps could be used by pwpaw; indicates
+                            initial occupancies of valence basis functions
+             04-21-06 -- Noticed that atomicdata file contains spurious
+                            values of Hartree matrix elements; these have
+                            now been removed.
+             05-22-06 -- Revised pgm to accept either linear grid (default)
+                            or logarithmic grid (need to add keyword to
+                            second input line in quotes for example:
+                             'PW-LDA    loggrid'  or
+                             'PBE-GGA   loggrid')
+                            Grid parameters are hard coded -- may need to be
+                            adjusted.
+             06-10-06 -- worked with Marc Torrent to validate Atompaw2abinit
+                            interface and allowed for optional input of
+                            number of grid points.   Thus the second line
+                            of the code can read
+                            PW-LDA    loggrid    1001
+                            for example if 1001 loggrid points are desired.
+                            For a linear grid, the input is as before and
+                            the number of points is fixed.
+             06-14-06 -- Corrected xml portion to be consistent with FSATOM
+                            standard on website
+                         http://dcwww.camp.dtu.dk/campos//pawxml/pawxml.xhtml
+                         Note: consequent line lengths too long for absoft
+                                compiler
+                         Also note that in order to output input data to
+                          xml file, pgm takes an input argument of the input
+                          file name.   For example if the input file is
+                          called Fe.input, the call would be
+                          atompaw Fe.input<Fe.input>&output&
+                          Note: the xml reading routines have not be updated.
+             06-29-06 -- Implemented possibility of scalarrelativistic
+                          treatment, following the second order form
+                          the Dirac equation given by Shadwick, Talman,
+                          and Normand, Comp. Phys. Comm. 54 95-102 (1989),
+                          averaging over kappa for a given l.   In this case
+                          the second input line would read
+                          PW-LDA   loggrid   1001 scalarrelativistic
+                          It is not advisable to use a linear grid for
+                          the scalarrelativistic case. Also note that at the
+                          moment, there is no adjustment to the exchange
+                          functional for relativistic effects.
+            07-05-06 -- Corrected several bugs thanks to Marc Torrent
+            07-07-06 -- Several corrections from Jens jorgen Mortensen and
+                          Marc Torrent; added capability to use Gaussian
+                          shape for compensation charge as suggested by
+                          Peter Bloechl (see comments at the beginning of
+                          atompaw.f90).   Simplified keywords and options
+                          according to preferred schemes, however, old
+                          keywords still work.
+           08-30-06 -- Added new code for additional options written by
+                          Marc Torrent.
+           09-04-06 -- With Xiao Xu's help, found error in scalarrelativistic
+                          mode with GGA, although LDA gives reasonable results.
+                          Because of the sensitivity of the GGA to gradients
+                          of the density, the GGA option is currently
+                          disabled for the scalarrelativistic mode.
+           09-05-06 -- Introduced output for single-center self-energy
+                          estimate to be used in pwpaw from [atom].scself
+           09-18-06 -- Corrected BUG in GGA equations for vxc found by
+                          Marc Torrent.   Also replaced scalar-relativistic
+                          solver with program adapted by Marc Torrent and
+                          Francois Jollet from USPS pgm of David Vanderbilt
+                          based on two coupled first order differential
+                          equations. Previous version, based on second order
+                          differential equation from formalism of Shadwick,
+                          Talman, and Norman, Comp. Phys. Comm. 54, 95-102
+                          (1989)  found to be unstable. Even with the
+                          new code, we find it necessary to use a low-order
+                          derivative formula -- "simplederiv" to evaluate
+                          the gradients for GGA in the scalarrelativistic mode.
+           09-26-06 -- Introduced option for scalar-relativistic mode for
+                          replacing point nucleus with a Gaussian.  Effectively
+                          replacing the nuclear potential of 2*Z/r with
+                          2*Z*erf(r/R)/r, where the size parameter R in
+                          bohr units is given by 2.9*10^(-5)*Z^(1/3), as
+                          given by a simple nuclear model in old texts. This
+                          option is activated with "finite-nucleus" keyword.
+                          For this to work, it is necessary to choose an
+                          adequate number of grid points within the finite
+                          nucleus.
+           10-14-06 -- Improved stability of boundsch and boundsr following
+                          problem identified by Ping Tang.   When solver
+                          fails wavefunction is replaced by a suitable
+                          hydrogen-like solution.  This does not always help.
+                          For the case of Mn in the 3d7 4s0 configuration,
+                          the calculation fails with a linear grid, but
+                          works well with the logarithmic grid.
+           11-30-06 -- Many new options introduced by Marc Torrent.
+           12-13-06 -- NAWH corrected bug found by Marc Torrent which effects
+                          charged ions.   Pgm should now work for charged ions.
+           12-21-06 -- Marc Torrent & NAWH completed testing (of course there
+                          always may be more bugs).   This version is
+                          designated as version 2.0.
+           02-16-07 -- Corrected problem for Vanderbilt-style projectors
+                           with pseudowavefunction rcl<vloc_rc.  This
+                           version designated as version 2.1.
+           08-25-07 -- Marc Torrent introduced option control grid better and
+                           to output pseudodensity for future work in abinit.
+                           New options are:
+                           Gridsize (specify total number of grid pts. with
+                                 default maximum range)
+                           Gridsize rmax (specify total number of grid pts with
+                                 maximum range of rmax)
+                           Gridsize rmax rmatch (specify number of grid pts
+                                 between 0 and rmatch; continue grid to rmax)
+           05-05-10 -- Minor corrections found by Marc Torrent concerning
+                           initialization and allocation
+                       Also introduce additional abinit-compatible vloc
+                           which DOESNOT include nhat density in VXC which
+                           is now output in [].atomicdata using
+                           keyword VLOCION_NOHAT
+           05-11-10 -- Additional changes by Marc Torrent to allow USEXCNHAT
+                           option within abinit
+           06-17-10 -- Yann Pouillon and Marc Torrent changed code to be
+                           compabible with standard GNU.  Natalie Holzwarth
+                           added pwscfinterface.f90 to output UPF file for
+                           use with PWscf which is not working yet.
+           08-02-10 -- NAWH added grid interpolation in order to make
+                           pwscfinterface.f90 work properly with PWscf code.
+                           Cubic splines from DeBoor's web site are used.
+           09-20-10 -- MT  added routine for complex objects clean destruction
+                           in order to avoid memory leaks
+           09-20-10 -- MT  added new input keyword 'logderivrange'
+                           (to be put on second line of input file)
+                           This allows to change range and number of points
+                           used to plot logarithmic derivatives
+           09-20-10 -- MT  added abinitinterface.f90 file
+                           Atompaw2Abinit tool is now integrated in AtomPaw
+           10-07-10 -- MT  added printing of core WF for Abinit
+           10-13-10 -- MT  added external LibXC support
+                           (http://www.tddft.org/programs/octopus/wiki/index.php/Libxc)
+           10-04-11 -- MT  added output of version number
+           01-22-11 -- NAWH made small corrections suggested by J. Zwanziger 
+                           and fixed linsol and minverse in globalmath.f90
+                           for better compatibility with compilers as suggested
+                           by Marc Torrent and Xavier Gonze.
+           06-21-13 -- MT+FJ New XML output routine
+

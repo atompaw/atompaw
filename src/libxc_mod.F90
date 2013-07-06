@@ -138,11 +138,12 @@ module libxc_mod
   if (id(1)>0.and.xcstrg(1)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)     //trim(xcstrg(1))
   if (id(2)>0.and.xcstrg(2)(1:3)=="XC_")    xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2)(4:))
   if (id(2)>0.and.xcstrg(2)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2))
+  if (trim(xcname_short)=="") xcname_short=xcname
  end if
 
 #else
  id(1:2)=-2
- if (present(xcname_short)) xcname_short=""
+ if (present(xcname_short)) xcname_short=xcname
 #endif
 
  end subroutine libxc_getid_fromname
@@ -232,6 +233,7 @@ module libxc_mod
  if (xcstrg(1)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)     //trim(xcstrg(1))
  if (xcstrg(2)(1:3)=="XC_")    xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2)(4:))
  if (xcstrg(2)(1:6)=="LIBXC_") xcname_short=trim(xcname_short)//"+"//trim(xcstrg(2))
+ if (trim(xcname_short)=="") xcname_short=xcname
 
 #else
  xcname_short=xcname

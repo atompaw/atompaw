@@ -341,7 +341,8 @@ Module ABINITInterface
 !------------------------------------------------------------------
 !---- Write core Wave Function file for ABINIT
  if (prtcorewf) then
-  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(exctype)//'-corewf.abinit'
+  xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
+  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-corewf.abinit'
   call wrcorewf(AEOrbit,FC,pshead,pawrad,loggrd,file_abinit,unit_abinit)
  end if
 

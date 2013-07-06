@@ -622,7 +622,7 @@ Module ABINITInterface
 
  read(std_in,'(a)',advance='no',iostat=ok) readline
  write(unit=input_string,fmt='(5a)') trim(input_string), &
-&                   char(10),"2",char(10),trim(readline)
+&                   char(10),"ABINITOUT",char(10),trim(readline)
  call Uppercase(readline)
  i_usexcnhat=index(readline,'USEXCNHAT')
  i_prtcorewf=index(readline,'PRTCOREWF')

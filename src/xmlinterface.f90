@@ -284,7 +284,7 @@ Module XMLInterface
 
  read(std_in,'(a)',advance='no',iostat=ok) readline
  write(unit=input_string,fmt='(5a)') trim(input_string), &
-&                   char(10),"4",char(10),trim(readline)
+&                   char(10),"XMLOUT",char(10),trim(readline)
  call Uppercase(readline)
  i_usexcnhat=index(readline,'USEXCNHAT')
  i_rsoptim  =index(readline,'RSOPTIM')

@@ -1,8 +1,8 @@
 # lapack and blas libraries
-LIBS=-L/cea/home/abinit/abinit/APPLIS/g95/linalg -llapack -lblas
+LIBS=-lblas -llapack
 
 # Compilers and flags
-F90 = g95
-F90FLAGS = -O0 -g
+F90 = gfortran
+F90FLAGS = 
 LDFLAGS = $(F90FLAGS)
 

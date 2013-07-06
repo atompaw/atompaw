@@ -208,7 +208,7 @@ CONTAINS
 &        WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='FC'.OR.key=='SC') &
 &        WRITE(ifen,*) '  FCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,'(a,f7.2)') '     for nz = ',Pot%nz
+    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%nz
     WRITE(ifen,*) '    delta  = ', SCF%delta
     CALL One_electron_energy_Report(Orbit,ifen)
     WRITE(ifen,*)

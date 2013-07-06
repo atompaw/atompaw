@@ -198,7 +198,7 @@ CONTAINS
 
 !   3rd line and following : electronic configuration of atom
 !   ----------------------------------------------------------------------------------
-    WRITE(6,'(a,f6.2)') 'Calculation for atomic number = ',AEPot%nz
+    WRITE(6,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%nz
     WRITE(6,*) 'enter maximum principal quantum numbers for s,p,d,f,g'
     IF(PRESENT(ifinput)) THEN
        READ(5,'(a)') inputline

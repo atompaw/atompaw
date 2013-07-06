@@ -67,7 +67,7 @@ CONTAINS
          WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='SC') &
          WRITE(ifen,*) '  SCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,'(a,f7.2)') '     for nz = ',Pot%nz
+    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%nz
     WRITE(ifen,*) '    delta  = ', SCF%delta
     IF (key=='AE') THEN
       WRITE(ifen,*) ' All Electron Orbital energies:         '
@@ -613,18 +613,6 @@ CONTAINS
     DEALLOCATE(f)
   END SUBROUTINE WRITE_ATOMDATA
 
-  SUBROUTINE WRITE_XML(Grid,Pot,Orbit,FC,PAW)
-    TYPE(GridInfo) , INTENT(IN):: Grid
-    TYPE(PotentialInfo), INTENT(IN) :: Pot
-    TYPE(OrbitInfo), INTENT(IN) :: Orbit
-    TYPE(FCInfo), INTENT(IN) :: FC
-    TYPE(PseudoInfo), INTENT(INOUT) :: PAW
-
-    write(6,*) 'WRITE_XML subroutine could go here '
-
-  END SUBROUTINE WRITE_XML
-
-
   Subroutine Report_pseudo_energies(PAW,ien)
        Type(PseudoInfo), INTENT(IN) :: PAW
        Integer , INTENT(IN) :: ien
@@ -639,6 +627,5 @@ CONTAINS
        write(ien,*)'         One-center xc          ', PAW%Eaxc
 
   End Subroutine Report_pseudo_energies
-
 
 END MODULE  atompaw_report

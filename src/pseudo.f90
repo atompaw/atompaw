@@ -3035,7 +3035,7 @@ CONTAINS
       call poisson(Grid,tq,d,dv,ecoul)
 
       d=PAW%core-PAW%tcore
-      q00=PAW%AErefrv(1)+integrator(Grid,d)
+      q00=0.5d0*PAW%AErefrv(1)+integrator(Grid,d)
       write(6,*) 'nucleus and core q00 ', q00
       do ib=1,nbase
          do ic=1,nbase

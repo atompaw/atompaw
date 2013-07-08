@@ -120,8 +120,8 @@ globalmath.$(LTOBJEXT):
 graphatom.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) graphatom_report.$(LTOBJEXT)
 
-graphatom_report.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	report_mod.$(LTOBJEXT)
+graphatom_report.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
+	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT)
 
 gridmod.$(LTOBJEXT): globalmath.$(LTOBJEXT)
 

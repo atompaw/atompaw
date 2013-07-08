@@ -59,9 +59,17 @@ CONTAINS
 
     CALL reportgrid(Grid,ifen)
     IF (scalarrelativistic) THEN
-       WRITE(ifen,*) 'Scalar relativistic calculation'
+       if (finitenucleus) then
+         WRITE(ifen,*) 'Scalar relativistic calculation -- finite nucleus'
+       else
+         WRITE(ifen,*) 'Scalar relativistic calculation'
+       endif
     ELSE
-       WRITE(ifen,*) 'Non-relativistic calculation'
+       if (finitenucleus) then
+         WRITE(ifen,*) 'Non-relativistic calculation -- finite nucleus'
+       else
+         WRITE(ifen,*) 'Non-relativistic calculation'
+       endif
     ENDIF
     IF (key=='AE') &
          WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'

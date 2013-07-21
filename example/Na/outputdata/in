@@ -1,5 +1,5 @@
 Na 11
-LDA-PW   loggrid    2001
+LDA-PW   loggridv4    2001
 3 2 0 0 0 0
 3 0 1
 0 0 0
@@ -20,11 +20,10 @@ VANDERBILT  Besselshape
 1.5
 1.7
 XMLOUT
+default
 PWPAWOUT
 ABINITOUT
 default
 PWSCFOUT
 UPFDX  0.0125d0   UPFXMIN   -7.d0     UPFZMESH 11.d0
 END
-
-

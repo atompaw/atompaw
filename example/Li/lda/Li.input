@@ -1,5 +1,5 @@
 Li 3
-LDA-PW loggrid 2001
+LDA-PW loggridv4 2001
 2 0 0 0 0 0 
 2 0 1 
 0 0 0 
@@ -16,9 +16,12 @@ VANDERBILT
 1.4
 1.6
 1.6
-2
+ABINITOUT
 default
-3
+XMLOUT
+default
+PWSCFOUT
 UPFDX  0.008d0   UPFXMIN   -7.d0     UPFZMESH 3.d0
-0
+PWPAWOUT
+END
 0

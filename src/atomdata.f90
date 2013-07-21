@@ -20,7 +20,8 @@ MODULE atomdata
 
   TYPE PotentialInfo
      CHARACTER(2) :: sym
-     REAL(8) :: nz        !  nz is nuclear charge
+     INTEGER :: nz     !  nz is nuclear charge     
+     REAL(8) :: zz        !  zz=nz is nuclear charge
      REAL(8) :: q,v0,v0p  !  q is total electron charge
      !  v0,v0p are potential value and deriv at r=0
      REAL(8) , POINTER :: rv(:),rvn(:),rvh(:),rvx(:)
@@ -50,6 +51,10 @@ MODULE atomdata
 
 
 CONTAINS
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!   Subroutine InitOrbit  -- used in CopyOrbit
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   SUBROUTINE InitOrbit(Orbit,norbit,n,exctype)
     TYPE (OrbitInfo), INTENT(INOUT) :: Orbit
@@ -89,6 +94,9 @@ CONTAINS
     IF (ASSOCIATED(Orbit%X)) DEALLOCATE(Orbit%X)
   END SUBROUTINE DestroyOrbit
 
+!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CopyOrbit(source,copy)
+!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE CopyOrbit(SOrbit,COrbit)
     TYPE(OrbitInfo),INTENT(INOUT)::SOrbit
     TYPE(OrbitInfo),INTENT(INOUT)::COrbit
@@ -134,7 +142,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: n
     TYPE (PotentialInfo), INTENT(INOUT) :: Pot
     INTEGER :: ok
-!   Pot%sym="";Pot%nz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0
+!   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0
     ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
     Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0
@@ -148,11 +156,16 @@ CONTAINS
     IF (ASSOCIATED(Pot%rvx)) DEALLOCATE(Pot%rvx)
   END SUBROUTINE DestroyPot
 
+!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CopyPot(source,copy)
+!!!!!!!!!!!!!!!!!!!!!!!!!
+
   SUBROUTINE CopyPot(SPot,CPot)
     TYPE(PotentialInfo),INTENT(IN) :: SPot
     TYPE(PotentialInfo),INTENT(INOUT) :: CPot
     INTEGER :: n
     CPot%nz=SPot%nz
+    CPot%zz=SPot%zz
     CPot%sym=SPot%sym
     CPot%q=SPot%q
     CPot%v0=SPot%v0
@@ -173,6 +186,10 @@ CONTAINS
     SCF%valekin=0.d0;SCF%valecoul=0.d0;SCF%valeexc=0.d0
     SCF%corekin=0.d0;SCF%evale=0.d0
   END SUBROUTINE InitSCF
+
+!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CopySCF(source,copy)
+!!!!!!!!!!!!!!!!!!!!!!!!!
 
   SUBROUTINE CopySCF(SSCF,CSCF)
     TYPE(SCFInfo),INTENT(IN)::SSCF

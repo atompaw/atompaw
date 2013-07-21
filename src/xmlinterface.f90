@@ -647,7 +647,7 @@ Module XMLInterface
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml,'("<paw_setup version=""0.5"">")')
- write(unit=char5a,fmt='(f5.2)') AEPot%nz
+ write(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
  write(unit=char5a,fmt='(f5.2)') FC%zcore

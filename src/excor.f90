@@ -1,5 +1,5 @@
 MODULE excor
-  USE atomdata
+  USE atomdata, only : scalarrelativistic
   USE globalmath
   USE gridmod
   USE libxc_mod

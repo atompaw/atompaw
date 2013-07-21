@@ -12,7 +12,10 @@ MODULE AEatom
 
   REAL(8), PARAMETER, PRIVATE ::small0=1.d-13,rimix=0.5d0,worst=1.d-8
   REAL(8), PARAMETER, PRIVATE ::linrange=50.d0,linh=0.0025d0,mxgridlin=20001
-  REAL(8), PARAMETER, PRIVATE ::logrange=100.d0,logh=0.020d0,logr0=1.d-5,mxgridlog=2001
+  REAL(8), PARAMETER, PRIVATE ::logrange=80.d0,logh=0.020d0,mxgridlog=2001
+!! slightly different grid introduced in version 4 !!
+  REAL(8), PARAMETER, PRIVATE :: v4logrange=100.d0,lor00=1.d-5
+!!  
   REAL(8), PARAMETER, PRIVATE ::logder_min=-5.d0,logder_max=4.95d0,logder_pts=200
   INTEGER, PARAMETER, PRIVATE :: niter=1000,mxloop=500
   REAL(8), PARAMETER, PRIVATE :: conv1=4.d13,conv2=3.d13,conv3=2.d13,conv4=1.d13
@@ -47,11 +50,11 @@ CONTAINS
     !    for self-consistent potential rv
 
     REAL(8) :: xocc,qf,small,zeff,hval,gridmatch,gridrange,logdmin,logdmax
-    REAL(8) :: qcal,rescale,nzeff,h,hadjusted
+    REAL(8) :: qcal,rescale,nzeff,h,hadjusted,r0
     INTEGER :: icount,i,j,k,it,start,np,ierr,gridpoints,logdpoints
     INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir
     INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ilgd,ihfpp,ilcex
-    INTEGER :: igrid,irelat,ilogder
+    INTEGER :: igrid,irelat,ilogder,ilogv4
     INTEGER :: nps,npp,npd,npf,npg
     INTEGER, ALLOCATABLE :: nl(:,:)
     CHARACTER(128) :: exchangecorrelationandgridline,gridkey,relkey
@@ -74,6 +77,7 @@ CONTAINS
     ELSE
        READ(5,*) AEPot%sym,AEPot%nz
     ENDIF
+    AEPot%zz=AEPot%nz
 
 !   2nd line : XC type, grid data, relativistic, point-nucleus, logderiv data, HF data
 !   ----------------------------------------------------------------------------------
@@ -85,6 +89,7 @@ CONTAINS
     WRITE(6,*) 'further optionally (space) "nonrelativistic/scalarrelativistic" keyword'
     WRITE(6,*) 'further optionally (space) "point-nucleus/finite-nucleus" keyword'
     WRITE(6,*) 'optionally (space) "loggrid/lineargrid" keyword if appropriate'
+    WRITE(6,*) 'Note: "loggridv4" puts more points near origin'
     WRITE(6,*) '    further optionally n (number of grid points)'
     WRITE(6,*) '                       r_max (max. grid radius)'
     WRITE(6,*) '                       r_match (exact value of r(n))'
@@ -101,8 +106,11 @@ CONTAINS
     write(6,*) 'writing exchangecorrelationandgridline: ',exchangecorrelationandgridline
 
 !   Retrieve keyword indexes
+    ilin=0;ilin=0;ilog=0;ilogv4=0;inrl=0;iscl=0;ipnt=0;ifin=0;ilgd=0
+    ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0
     ilin=INDEX(exchangecorrelationandgridline,'LINEARGRID')
     ilog=INDEX(exchangecorrelationandgridline,'LOGGRID')
+    ilogv4=INDEX(exchangecorrelationandgridline,'LOGGRIDV4')
     inrl=INDEX(exchangecorrelationandgridline,'NONRELATIVISTIC')
     iscl=INDEX(exchangecorrelationandgridline,'SCALARRELATIVISTIC')
     ipnt=INDEX(exchangecorrelationandgridline,'POINT-NUCLEUS')
@@ -120,21 +128,30 @@ CONTAINS
     if (ihfpp>0) HFpostprocess=.true.
     if (ilcex>0) localizedcoreexchange=.true.
     write(6,'(" Logical variables scalarrelativistic,finitenucleus,HFpostprocess - ", 3L3)') &
-      scalarrelativistic,finitenucleus,HFpostprocess
+&      scalarrelativistic,finitenucleus,HFpostprocess
 
 !   Treat grid data
     gridkey='LINEAR';gridpoints=mxgridlin
     gridrange=linrange;gridmatch=linrange;hadjusted=linh
-    if (ilog>0.and.ilin==0) then
-     gridkey='LOGGRID';gridpoints=mxgridlog;gridrange=logrange;gridmatch=logrange
+    if (ilog>0.and.ilin==0.and.ilogv4==0) then
+     gridkey='LOGGRID';gridpoints=mxgridlog;
+     gridrange=logrange;gridmatch=logrange
+    endif
+    if (ilog>0.and.ilin==0.and.ilogv4>0) then
+     gridkey='LOGGRID';gridpoints=mxgridlog;
+     gridrange=v4logrange;gridmatch=v4logrange
     endif
     if (igrid>0) then
      iend=128
      if (irelat >igrid.and.irelat-1 <iend) iend=irelat -1
      if (ilogder>igrid.and.ilogder-1<iend) iend=ilogder-1
      inputline=""
-     if (ilog>0.and.iend>igrid+7) inputline=trim(exchangecorrelationandgridline(igrid+7:iend))
-     if (ilin>0.and.iend>igrid+10)inputline=trim(exchangecorrelationandgridline(igrid+10:iend))
+     if (ilog>0.and.ilogv4==0.and.iend>igrid+7) &
+&       inputline=trim(exchangecorrelationandgridline(igrid+7:iend))
+     if (ilog>0.and.ilogv4>0.and.iend>igrid+9) &
+&       inputline=trim(exchangecorrelationandgridline(igrid+9:iend))
+     if (ilin>0.and.iend>igrid+10) &
+&       inputline=trim(exchangecorrelationandgridline(igrid+10:iend))
      if (inputline/="") then
       call extractword(1,inputline,inputword);inputword=trim(inputword)
       if (inputword/="") then
@@ -150,12 +167,15 @@ CONTAINS
      endif
      if (gridpoints<=0) stop "Number of grid points should be >0 !"
     endif
-
 !   Initialize grid data
-    IF (TRIM(gridkey)=='LOGGRID') THEN
+    IF (TRIM(gridkey)=='LOGGRID'.and.ilogv4>0) THEN
        hval=logh
-       CALL findh_given_r0(AEPot%nz,gridmatch,logr0,gridpoints,hval)
-       CALL InitGrid(Grid,hval,gridrange,logr0/AEPot%nz)
+       CALL findh_given_r0(AEPot%zz,gridmatch,lor00,gridpoints,hval)
+       CALL InitGrid(Grid,hval,gridrange,lor00/AEPot%zz)
+    ELSEIF (TRIM(gridkey)=='LOGGRID'.and.ilogv4==0) THEN
+       hval=logh
+       CALL findh(AEPot%zz,gridmatch,gridpoints,hval,r0)
+       CALL InitGrid(Grid,hval,gridrange,r0)
     ELSE
        hadjusted=gridmatch/(gridpoints-1)
        CALL InitGrid(Grid,hadjusted,gridrange)
@@ -198,7 +218,7 @@ CONTAINS
 
 !   3rd line and following : electronic configuration of atom
 !   ----------------------------------------------------------------------------------
-    WRITE(6,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%nz
+    WRITE(6,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%zz
     WRITE(6,*) 'enter maximum principal quantum numbers for s,p,d,f,g'
     IF(PRESENT(ifinput)) THEN
        READ(5,'(a)') inputline
@@ -752,6 +772,8 @@ CONTAINS
      INTEGER, parameter :: ifo=15
      INTEGER :: i,io,n
 
+     Write(6,*) 'Note that dump has been called; code not completely checked'
+
      open(ifo,file=Fn,form='formatted',status='replace')
      write(6,*) 'Creating or replacing dump file', Fn
 
@@ -826,6 +848,8 @@ CONTAINS
      INTEGER, parameter :: ifo=15
      INTEGER :: i,io,n,norbit,nps,npp,npd,npf,npg,j,k
      CHARACTER(132) :: inputfile,checkfile,exctype
+
+     Write(6,*) 'Note that load has been called; code not completely checked'
 
      open(ifo,file=Fn,form='formatted',status='old')
      write(6,*) 'Reading dump file ', Fn

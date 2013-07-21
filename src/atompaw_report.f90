@@ -42,19 +42,22 @@ CONTAINS
     CASE('GGA-PBE')
        WRITE(ifen,*) 'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof'
     CASE('GGA-PBESOL')
-       WRITE(ifen,*) 'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof modified (PBEsol)'
+       WRITE(ifen,*) &
+&     'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof modified (PBEsol)'
     CASE('HF')
-       WRITE(ifen,*) 'Exchange-correlation type: Hartree-Fock'
+       WRITE(ifen,*) 'Exchange-correlation type: Hartree-Fock (in devel)'
     CASE('HFV')
-       WRITE(ifen,*) 'Exchange-correlation type: Hartree-Fock, frozen-core'
+       WRITE(ifen,*) &
+&    'Exchange-correlation type: Hartree-Fock, frozen-core potential (in devel)'
     CASE('EXX')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange'
+       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange (in devel)'
     CASE('EXXOCC')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange OCC'
+       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange OCC (in devel)'
     CASE('EXXKLI')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange KLI'
+       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange KLI (in devel)'
     CASE('EXXCS')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange Colle-Salvetti'
+       WRITE(ifen,*) &
+&     'Exchange-correlation type: Exact-exchange Colle-Salvetti (in devel)'
     END SELECT
 
     CALL reportgrid(Grid,ifen)
@@ -75,7 +78,7 @@ CONTAINS
          WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='SC') &
          WRITE(ifen,*) '  SCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%nz
+    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%zz
     WRITE(ifen,*) '    delta  = ', SCF%delta
     IF (key=='AE') THEN
       WRITE(ifen,*) ' All Electron Orbital energies:         '
@@ -257,7 +260,7 @@ CONTAINS
     OPEN(ifatompaw,file=TRIM(POT%sym)//'.atomicdata',form='formatted')
     WRITE(ifatompaw,'("  ATOMTYPE     ",a2)') POT%sym
     WRITE(ifatompaw,'("  ATOMXCTYPE     ",a10)') TRIM(Orbit%exctype)
-    WRITE(ifatompaw,'("  ATOMIC_CHARGE    ",f5.0)') POT%nz
+    WRITE(ifatompaw,'("  ATOMIC_CHARGE    ",f5.0)') POT%zz
     WRITE(ifatompaw,'("  MOMENTLESSHARTREE    ")')   ! new grouping of terms
     WRITE(ifatompaw,'("  CORE_CHARGE    ",1p,1e20.13)') FC%zcore
     WRITE(ifatompaw,'("  RC         ",1p,1e20.13)') PAW%rc

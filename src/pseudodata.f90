@@ -19,7 +19,7 @@ MODULE pseudodata
      REAL(8), POINTER :: projshape(:),hatshape(:),hatden(:),hatpot(:)
      REAL(8), POINTER :: den(:),tden(:),core(:),tcore(:)
      INTEGER :: nbase,ncoreshell
-     INTEGER, POINTER :: np(:),l(:)
+     INTEGER, POINTER :: np(:),l(:),nodes(:)
      INTEGER, POINTER :: rng(:)       ! rng particularly of continuum states
      CHARACTER(8), POINTER :: label(:)
      REAL(8), POINTER :: phi(:,:),tphi(:,:),tp(:,:) ! before orthog
@@ -80,19 +80,19 @@ MODULE pseudodata
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
 &        PAW%ck(mxbase),PAW%vrc(mxbase),PAW%Kop(n,mxbase),PAW%rng(mxbase),&
-&        PAW%rcio(mxbase),stat=ok)
+&        PAW%rcio(mxbase),PAW%nodes(mxbase),stat=ok)
       IF (ok/=0) STOP 'Allocation error 2 in InitPAW'
       PAW%phi=0.d0;PAW%tphi=0.d0;PAW%tp=0.d0
       PAW%ophi=0.d0;PAW%otphi=0.d0;PAW%otp=0.d0
       PAW%eig=0.d0;PAW%occ=0.d0;PAW%vrc=0.d0;PAW%ck=0.d0;PAW%Kop=0.d0
       PAW%rcio=0.d0;PAW%np=0;PAW%l=0
       PAW%rng=Grid%n
-      ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),PAW%wij(mxbase,mxbase),&
-&              stat=ok)
+      ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),&
+&      PAW%wij(mxbase,mxbase), stat=ok)
       IF (ok/=0) STOP 'Allocation error 3 in InitPAW'
       PAW%oij=0.d0;PAW%dij=0.d0;PAW%wij=0.d0
-      ALLOCATE(PAW%rVf(n),PAW%rtVf(n),PAW%Kij(mxbase,mxbase),PAW%Vfij(mxbase,mxbase),&
-&              stat=ok)
+      ALLOCATE(PAW%rVf(n),PAW%rtVf(n),PAW%Kij(mxbase,mxbase),&
+&      PAW%Vfij(mxbase,mxbase),stat=ok)
       IF (ok/=0) STOP 'Allocation error 4 in InitPAW'
       PAW%rVf=0.d0;PAW%rtVf=0.d0;PAW%Kij=0.d0;PAW%Vfij=0.d0
       IF (Orbit%exctype=='HF') THEN
@@ -128,6 +128,7 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%tcore)) DEALLOCATE(PAW%tcore)
     If (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
     If (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)
+    If (ASSOCIATED(PAW%nodes)) DEALLOCATE(PAW%nodes)
     If (ASSOCIATED(PAW%rng)) DEALLOCATE(PAW%rng)
     If (ASSOCIATED(PAW%label)) DEALLOCATE(PAW%label)
     If (ASSOCIATED(PAW%phi)) DEALLOCATE(PAW%phi)

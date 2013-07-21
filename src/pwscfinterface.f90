@@ -10,12 +10,12 @@ Module PWscfInterface
 
   CONTAINS
 
-  SUBROUTINE Atompaw2PWscf(Grid,AEPot,FC,PAW,AEOrbit,ifinput)
+  SUBROUTINE Atompaw2PWscf(Grid,Pot,FC,PAW,Orbit,ifinput)
      Type(GridInfo), INTENT(IN) :: Grid
-     Type(PotentialInfo), INTENT(IN) :: AEPot
+     Type(PotentialInfo), INTENT(IN) :: Pot
      Type(FCInfo), INTENT(IN) :: FC
      Type(PseudoInfo), INTENT(IN) :: PAW
-     Type (OrbitInfo), INTENT(IN) :: AEOrbit
+     Type (OrbitInfo), INTENT(IN) :: Orbit
      INTEGER, INTENT(IN) :: ifinput
 
      INTEGER :: i,j,k,l,n,m,io,jo,llmin,llmax,number_of_wfc,nn,ok, ncore
@@ -102,7 +102,7 @@ Module PWscfInterface
      rtvion=vps*Grid%r
      n=Grid%n
    ! reconstruct AE ionic potential
-      dum=-2*AEpot%nz
+      dum=-2*Pot%nz
       call poisson(Grid,x,FC%coreden,arg,y,z)
       dum=dum+arg
       rvion=dum
@@ -121,7 +121,7 @@ Module PWscfInterface
          enddo
       enddo
 
-      OPEN(1001,file=TRIM(AEpot%sym)//'.'//TRIM(exctype)//'-paw.UPF',&
+      OPEN(1001,file=TRIM(Pot%sym)//'.'//TRIM(exctype)//'-paw.UPF',&
  &          form='formatted')
       write(1001,'("<UPF version=""2.0.1"">")')
       write(1001,'("   <PP_INFO>")')
@@ -135,7 +135,6 @@ Module PWscfInterface
       enddo
       close(ifinput)
 
-      !WRITE(1001,'("  Note this UPF file is not well tested yet !! ")')
       WRITE(1001,'("  </PP_INFO>")')
       WRITE(1001,'("  <!--                               -->")')
       WRITE(1001,'("  <!-- END OF HUMAN READABLE SECTION -->")')
@@ -143,7 +142,7 @@ Module PWscfInterface
       WRITE(1001,'("             author=""   """)')
       Call PrintDateStr(inputfileline)
       WRITE(1001,'("             date=""",(a),"""")') TRIM(inputfileline)
-      WRITE(1001,'("             element=""",a2,"""")') AEPot%sym
+      WRITE(1001,'("             element=""",a2,"""")') Pot%sym
       WRITE(1001,'("             pseudo_type=""PAW""")')
       If(scalarrelativistic) then
       WRITE(1001,'("             relativistic=""scalar""")')
@@ -349,21 +348,29 @@ Module PWscfInterface
 
       WRITE(1001,'(A)') ' <PP_GIPAW gipaw_data_format="2">'
       ncore = 0
-      do io = 1, AEOrbit%norbit
-        if (AEOrbit%iscore(io) .eqv. .true.) ncore = ncore + 1
+      do io = 1, Orbit%norbit
+        if (Orbit%iscore(io) .eqv. .true.) ncore = ncore + 1
       enddo
       WRITE(1001,'(A,I2,A)') '  <PP_GIPAW_CORE_ORBITALS number_of_core_orbitals="', ncore, '">'
       ncore = 0
-      do io = 1, AEOrbit%norbit
-        if (AEOrbit%iscore(io) .eqv. .false.) cycle
+      do io = 1, Orbit%norbit
+        if (Orbit%iscore(io) .eqv. .false.) cycle
         ncore = ncore + 1
-        WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I1," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
+        if (ncore.lt.10) then
+           WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I1," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
+        else
+           WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I2," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
+        endif   
         WRITE(1001,'(" columns=""3"" index=""",I1,""" label=""",I1,A,""" n=""",I1,""" l=""",I1,""">")') &
-&          ncore, AEOrbit%np(io), label(AEOrbit%l(io)+1), AEOrbit%np(io), AEOrbit%l(io)
-        upff=0;call interpfunc(n,Grid%r,AEOrbit%wfn(:,io),upfmesh,upfr,upff)
+&          ncore, Orbit%np(io), label(Orbit%l(io)+1), Orbit%np(io), Orbit%l(io)
+        upff=0;call interpfunc(n,Grid%r,Orbit%wfn(:,io),upfmesh,upfr,upff)
         call filter(upfmesh,upff,machine_zero)
         WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
-        WRITE(1001,'("   </PP_GIPAW_CORE_ORBITAL.",I1,">")') ncore
+        if (ncore.lt.10) then
+           WRITE(1001,'("   </PP_GIPAW_CORE_ORBITAL.",I1,">")') ncore
+        else   
+           WRITE(1001,'(" </PP_GIPAW_CORE_ORBITAL.",I2,">")') ncore
+        endif   
       enddo
 
       WRITE(1001,'(A)') '  </PP_GIPAW_CORE_ORBITALS>'

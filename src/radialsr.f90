@@ -213,11 +213,11 @@ CONTAINS
     call prepareforcfdsol(Grid,1,istart,nr,wfn,lwfn,yy,zz)
     call cfdsol(Grid,zz,yy,istart,nr)
     call getwfnfromcfdsol(1,nr,yy,wfn)
-    nodes=countnodes(1,nr,wfn)
+    nodes=countnodes(2,nr,wfn)
     !
     ! normalize to unity within integration range
     !
-    call filter(nr,wfn,machine_zero)
+    !call filter(nr,wfn,machine_zero)     !NH votes to remove
     scale=1.d0/overlap(Grid,wfn(1:nr),wfn(1:nr),1,nr)
     scale=SIGN(SQRT(scale),wfn(nr-2))
     wfn(1:nr)=wfn(1:nr)*scale
@@ -227,9 +227,9 @@ CONTAINS
   END SUBROUTINE unboundsr
 
 !******************************************************************
-!  SUBROUTINE boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+!  SUBROUTINE boundsr(Grid,Pot,eig,wfn,l,nroot,emin,ierr,success)
 !******************************************************************
-  SUBROUTINE boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+  SUBROUTINE boundsr(Grid,Pot,eig,wfn,l,nroot,emin,ierr,success)
     !  pgm to solve radial scalar relativistic equation for nroot bound state
     !    energies and wavefunctions for angular momentum l
     !    with potential rv/r, given in uniform linear or log mesh of n points
@@ -256,15 +256,16 @@ CONTAINS
     !
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
-    TYPE(OrbitInfo), INTENT(INOUT) :: Orbit
-    INTEGER, INTENT(IN) :: l,start,nroot
+    REAL(8), INTENT(INOUT) :: eig(:),wfn(:,:)
+    INTEGER, INTENT(IN) :: l,nroot
     INTEGER, INTENT(INOUT) :: ierr
     REAL(8), INTENT(INOUT) :: emin
+    LOGICAL, INTENT(INOUT) :: success
 
     REAL(8), PARAMETER :: convre=1.d-10,vlrg=1.d30
     INTEGER, PARAMETER :: niter=1000
 
-    REAL(8), POINTER :: rv(:),eig(:),wfn(:,:)
+    REAL(8), POINTER :: rv(:)
     REAL(8), ALLOCATABLE :: p1(:),p2(:),dd(:)
     INTEGER :: n
     REAL(8) :: nz,h,v0,v0p
@@ -279,14 +280,13 @@ CONTAINS
 
     n=Grid%n
     h=Grid%h
-    wfn=>Orbit%wfn
-    eig=>Orbit%eig
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
        WRITE(6,*) ' Error in boundsr allocation ',i,n
        STOP
     ENDIF
 
+    success=.true.
     allocate(lwfn(n),zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
           write(6,*) ' allocation error in boundsr ', n,i
@@ -315,7 +315,7 @@ CONTAINS
     call prepareforcfdsol(Grid,1,istart,n,p1,lwfn,yy,zz)
     call cfdsol(Grid,zz,yy,istart,n)
     call getwfnfromcfdsol(1,n,yy,p1)
-    node=countnodes(1,n,p1)
+    node=countnodes(2,n,p1)
 
     WRITE(6,*) ' nodes at e=0  ', node
 
@@ -327,6 +327,7 @@ CONTAINS
        DO ir=mxroot+1,nroot
           ierr=ierr+9*(10**(ir-1))
        ENDDO
+       success=.false.
     ENDIF
     mxroot=min0(mxroot,nroot)
     !
@@ -362,7 +363,7 @@ CONTAINS
           call prepareforcfdsol(Grid,1,istart,n,p1,lwfn,yy,zz)
           call cfdsol(Grid,zz,yy,istart,match+6)
           call getwfnfromcfdsol(1,match+6,yy,p1)
-          node= countnodes(1,match+6,p1)
+          node= countnodes(2,match+6,p1)
 
           !icount=icount+1
           !  do i=1,match+6
@@ -404,11 +405,10 @@ CONTAINS
              IF (x.LT.best) THEN
                 scale=SQRT(scale)
                 p1(1:n)=p1(1:n)*scale
-                k=start+iroot-1
                 call filter(n,p1,machine_zero)
-                wfn(1:n,k)=p1(1:n)
-                eig(k)=energy
-                !write(6,*) 'root',l,iroot,eig(k),emin,emax
+                wfn(1:n,iroot)=p1(1:n)
+                eig(iroot)=energy
+                !write(6,*) 'root',l,iroot,eig(iroot),emin,emax
                 best=x
              ENDIF
              IF (ABS(dele).LE.convrez) THEN
@@ -436,28 +436,25 @@ CONTAINS
           ENDIF
        ENDDO BigIter !iter
        IF (.NOT.ok) THEN
+          success=.false.     
           ierr=ierr+ifac*(10**(iroot-1))
           WRITE(6,*) 'no convergence in boundsr',iroot,l,dele,energy
-          WRITE(6,*) ' best guess of eig, dele = ',eig(start+iroot-1),best
+          WRITE(6,*) ' best guess of eig, dele = ',eig(iroot),best
           IF (iroot.LT.mxroot) THEN
              DO ir=iroot+1,mxroot
                 ierr=ierr+9*(10**(ir-1))
              ENDDO
           ENDIF
         ! reset wfn with hydrogenic form
-        k=start+iroot-1; j=iroot+l+1
-        wfn(:,k)=0
-        x=(j)*sqrt(abs(eig(start+iroot-1)))
+        j=iroot+l+1
+        wfn(:,iroot)=0
+        x=(j)*sqrt(abs(eig(iroot)))
         do i=2,n
-           wfn(i,k)=hwfn(x,j,l,Grid%r(i))
+           wfn(i,iroot)=hwfn(x,j,l,Grid%r(i))
         enddo
        ENDIF
     ENDDO !iroot
 
-    ! icount=icount+1
-    ! do i=1,n
-    !   write(100+icount,'(1p,25e15.6)') Grid%r(i),(wfn(i,j),j=start,start+nroot)
-    ! enddo
     DEALLOCATE(p1,p2,dd,lwfn,yy,zz)
              write(6,*) 'returning from boundsr -- ierr=',ierr
   END SUBROUTINE Boundsr

@@ -8,7 +8,7 @@ MODULE BlockDavidson_mod
   REAL(8), PARAMETER, PRIVATE :: base_eps=1.d-6
   REAL(8), PRIVATE :: eps
   REAL(8), PARAMETER, PRIVATE :: conv1=4.d13,conv2=3.d13,conv3=2.d13,conv4=1.d13
-  INTEGER, PARAMETER, PRIVATE :: mxiter=1000
+  INTEGER, PARAMETER, PRIVATE :: mxiter=300
 
 CONTAINS
 
@@ -37,9 +37,10 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  On input vec(ndim,nvec) contains initial guesses for eigenfunctions
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE BlockDavidson(ntest,nvec,vec,eig,dup,ressub,multsub)
+  SUBROUTINE BlockDavidson(ntest,nvec,vec,eig,success,dup,ressub,multsub)
     INTEGER, INTENT(IN) :: ntest,nvec,dup
     REAL(8), INTENT(INOUT) :: vec(:,:),eig(:)
+    LOGICAL :: success
 
     INTEGER :: ndim,i,j,k,n,ns,start,finish,last,iter
     REAL(8) :: delta,ee,v1,v2,v3,v4
@@ -58,6 +59,7 @@ CONTAINS
        END FUNCTION multsub
     END INTERFACE
 
+    success=.false.
     !WRITE(6,*) 'In BlockDavidson ', nvec,dup
     !CALL flush(6)
     CALL InitBlockDavidson(nvec,vec,dup)
@@ -67,6 +69,7 @@ CONTAINS
        CALL shift4(v1,v2,v3,v4,delta)
        IF (iter>=4.AND.(v4<eps.AND.v4>v3))THEN
           CALL EndBlockDavidson
+          success=.true.
           RETURN
 
        ELSE

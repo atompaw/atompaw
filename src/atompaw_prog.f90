@@ -125,15 +125,15 @@ PROGRAM atompaw
    else if (checkline2(token,"1","SCFPAW")) then
      CALL SCFPAW(Grid,PAW)
    else if (checkline2(token,"2","ABINITOUT")) then
-     CALL Atompaw2Abinit(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput)
+     CALL Atompaw2Abinit(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput)
    else if (checkline2(token,"3","PWSCFOUT")) then    
-     CALL Atompaw2Pwscf(Grid,AEPot,FC,PAW,AEOrbit,ifinput)
+     CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit,ifinput)
    else if (checkline2(token,"4","PWPAWOUT")) then    
      CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
    else if (checkline2(token,"5","XMLOUT")) then    
-     CALL Atompaw2XML(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput) 
+     CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput) 
    else if (checkline2(token,"10","EXPLORE")) then    
-     CALL exploreparms(Grid,AEPot,FC,AEOrbit,PAW)    
+     CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)    
    else 
      STOP 'Option not recognized -- pgm terminating'
    endif                                      

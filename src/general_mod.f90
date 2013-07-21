@@ -24,12 +24,12 @@ CONTAINS
     !  program to calculate wavefunctions given potential rvin
 
     INTEGER :: icount,i,j,k,n,it,start,np,ierr,nroot,s1,s2
-    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr
-    REAL(8) :: h,emin,nz
+    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr,nz
+    REAL(8) :: h,emin,zz
     REAL(8), ALLOCATABLE :: dum(:)
     LOGICAL :: OK
 
-    n=Grid%n; h=Grid%h;    nz=Pot%nz
+    n=Grid%n; h=Grid%h;    nz=Pot%nz;   zz=Pot%zz
     success=.TRUE.
 
     allocate(dum(n))
@@ -53,15 +53,15 @@ CONTAINS
        nroot=Orbit%nps
        start=1;s1=start;s2=start+nroot-1
        IF (scalarrelativistic) THEN
-          CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+       ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
-             RETURN
           ENDIF
-       ENDIF
     ENDIF
     !  p states :
     IF (Orbit%npp.GT.1) THEN
@@ -72,16 +72,15 @@ CONTAINS
        start=start+Orbit%nps
        s1=start;s2=start+nroot-1
        IF (scalarrelativistic) THEN
-          CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
-    !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+       ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
-             RETURN
           ENDIF
-       ENDIF
     ENDIF
     !  d states :
     IF (Orbit%npd.GT.2) THEN
@@ -92,16 +91,15 @@ CONTAINS
        start=start+Orbit%npp-1
        s1=start;s2=start+nroot-1
        IF (scalarrelativistic) THEN
-          CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
-    !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+       ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
-             RETURN
           ENDIF
-       ENDIF
     ENDIF
     !  f states :
     IF (Orbit%npf.GT.3) THEN
@@ -112,16 +110,15 @@ CONTAINS
        start=start+Orbit%npd-2
        s1=start;s2=start+nroot-1
        IF (scalarrelativistic) THEN
-          CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
-    !write(6,*) 'In Updatewfn  before BoundNumerov'; call flush(6)
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+       ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
-             RETURN
           ENDIF
-       ENDIF
     ENDIF
     !  g states :
     IF (Orbit%npg.GT.4) THEN
@@ -132,17 +129,16 @@ CONTAINS
        start=start+Orbit%npf-3
        s1=start;s2=start+nroot-1
        IF (scalarrelativistic) THEN
-          CALL boundsr(Grid,Pot,Orbit,l,start,nroot,emin,ierr)
+          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
        ENDIF
        IF (.NOT.OK) THEN
           success=.FALSE.
-          RETURN
        ENDIF
     ENDIF
-   ! write(6,*) 'In Updatewfn  at end'; call flush(6)
 
     deallocate(dum)
 
@@ -318,7 +314,7 @@ CONTAINS
     TYPE(PotentialInfo), INTENT(INOUT) :: Pot
 
     INTEGER :: n
-    REAL(8) :: h,q,nz,v0,v0p
+    REAL(8) :: h,q,v0,v0p
     REAL(8) :: r,RR
     INTEGER :: i,j,k
 

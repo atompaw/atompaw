@@ -12,18 +12,19 @@ MODULE Numerov_mod
 
 CONTAINS
 
-  SUBROUTINE BoundNumerov(Grid,rv,v0,v0p,l,nroot,Eig,Psi,success)
+  SUBROUTINE BoundNumerov(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,success)
     TYPE(GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(IN) :: rv(:),v0,v0p
-    INTEGER, INTENT(IN) :: l,nroot
+    INTEGER, INTENT(IN) :: nz,l,nroot
     REAL(8), INTENT(INOUT) :: Eig(:), Psi(:,:)
-    LOGICAL :: success
+    LOGICAL, INTENT(INOUT) :: success
 
     INTEGER, PARAMETER :: repeat=4
     INTEGER :: i,j,k,n,many,count
     REAL(8), ALLOCATABLE :: vec(:,:),f(:),dum(:),e(:)
     REAL(8) :: x
 
+    success=.false.
     CALL initBoundNumerov(Grid)
     CALL startBoundNumerov(Grid,rv,l)
 
@@ -69,10 +70,16 @@ CONTAINS
        ENDDO
     ENDIF
 
-    CALL BlockDavidson(nroot,many,vec,e,repeat,hvov,multres)
+    CALL BlockDavidson(nroot,many,vec,e,success,repeat,hvov,multres)
 
     DO j=1,nroot
-       Eig(j)=e(j)
+       If (e(j)<-1.d-5) then
+          Eig(j)=e(j)
+       elseif (e(j)>=-1.d-5.and.j==1) then
+          Eig(j)=-REAL(nz**2)/(j+l)**2   
+       elseif (e(j)>=-1.d-5.and.j>1) then   
+          Eig(j)=(Eig(j-1)*(nroot-j+1))/nroot
+       endif   
        Psi(1,j)=0;  Psi(n,j)=0
        !WRITE(6,*) 'BD Eigenvalue -- ', j, Eig(j)
        !call flush(6)
@@ -90,10 +97,19 @@ CONTAINS
        Psi(:,j)=Psi(:,j)/SQRT(x)
     ENDDO
 
-    DEALLOCATE(vec)
+                                                                                    DEALLOCATE(vec,f,dum,e)
     CALL endBoundNumerov
 
+    If (.not.success) then
+       write(6,*) 'program faltering due to failure of BlockDavidson'
+       write(6,*) 'l = ',l
+       write(6,*) 'Eig = ', Eig(1:nroot)
+
+    endif
+
+    write(6,*) 'Before newboundsch',l,nroot, Eig(1:nroot); call flush(6)
     CALL newboundsch(Grid,rv,v0,v0p,l,nroot,Eig,Psi,success)
+    write(6,*) 'After newboundsch',l,nroot, Eig(1:nroot); call flush(6)
 
     ! adjust sign
     Do j=1,nroot
@@ -246,9 +262,9 @@ CONTAINS
     INTEGER, PARAMETER :: niter=1000
 
     REAL(8), ALLOCATABLE :: p1(:),p2(:),dd(:)
-    INTEGER :: n,ierr
-    REAL(8) :: h,q,nz
-    REAL(8) :: err,convrez,energy,zeroval
+    INTEGER :: nz,n,ierr
+    REAL(8) :: h,q
+    REAL(8) :: err,convrez,energy,zeroval,zz
     REAL(8) :: scale,emin,emax,best,rout,ppp
     REAL(8) :: arg,r,r2,veff,pppp1,rin,dele,x,rvp1,pnp1,bnp1
     INTEGER :: iter,i,j,k,node,match,mxroot,ntroot,ir,iroot
@@ -263,7 +279,7 @@ CONTAINS
        STOP
     ENDIF
 
-    nz=-(rv(1)-0.1d0)/2
+    nz=-(rv(1)-0.1d0)/2;zz=nz
     q=-rv(n)/2
     IF (q<0.001d0) q=0.d0
     err=n*nz*(h**4)
@@ -312,7 +328,7 @@ CONTAINS
           !    correct behavior near r=0
           ! initialize p1
           p1=0
-          p1(2)=wfninit(nz,l,v0,v0p,energy,Grid%r(2))
+          p1(2)=wfninit(zz,l,v0,v0p,energy,Grid%r(2))
           zeroval=0
           IF (l==0) zeroval=-2*nz
           IF (l==1) zeroval=2
@@ -424,7 +440,7 @@ CONTAINS
 
     REAL(8) :: c1,c2,c3
 
-    c1=-nz/(l+1.d0)
+    c1=-REAL(nz)/(l+1.d0)
     c2=((v0-energy)-2*nz*c1)/(4*l+6.d0)
     c3=(v0p+(v0-energy)*c1-2*nz*c2)/(6*l+12.d0)
 
@@ -505,19 +521,19 @@ CONTAINS
     REAL(8), INTENT(INOUT) :: wfn(:)
     INTEGER, INTENT(INOUT) :: nodes
 
-    INTEGER :: n,i,j,k,ierr
-    REAL(8) :: nz,zeroval,scale
+    INTEGER :: n,nz,i,j,k,ierr
+    REAL(8) :: zeroval,scale,zz
 
     n=Grid%n
     IF (nr > n) THEN
        WRITE(6,*) 'Error in unboundsch -- nr > n', nr,n
        STOP
     ENDIF
-    nz=-(rv(1)-0.1d0)/2
+    nz=-(rv(1)-0.1d0)/2;zz=nz
 
     ! initialize wfn
     wfn=0
-    wfn(2)=wfninit(nz,l,v0,v0p,energy,Grid%r(2))
+    wfn(2)=wfninit(zz,l,v0,v0p,energy,Grid%r(2))
     zeroval=0
     if (l==0) zeroval=-2*nz
     if (l==1) zeroval=2

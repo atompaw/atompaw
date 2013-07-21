@@ -824,8 +824,12 @@ CONTAINS
          IF (PAW%l(jb)==l) THEN
            !CALL kinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb),l,x,lr)
            !CALL kinetic_ij(Grid,PAW%otphi(:,ib),PAW%otphi(:,jb),l,y,lr)
-           CALL deltakinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb), &
-&               PAW%otphi(:,ib),PAW%otphi(:,jb),l,x,PAW%irc)
+            If (scalarrelativistic) then
+               call altdtij(Grid,PAW,ib,jb,x)
+            Else
+              CALL deltakinetic_ij(Grid,PAW%ophi(:,ib),PAW%ophi(:,jb), &
+&                  PAW%otphi(:,ib),PAW%otphi(:,jb),l,x,PAW%irc)
+            Endif
            WRITE(6,'(" Kinetic ", 3i5, 1p,3e15.7)') ib,jb,l,x
            PAW%Kij(ib,jb)=x
            dum=PAW%ophi(:,ib)*PAW%ophi(:,jb)*PAW%rVf - &

@@ -3596,7 +3596,7 @@ CONTAINS
      write(6,*) 'Begin explore runs'
      OPEN(20,file='EXPLORERESULTS',form='formatted')
      OPEN(21,file='EXPLORESUMMARY',form='formatted')
-     write(20,'("dataset",6(2x,i3,10x))') (l,l=0,PAW%lmax+1)
+     write(20,'("dataset","    rc       ",6(2x,i3,10x))') (l,l=0,PAW%lmax+1)
      write(21,'(" Logderiv errors based on energy range", 2f12.2)') &
 &        EBEGIN, EEND
      ircs=0; thisrc=-1

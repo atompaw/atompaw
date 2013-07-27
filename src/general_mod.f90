@@ -268,7 +268,11 @@ CONTAINS
             Endif
           Else
               FC%valeden(:)=FC%valeden(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)
-              CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              If(present(noalt)) then
+                  CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              else
+                  CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
+              endif
               tv=tv+Orbit%occ(io)*x
           ENDIF
           Orbit%den(:)=Orbit%den(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)

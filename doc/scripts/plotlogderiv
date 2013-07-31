@@ -1,0 +1,11 @@
+#!/bin/csh -f
+'rm' -f logderiv.gnu
+set fl=logderiv.$1
+echo $fl
+set fl='"'$fl'"'
+echo $fl
+echo 'set yrange[-5:5]' >logderiv.gnu
+echo 'plot' $fl 'using 1:2 with lines,' $fl 'using 1:3 with points' >>logderiv.gnu
+echo ' ' >>logderiv.gnu
+echo 'pause -1 "******Press return to continue******"' >> logderiv.gnu
+gnuplot logderiv.gnu

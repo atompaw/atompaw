@@ -1,0 +1,10 @@
+#!/bin/csh -f
+'rm' -f density.gnu
+set fl=density
+echo $fl
+set fl='"'$fl'"'
+echo $fl
+echo 'plot [0:6]' $fl 'using 1:2 with lines,' $fl 'using 1:3 with lines,' $fl 'using 1:4 with lines'>density.gnu
+echo ' ' >>density.gnu
+echo 'pause -1 "******Press return to continue******"' >> density.gnu
+gnuplot density.gnu

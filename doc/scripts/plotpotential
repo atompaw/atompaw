@@ -1,0 +1,10 @@
+#!/bin/csh -f
+'rm' -f potential.gnu
+set fl=potential
+echo $fl
+set fl='"'$fl'"'
+echo $fl
+echo 'plot [0:6]' $fl 'using 1:2 with lines,' $fl 'using 1:3 with lines,0' >potential.gnu
+echo ' ' >>potential.gnu
+echo 'pause -1 "******Press return to continue******"' >> potential.gnu
+gnuplot potential.gnu

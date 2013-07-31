@@ -19,6 +19,10 @@ ParameterExplore is a version of inputRadiusChanger modified and renamed for pub
 
 using namespace std;
 
+void ReadMe()
+{
+	cout << "
+
 int main()
 {
 	double startR; 
@@ -37,12 +41,6 @@ int main()
 	
 	cout << "Please enter the minimium radius: " << endl;
 	cin >> startR;
-	if(startR == -1)					//Displays program info.
-	{
-		system("more ~katecm0/C++/ExeFiles/ircvReadMe");
-		cout << "Please enter the minimium radius: " << endl;
-		cin >> startR;
-	}
 	cout << "Please enter the maximum radius: " << endl;
 	cin >> endR;
 	

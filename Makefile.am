@@ -57,6 +57,18 @@ atp_xmpl_srcs = \
     example/Na/outputdata/Na.LDA-PW-paw.UPF
 atp_doc_srcs = \
 	doc/atompaw-usersguide.pdf
+	doc/atompaw-usersguide.pdf*
+	doc/atompaw-usersguide.doc
+	doc/ATOMPAW_Explore_Userguide.pdf
+	doc/ATOMPAW_Explore_Userguide.odt
+	doc/exploresetup/ParameterExplore.cpp
+	doc/exploresetup/ParameterExploreReadMe.txt
+	doc/scripts/explorelogderiv*
+	doc/scripts/explorewfn*
+	doc/scripts/plotdensity*
+	doc/scripts/plotlogderiv*
+	doc/scripts/plotpotential*
+	doc/scripts/plotwfn*
 
 # Files to install (nobase = preserving the directory structure)
 nobase_doc_DATA = $(atp_xmpl_srcs) $(atp_doc_srcs)

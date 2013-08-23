@@ -374,7 +374,7 @@ CONTAINS
        do io=1,PAW%TOCCWFN%norbit
           if (PAW%valencemap(io)>0) then
               ib=PAW%valencemap(io)
-              PAW%TOCCWFN%wfn(:,io)=PAW%otphi(:,ib)
+              PAW%TOCCWFN%wfn(:,io)=PAW%tphi(:,ib)
           endif
        enddo
      END SUBROUTINE StoreTOCCWFN
@@ -1504,7 +1504,7 @@ CONTAINS
            ENDIF
          ENDDO
        ENDDO
-       ai=aa;call minverse(aa,icount,icount,icount)
+       ai=aa;  !call minverse(aa,icount,icount,icount)
        do i=1,icount
         io=omap(i);PAW%ck(io)=ai(i,i)
        enddo

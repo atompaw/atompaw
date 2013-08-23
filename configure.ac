@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.0.0.0],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.0.0.1],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,7 +28,7 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.f90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 06/2013 NAWH,MT
+!--- Version ${PACKAGE_VERSION} - 06/2013 NAWH,MT; 08/2013 minor fix
 EOF
 
 # Initialize Automake

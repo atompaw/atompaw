@@ -2918,7 +2918,7 @@ CONTAINS
       DO ib=1,nbase
          IF (l==PAW%l(ib)) psi(1:nr)=psi(1:nr)+&
 &             (PAW%ophi(1:nr,ib)-PAW%otphi(1:nr,ib))*&
-&             overlap(Grid,PAW%otp(:,ib),tpsi,1,nr)
+&             overlap(Grid,PAW%otp(:,ib),tpsi,1,irc)
       ENDDO
     END SUBROUTINE PStoAE
 
@@ -2930,11 +2930,15 @@ CONTAINS
 
       INTEGER :: nbase,l,ib,ic,io
       REAL(8) :: x
+      TYPE(OrbitInfo), POINTER :: PSO
+      REAL(8), allocatable :: wij(:,:)
 
       PAW%oij=0
       PAW%dij=0
       PAW%wij=0
       nbase=PAW%nbase
+      PSO=>PAW%TOCCWFN
+      ALLOCATE (wij(nbase,nbase))
 
       do ib=1,nbase
          do ic=1,nbase
@@ -2948,14 +2952,21 @@ CONTAINS
          enddo
       enddo
 
-      Do io=1,nbase
-         l=PAW%l(io)
-         if (PAW%occ(io)>1.d-8) then
-             CALL calcwij(Grid,PAW,l,PAW%occ(io),PAW%tphi(:,io),PAW%wij)
+      wij=0
+      Do io=1,PSO%norbit
+         l=PSO%l(io)
+         if (PSO%occ(io)>1.d-8.and..NOT.PSO%iscore(io)) then
+             CALL calcwij(Grid,PAW,l,PSO%occ(io),PSO%wfn(:,io),wij)
          endif
       enddo
 
+      do ib=1,nbase
+         do ic=1,nbase
+             PAW%wij(ib,ic)=wij(ib,ic)
+        enddo
+      enddo       
 
+      DEALLOCATE(wij)
   END SUBROUTINE Set_PAW_MatrixElements
 
     !************************************************************************
@@ -3328,7 +3339,7 @@ CONTAINS
       INTEGER :: fcount=0
 
       success=.false.
-      n=Grid%n; nbase=PAW%nbase
+      n=Grid%n; nbase=PAW%nbase;  irc=PAW%irc
       ALLOCATE(arg(n),rhs(n),rv(n),aden(n),v1(n),v2(n),&
 &           tmap(PAW%OCCWFN%norbit),o(PAW%OCCWFN%norbit,nbase))
 
@@ -3359,7 +3370,7 @@ CONTAINS
          io=tmap(k); l=PSO%l(io)
          do ib=1,PAW%nbase
             if (l==PAW%l(ib)) then
-               o(io,ib)=overlap(Grid,PSO%wfn(:,io),PAW%otp(:,ib))
+               o(io,ib)=overlap(Grid,PSO%wfn(:,io),PAW%otp(:,ib),1,irc)
                 write(6,'("<p|psi> ", 2i5,1p,e15.7)') io,ib,o(io,ib)
             endif
          enddo

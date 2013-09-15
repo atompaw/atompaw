@@ -54,12 +54,13 @@ CONTAINS
     INTEGER :: icount,i,j,k,it,start,np,ierr,gridpoints,logdpoints
     INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir
     INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ilgd,ihfpp,ilcex
-    INTEGER :: igrid,irelat,ilogder,ilogv4
+    INTEGER :: igrid,irelat,ilogder,ilogv4,ibd
     INTEGER :: nps,npp,npd,npf,npg
     INTEGER, ALLOCATABLE :: nl(:,:)
     CHARACTER(128) :: exchangecorrelationandgridline,gridkey,relkey
     CHARACTER(132) :: inputline,inputword
 
+    BDsolve=.false.
     scalarrelativistic=.FALSE.; finitenucleus=.FALSE. ;
     frozencorecalculation=.FALSE.;setupfrozencore=.false.
     gaussianshapefunction=.FALSE.;besselshapefunction=.FALSE.
@@ -79,7 +80,7 @@ CONTAINS
     ENDIF
     AEPot%zz=AEPot%nz
 
-!   2nd line : XC type, grid data, relativistic, point-nucleus, logderiv data, HF data
+!   2nd line : XC type, grid data, relativistic, point-nucleus, logderiv data, HF data, BDsolve keyword 
 !   ----------------------------------------------------------------------------------
     WRITE(6,*) 'exchange-correlation type, among the following:'
     WRITE(6,*) '    * LDA-PW (default), GGA-PBE, GGA-PBESOL'
@@ -97,6 +98,7 @@ CONTAINS
     WRITE(6,*) '    further optionally emin (minimum energy for log. deriv. plot)'
     WRITE(6,*) '                       emax (maximum energy for log. deriv. plot)'
     WRITE(6,*) '                       ne   (#  of energies for log. deriv. plot)'
+    WRITE(6,*) 'addition option for "BDsolve" keyword for Block-Davidson solver'
 
 !   Treat line characters
     READ(5,'(a)') exchangecorrelationandgridline
@@ -107,10 +109,11 @@ CONTAINS
 
 !   Retrieve keyword indexes
     ilin=0;ilin=0;ilog=0;ilogv4=0;inrl=0;iscl=0;ipnt=0;ifin=0;ilgd=0
-    ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0
+    ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0;ibd=0
     ilin=INDEX(exchangecorrelationandgridline,'LINEARGRID')
     ilog=INDEX(exchangecorrelationandgridline,'LOGGRID')
     ilogv4=INDEX(exchangecorrelationandgridline,'LOGGRIDV4')
+    ibd=INDEX(exchangecorrelationandgridline,'BDSOLVE')
     inrl=INDEX(exchangecorrelationandgridline,'NONRELATIVISTIC')
     iscl=INDEX(exchangecorrelationandgridline,'SCALARRELATIVISTIC')
     ipnt=INDEX(exchangecorrelationandgridline,'POINT-NUCLEUS')
@@ -145,6 +148,7 @@ CONTAINS
      iend=128
      if (irelat >igrid.and.irelat-1 <iend) iend=irelat -1
      if (ilogder>igrid.and.ilogder-1<iend) iend=ilogder-1
+     if (ibd>igrid.and.ibd-1<iend) iend=ibd-1
      inputline=""
      if (ilog>0.and.ilogv4==0.and.iend>igrid+7) &
 &       inputline=trim(exchangecorrelationandgridline(igrid+7:iend))
@@ -203,6 +207,14 @@ CONTAINS
      endif
     endif
 
+! consider bound state solver
+   if (ibd>0) BDsolve=.true.
+   if (BDsolve.and.gridkey=='LINEAR') then
+      write(6,*) &
+&      'WARNING:   BlockDavidson solver works very slowly with linear grid'
+   endif
+   Write(6,*) 'BDSOLVE', BDSOLVE;call flush(6)
+
 !   Treat exchange-correlation/HF keyword
     READ(unit=exchangecorrelationandgridline,fmt=*) exctype
     IF (TRIM(exctype)=='EXX'.or.TRIM(exctype)=='EXXKLI'.or.   &
@@ -219,6 +231,7 @@ CONTAINS
 !   3rd line and following : electronic configuration of atom
 !   ----------------------------------------------------------------------------------
     WRITE(6,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%zz
+    call flush(6)
     WRITE(6,*) 'enter maximum principal quantum numbers for s,p,d,f,g'
     IF(PRESENT(ifinput)) THEN
        READ(5,'(a)') inputline

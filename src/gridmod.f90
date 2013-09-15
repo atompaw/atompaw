@@ -2033,7 +2033,7 @@ CONTAINS
        Grid%n=n
        Grid%h=h
        WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
-       ALLOCATE(Grid%r(n),stat=i)
+       ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(6,*) 'Allocation error in initgrid ', n,i
           STOP
@@ -2041,9 +2041,9 @@ CONTAINS
        DO i=1,n
           Grid%r(i)=(Grid%h*(i-1))
           Grid%drdu(i)=1.d0
+          Grid%pref(i)=1.d0
+          Grid%rr02(i)=1.d0
        ENDDO
-       NULLIFY(Grid%pref)
-       NULLIFY(Grid%rr02)
     ENDIF
 
   END SUBROUTINE InitGrid
@@ -2113,7 +2113,7 @@ CONTAINS
 
       do i=start+1,finish
          if (wfn(i)*wfn(i-1)<0.d0) nodes=nodes+1
-         if (PRESENT(filter).and.(abs(wfn(i))+abs(wfn(i+1)))<filter) exit
+         if (PRESENT(filter).and.(abs(wfn(i))+abs(wfn(i-1)))<filter) exit
       enddo
 
       countnodes=nodes

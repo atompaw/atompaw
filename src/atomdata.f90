@@ -40,6 +40,7 @@ MODULE atomdata
   LOGICAL :: frozencorecalculation
   LOGICAL :: setupfrozencore
   LOGICAL :: scalarrelativistic
+  LOGICAL :: BDsolve
   LOGICAL :: finitenucleus
   LOGICAL :: gaussianshapefunction,besselshapefunction
   LOGICAL :: ColleSalvetti

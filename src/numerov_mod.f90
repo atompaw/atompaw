@@ -12,11 +12,12 @@ MODULE Numerov_mod
 
 CONTAINS
 
-  SUBROUTINE BoundNumerov(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,success)
+  SUBROUTINE BoundNumerov(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,BDsolve,success)
     TYPE(GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(IN) :: rv(:),v0,v0p
     INTEGER, INTENT(IN) :: nz,l,nroot
     REAL(8), INTENT(INOUT) :: Eig(:), Psi(:,:)
+    LOGICAL, INTENT(IN) :: BDsolve
     LOGICAL, INTENT(INOUT) :: success
 
     INTEGER, PARAMETER :: repeat=4
@@ -24,6 +25,7 @@ CONTAINS
     REAL(8), ALLOCATABLE :: vec(:,:),f(:),dum(:),e(:)
     REAL(8) :: x
 
+  If (BDsolve) then  
     success=.false.
     CALL initBoundNumerov(Grid)
     CALL startBoundNumerov(Grid,rv,l)
@@ -106,6 +108,7 @@ CONTAINS
        write(6,*) 'Eig = ', Eig(1:nroot)
 
     endif
+  Endif     !BDsolve
 
     write(6,*) 'Before newboundsch',l,nroot, Eig(1:nroot); call flush(6)
     CALL newboundsch(Grid,rv,v0,v0p,l,nroot,Eig,Psi,success)

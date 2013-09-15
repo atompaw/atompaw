@@ -57,7 +57,7 @@ CONTAINS
 &             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
-&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -76,7 +76,7 @@ CONTAINS
 &             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
-&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -95,7 +95,7 @@ CONTAINS
 &             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
-&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -114,7 +114,7 @@ CONTAINS
 &             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
-&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -133,7 +133,7 @@ CONTAINS
 &             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
-&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),OK)
+&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
        ENDIF
        IF (.NOT.OK) THEN
           success=.FALSE.

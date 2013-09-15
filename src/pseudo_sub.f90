@@ -548,13 +548,14 @@ CONTAINS
     REAL(8), ALLOCATABLE :: bm(:)
 
     n=Grid%n; h=Grid%h ;  irc=PAW%irc
+
     nbase=PAW%nbase
 
     ALLOCATE(bm(nbase))
 
     bm=0
     DO ib=1,nbase
-       IF (l==PAW%l(ib)) bm(ib)=overlap(Grid,PAW%otp(:,ib),twfn)
+       IF (l==PAW%l(ib)) bm(ib)=overlap(Grid,PAW%otp(:,ib),twfn,1,irc)
        !IF (l==PAW%l(ib)) write(6,*) 'accum wij',l,ib,bm(ib)
     ENDDO
     DO ib=1,nbase
@@ -782,8 +783,8 @@ CONTAINS
 
     INTEGER :: io,jo,ko,lo,ll,lmax,i,j,k,l,n,norbit,nbase,ib,jb,kb,lb,irc
     INTEGER :: llmin, llmax,lp,lr
-    REAL(8), ALLOCATABLE :: arg(:),dum(:),rh(:),trh(:),d(:),td(:)
-    REAL(8) :: x,y,z,rr
+    REAL(8), ALLOCATABLE :: arg(:),dum(:),rh(:),trh(:),d(:),td(:),wij(:,:)
+    REAL(8) :: x,y,z,rr,occ
     REAL(8) :: Qcore,tQcore
     LOGICAL :: even
 
@@ -792,6 +793,7 @@ CONTAINS
     ALLOCATE(arg(n),dum(n),rh(n),trh(n),d(n),td(n))
     arg=0;   dum=0
     ALLOCATE(PAW%mLij(nbase,nbase,ll+1),PAW%DR(nbase,nbase,nbase,nbase,ll+1))
+    ALLOCATE(wij(nbase,nbase))
     PAW%mLij=0.d0;PAW%DR=0.d0
 
     CALL poisson(Grid,Qcore,PAW%core,dum,y)
@@ -1171,12 +1173,15 @@ CONTAINS
 !   Calculate atomic energy from PAW matrix elements
     PAW%tkin=0; PAW%tion=0; PAW%tvale=0;PAW%txc=0;PAW%Ea=0
     PAW%Etotal=0;PAW%Eaxc=0;PAW%den=0; PAW%tden=0
-    DO ib=1,nbase
-      l=PAW%l(ib)
-      CALL kinetic(Grid,PAW%otphi(:,ib),PAW%l(ib),x)
-      PAW%tkin=PAW%tkin+PAW%occ(ib)*x
-      PAW%den=PAW%den+PAW%occ(ib)*(PAW%phi(:,ib))**2
-      PAW%tden=PAW%tden+PAW%occ(ib)*(PAW%tphi(:,ib))**2
+    norbit=PAW%TOCCWFN%norbit
+    DO io=1,norbit
+      if (.NOT.PAW%TOCCWFN%iscore(io)) then
+         l=PAW%TOCCWFN%l(io) ; occ=PAW%TOCCWFN%occ(io)
+         CALL kinetic(Grid,PAW%TOCCWFN%wfn(:,io),l,x)
+         PAW%tkin=PAW%tkin+occ*x
+         PAW%den=PAW%den+occ*(PAW%OCCWFN%wfn(:,io))**2
+         PAW%tden=PAW%tden+occ*(PAW%TOCCWFN%wfn(:,io))**2
+      endif   
     ENDDO
     write(6,*) 'smooth kinetic ', PAW%tkin
 
@@ -1211,24 +1216,17 @@ CONTAINS
     write(6,*) 'valence Q', x
     PAW%Ea=-PAW%Eaion-x*PAW%Eaionhat
 
-    PAW%wij=0
-    do io=1,nbase
-      l=PAW%l(io);arg=0
-      DO ib=1,nbase
-        IF (PAW%l(ib).EQ.l) &
-&         arg(ib)=overlap(Grid,PAW%otp(:,ib),PAW%tphi(:,io),1,irc)
-      ENDDO
-      DO ib=1,nbase
-        do jb=1,nbase
-          if (PAW%l(ib)==PAW%l(jb)) &
-&             PAW%wij(ib,jb)=PAW%wij(ib,jb)+PAW%occ(io)*arg(ib)*arg(jb)
-        enddo
-      enddo
+    wij=0
+    do io=1,norbit
+      l=PAW%TOCCWFN%l(io); occ=PAW%TOCCWFN%occ(io)
+      if (occ>1.d-8.and..NOT.PAW%TOCCWFN%iscore(io)) &
+&      call calcwij(Grid,PAW,l,occ,PAW%TOCCWFN%wfn(:,io),wij)      
     enddo
 
+    
     do ib=1,nbase
       do jb=1,nbase
-        write(6,*) 'wij', ib,jb,PAW%wij(ib,jb)
+        PAW%wij(lb,jb)=wij(ib,jb)
       enddo
     enddo
     DO ib=1,nbase
@@ -1271,7 +1269,7 @@ CONTAINS
     PAW%coretailpoints=MAX(PAW%coretailpoints,PAW%mesh_size)
 
 
-    DEALLOCATE(arg,dum,rh,trh,d,td)
+    DEALLOCATE(arg,dum,rh,trh,d,td,wij)
 
   END SUBROUTINE SPMatrixElements
 

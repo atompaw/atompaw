@@ -158,7 +158,7 @@ Module XMLInterface
  integer :: id,vlocopt
  type(mesh_data_type) :: mesh_data
  type(pawrso_type) :: pawrso
- character*(fnlen) :: file_xml,xcname
+ character*(fnlen) :: author,file_xml,xcname
  character*(5000) :: input_string
  real(dp),allocatable :: tproj(:,:)
 
@@ -178,7 +178,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Read choices from input file
 
- call rdinputxml(vlocopt,pawrso,input_string)
+ call rdinputxml(vlocopt,pawrso,author,input_string)
 
 !------------------------------------------------------------------
 !---- Build radial meshes definitions
@@ -225,7 +225,8 @@ Module XMLInterface
  xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
  file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw'
 
- call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,input_string)
+ call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
+&   input_string,author)
 
 !------------------------------------------------------------------
 !---- End
@@ -265,29 +266,32 @@ Module XMLInterface
 !! extractword,uppercase
 !!=================================================================
 
- subroutine rdinputxml(vlocopt,pawrso,input_string)
+ subroutine rdinputxml(vlocopt,pawrso,author,input_string)
 
  integer,intent(out) :: vlocopt
  type(pawrso_type),intent(out)   :: pawrso
+ character(len=*),intent(out) :: author
  character(len=*),intent(inout) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_usexcnhat,i_rsoptim,iend,ok
- character*(fnlen) :: readline,inputline,inputword
+ integer :: i_author,i_usexcnhat,i_rsoptim,iend,ok,nn
+ character*(fnlen) :: readline,readline_u,inputline,inputword
 
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
  read(std_in,'(a)',advance='no',iostat=ok) readline
- write(unit=input_string,fmt='(5a)') trim(input_string), &
-&                   char(10),"XMLOUT",char(10),trim(readline)
- call Uppercase(readline)
- i_usexcnhat=index(readline,'USEXCNHAT')
- i_rsoptim  =index(readline,'RSOPTIM')
+
+ readline_u=readline
+ call Uppercase(readline_u)
+
+ i_usexcnhat=index(readline_u,'USEXCNHAT')
+ i_rsoptim  =index(readline_u,'RSOPTIM')
+ i_author   =index(readline_u,'AUTHOR')
 
 !Option for use of NHAT in XC
  if (i_usexcnhat>0) then
@@ -332,6 +336,20 @@ Module XMLInterface
  else
   write(std_out,'(a,2x,a)') ch10,'No Real Space Optimization of projectors'
  end if
+
+ if(i_author>0) then
+   inputline=trim(readline(i_author+6:))
+   read(unit=inputline,fmt=*) author
+   author=trim(author) ; nn=len(trim(author))
+   write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
+& "XMLOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
+ else
+   author=""
+   write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
+&   "XMLOUT",char(10),trim(readline)
+ end if
+
+
 
  end subroutine rdinputxml
 
@@ -605,11 +623,11 @@ Module XMLInterface
 !!
 !!=================================================================
 
- SUBROUTINE xmloutput(fname,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,input_string)
+ SUBROUTINE xmloutput(fname,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,&
+&     vlocopt,input_string,author)
 
  integer,intent(in) :: vlocopt
- character(len=fnlen),intent(in) :: fname
- character(len=*),intent(in) :: input_string
+ character(len=*),intent(in) :: input_string,author,fname
  TYPE(Gridinfo),intent(in) :: Grid
  TYPE (SCFInfo),intent(in) :: AESCF
  TYPE(Potentialinfo),intent(in) :: AEPot
@@ -688,15 +706,28 @@ Module XMLInterface
    WRITE(unit_xml,'("<generator type=""non-relativistic"" name=""atompaw"">")')
  endif
  WRITE(unit_xml,'("</generator>)")')
- WRITE(unit_xml,'("<!-- Contact info: email: natalie@wfu.edu")')
+
+!Echo input file
+!WRITE(unit_xml,'("<!-- Contact info: email: natalie@wfu.edu")')
+!WRITE(unit_xml,'("               web: pwpaw.wfu.edu")')
+!WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
+!WRITE(unit_xml,'(" Note: consistent with 06-14-06 standard")')
+!WRITE(unit_xml,'(" As discussed at CECAM PAW Workshop     ")')
+!Call PrintDate(unit_xml, ' PAW functions generated on ')
+!WRITE(unit_xml,'("  ",a)') Trim(PAW%Vloc_description)
+!WRITE(unit_xml,'("  ",a)') Trim(PAW%Proj_description)
+!WRITE(unit_xml,'("  ",a)') Trim(PAW%Comp_description)
+ WRITE(unit_xml,'("<!-- Atompaw ",a)') atp_version
+ WRITE(unit_xml,'(" Contact info: email: natalie@wfu.edu")')
  WRITE(unit_xml,'("               web: pwpaw.wfu.edu")')
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
- WRITE(unit_xml,'(" Note: consistent with 06-14-06 standard")')
- WRITE(unit_xml,'(" As discussed at CECAM PAW Workshop     ")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
- WRITE(unit_xml,'("  ",a)') Trim(PAW%Vloc_description)
- WRITE(unit_xml,'("  ",a)') Trim(PAW%Proj_description)
- WRITE(unit_xml,'("  ",a)') Trim(PAW%Comp_description)
+ if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
+ WRITE(unit_xml,'(" Program:  atompaw - input data follows: ")')
+ WRITE(unit_xml,'(a)') trim(input_string)
+ write(unit_xml,'(a)') "END"
+ WRITE(unit_xml,'(" Program:  atompaw - input end -->")')
+
 
 !Echo input file
  WRITE(unit_xml,'("  Program:  atompaw - input data follows: ")')
@@ -711,6 +742,9 @@ Module XMLInterface
 &      AESCF%estatic/2,AESCF%etot/2
  WRITE(unit_xml,'("<core_energy kinetic=""",1pe25.17,"""/>")') AESCF%corekin*0.5d0
 
+!PAW radius
+ WRITE(unit_xml,'("<PAW_radius rpaw=""",f13.10,"""/>")') PAW%rc
+
 !Electronic configuration
  WRITE(unit_xml,'("<valence_states>")')
  do ib=1,PAW%nbase
@@ -720,7 +754,7 @@ Module XMLInterface
    WRITE(unit_xml,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
 &        ii,PAW%l(ib),PAW%occ(ib)
    WRITE(unit_xml,'(""" rc=""",f13.10,""" e=""",1pe14.7,""" id=",a6,"/>")')&
-&        PAW%rc,PAW%eig(ib)*0.5d0,TRIM(char20)
+&        PAW%rcio,PAW%eig(ib)*0.5d0,TRIM(char20)
  enddo
  WRITE(unit_xml,'("</valence_states>")')
 

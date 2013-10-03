@@ -337,7 +337,7 @@ Module ABINITInterface
  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.abinit'
 
  call wrpawps(pshead,pawps,pawarray,pawrad,loggrd,file_abinit,&
- &     unit_abinit,author)
+&             unit_abinit,author)
 
 !------------------------------------------------------------------
 !---- Write core Wave Function file for ABINIT
@@ -608,7 +608,7 @@ Module ABINITInterface
  type(pawrso_type),intent(out)   :: pawrso
  type(loggrd_type),intent(out)   :: loggrd
  logical,intent(out)             :: prtcorewf
- character(len=*),intent(out) :: author
+ character(len=*),intent(out)    :: author
  character(len=*),intent(inout) :: input_string
 
 !------------------------------------------------------------------
@@ -624,14 +624,13 @@ Module ABINITInterface
 
  read(std_in,'(a)',advance='no',iostat=ok) readline
  readline_u=readline
-
  call Uppercase(readline_u)
 
-  i_usexcnhat=index(readline_u,'USEXCNHAT')
-  i_prtcorewf=index(readline_u,'PRTCOREWF')
-  i_logspline=index(readline_u,'LOGSPLINE')
-  i_rsoptim  =index(readline_u,'RSOPTIM')
-  i_author   =index(readline_u,'AUTHOR')
+ i_usexcnhat=index(readline_u,'USEXCNHAT')
+ i_prtcorewf=index(readline_u,'PRTCOREWF')
+ i_logspline=index(readline_u,'LOGSPLINE')
+ i_rsoptim  =index(readline_u,'RSOPTIM')
+ i_author   =index(readline_u,'AUTHOR')
 
 !Option for core WF printing
  if (i_prtcorewf>0) then
@@ -727,15 +726,12 @@ Module ABINITInterface
    read(unit=inputline,fmt=*) author
    author=trim(author) ; nn=len(trim(author))
    write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
-& "ABINITOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
+&   "ABINITOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
  else
    author="" 
    write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
 &   "ABINITOUT",char(10),trim(readline)
  end if
-
-
-
 
  end subroutine rdinputabinit
 
@@ -1873,13 +1869,13 @@ end subroutine calc_shapef
 
  subroutine wrpawps(pshead,pawps,pawarray,pawrad,loggrd,fname,funit,author)
 
- type(pshead_type),intent(in)   :: pshead
- type(pawps_type),intent(in)    :: pawps
- type(pawarray_type),intent(in) :: pawarray
- type(pawrad_type),intent(inout)   :: pawrad
- type(loggrd_type),intent(inout)   :: loggrd
- character*(fnlen),intent(in)   :: author,fname
- integer,intent(in)             :: funit
+ type(pshead_type),intent(in)    :: pshead
+ type(pawps_type),intent(in)     :: pawps
+ type(pawarray_type),intent(in)  :: pawarray
+ type(pawrad_type),intent(inout) :: pawrad
+ type(loggrd_type),intent(inout) :: loggrd
+ character*(fnlen),intent(in)    :: author,fname
+ integer,intent(in)              :: funit
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1919,11 +1915,10 @@ end subroutine calc_shapef
 
 !Write the header
  call date_and_time(strdate)
-
  if (len(trim(author))>0) then
-    write(funit,'(3a)') trim(pshead%title)," by ",trim(author)
+   write(funit,'(3a)') trim(pshead%title)," by ",trim(author)
  else
-    write(funit,'(a)') trim(pshead%title)
+   write(funit,'(a)') trim(pshead%title)
  end if
  
  write(funit,'(1x,f7.3,1x,f7.3,1x,a,14x,a)') &

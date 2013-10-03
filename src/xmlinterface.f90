@@ -226,7 +226,7 @@ Module XMLInterface
  file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw'
 
  call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
-&   input_string,author)
+&               input_string,author)
 
 !------------------------------------------------------------------
 !---- End
@@ -269,7 +269,7 @@ Module XMLInterface
  subroutine rdinputxml(vlocopt,pawrso,author,input_string)
 
  integer,intent(out) :: vlocopt
- type(pawrso_type),intent(out)   :: pawrso
+ type(pawrso_type),intent(out) :: pawrso
  character(len=*),intent(out) :: author
  character(len=*),intent(inout) :: input_string
 
@@ -342,14 +342,12 @@ Module XMLInterface
    read(unit=inputline,fmt=*) author
    author=trim(author) ; nn=len(trim(author))
    write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
-& "XMLOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
+&   "XMLOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
  else
    author=""
    write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
 &   "XMLOUT",char(10),trim(readline)
  end if
-
-
 
  end subroutine rdinputxml
 
@@ -624,7 +622,7 @@ Module XMLInterface
 !!=================================================================
 
  SUBROUTINE xmloutput(fname,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,&
-&     vlocopt,input_string,author)
+&                     vlocopt,input_string,author)
 
  integer,intent(in) :: vlocopt
  character(len=*),intent(in) :: input_string,author,fname
@@ -632,7 +630,7 @@ Module XMLInterface
  TYPE (SCFInfo),intent(in) :: AESCF
  TYPE(Potentialinfo),intent(in) :: AEPot
  TYPE (FCInfo),intent(in) :: FC
- TYPE(Pseudoinfo),intent(in) ::  PAW
+ TYPE(Pseudoinfo),intent(in) :: PAW
  TYPE(mesh_data_type),intent(in) :: mesh_data
  real(dp) :: tproj(mesh_data%prj_msz_max,PAW%nbase)
 
@@ -719,7 +717,7 @@ Module XMLInterface
 !WRITE(unit_xml,'("  ",a)') Trim(PAW%Comp_description)
  WRITE(unit_xml,'("<!-- Atompaw ",a)') atp_version
  WRITE(unit_xml,'(" Contact info: email: natalie@wfu.edu")')
- WRITE(unit_xml,'("               web: pwpaw.wfu.edu")')
+ WRITE(unit_xml,'("               web:   pwpaw.wfu.edu")')
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
  if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
@@ -727,7 +725,6 @@ Module XMLInterface
  WRITE(unit_xml,'(a)') trim(input_string)
  write(unit_xml,'(a)') "END"
  WRITE(unit_xml,'(" Program:  atompaw - input end -->")')
-
 
 !Echo input file
  WRITE(unit_xml,'("  Program:  atompaw - input data follows: ")')
@@ -754,7 +751,7 @@ Module XMLInterface
    WRITE(unit_xml,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
 &        ii,PAW%l(ib),PAW%occ(ib)
    WRITE(unit_xml,'(""" rc=""",f13.10,""" e=""",1pe14.7,""" id=",a6,"/>")')&
-&        PAW%rcio,PAW%eig(ib)*0.5d0,TRIM(char20)
+&        PAW%rcio(ib),PAW%eig(ib)*0.5d0,TRIM(char20)
  enddo
  WRITE(unit_xml,'("</valence_states>")')
 

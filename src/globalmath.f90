@@ -635,17 +635,19 @@ End Subroutine
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   LOGICAL FUNCTION checkline2(inputline,in1,in2)
-     CHARACTER(*), INTENT(INOUT) :: inputline
+     CHARACTER(*), INTENT(IN) :: inputline
      CHARACTER(*), INTENT(IN) :: in1,in2
 
-     INTEGER :: i
+     INTEGER :: i,len1,len2
+     CHARACTER(120) :: inputline_u
 
-     checkline2=.false.
-     call UpperCase(inputline)
+     inputline_u=trim(inputline)
+     call UpperCase(inputline_u)
+     len1=len(trim(in1));len2=len(trim(in2))
 
-     if(TRIM(inputline)==in1.or.TRIM(inputline)==in2) checkline2=.true.
+     checkline2=(inputline_u(1:len1)==trim(in1).or.inputline_u(1:len2)==trim(in2))
 
-     return
+     RETURN
   END FUNCTION checkline2
 
   !*****************************************************************

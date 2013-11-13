@@ -283,8 +283,8 @@ CONTAINS
     ENDIF
 
     nz=-(rv(1)-0.1d0)/2;zz=nz
-    q=-rv(n)/2
-    IF (q<0.001d0) q=0.d0
+    qq=-rv(n)/2
+    IF (qq<0.001d0) qq=0.d0
     err=n*nz*(h**4)
     convrez=convre
     IF (nz.GT.0) convrez=convre*nz
@@ -292,7 +292,8 @@ CONTAINS
     ierr=0
 
     !
-    emin=MAX(-REAL((nz)**2)/(l+1)**2-0.5d0,Eig(1)-1.d0)
+    !emin=MAX(-REAL((nz)**2)/(l+1)**2-0.5d0,Eig(1)-1.d0)
+    emin=(-REAL((nz)**2)/(l+1)**2-0.5d0)
     !write(6,*) 'in boundsch --' , emin, nz, l
     emax=0.d0
 

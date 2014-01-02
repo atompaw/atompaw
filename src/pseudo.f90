@@ -971,8 +971,8 @@ CONTAINS
   ! Find coretailpoints
      z = integrator(Grid,coreden)
 
-     coretailpoints=irc+Grid%ishift
-        do i=irc+Grid%ishift,n
+     coretailpoints=PAW%irc+Grid%ishift    !! coretailpoints should be>=PAW%irc
+        do i=PAW%irc+Grid%ishift,n
            if(ABS(z-integrator(Grid,coreden,1,i))<coretailtol) then
              coretailpoints=i
              exit

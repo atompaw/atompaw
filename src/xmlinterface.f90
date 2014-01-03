@@ -70,8 +70,8 @@ Module XMLInterface
 !Version number
  character*10 :: atompaw2xmlver='2.0.1', verdate='june 2013'
 
-!Default unit for XML file
- integer, parameter :: unit_xml=22
+!Default unit for XML file(s)
+ integer, parameter :: unit_xml=22,unit_xml_core=23
 
 !Options
  logical :: usexcnhat_def=.false.
@@ -138,7 +138,7 @@ Module XMLInterface
 !! atompaw
 !!
 !! CHILDREN
-!! rdinputxml,build_mesh_data,opt_proj_rso,xmloutput
+!! rdinputxml,build_mesh_data,opt_proj_rso,xmloutput,xmlprtcore
 !!=================================================================
 
  subroutine Atompaw2XML(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput)
@@ -155,10 +155,10 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: id,vlocopt
+ integer :: id,vlocopt,prtcorewf
  type(mesh_data_type) :: mesh_data
  type(pawrso_type) :: pawrso
- character*(fnlen) :: author,file_xml,xcname
+ character*(fnlen) :: author,file_xml,file_xml_core,xcname
  character*(5000) :: input_string
  real(dp),allocatable :: tproj(:,:)
 
@@ -178,7 +178,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Read choices from input file
 
- call rdinputxml(vlocopt,pawrso,author,input_string)
+ call rdinputxml(vlocopt,prtcorewf,pawrso,author,input_string)
 
 !------------------------------------------------------------------
 !---- Build radial meshes definitions
@@ -226,7 +226,15 @@ Module XMLInterface
  file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw'
 
  call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
-&               input_string,author)
+ &              input_string,author)
+
+!------------------------------------------------------------------
+!---- Write core wave functions in XML format
+ if (prtcorewf==1) then
+   file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-corewf'
+   call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
+ &                 input_string,author)
+ endif
 
 !------------------------------------------------------------------
 !---- End
@@ -249,6 +257,7 @@ Module XMLInterface
 !!
 !! OUTPUT
 !!  vlocopt= option for Vloc (use of nhat in XC or not)
+!!  prtcorewf= option for the printing of core wave functions
 !!  pawrso
 !!    %ecut=Real Space Optimization parameter: plane wave cutoff = 1/2 Gmax**2
 !!    %gfact=Real Space Optimization parameter: Gamma/Gmax ratio
@@ -266,9 +275,9 @@ Module XMLInterface
 !! extractword,uppercase
 !!=================================================================
 
- subroutine rdinputxml(vlocopt,pawrso,author,input_string)
+ subroutine rdinputxml(vlocopt,prtcorewf,pawrso,author,input_string)
 
- integer,intent(out) :: vlocopt
+ integer,intent(out) :: vlocopt,prtcorewf
  type(pawrso_type),intent(out) :: pawrso
  character(len=*),intent(out) :: author
  character(len=*),intent(inout) :: input_string
@@ -277,7 +286,7 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_author,i_usexcnhat,i_rsoptim,iend,ok,nn
+ integer :: i_author,i_prtcorewf,i_usexcnhat,i_rsoptim,iend,ok,nn
  character*(fnlen) :: readline,readline_u,inputline,inputword
 
 !------------------------------------------------------------------
@@ -290,6 +299,7 @@ Module XMLInterface
  call Uppercase(readline_u)
 
  i_usexcnhat=index(readline_u,'USEXCNHAT')
+ i_prtcorewf=index(readline,'PRTCOREWF')
  i_rsoptim  =index(readline_u,'RSOPTIM')
  i_author   =index(readline_u,'AUTHOR')
 
@@ -305,6 +315,9 @@ Module XMLInterface
  if (vlocopt/=1) &
 &  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
 
+!Option for the PRinTing of CORE Wave Functions
+ if (i_prtcorewf>0) prtcorewf=1
+  
 !Option for use of REAL SPACE OPTIMIZATION
  pawrso%userso=userso_def
  pawrso%ecut=ecut_rso_def
@@ -598,7 +611,7 @@ Module XMLInterface
 !! xmloutput
 !!
 !! FUNCTION
-!! write the paw data file in XML format
+!! Write the PAW data file in XML format
 !!
 !! INPUTS
 !! fname=file name (without .xml suffixe)
@@ -613,6 +626,7 @@ Module XMLInterface
 !!       (might be modified by real space optimization)
 !! vlocopt= option for local potential (1=Blochl, 2=Kresse)
 !! input_string= string containing a copy of atompaw input file
+!! author= string containing the author(s) name
 !!
 !! PARENTS
 !! atompaw2xml
@@ -663,37 +677,16 @@ Module XMLInterface
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml,'("<paw_setup version=""0.5"">")')
- write(unit=char5a,fmt='(f5.2)') AEPot%zz
+ WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
- write(unit=char5a,fmt='(f5.2)') FC%zcore
- write(unit=char5b,fmt='(f5.2)') AEPot%nz-FC%zcore
+ WRITE(unit=char5a,fmt='(f5.2)') FC%zcore
+ WRITE(unit=char5b,fmt='(f5.2)') AEPot%nz-FC%zcore
  WRITE(unit_xml,'(""" core=""",a,""" valence=""",a,"""/>")') &
 &   trim(ADJUSTL(char5a)),trim(ADJUSTL(char5b))
 
 !Write XC definition
- if (trim(ADJUSTL(exctype))=="LDA-PW") then
-   xc_type="LDA"
-   xc_name="PW"
- elseif (trim(ADJUSTL(exctype))=="GGA-PBE") then
-   xc_type="GGA"
-   xc_name="PBE"
- elseif (trim(ADJUSTL(exctype))=="GGA-PBESOL") then
-   xc_type="GGA"
-   xc_name="PBESOL"
- else if (have_libxc) then
-   if (libxc_isgga()) then
-     xc_type="GGA"
-   else
-     xc_type="LDA"
-   end if
-   xc_name=trim(exctype)
-!else ! old coding
-!  xc_type="LIBXC"
-!  write(xc_name,'(i6)') -pshead%pspxc_abinit
- else
-   stop "Error in Atompaw2XML: unknown XC type !"
- end if
+ call get_xc_data(xc_type,xc_name)
  WRITE(unit_xml,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
 
@@ -706,31 +699,18 @@ Module XMLInterface
  WRITE(unit_xml,'("</generator>)")')
 
 !Echo input file
-!WRITE(unit_xml,'("<!-- Contact info: email: natalie@wfu.edu")')
-!WRITE(unit_xml,'("               web: pwpaw.wfu.edu")')
-!WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
-!WRITE(unit_xml,'(" Note: consistent with 06-14-06 standard")')
-!WRITE(unit_xml,'(" As discussed at CECAM PAW Workshop     ")')
-!Call PrintDate(unit_xml, ' PAW functions generated on ')
-!WRITE(unit_xml,'("  ",a)') Trim(PAW%Vloc_description)
-!WRITE(unit_xml,'("  ",a)') Trim(PAW%Proj_description)
-!WRITE(unit_xml,'("  ",a)') Trim(PAW%Comp_description)
- WRITE(unit_xml,'("<!-- Atompaw ",a)') atp_version
- WRITE(unit_xml,'(" Contact info: email: natalie@wfu.edu")')
- WRITE(unit_xml,'("               web:   pwpaw.wfu.edu")')
+ WRITE(unit_xml,'("<!-- Atompaw ",a)')atp_version
+ WRITE(unit_xml,'(" Contact info: Natalie Holzwarth")')
+ WRITE(unit_xml,'(" email: natalie@wfu.edu, web: pwpaw.wfu.edu")')
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
  if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
+!WRITE(unit_xml,'(" JTH table v0.2")')
  WRITE(unit_xml,'(" Program:  atompaw - input data follows: ")')
  WRITE(unit_xml,'(a)') trim(input_string)
- write(unit_xml,'(a)') "END"
- WRITE(unit_xml,'(" Program:  atompaw - input end -->")')
-
-!Echo input file
- WRITE(unit_xml,'("  Program:  atompaw - input data follows: ")')
- WRITE(unit_xml,'(a)') trim(input_string)
- write(unit_xml,'(a)') "0"
- WRITE(unit_xml,'("  Program:  atompaw - input end -->")')
+ WRITE(unit_xml,'(a)') "END"
+ WRITE(unit_xml,'(" Program:  atompaw - input end")')
+ WRITE(unit_xml,'(" Atompaw -->")')
 
 !Energies
  WRITE(unit_xml,'("<ae_energy kinetic=""",1pe25.17,""" xc=""",1pe25.17,"""")') &
@@ -748,10 +728,17 @@ Module XMLInterface
    call mkname(ib,char4)
    char20=stripchar('"'//AEPot%sym//char4//'"')
    ii=min(ABS(PAW%np(ib)),20)
-   WRITE(unit_xml,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
+   if (ii<20) then
+     WRITE(unit_xml,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
 &        ii,PAW%l(ib),PAW%occ(ib)
-   WRITE(unit_xml,'(""" rc=""",f13.10,""" e=""",1pe14.7,""" id=",a6,"/>")')&
+     WRITE(unit_xml,'(""" rc=""",f13.10,""" e=""",1pe14.7,""" id=",a6,"/>")')&
 &        PAW%rcio(ib),PAW%eig(ib)*0.5d0,TRIM(char20)
+   else
+     WRITE(unit_xml,'("  <state        l=""",i1,$)')&
+&        PAW%l(ib)
+     WRITE(unit_xml,'("""                    rc=""",f13.10,""" e=""",1pe14.7,""" id=",a6,"/>")')&
+&        PAW%rcio(ib),PAW%eig(ib)*0.5d0,TRIM(char20)
+   end if
  enddo
  WRITE(unit_xml,'("</valence_states>")')
 
@@ -769,9 +756,7 @@ Module XMLInterface
     radstp0=mesh_data%radstp(ii)
     logstp0=mesh_data%logstp(ii)
    case default
-    write(std_out, '(a,a,a)' )&
-&     '  This mesh type ', ch10,&
-&     '  is not implemented in Atompaw.'
+    write(std_out, '(a)' ) 'This mesh type is not implemented in Atompaw.'
     stop
   end select
   WRITE(unit_xml,'("<radial_grid eq=""",a,""" a=""",es22.16,$)') trim(char20),radstp0
@@ -908,6 +893,190 @@ Module XMLInterface
  CLOSE(unit_xml)
 
  END SUBROUTINE xmloutput
+
+!!=================================================================
+!! NAME
+!! xmlprtcore
+!!
+!! FUNCTION
+!! Write the core wave functions in XML format
+!!
+!! INPUTS
+!! fname=file name (without .xml suffixe)
+!! Grid= Grid datastructure from atompaw
+!! AEOrbit= AEOrbit datastructure from atompaw
+!! AEPot= AEPOT datastructure from atompaw
+!! FC= FC datastructure from atompaw
+!! mesh_data= datatructure containing the definition of
+!!            all the radial meshes used in the XML file
+!! input_string= string containing a copy of atompaw input file
+!! author= string containing the author(s) name
+!!
+!! PARENTS
+!! atompaw2xml
+!!
+!! CHILDREN
+!!
+!!=================================================================
+
+ SUBROUTINE xmlprtcore(fname,Grid,AEOrbit,AEPot,FC,mesh_data,input_string,author)
+
+ character(len=fnlen),intent(in) :: fname
+ TYPE (FCInfo),intent(in) :: FC
+ TYPE(mesh_data_type),intent(in) :: mesh_data
+ type(OrbitInfo),intent(in) :: AEOrbit
+ TYPE(Potentialinfo),intent(in) :: AEPot
+ TYPE(Gridinfo),intent(in) :: Grid
+ character(len=*),intent(in) :: input_string,author
+
+!------------------------------------------------------------------
+!---- Local variables
+!------------------------------------------------------------------
+
+ integer :: core_size,corewf_meshsz,ib,icor,ii,ir,isppol,nmesh,nsppol,OK
+ real(dp) :: radstp0,logstp0,sqr4pi
+ character(len=3) :: spstrg,gridt(mesh_data%nmesh)
+ character(len=4) :: char4
+ character(len=5) :: char5a,xc_type
+ character(len=132) :: xc_name
+ character(len=20) :: char20,char21
+ integer,allocatable :: irwf(:)
+ real(dp),allocatable :: dum(:)
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+!Hard-coded values, spin unrestricted
+!Spinors or collinear magnetism not yet supported
+ nsppol=1
+
+!Open file for writing
+ OPEN(unit_xml_core,file=TRIM(fname)//'.xml',form='formatted')
+
+!Write header
+ WRITE(unit_xml_core,'("<?xml  version=""1.0""?>")')
+ WRITE(unit_xml_core,'("<paw_setup version=""0.5"">")')
+ WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
+ WRITE(unit_xml_core,'("<atom symbol=""",a,""" Z=""",a,$)') &
+&      trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
+ WRITE(unit=char5a,fmt='(f5.2)') FC%zcore
+ WRITE(unit_xml_core,'(""" core=""",a,"""/>")')trim(ADJUSTL(char5a))
+
+!Write XC definition
+ call get_xc_data(xc_type,xc_name)
+ WRITE(unit_xml_core,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
+&      TRIM(xc_type),TRIM(xc_name)
+
+!Generator data
+ if (scalarrelativistic) then
+   WRITE(unit_xml_core,'("<generator type=""scalar-relativistic"" name=""atompaw"">")')
+ else
+   WRITE(unit_xml_core,'("<generator type=""non-relativistic"" name=""atompaw"">")')
+ endif
+ WRITE(unit_xml_core,'("</generator>)")')
+
+!Echo input file
+ WRITE(unit_xml_core,'("<!-- All-electron core wavefunctions- generated with Atompaw ",a)')atp_version
+ Call PrintDate(unit_xml_core, ' Core wavefunctions generated on ')
+ if (trim(author)/="") WRITE(unit_xml_core,'(a,a)') ' by ',trim(author)
+!WRITE(unit_xml_core,'(" JTH table v0.2")')
+ WRITE(unit_xml_core,'(" Energy units=Hartree, length units=bohr -->")')
+ WRITE(unit_xml_core,'(" Program:  atompaw - input data follows: ")')
+ WRITE(unit_xml_core,'(a)') trim(input_string)
+ WRITE(unit_xml_core,'(a)') "END"
+ WRITE(unit_xml_core,'(" Program:  atompaw - input end")')
+ WRITE(unit_xml_core,'(" Atompaw -->")')
+
+!Number of core orbitals (not needed)
+!core_size=0
+!do ib=1,AEOrbit%norbit
+! if (AEOrbit%iscore(ib)) core_size=core_size+1
+!end do
+!WRITE(unit_xml_core,'("<orbitals norbs=""",i2,"""/>")') core_size
+
+!Read mesh size 
+ ii=0;allocate(irwf(core_size));irwf(:)=mesh_data%meshsz(mesh_data%iwavmesh)
+ do ib=1,AEOrbit%norbit
+  if (AEOrbit%iscore(ib)) then
+   ii=ii+1;ir=mesh_data%meshsz(mesh_data%iwavmesh)+1
+   do while (ir>1)
+    ir=ir-1
+    if (abs(AEOrbit%wfn(ir,ib))>tol10) then
+     irwf(ii)=min(ir+1,mesh_data%meshsz(mesh_data%iwavmesh));ir=1
+    end if
+   end do
+  end if
+ end do
+ corewf_meshsz=maxval(irwf(1:core_size))
+ deallocate(irwf)
+
+!Electronic configuration
+ WRITE(unit_xml_core,'("<core_states>")')
+ icor=0
+ do ib=1,AEOrbit%norbit
+   if (AEOrbit%iscore(ib)) then
+     icor=icor+1;if (icor>core_size) stop "Atompaw : bug in prtcorewf !"
+     call mkname(icor,char4)
+     char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
+     WRITE(unit_xml_core,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
+&        AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%occ(ib)
+     WRITE(unit_xml_core,'("""  e=""",1pe14.7,""" id=",a10,"/>")')&
+&        AEOrbit%eig(ib)*0.5d0,TRIM(char20)
+   end if
+ enddo
+ WRITE(unit_xml_core,'("</core_states>")')
+
+!Radial meshes definitions
+ nmesh=1
+ do ii=1,nmesh
+  select case(mesh_data%meshtp(ii))
+   case(1)
+    char21='r=d*i'
+    gridt(ii)="lin"
+    radstp0=zero
+    logstp0=mesh_data%radstp(ii)
+   case(2)
+    char21='r=a*(exp(d*i)-1)'
+    gridt(ii)="log"
+    radstp0=mesh_data%radstp(ii)
+    logstp0=mesh_data%logstp(ii)
+   case default
+    write(std_out, '(a)' ) 'This mesh type is not implemented in Atompaw.'
+    stop
+  end select
+  WRITE(unit_xml_core,'("<radial_grid eq=""",a,""" a=""",es22.16,$)') trim(char21),radstp0
+  WRITE(unit_xml_core,'(""" d=""",es22.16,""" istart=""0"" iend=""",i5,$)') &
+&  logstp0,corewf_meshsz-1
+  WRITE(unit_xml_core,'(""" id=""",a,i1,"""/>")') gridt(ii),ii
+ end do
+
+!Write the core wave functions
+ icor=0
+ do ib=1,AEOrbit%norbit
+  if (AEOrbit%iscore(ib)) then
+    icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorewf !"
+    call mkname(icor,char4)
+    char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
+    WRITE(unit_xml_core,'("<ae_core_wavefunction state=",a10," grid=""",a,i1,""">")') &
+&     TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
+    ALLOCATE(dum(mesh_data%meshsz(mesh_data%iwavmesh)),stat=OK)
+    dum=zero
+    dum(2:mesh_data%meshsz(mesh_data%iwavmesh))= &
+&               AEOrbit%wfn(2:mesh_data%meshsz(mesh_data%iwavmesh),ib) &
+&              /Grid%r(2:mesh_data%meshsz(mesh_data%iwavmesh))
+    call extrapolate(Grid,dum)
+    WRITE(unit_xml_core,'(3(1x,es23.16))') (dum(ir),ir=1,corewf_meshsz)
+    DEALLOCATE(dum)
+    WRITE(unit_xml_core,'("</ae_core_wavefunction>")')
+  end if ! if icore
+ end do   !ib
+ WRITE(unit_xml_core,'("</paw_setup>")')
+
+!Close the file
+ close(unit_xml_core)
+
+ end subroutine xmlprtcore
 
 
 !!=================================================================
@@ -1171,10 +1340,11 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints)
  end if
 
 !Various mesh sizes
- mesh_data%wav_meshsz=irc+Grid%ishift
  if (usingloggrid(Grid)) then
+  mesh_data%wav_meshsz=Grid%n
   mesh_data%sph_meshsz=min(1+nint(log(one+Grid%r(irc)/mesh_data%rad_step)/mesh_data%log_step),mesh_data%wav_meshsz)
  else
+  mesh_data%wav_meshsz=irc+Grid%ishift
   mesh_data%sph_meshsz=min(1+nint(Grid%r(irc)/mesh_data%rad_step),mesh_data%wav_meshsz)
  end if
  mesh_data%prj_meshsz=mesh_data%sph_meshsz  ! To be modified by RSO
@@ -1317,7 +1487,7 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints)
 !! FUNCTION
 !! Free all the memory in a mesh_data datastructure
 !!
-!! ISIDE EFFECTS
+!! SIDE EFFECTS
 !!  mesh_data
 !!   Data defining various meshes
 !!
@@ -1347,6 +1517,59 @@ subroutine destroy_mesh_data(mesh_data)
  end if
 
  end subroutine destroy_mesh_data
+
+
+!!=================================================================
+!! NAME
+!! get_xc_data
+!!
+!! FUNCTION
+!! Get XC data in a suitable form for XML printing
+!!
+!! INPUTS
+!!  exctype= string containing XC type
+!!
+!! OUTPUT
+!!  xc_name= name of XC functional
+!!  xc_type= LDA or GGA
+!!
+!! PARENTS
+!!  xmlout,xmlprtcore
+!!
+!!=================================================================
+
+subroutine get_xc_data(xctype,xcname)
+
+ character(len=*),intent(out) :: xctype,xcname
+
+!------------------------------------------------------------------
+!---- Executable code
+!------------------------------------------------------------------
+
+ if (trim(ADJUSTL(exctype))=="LDA-PW") then
+   xctype="LDA"
+   xcname="PW"
+ elseif (trim(ADJUSTL(exctype))=="GGA-PBE") then
+   xctype="GGA"
+   xcname="PBE"
+ elseif (trim(ADJUSTL(exctype))=="GGA-PBESOL") then
+   xctype="GGA"
+   xcname="PBESOL"
+ else if (have_libxc) then
+   if (libxc_isgga()) then
+     xctype="GGA"
+   else
+     xctype="LDA"
+   end if
+   xcname=trim(exctype)
+!else ! old coding
+!  xctype="LIBXC"
+!  write(xcname,'(i6)') -pshead%pspxc_abinit
+ else
+   stop "Error in Atompaw2XML: unknown XC type !"
+ end if
+
+ end subroutine get_xc_data
 
 !!=================================================================
 END Module XMLInterface

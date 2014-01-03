@@ -24,7 +24,8 @@ CONTAINS
        machine_precision = ABS(a3 - 1.d0)
     ENDDO
 
-    machine_zero= machine_precision**4
+    !machine_zero= machine_precision**4
+    machine_zero= machine_precision**5    ! suggested by Marc and Francois
     machine_infinity = 1.d0/machine_zero
 
     pi = ACOS(-1.d0)

@@ -1222,7 +1222,9 @@ CONTAINS
           PAW%occ(nbase)=0.d0
           PAW%phi(1:n,nbase)=0.d0
           if (scalarrelativistic) then
-             CALL unboundsr(Grid,Pot,nr,l,energy,PAW%phi(:,nbase),nodes)
+!             CALL unboundsr(Grid,Pot,nr,l,energy,PAW%phi(:,nbase),nodes)
+!DEBUG FJ
+             CALL unboundsr(Grid,Pot,n,l,energy,PAW%phi(:,nbase),nodes)
           elseif ( Orbit%exctype=='HF') then
              CALL HFunocc(Grid,Orbit,l,energy,Pot%rv,Pot%v0,Pot%v0p, &
 &                   PAW%phi(:,nbase),PAW%rng(nbase))
@@ -1286,6 +1288,9 @@ CONTAINS
     CALL formprojectors(Grid,Pot,PS,ifinput,option)
 
     DEALLOCATE(tmp,VNC,PS%rv)
+    do io=1,PAW%nbase
+      PAW%rcio(io)=PAW%rc
+    end do
 
   END SUBROUTINE makebasis_bloechl
 

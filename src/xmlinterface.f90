@@ -657,7 +657,7 @@ Module XMLInterface
  character(len=4) :: char4
  character(len=5) :: char5a,char5b,xc_type
  character(len=20) :: char20
- character(len=132) :: xc_name
+ character(len=132) :: xc_name,code_name
  real(dp) :: radstp0,logstp0,sqr4pi
  character(len=3) :: gridt(mesh_data%nmesh)
  real(dp),allocatable :: dum(:)
@@ -687,16 +687,17 @@ Module XMLInterface
 
 !Write XC definition
  call get_xc_data(xc_type,xc_name)
+! xc_name="PBE"
  WRITE(unit_xml,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
-
+ code_name="atompaw-"//atp_version
 !Generator data
  if (scalarrelativistic) then
-   WRITE(unit_xml,'("<generator type=""scalar-relativistic"" name=""atompaw"">")')
+   WRITE(unit_xml,'("<generator type=""scalar-relativistic"" name=""",a,"""/>")')TRIM(code_name)
  else
-   WRITE(unit_xml,'("<generator type=""non-relativistic"" name=""atompaw"">")')
+   WRITE(unit_xml,'("<generator type=""non-relativistic"" name=""atompaw""/>")')
  endif
- WRITE(unit_xml,'("</generator>)")')
+! WRITE(unit_xml,'("</generator>)")')
 
 !Echo input file
  WRITE(unit_xml,'("<!-- Atompaw ",a)')atp_version
@@ -705,11 +706,8 @@ Module XMLInterface
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
  if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
-!WRITE(unit_xml,'(" JTH table v0.2")')
- WRITE(unit_xml,'(" Program:  atompaw - input data follows: ")')
- WRITE(unit_xml,'(a)') trim(input_string)
- WRITE(unit_xml,'(a)') "END"
- WRITE(unit_xml,'(" Program:  atompaw - input end")')
+ WRITE(unit_xml,'(" JTH table v0.2")')
+ WRITE(unit_xml,'(" The input file is available at the end of this file")')
  WRITE(unit_xml,'(" Atompaw -->")')
 
 !Energies
@@ -887,8 +885,15 @@ Module XMLInterface
  WRITE(unit_xml,'("<kinetic_energy_differences>")')
  WRITE(unit_xml,'(3(1x,es23.16))') ((PAW%kij(ib,ic)/2,ic=1,PAW%nbase),ib=1,PAW%nbase)
  WRITE(unit_xml,'("</kinetic_energy_differences>")')
- WRITE(unit_xml,'("</paw_setup>")')
 
+
+! Input file
+ WRITE(unit_xml,'("<!-- Program:  atompaw - input data follows: ")')
+ WRITE(unit_xml,'(a)') trim(input_string)
+ WRITE(unit_xml,'(a)') "END"
+ WRITE(unit_xml,'(" Program:  atompaw - input end -->")')
+
+ WRITE(unit_xml,'("</paw_setup>")')
 !Cloe file
  CLOSE(unit_xml)
 

@@ -18,6 +18,7 @@ Module XMLInterface
  use excor
  use pseudo
  use pkginfo
+ use libxc_mod
 
  implicit none
 
@@ -230,6 +231,7 @@ Module XMLInterface
 
 !------------------------------------------------------------------
 !---- Write core wave functions in XML format
+
  if (prtcorewf==1) then
    file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-corewf'
    call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
@@ -299,7 +301,7 @@ Module XMLInterface
  call Uppercase(readline_u)
 
  i_usexcnhat=index(readline_u,'USEXCNHAT')
- i_prtcorewf=index(readline,'PRTCOREWF')
+ i_prtcorewf=index(readline_u,'PRTCOREWF')
  i_rsoptim  =index(readline_u,'RSOPTIM')
  i_author   =index(readline_u,'AUTHOR')
 
@@ -317,7 +319,7 @@ Module XMLInterface
 
 !Option for the PRinTing of CORE Wave Functions
  if (i_prtcorewf>0) prtcorewf=1
-  
+
 !Option for use of REAL SPACE OPTIMIZATION
  pawrso%userso=userso_def
  pawrso%ecut=ecut_rso_def
@@ -645,19 +647,19 @@ Module XMLInterface
  TYPE(Potentialinfo),intent(in) :: AEPot
  TYPE (FCInfo),intent(in) :: FC
  TYPE(Pseudoinfo),intent(in) :: PAW
- TYPE(mesh_data_type),intent(in) :: mesh_data
+ TYPE(mesh_data_type),intent(inout) :: mesh_data
  real(dp) :: tproj(mesh_data%prj_msz_max,PAW%nbase)
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: ib,ic,ii,n,irc,OK
+ integer :: ib,ic,ii,n,ir,irc,nmesh,OK
  character(len=3) :: gridtype
  character(len=4) :: char4
  character(len=5) :: char5a,char5b,xc_type
  character(len=20) :: char20
- character(len=132) :: xc_name,code_name
+ character(len=132) :: xc_name,xcname_short,code_name
  real(dp) :: radstp0,logstp0,sqr4pi
  character(len=3) :: gridt(mesh_data%nmesh)
  real(dp),allocatable :: dum(:)
@@ -687,6 +689,10 @@ Module XMLInterface
 
 !Write XC definition
  call get_xc_data(xc_type,xc_name)
+ if (have_libxc) then
+   call libxc_getshortname(xc_name,xcname_short)
+   xc_name=xcname_short
+ endif
 ! xc_name="PBE"
  WRITE(unit_xml,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
@@ -718,7 +724,7 @@ Module XMLInterface
  WRITE(unit_xml,'("<core_energy kinetic=""",1pe25.17,"""/>")') AESCF%corekin*0.5d0
 
 !PAW radius
- WRITE(unit_xml,'("<PAW_radius rpaw=""",f13.10,"""/>")') PAW%rc
+ WRITE(unit_xml,'("<paw_radius rc=""",f13.10,"""/>")') PAW%rc
 
 !Electronic configuration
  WRITE(unit_xml,'("<valence_states>")')
@@ -741,18 +747,33 @@ Module XMLInterface
  WRITE(unit_xml,'("</valence_states>")')
 
 !Radial meshes definitions
- do ii=1,mesh_data%nmesh
+ nmesh=mesh_data%nmesh
+ if(maxval(mesh_data%meshtp(1:mesh_data%nmesh))==minval(mesh_data%meshtp(1:mesh_data%nmesh))) then
+   mesh_data%meshsz(1:mesh_data%nmesh)=maxval(mesh_data%meshsz(1:mesh_data%nmesh))
+   nmesh=1
+   mesh_data%icoremesh=1
+   mesh_data%iprjmesh=1
+   mesh_data%iwavmesh=1
+   mesh_data%ivionmesh=1
+   mesh_data%ivalemesh=1
+   mesh_data%ivbaremesh=1
+ endif
+
+ do ii=1,nmesh
+  allocate(dum(mesh_data%meshsz(ii)),stat=OK)
   select case(mesh_data%meshtp(ii))
    case(1)
     char20='r=d*i'
     gridt(ii)="lin"
     radstp0=zero
     logstp0=mesh_data%radstp(ii)
+    dum=logstp0
    case(2)
     char20='r=a*(exp(d*i)-1)'
     gridt(ii)="log"
     radstp0=mesh_data%radstp(ii)
     logstp0=mesh_data%logstp(ii)
+    dum(:)=logstp0*(radstp0+Grid%r(:)) 
    case default
     write(std_out, '(a)' ) 'This mesh type is not implemented in Atompaw.'
     stop
@@ -761,6 +782,13 @@ Module XMLInterface
   WRITE(unit_xml,'(""" d=""",es22.16,""" istart=""0"" iend=""",i5,$)') &
 &  logstp0,mesh_data%meshsz(ii)-1
   WRITE(unit_xml,'(""" id=""",a,i1,"""/>")') gridt(ii),ii
+  WRITE(unit_xml,'("  <values>")')
+  WRITE(unit_xml,'(3(1x,es23.16))') (Grid%r(ir),ir=1,mesh_data%meshsz(ii))
+  WRITE(unit_xml,'("  </values>")')
+  WRITE(unit_xml,'("  <derivatives>")')
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ir),ir=1,mesh_data%meshsz(ii))
+  WRITE(unit_xml,'("  </derivatives>")')
+  deallocate(dum)
  end do
 
 !Compensation charge shape function
@@ -779,8 +807,8 @@ Module XMLInterface
 &              sqr4pi*FC%coreden(2:mesh_data%meshsz(mesh_data%icoremesh))&
 &              /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<ae_core_density grid=""",a,i1""">")') &
-& gridt(mesh_data%icoremesh),mesh_data%icoremesh
+ WRITE(unit_xml,'("<ae_core_density grid=""",a,i1""" rc=""",f19.16""">")') &
+& gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</ae_core_density>")')
  dum=zero
@@ -788,8 +816,8 @@ Module XMLInterface
 &              sqr4pi*PAW%tcore(2:mesh_data%meshsz(mesh_data%icoremesh))&
 &               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""">")') &
-& gridt(mesh_data%icoremesh),mesh_data%icoremesh
+ WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""" rc=""",f19.16""">")') &
+& gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</pseudo_core_density>")')
  DEALLOCATE(dum)
@@ -801,8 +829,8 @@ Module XMLInterface
 &              sqr4pi*PAW%tden(2:mesh_data%meshsz(mesh_data%ivalemesh))&
 &               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%ivalemesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""">")') &
-& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh
+ WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16""">")') &
+& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,maxval(PAW%rcio(1:PAW%nbase))
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivalemesh))
  WRITE(unit_xml,'("</pseudo_valence_density>")')
  DEALLOCATE(dum)
@@ -812,8 +840,8 @@ Module XMLInterface
  dum=zero
  dum(1:mesh_data%meshsz(mesh_data%ivbaremesh))= &
 &              sqr4pi*half*PAW%vloc(1:mesh_data%meshsz(mesh_data%ivbaremesh))
- WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""">")') &
-& gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh
+ WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+& gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh,PAW%rc
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivbaremesh))
  WRITE(unit_xml,'("</zero_potential>")')
  DEALLOCATE(dum)
@@ -824,8 +852,8 @@ Module XMLInterface
   dum=zero
   dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
 &            sqr4pi*half*PAW%abinitvloc(1:mesh_data%meshsz(mesh_data%ivionmesh))
-   WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""">")') &
-&   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh
+   WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+&   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
    WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
    WRITE(unit_xml,'("</kresse_joubert_local_ionic_potential>")')
    DEALLOCATE(dum)
@@ -837,8 +865,8 @@ Module XMLInterface
   dum=zero
   dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
 &               sqr4pi*half*PAW%abinitnohat(1:mesh_data%meshsz(mesh_data%ivionmesh))
-  WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""">")') &
-&  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh
+  WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+&  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
   WRITE(unit_xml,'("</blochl_local_ionic_potential>")')
   DEALLOCATE(dum)
@@ -943,8 +971,9 @@ Module XMLInterface
  character(len=3) :: spstrg,gridt(mesh_data%nmesh)
  character(len=4) :: char4
  character(len=5) :: char5a,xc_type
- character(len=132) :: xc_name
+ character(len=132) :: xc_name,xcname_short
  character(len=20) :: char20,char21
+ character(len=1) :: char_orb(4)
  integer,allocatable :: irwf(:)
  real(dp),allocatable :: dum(:)
 
@@ -955,7 +984,7 @@ Module XMLInterface
 !Hard-coded values, spin unrestricted
 !Spinors or collinear magnetism not yet supported
  nsppol=1
-
+ char_orb(1)="s";char_orb(2)="p";char_orb(3)="d";char_orb(4)="f"
 !Open file for writing
  OPEN(unit_xml_core,file=TRIM(fname)//'.xml',form='formatted')
 
@@ -970,6 +999,10 @@ Module XMLInterface
 
 !Write XC definition
  call get_xc_data(xc_type,xc_name)
+ if (have_libxc) then
+   call libxc_getshortname(xc_name,xcname_short)
+   xc_name=xcname_short
+ endif
  WRITE(unit_xml_core,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
 
@@ -985,19 +1018,16 @@ Module XMLInterface
  WRITE(unit_xml_core,'("<!-- All-electron core wavefunctions- generated with Atompaw ",a)')atp_version
  Call PrintDate(unit_xml_core, ' Core wavefunctions generated on ')
  if (trim(author)/="") WRITE(unit_xml_core,'(a,a)') ' by ',trim(author)
-!WRITE(unit_xml_core,'(" JTH table v0.2")')
- WRITE(unit_xml_core,'(" Energy units=Hartree, length units=bohr -->")')
- WRITE(unit_xml_core,'(" Program:  atompaw - input data follows: ")')
- WRITE(unit_xml_core,'(a)') trim(input_string)
- WRITE(unit_xml_core,'(a)') "END"
- WRITE(unit_xml_core,'(" Program:  atompaw - input end")')
+ WRITE(unit_xml_core,'(" JTH table v0.2")')
+ WRITE(unit_xml_core,'(" Energy units=Hartree, length units=bohr")')
+ WRITE(unit_xml_core,'(" The input file is available at the end of this file")')
  WRITE(unit_xml_core,'(" Atompaw -->")')
 
 !Number of core orbitals (not needed)
-!core_size=0
-!do ib=1,AEOrbit%norbit
-! if (AEOrbit%iscore(ib)) core_size=core_size+1
-!end do
+ core_size=0
+ do ib=1,AEOrbit%norbit
+ if (AEOrbit%iscore(ib)) core_size=core_size+1
+ end do
 !WRITE(unit_xml_core,'("<orbitals norbs=""",i2,"""/>")') core_size
 
 !Read mesh size 
@@ -1015,7 +1045,7 @@ Module XMLInterface
  end do
  corewf_meshsz=maxval(irwf(1:core_size))
  deallocate(irwf)
-
+ corewf_meshsz=maxval(mesh_data%meshsz(1:mesh_data%nmesh))
 !Electronic configuration
  WRITE(unit_xml_core,'("<core_states>")')
  icor=0
@@ -1035,17 +1065,20 @@ Module XMLInterface
 !Radial meshes definitions
  nmesh=1
  do ii=1,nmesh
+  allocate(dum(corewf_meshsz))
   select case(mesh_data%meshtp(ii))
    case(1)
     char21='r=d*i'
     gridt(ii)="lin"
     radstp0=zero
     logstp0=mesh_data%radstp(ii)
+    dum(:)=logstp0
    case(2)
     char21='r=a*(exp(d*i)-1)'
     gridt(ii)="log"
     radstp0=mesh_data%radstp(ii)
     logstp0=mesh_data%logstp(ii)
+    dum(1:corewf_meshsz)=logstp0*(radstp0+Grid%r(1:corewf_meshsz)) 
    case default
     write(std_out, '(a)' ) 'This mesh type is not implemented in Atompaw.'
     stop
@@ -1054,6 +1087,13 @@ Module XMLInterface
   WRITE(unit_xml_core,'(""" d=""",es22.16,""" istart=""0"" iend=""",i5,$)') &
 &  logstp0,corewf_meshsz-1
   WRITE(unit_xml_core,'(""" id=""",a,i1,"""/>")') gridt(ii),ii
+  WRITE(unit_xml_core,'("  <values>")')
+  WRITE(unit_xml_core,'(3(1x,es23.16))') (Grid%r(ir),ir=1,corewf_meshsz)
+  WRITE(unit_xml_core,'("  </values>")')
+  WRITE(unit_xml_core,'("  <derivatives>")')
+  WRITE(unit_xml_core,'(3(1x,es23.16))') (dum(ir),ir=1,corewf_meshsz)
+  WRITE(unit_xml_core,'("  </derivatives>")')
+  deallocate(dum)
  end do
 
 !Write the core wave functions
@@ -1061,9 +1101,9 @@ Module XMLInterface
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
     icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorewf !"
-    call mkname(icor,char4)
-    char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
-    WRITE(unit_xml_core,'("<ae_core_wavefunction state=",a10," grid=""",a,i1,""">")') &
+    call mkname(AEOrbit%np(ib),char4)
+    char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
+    WRITE(unit_xml_core,'("<ae_core_wavefunction state=",a6," grid=""",a,i1,""">")') &
 &     TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
     ALLOCATE(dum(mesh_data%meshsz(mesh_data%iwavmesh)),stat=OK)
     dum=zero
@@ -1076,6 +1116,11 @@ Module XMLInterface
     WRITE(unit_xml_core,'("</ae_core_wavefunction>")')
   end if ! if icore
  end do   !ib
+! Input file
+ WRITE(unit_xml_core,'("<!-- Program:  atompaw - input data follows: ")')
+ WRITE(unit_xml_core,'(a)') trim(input_string)
+ WRITE(unit_xml_core,'(a)') "END"
+ WRITE(unit_xml_core,'(" Program:  atompaw - input end -->")')
  WRITE(unit_xml_core,'("</paw_setup>")')
 
 !Close the file

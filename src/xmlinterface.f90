@@ -678,7 +678,7 @@ Module XMLInterface
 
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
- WRITE(unit_xml,'("<paw_setup version=""0.5"">")')
+ WRITE(unit_xml,'("<paw_dataset version=""0.7"">")')
  WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
@@ -781,13 +781,14 @@ Module XMLInterface
   WRITE(unit_xml,'("<radial_grid eq=""",a,""" a=""",es22.16,$)') trim(char20),radstp0
   WRITE(unit_xml,'(""" d=""",es22.16,""" istart=""0"" iend=""",i5,$)') &
 &  logstp0,mesh_data%meshsz(ii)-1
-  WRITE(unit_xml,'(""" id=""",a,i1,"""/>")') gridt(ii),ii
+  WRITE(unit_xml,'(""" id=""",a,i1,""">")') gridt(ii),ii
   WRITE(unit_xml,'("  <values>")')
   WRITE(unit_xml,'(3(1x,es23.16))') (Grid%r(ir),ir=1,mesh_data%meshsz(ii))
   WRITE(unit_xml,'("  </values>")')
   WRITE(unit_xml,'("  <derivatives>")')
   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ir),ir=1,mesh_data%meshsz(ii))
   WRITE(unit_xml,'("  </derivatives>")')
+  WRITE(unit_xml,'("</radial_grid>")')
   deallocate(dum)
  end do
 
@@ -920,9 +921,9 @@ Module XMLInterface
  WRITE(unit_xml,'(a)') trim(input_string)
  WRITE(unit_xml,'(a)') "END"
  WRITE(unit_xml,'(" Program:  atompaw - input end -->")')
+ WRITE(unit_xml,'("</paw_dataset>")')
 
- WRITE(unit_xml,'("</paw_setup>")')
-!Cloe file
+!Close file
  CLOSE(unit_xml)
 
  END SUBROUTINE xmloutput

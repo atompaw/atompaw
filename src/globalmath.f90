@@ -1,5 +1,17 @@
 MODULE GlobalMath
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!      Init_GlobalConstants, sphbes, bessandneumfunc, shift4, mkname,
+!          linsol, minverse, filter, PrintDate, PrintDateStr, ConvertChar,
+!          extractword, UpperCase, conthomas, thomas, jbessel, solvbes,
+!          shapebes, CALERF, SolveAXeqB, SolveAXeqBM, SolveAXeqB_eig,
+!          SVDINVERSE
+!  This module contains the following active functions:
+!      ddlog, ddexp, ranx, factorial, hwfn, stripchar, checkline2, intjl,
+!          DERF, DERFC, DERFCX, ASSOCIATEDLAGUERRE, THRJ2
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   IMPLICIT NONE
 
   REAL(8) :: pi , machine_precision , machine_zero , machine_infinity

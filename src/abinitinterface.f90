@@ -11,6 +11,16 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!Notes:  08/08/2014  This subroutine produces *.abinit output file for use
+!                    use with abinit; it is being replaced with xmlinterface
+!List of active subroutines in this module
+!    Atompaw2Abinit,rdpawps1,rdinputabinit,initpawps,initmesh,rdpawps2
+!      calc_shapef,calc_valden,calc_dij0,calc_rhoij0,calc_vloc,opt_proj,
+!      aamat,wrpawps,wrcorewf,read_inputstring,grid2pawrad,csimp,gauleg,
+!      meshes_def
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Module ABINITInterface
 
  use atomdata

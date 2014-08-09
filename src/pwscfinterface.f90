@@ -1,4 +1,9 @@
 Module PWscfInterface
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the single subroutine Atompaw2PWscf
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE GlobalMath
   USE atomdata
   USE excor

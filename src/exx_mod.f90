@@ -1,4 +1,19 @@
 MODULE exx_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! The subroutines in this module were mainly written by Xiao Xu as
+!   part of his Ph. D. work completed in 2011.  They are not currently
+!   used for typical runs of atompaw.    The subroutine and function names
+!   included are as follows:
+!     EXX_SCF, EXXOCC_SCF, EXX_Input_Settings, Init_EXX_vx, InitialVx,
+!       SetIndex, SetIndexKLI, Setfparms, EXX1sub, ApproxVx, SetMatchPoint,
+!       Calc_dedv, Set_Vxref, writestuff, Report_EXX_functions,
+!       Get_FCEnergy_EXX, Get_Energy_CS, Calc_decdchi_io, invert_numerov,
+!       VXOCC, EXXOCCiter_wfn, EXXKLIiter, EXXKLIiter_innerloop, EXXKLIiter_wfn,
+!       KLIVX, Find_Hartree, Hsub, EXXiter, AdjustV, simplemix, NEWVX, Fixrvx,
+!       NEWAdjustVX, fixorigin, EXXdump, EXXload, Report_EXX_functions
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE anderson_driver
   USE atomdata
   USE exxdata

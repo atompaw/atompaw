@@ -10,6 +10,13 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt.
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the following active subroutines:
+!     Atompaw2XML, rdinputxml, opt_proj_rso, aamat, xmloutput, xmlprtcore,
+!        read_inputstring, simpson_int, gauleg, build_mesh_data,
+!        destroy_mesh_data, get_xc_data
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Module XMLInterface
 
  use atomdata
@@ -914,6 +921,15 @@ Module XMLInterface
  WRITE(unit_xml,'("<kinetic_energy_differences>")')
  WRITE(unit_xml,'(3(1x,es23.16))') ((PAW%kij(ib,ic)/2,ic=1,PAW%nbase),ib=1,PAW%nbase)
  WRITE(unit_xml,'("</kinetic_energy_differences>")')
+
+!Core-valence exchange terms
+ WRITE(unit_xml,'("<exact_exchange_X_matrix>")')
+ WRITE(unit_xml,'(3(1x,es23.16))') ((PAW%TXVC(ib,ic)/2,ic=1,PAW%nbase),ib=1,PAW%nbase)
+ WRITE(unit_xml,'("</exact_exchange_X_matrix>")')
+
+!Core-core exchange terms
+ WRITE(unit_xml,'("<exact_exchange core-core=""", 1x,es23.16,"""/>")') &
+&     PAW%XCORECORE/2 
 
 
 ! Input file

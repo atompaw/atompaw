@@ -1,4 +1,16 @@
 MODULE hf_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! The subroutines in this module were mainly written by Xiao Xu as
+!   part of his Ph. D. work completed in 2011.  They are not currently
+!   used for typical runs of atompaw.    The subroutine and function names
+!   included are as follows:
+!    HF_tmp, HF_SCF, HFIter, HFDiag, GetLambda, hf_energy_only, GetLambdaHFV,
+!        HFVterms, HFFCIter, HFVFCIter, Get_FCEnergy_HF, Get_FCEnergy_HFV,
+!        HFunocc, Report_HF_functions, HFdump, HFload, DestroyHF,
+!        Report_HF_functions,
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE anderson_driver
   USE atomdata
   USE fock

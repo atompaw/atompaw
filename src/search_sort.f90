@@ -17,6 +17,13 @@
 
 MODULE search_sort
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the following active subroutines:
+!    Integer_InsSort, Real_InsSort
+! This module contains the following active functions:
+!    Linear_Search, Binary_Search
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   IMPLICIT NONE
 
   INTERFACE Insertion_Sort

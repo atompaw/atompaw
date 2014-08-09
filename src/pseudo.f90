@@ -1,4 +1,17 @@
 MODULE pseudo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!      SetPAWOptions1, SetPAWOptions2, StoreTOCCWFN, Troullier, kerker,
+!        nonncps, checkghosts, sethat, coretailselfenergy, setcoretail,
+!        fixtcorewfn, selfhatpot, setbasis, makebasis_bloechl,
+!        makebasis_custom, makebasis_modrrkj, readmatchradius,
+!        makebasis_V_setvloc, formprojectors, bsolv, ftprod, fthatpot,
+!        ftkin, ftvloc, unboundsep, boundsep, PStoAE, Set_PAW_MatrixElements,
+!        logderiv, FindVlocfromVeff, SCFPAW, PAWIter_LDA, exploreparms,
+!        EXPLORElogderiv, Report_PseudobasisRP
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE GlobalMath
   USE atomdata
   USE aeatom

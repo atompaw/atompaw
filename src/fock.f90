@@ -1,4 +1,18 @@
 Module fock
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! The subroutines in this module were used in the Ph. D. work of 
+!   Xiao Xu, completed in 2011.    While many of the subroutines
+!   are not currently used, some will become important as "exact-
+!   exchange contributions are implemented in the codes.
+!   The active subroutines are:
+!       EXXwgt, CondonShortley, Get_Energy_EXX_VC
+!   The inactive subroutines are:
+!       Get_Energy_EXX, Get_Energy_EXX_VV, Calc_dexdphi_io, Calc_Xp,
+!         Calc_dexdphi_io_v, Calc_dexdphi_io_c, Calc_expot_io, Calc_psi,
+!         Calc_dexdphi_io_diag_byphi, Calc_dexdphi_io_offdiag
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   Use atomdata
   Use gridmod
   Use globalmath

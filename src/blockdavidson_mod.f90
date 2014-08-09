@@ -1,4 +1,12 @@
 MODULE BlockDavidson_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module has the following active subroutines:
+!      InitBlockDavidson,EndBlockDavidson, BlockDavidson, ressub, Diagonalizer
+! This module has the following active function:
+!      multsub
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE globalmath
   USE search_sort
 

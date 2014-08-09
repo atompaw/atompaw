@@ -1,4 +1,13 @@
 MODULE AEatom
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!     SCFatom_Init,SCFatom,Orbit_Init,NC_Init,SC_Init,FC_Init,Potential_Init,
+!       Set_Valence
+!  The following subroutines need revision to be useful:
+!       dump_aeatom,load_aeatom
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE excor
   USE exx_mod

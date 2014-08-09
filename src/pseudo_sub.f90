@@ -1,4 +1,15 @@
 MODULE pseudo_sub
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!   This module contains the following active subroutines:
+!      besselps, EvaluateP, EvaluateTp, genOrthog, hatpotL, hatL,
+!         dqij, dtij, altdtij, dvij, avij, calcwij, FillHat,
+!         Get_Energy_EXX_pseudo, Calc_Moment, Get_Energy_EXX_pseudo_one,
+!         SPMatrixElements, COREVAL_EXX, CORECORE_EXX
+!   This module contains the following active functions:
+!        sepnorm, genoverlap
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE globalmath
   USE gridmod
   USE pseudodata
@@ -963,8 +974,14 @@ CONTAINS
       ENDDO   !jb
     ENDDO    !ib
 
-    If (TRIM(PAW%exctype)=="EXXKLI".OR.TRIM(PAW%exctype)=="HF") &
-&     Call COREVAL_EXX(Grid,PAW)
+!    If (TRIM(PAW%exctype)=="EXXKLI".OR.TRIM(PAW%exctype)=="HF") &
+!&     Call COREVAL_EXX(Grid,PAW)
+
+! COREVAL_EXX now called in order to output core-valence exchange terms
+!   for possible use in exact exchange and hybrid treatments
+
+     Call COREVAL_EXX(Grid,PAW)
+     Call CORECORE_EXX(Grid,PAW)
 
     IF (TRIM(PAW%exctype)=="HF") THEN
       norbit=PAW%TOCCWFN%norbit
@@ -1277,10 +1294,12 @@ CONTAINS
   SUBROUTINE COREVAL_EXX(Grid,PAW)
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
-      INTEGER :: i,k, io,ib,ic,nbase,li,lj,l
+      INTEGER :: i,k, io,ib,ic,nbase,li,lj,lc,l
       REAL(8) :: accum,term
       REAL(8), ALLOCATABLE :: f(:)
 
+      write(6,*) 'Entering Core-valence exchange subroutine '
+      write(6,*) '!!!WARNING -- further testing needed!!!'
       nbase=PAW%nbase
       k=0            ! core-valence terms
       do io=1,PAW%OCCWFN%norbit
@@ -1294,6 +1313,8 @@ CONTAINS
         endif
       enddo
       PAW%ncoreshell=k
+      ALLOCATE (PAW%TXVC(nbase,nbase)); PAW%TXVC=0;
+
       if(k>0) then
         ALLOCATE (PAW%DRVC(k,nbase,nbase),f(k)); PAW%DRVC=0
         !!!!WRITE(ifatompaw,'("  COREVAL_LIST   ",i10)') k
@@ -1302,14 +1323,14 @@ CONTAINS
         do io=1,PAW%OCCWFN%norbit
           if (PAW%OCCWFN%iscore(io)) then
             i=i+1
-            li=PAW%OCCWFN%l(io)
+            lc=PAW%OCCWFN%l(io)
             do ib=1,PAW%nbase
               lj=PAW%l(ib)
               do ic=1,PAW%nbase
                 if (PAW%l(ib)==PAW%l(ic)) then
                   f(i)=0
-                  do l=abs(li-lj),(li+lj),2
-                    call EXXwgt(1.d0,1.d0,1,li,2,lj,l,accum)
+                  do l=abs(lc-lj),(lc+lj),2
+                    call EXXwgt(1.d0,1.d0,1,lc,2,lj,l,accum)
                     call CondonShortley(Grid,l,PAW%OCCWFN%wfn(:,io), &
 &                          PAW%ophi(:,ib),PAW%OCCWFN%wfn(:,io), &
 &                          PAW%ophi(:,ic),term)
@@ -1319,15 +1340,66 @@ CONTAINS
                   enddo
                   !!!!!WRITE(ifatompaw,'(3i10,1p,1e25.17)') i, ib,ic,f(i)
                   PAW%DRVC(i,ib,ic)=f(i)
+                  PAW%TXVC(ib,ic)=PAW%TXVC(ib,ic)+(2*lc+1)*f(i)
                 endif
               enddo   !ic
             enddo   !ib
           endif
         enddo   !norbit
 
+        Write(6,*) 'Core - valence accumlated terms; output will be symmetrized'
+        do ib=1,PAW%nbase
+           do ic=ib,PAW%nbase
+              write(6,'(2i5,2x,1p,2e15.7)') ib,ic,PAW%TXVC(ib,ic), &
+                          PAW%TXVC(ib,ic)-PAW%TXVC(ic,ib)
+              PAW%TXVC(ib,ic)=0.5d0*(PAW%TXVC(ib,ic)+PAW%TXVC(ic,ib))            
+              PAW%TXVC(ic,ib)=PAW%TXVC(ib,ic)
+           enddo
+        enddo      
+
         DEALLOCATE(f)
       endif
 
    END SUBROUTINE COREVAL_EXX
+
+  SUBROUTINE CORECORE_EXX(Grid,PAW)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! calculate core-core exchange interaction from all-electron core
+!   (assumed to be contained in augmentation radius)
+!    Added 8/9/2014 NAWH
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+      INTEGER :: i,k, io,jo,l,lci,lcj
+      REAL(8) :: accum,term,occi,occj,x
+
+      write(6,*) 'Entering Core-Core exchange subroutine '
+      write(6,*) '!!!WARNING -- further testing needed!!!'
+      PAW%XCORECORE=0.d0;x=0.d0
+      do io=1,PAW%OCCWFN%norbit
+        if (PAW%OCCWFN%iscore(io)) then
+          lci=PAW%OCCWFN%l(io)
+          occi=PAW%OCCWFN%occ(io)
+          do jo=1,PAW%OCCWFN%norbit
+             if (PAW%OCCWFN%iscore(jo)) then
+               lcj=PAW%OCCWFN%l(jo)
+               occj=PAW%OCCWFN%occ(jo)
+                  do l=abs(lci-lcj),(lci+lcj),2
+                    call EXXwgt(occi,occj,io,lci,jo,lcj,l,accum)
+                    call CondonShortley(Grid,l,PAW%OCCWFN%wfn(:,io), &
+&                          PAW%OCCWFN%wfn(:,jo),PAW%OCCWFN%wfn(:,io), &
+&                          PAW%OCCWFN%wfn(:,jo),term)
+                    x=x-0.5d0*accum*term 
+                    write(6,*) io,jo,l,accum,term,x
+                  enddo   !l
+             endif !jo core
+           enddo !jo
+         endif   !io core
+      enddo  !io
+
+    write(6,*) 'Core-core exchange calculated:  ', x
+    PAW%XCORECORE=x
+  END SUBROUTINE CORECORE_EXX
 
 END MODULE pseudo_sub

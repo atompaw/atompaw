@@ -1,4 +1,11 @@
 MODULE  atompaw_report
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the following active subroutines:
+!     Report_Atomres, Report_Pseudobasis, Report_Pseudopotential,
+!        WRITE_ATOMDATA, Report_pseudo_energies
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE fock
   USE globalmath
@@ -499,6 +506,21 @@ CONTAINS
     WRITE(ifatompaw,'("   EAION   ",1p,1e25.17)') PAW%Eaion
     WRITE(ifatompaw,'("   EAIONHAT   ",1p,1e25.17)') PAW%Eaionhat
     WRITE(ifatompaw,'("   ENERGY   ",1p,1e25.17)') PAW%Etotal
+
+  ! Core-valence exchange energies now generally provided for possible
+  !    use in exact exchange and hybrid evaluations
+    Write(6,*) 'Core-valence exchange integrals provided'
+    Write(6,*) ' with the assumption that all core states confined 0 < r < rc'
+
+    WRITE(ifatompaw,'("   XCOREVAL  ")')
+      do ib=1,PAW%nbase
+         do ic=1,PAW%nbase
+            WRITE(ifatompaw, '(2i10, 1p,1e25.17)' ) ib,ic, PAW%TXVC(ib,ic)
+         enddo
+      enddo   
+   
+    WRITE(ifatompaw,'("   XCORECORE   ",1p, 1e25.17)') PAW%XCORECORE   
+
 
     IF (PAW%OCCWFN%exctype=='HF'.or.PAW%OCCWFN%exctype=='EXXKLI') THEN
        Write(6,*) 'For HF/KLI -- additional core information provided'

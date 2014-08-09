@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.0.0.8],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.0.0.9],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,8 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.f90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 06/2013; 1/2014 solver, coretail, xml corr.
+!--- Version ${PACKAGE_VERSION} - 08/2014 -- added exchange core-valence terms
 EOF
+!--- Version ${PACKAGE_VERSION} - 06/2013; 1/2014 solver, coretail, xml corr.
 #!--- Version ${PACKAGE_VERSION} - 06/2013; 11/2013 solver fixed; 1/2014 coretail
 
 # Initialize Automake

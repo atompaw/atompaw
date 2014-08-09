@@ -9,6 +9,14 @@
 !   09-16-06  NAWH
 !*****************************************************************
 MODULE radialsr
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the following active subroutines:
+!     Allocate_scalar_relativistic, deallocate_scalar_relativistic
+!        Azeroexpand, wfnsrinit, wfnsrasym, unboundsr, boundsr,
+!        scalarrelativisticturningpt, prepareforcfdsol, getwfnfromcfdsol
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE GlobalMath
   USE gridmod
   USE atomdata

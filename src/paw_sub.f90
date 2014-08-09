@@ -1,4 +1,10 @@
 Module paw_sub
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!    pspolyn, psuspolyn, psbes, trunk
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
    USE Globalmath
    USE gridmod
 

@@ -1,4 +1,12 @@
 MODULE report_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!     Total_Energy_Report, One_electron_energy_Report, Core_Electron_Report,
+!       Valence_Electron_Report, Total_FCEnergy_Report, Report_AESCF,
+!       Report_FCSCF, summary_report
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE gridmod
   USE excor

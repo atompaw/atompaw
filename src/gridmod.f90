@@ -1,4 +1,22 @@
 MODULE gridmod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following subroutines, most of which are active:
+!       INTWGT, nderiv, derivative, simplederiv, laplacian, poisson,
+!         poisson_marc, apoisson, zeropot, extrapolate, forward_numerov,
+!         shifted_forward_numerov, inhomogeneous_numerov, inhomo_bound_numerov,
+!         inhomo_numerov_coeff, inhomo_numerov_SVD, inhomo_numerov_SVD_bv,
+!         inhomo_numerov_SVD_bvm, inhomo_bv_numerov, backward_numerov,
+!         cfdsol, mod_backward_numerov, kinetic, kinetic_ij, deltakinetic_ij,
+!         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
+!         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
+!         gramschmidt, Milne, midrange_numerov,
+!  This module contains the following functions, most of which are active:
+!       usingloggrid, overint, integrator, overlap, FindGridIndex,
+!         secondderiv, firstderiv, Gsecondderiv, Gfirstderiv, gridindex,
+!         countnodes
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE globalmath
 
   IMPLICIT NONE

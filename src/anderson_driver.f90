@@ -12,6 +12,13 @@
 !
 !******************************************************************************
 MODULE anderson_driver
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! This module contains the following active subroutines:
+!   Anderson_Mix, Anderson_ResetMix, FreeAnderson, InitAnderson_dr,
+!       DoAndersonMix, Esub
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE globalmath
 
   IMPLICIT NONE!!!!!!

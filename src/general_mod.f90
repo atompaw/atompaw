@@ -1,4 +1,11 @@
 MODULE general_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!      Updatewfn, Get_KinCoul, Get_FCKinCoul, Get_Nuclearpotential,
+!         ORTHONORMALIZE, ADJUSTSIGN
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE numerov_mod
   USE globalmath

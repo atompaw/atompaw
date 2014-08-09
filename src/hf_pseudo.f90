@@ -1,4 +1,15 @@
 MODULE hf_pseudo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! The subroutines in this module were mainly written by Xiao Xu as
+!   part of his Ph. D. work completed in 2011.  They are not currently
+!   used for typical runs of atompaw.    The subroutine and function names
+!   included are as follows:
+!     make_hf_basis_only, make_hf_tp_only, Smoothfunc, Calc_tXp_basis,
+!        HFOrthotocore, HFgenOrthog, GetMoment, Calc_tXv, Calc_Xc,
+!        PAWIter_HF, Calc_tXp, Troullier_HF, CoreOverlap, HFgenoverlap,
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE hf_mod
   USE fock

@@ -1,4 +1,10 @@
 MODULE pseudodata
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!        InitPAW, DestroyPAW
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   Use gridmod
   Use atomdata
 
@@ -30,7 +36,8 @@ MODULE pseudodata
      !********** modified parameters for use with KS and HF
      REAL(8), POINTER :: rVf(:),rtVf(:),g(:,:)
      REAL(8), POINTER :: Kij(:,:),Vfij(:,:),mLij(:,:,:),DR(:,:,:,:,:)
-     REAL(8), POINTER :: DRVC(:,:,:)
+     REAL(8), POINTER :: DRVC(:,:,:),TXVC(:,:)   ! now output for DFT also
+     REAL(8) :: XCORECORE    ! output for DFT
      INTEGER, POINTER :: valencemap(:)   ! valencemap({occ. states})={basis}
      Type(OrbitInfo), POINTER :: OCCwfn
      Type(OrbitInfo), POINTER :: TOCCwfn
@@ -76,6 +83,7 @@ MODULE pseudodata
       PAW%abinitvloc=0.d0;PAW%abinitnohat=0.d0
       PAW%AErefrv=0.d0;PAW%rvx=0.d0;PAW%trvx=0.d0
       PAW%den=0.d0;PAW%tden=0.d0;PAW%core=0.d0;PAW%tcore=0.d0
+      PAW%XCORECORE=0.d0
       ALLOCATE(PAW%phi(n,mxbase),PAW%tphi(n,mxbase),PAW%tp(n,mxbase),&
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
@@ -153,6 +161,7 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%mLij)) DEALLOCATE(PAW%mLij)
     If (ASSOCIATED(PAW%DR)) DEALLOCATE(PAW%DR)
     If (ASSOCIATED(PAW%DRVC)) DEALLOCATE(PAW%DRVC)
+    If (ASSOCIATED(PAW%TXVC)) DEALLOCATE(PAW%TXVC)
     If (ASSOCIATED(PAW%valencemap)) DEALLOCATE(PAW%valencemap)
     If (ASSOCIATED(PAW%lmbd)) DEALLOCATE(PAW%lmbd)
     If (ASSOCIATED(PAW%DRC)) DEALLOCATE(PAW%DRC)

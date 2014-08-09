@@ -1,4 +1,15 @@
 Module exx_pseudo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! The subroutines in this module were mainly written by Xiao Xu as
+!   part of his Ph. D. work completed in 2011.  They are not currently
+!   used for typical runs of atompaw.    The subroutine and function names
+!   included are as follows:
+!       EXXKLI_pseudoVx, Calc_tdexdphi_io, EXX_pseudoVx, InitialVx_pseudo,
+!         Init_trvx, CompensationRHO, tVXsub0, tVXsub1, FindVX, multisolv,
+!         Calc_w, Calc_u
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
    USE anderson_driver
    USE atomdata
    USE exx_mod

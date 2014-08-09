@@ -1,5 +1,11 @@
 MODULE atomdata
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module constains the following active subroutines:
+!   InitOrbit, DestroyOrbit, CopyOrbit, InitFC, DestroyFC,
+!      InitPot, DestroyPot, CopyPot, InitSCF, CopySCF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   IMPLICIT NONE
 
   TYPE OrbitInfo

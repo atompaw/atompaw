@@ -1,4 +1,10 @@
 MODULE Graphatom_report
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module is used only by the program graphatom and has 
+!    the single subroutine:  Report_Graphatom
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata
   USE gridmod
   USE report_mod

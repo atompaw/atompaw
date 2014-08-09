@@ -1,4 +1,12 @@
 MODULE excor
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module contains the following active subroutines:
+!     initexch, Report_EXC, pwldafunc, pbefunc, radialexcpbe, exch
+!  This module contains the following active functions:
+!     Logofterm, Aofec
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE atomdata, only : scalarrelativistic
   USE globalmath
   USE gridmod

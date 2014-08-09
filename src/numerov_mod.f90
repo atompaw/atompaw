@@ -1,4 +1,13 @@
 MODULE Numerov_mod
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  This module has the following active subroutines:
+!    BoundNumerov, initBoundNumerov, endBoundNumerov tridiagmult,
+!       startBoundNumerov, hvov, newboundsch, unboundsch
+!  This module has the following active functions:
+!    multres, wfninit, wfnend
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   USE gridmod
   USE blockdavidson_mod
 

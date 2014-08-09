@@ -1,6 +1,8 @@
 PROGRAM atompaw
   !*************************************************************
-  !  Driver program for new version of atompaw program
+  !  Driver program for atompaw program
+  !
+  !    The following is not currently available:
   !      arguments can be SAVEAEATOM (save file name),  OR
   !                       LOADAEATOM (load file name)
   !      Note:  must have 0 or 2 arguments

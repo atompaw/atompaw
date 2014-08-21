@@ -17,7 +17,7 @@
 #
 
 # Check that we are in the right directory
-if test ! -s "./configure.ac" -o ! -s "src/atompaw_prog.f90"; then
+if test ! -s "./configure.ac" -o ! -s "src/atompaw_prog.F90"; then
   echo "wipeout: Cowardly refusing to remove something from here!"
   exit 1
 fi

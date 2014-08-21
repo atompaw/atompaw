@@ -17,6 +17,7 @@
 
 module libxc_mod
 
+ use Tools
  use globalmath
 #if defined HAVE_LIBXC
  use xc_f90_types_m

@@ -1,7 +1,0 @@
-# lapack and blas libraries
-LIBS=-lmkl_intel_lp64  -lmkl_sequential -lmkl_core
-
-# Compilers and flags
-F90 = ifort
-F90FLAGS = -g -debug all -xHOST -fp-model precise -static-intel -check all
-LDFLAGS = $(F90FLAGS)

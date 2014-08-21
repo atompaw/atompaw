@@ -563,6 +563,60 @@ AC_DEFUN([ATP_FC_MOD_CASE],[
   AC_MSG_RESULT([${fc_mod_uppercase}])
 ]) # ATP_FC_MOD_CASE
 
+# _ATP_CHECK_FC_FLUSH()
+# ---------------------
+#
+# Checks whether the Fortran compiler supports the flush() subroutine.
+#
+AC_DEFUN([_ATP_CHECK_FC_FLUSH],[
+  dnl Init
+  fc_has_flush="no"
+
+  AC_MSG_CHECKING([whether the Fortran compiler accepts flush()])
+
+  dnl Try to compile a program calling flush()
+  AC_LANG_PUSH([Fortran])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+    [[
+            call flush(1)
+    ]])], [fc_has_flush="yes"])
+  AC_LANG_POP()
+
+  if test "${fc_has_flush}" = "yes"; then
+    AC_DEFINE([HAVE_FC_FLUSH],1,
+      [Define to 1 if your Fortran compiler supports flush().])
+  fi
+
+  AC_MSG_RESULT(${fc_has_flush})
+]) # _ATP_CHECK_FC_FLUSH
+
+
+# _ATP_CHECK_FC_FLUSH_()
+# ----------------------
+#
+# Checks whether the Fortran compiler supports the flush_() subroutine.
+#
+AC_DEFUN([_ATP_CHECK_FC_FLUSH_],[
+  dnl Init
+  fc_has_flush_="no"
+
+  AC_MSG_CHECKING([whether the Fortran compiler accepts flush_()])
+
+  dnl Try to compile a program calling flush_()
+  AC_LANG_PUSH([Fortran])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+    [[
+            call flush_(1)
+    ]])], [fc_has_flush_="yes"])
+  AC_LANG_POP()
+
+  if test "${fc_has_flush_}" = "yes"; then
+    AC_DEFINE([HAVE_FC_FLUSH_],1,
+      [Define to 1 if your Fortran compiler supports flush_().])
+  fi
+
+  AC_MSG_RESULT(${fc_has_flush_})
+]) # _ATP_CHECK_FC_FLUSH_
 
 
 # ATP_PROG_FC()
@@ -653,3 +707,15 @@ AC_DEFUN([ATP_PROG_FC],[
   AC_SUBST(atp_fc_version)
   AC_SUBST(atp_fc_wrap)
 ]) # ATP_PROG_FC
+
+
+# ATP_FC_FEATURES()
+# -----------------
+#
+# Explores the capabilities of the Fortran compiler.
+#
+AC_DEFUN([ATP_FC_FEATURES],[
+  dnl Explore compiler peculiarities
+  _ATP_CHECK_FC_FLUSH
+  _ATP_CHECK_FC_FLUSH_
+]) # ATP_FC_FEATURES

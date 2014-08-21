@@ -11,7 +11,7 @@
 set -e
 
 # Check that we are in the right directory
-if test ! -s "./configure.ac" -o ! -s "src/atompaw_prog.f90"; then
+if test ! -s "./configure.ac" -o ! -s "src/atompaw_prog.F90"; then
   echo "This is not a AtomPAW source tree - aborting now"
   exit 1
 fi

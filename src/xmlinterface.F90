@@ -724,7 +724,7 @@ Module XMLInterface
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
  if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
- WRITE(unit_xml,'(" JTH table v0.2")')
+!WRITE(unit_xml,'(" JTH table v0.2")')
  WRITE(unit_xml,'(" The input file is available at the end of this file")')
  WRITE(unit_xml,'(" Atompaw -->")')
 

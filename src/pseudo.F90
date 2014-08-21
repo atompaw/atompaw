@@ -3653,7 +3653,7 @@ CONTAINS
            CALL EXPLORElogderiv(Grid,FCPot,PAW,fdata,EBEGIN,EEND,&
 &           logderiverror(:,i))
         endif
-        write(20,'(i5,2x,f12.5,1p6e15.7)')&
+        write(20,'(i5,2x,f12.5,1p,6e15.7)')&
 &             i,PAW%rc,(logderiverror(l+1,i),l=0,PAW%lmax+1)
         close(ifinput); close(ifen)
         Call DestroyPAW(PAW)

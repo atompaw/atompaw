@@ -829,7 +829,7 @@ CONTAINS
       nr=min(PAW%irc+5,Grid%n)
       call InitPot(Pot,nr)
       ALLOCATE(VNC(nr),wfn(nr),stat=i)
-      IF (i/=0) STOP'Error in checkghosts allocation'
+      IF (i/=0) STOP 'Error in checkghosts allocation'
       POT%rv(1:nr)=PAW%rveff(1:nr)
       call zeropot(Grid,POT%rv,POT%v0,POT%v0p)
 

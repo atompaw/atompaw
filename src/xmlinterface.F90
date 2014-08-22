@@ -806,11 +806,11 @@ Module XMLInterface
 
 !Compensation charge shape function
  if (gaussianshapefunction) then
-   WRITE(unit_xml,'("<shape_function type=""gauss"" rc=""",f19.16"""/>")') PAW%gausslength
+   WRITE(unit_xml,'("<shape_function type=""gauss"" rc=""",f19.16,"""/>")') PAW%gausslength
  else if (besselshapefunction) then
-   WRITE(unit_xml,'("<shape_function type=""bessel"" rc=""",f19.16"""/>")') PAW%rc_shap
+   WRITE(unit_xml,'("<shape_function type=""bessel"" rc=""",f19.16,"""/>")') PAW%rc_shap
  else
-   WRITE(unit_xml,'("<shape_function type=""sinc"" rc=""",f19.16"""/>")') PAW%rc_shap
+   WRITE(unit_xml,'("<shape_function type=""sinc"" rc=""",f19.16,"""/>")') PAW%rc_shap
  endif
 
 !Core densities
@@ -820,7 +820,7 @@ Module XMLInterface
 &              sqr4pi*FC%coreden(2:mesh_data%meshsz(mesh_data%icoremesh))&
 &              /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<ae_core_density grid=""",a,i1""" rc=""",f19.16""">")') &
+ WRITE(unit_xml,'("<ae_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</ae_core_density>")')
@@ -829,7 +829,7 @@ Module XMLInterface
 &              sqr4pi*PAW%tcore(2:mesh_data%meshsz(mesh_data%icoremesh))&
 &               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""" rc=""",f19.16""">")') &
+ WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</pseudo_core_density>")')
@@ -842,7 +842,7 @@ Module XMLInterface
 &              sqr4pi*PAW%tden(2:mesh_data%meshsz(mesh_data%ivalemesh))&
 &               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%ivalemesh)))**2)
  call extrapolate(Grid,dum)
- WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16""">")') &
+ WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,maxval(PAW%rcio(1:PAW%nbase))
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivalemesh))
  WRITE(unit_xml,'("</pseudo_valence_density>")')
@@ -853,7 +853,7 @@ Module XMLInterface
  dum=zero
  dum(1:mesh_data%meshsz(mesh_data%ivbaremesh))= &
 &              sqr4pi*half*PAW%vloc(1:mesh_data%meshsz(mesh_data%ivbaremesh))
- WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+ WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh,PAW%rc
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivbaremesh))
  WRITE(unit_xml,'("</zero_potential>")')
@@ -865,7 +865,7 @@ Module XMLInterface
   dum=zero
   dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
 &            sqr4pi*half*PAW%abinitvloc(1:mesh_data%meshsz(mesh_data%ivionmesh))
-   WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+   WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 &   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
    WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
    WRITE(unit_xml,'("</kresse_joubert_local_ionic_potential>")')
@@ -878,7 +878,7 @@ Module XMLInterface
   dum=zero
   dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
 &               sqr4pi*half*PAW%abinitnohat(1:mesh_data%meshsz(mesh_data%ivionmesh))
-  WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16""">")') &
+  WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 &  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
   WRITE(unit_xml,'("</blochl_local_ionic_potential>")')

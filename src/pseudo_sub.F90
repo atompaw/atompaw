@@ -1295,12 +1295,14 @@ CONTAINS
 
   END SUBROUTINE SPMatrixElements
 
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  Calculate the core-valence matrix elements with correct (-) sign
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE COREVAL_EXX(Grid,PAW)
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
       INTEGER :: i,k, io,ib,ic,nbase,li,lj,lc,l
-      REAL(8) :: accum,term
+      REAL(8) :: accum,term,occ
       REAL(8), ALLOCATABLE :: f(:)
 
       write(6,*) 'Entering Core-valence exchange subroutine '
@@ -1329,6 +1331,7 @@ CONTAINS
           if (PAW%OCCWFN%iscore(io)) then
             i=i+1
             lc=PAW%OCCWFN%l(io)
+            occ=PAW%OCCWFN%occ(io)
             do ib=1,PAW%nbase
               lj=PAW%l(ib)
               do ic=1,PAW%nbase
@@ -1345,7 +1348,7 @@ CONTAINS
                   enddo
                   !!!!!WRITE(ifatompaw,'(3i10,1p,1e25.17)') i, ib,ic,f(i)
                   PAW%DRVC(i,ib,ic)=f(i)
-                  PAW%TXVC(ib,ic)=PAW%TXVC(ib,ic)+(2*lc+1)*f(i)
+                  PAW%TXVC(ib,ic)=PAW%TXVC(ib,ic)-0.5d0*occ*f(i)
                 endif
               enddo   !ic
             enddo   !ib

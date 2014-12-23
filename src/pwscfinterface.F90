@@ -44,9 +44,10 @@ Module PWscfInterface
 &            dij0(PAW%nbase,PAW%nbase))
 
   ! Stop if LibXC is used
-    if (TRIM(exctype)/='LDA-PW'.and.TRIM(exctype)/='GGA-PBE') then
+    if (TRIM(exctype)/='LDA-PW'.and.TRIM(exctype)/='GGA-PBE' &
+&     .and.TRIM(exctype)/='GGA-PBESOL') then
      write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
-     write(6,'(2x,a)') "   Only LDA-PW and GGA-PBE are supported"
+     write(6,'(2x,a)') "   Only LDA-PW and GGA-PBE(SOL) are supported"
      write(6,'(2x,a)') "   for UPF output (libXC not supported) !"
      write(6,'(2x,a)') "   No UPDF file written !"
      return
@@ -169,6 +170,7 @@ Module PWscfInterface
       WRITE(1001,'("             core_correction=""T""")')
       If (TRIM(exctype)=='LDA-PW') inputfileline='"SLA PW NOGX NOGC"'
       If (TRIM(exctype)=='GGA-PBE') inputfileline='"SLA PW PBX PBC"'
+      If (TRIM(exctype)=='GGA-PBESOL') inputfileline='"SLA PW PSX PSC"'
       WRITE(1001,'("             functional=",(a))') TRIM(inputfileline)
       WRITE(1001,'("             z_valence=""",f6.3,"""")')FC%zvale
       WRITE(1001,'("             l_max=""",i1,"""")') PAW%lmax

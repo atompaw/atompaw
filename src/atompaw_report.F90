@@ -651,6 +651,402 @@ CONTAINS
     DEALLOCATE(f)
   END SUBROUTINE WRITE_ATOMDATA
 
+  SUBROUTINE WRITE_SOCORROATOMDATA(Grid,Pot,Orbit,FC,PAW)
+    TYPE(GridInfo) , INTENT(IN):: Grid
+    TYPE(PotentialInfo), INTENT(IN) :: Pot
+    TYPE(OrbitInfo), INTENT(IN) :: Orbit
+    TYPE(FCInfo), INTENT(IN) :: FC
+    TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+
+    integer, parameter :: ifatompaw=1001
+    integer :: i,j,k,l,ib,ic,io,jo,li,lj,n,ishift,ivion,ivale,lcao_points,icount
+    integer :: lmin,lmax,id,ie,lp,lcount,jcount,ll,ok
+    integer, allocatable :: llist(:)
+    real(8) :: sqr4pi, term,accum,occ,ctctse,cthatse,rr,eself
+    real(8), allocatable :: f(:),dum(:),dum1(:)
+    real(8), allocatable :: wf(:),twf(:),rh(:),rth(:),shartree(:),sshartree(:,:,:)
+    logical :: even
+
+    ishift=Grid%ishift
+
+    PAW%mesh_size=PAW%irc+ishift
+    PAW%coretailpoints=MAX(PAW%coretailpoints,PAW%mesh_size)
+
+!   Find radii ensuring:
+!     - Abs(density)<10e-10 (for the pseudo-valence density)
+!     - r>=10 bohr (for the ionic potential)
+    sqr4pi=sqrt(4*pi)*1.d-10;ivion=gridindex(Grid,10.d0);ivale=ivion
+    do while (ivale<Grid%n.and.abs(PAW%tden(ivale))>sqr4pi*Grid%r(ivale)**2)
+      ivale=ivale+1
+    end do
+
+    allocate(f(Grid%n))
+
+    OPEN(ifatompaw,file=TRIM(POT%sym)//'.SOCORRO.atomicdata',form='formatted')
+    WRITE(ifatompaw,'("  ATOMTYPE     ",a2)') POT%sym
+    WRITE(ifatompaw,'("  ATOMXCTYPE     ",a10)') TRIM(Orbit%exctype)
+    WRITE(ifatompaw,'("  ATOMIC_CHARGE    ",i5)') POT%nz
+    WRITE(ifatompaw,'("  CORE_CHARGE    ",1p,1e20.13)') FC%zcore
+    WRITE(ifatompaw,'("  RC         ",1p,1e20.13)') PAW%rc
+        if (gaussianshapefunction) then
+     WRITE(ifatompaw,'("  SHAPE_TYPE  ",a20,2x,1p,1e20.13)') 'gaussian', &
+           PAW%gausslength
+    else if (besselshapefunction) then
+     if (PAW%multi_rc) then
+      WRITE(ifatompaw,'("  SHAPE_TYPE  ",a20,2x,1p,1e20.13)') 'bessel',PAW%rc_shap
+     else
+      WRITE(ifatompaw,'("  SHAPE_TYPE  ",a20)') 'bessel'
+     endif
+    else
+     if (PAW%multi_rc) then
+      WRITE(ifatompaw,'("  SHAPE_TYPE  ",a20,2x,1p,1e20.13)') 'sinc2',PAW%rc_shap
+     else
+      WRITE(ifatompaw,'("  SHAPE_TYPE  ",a20)') 'sinc2'
+     endif
+    endif
+    WRITE(ifatompaw,'("  BASIS_SIZE    ",i5)') PAW%nbase
+    WRITE(ifatompaw,'("  ORBITALS      ")')
+    WRITE(ifatompaw,'(20i4)') (PAW%l(ib),ib=1,PAW%nbase)
+    WRITE(ifatompaw,'("  END     ")')
+    WRITE(ifatompaw,'("  INITOCC       ")')
+    WRITE(ifatompaw,'(8f10.6)') (PAW%occ(ib),ib=1,PAW%nbase)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,'("  MESH_SIZE    ",i10)') PAW%mesh_size
+    WRITE(ifatompaw,'("  MESH_STEP    ",1p,1e20.13)') Grid%h
+    if (usingloggrid(Grid)) then
+       WRITE(ifatompaw,'("  LOG_GRID    ",1p,1e20.13)') Grid%drdu(1)
+    endif
+
+    WRITE(ifatompaw,'("  CORETAIL_POINTS   ",i10)') PAW%coretailpoints
+!   Find index for Grid%r(i)>10
+    j=gridindex(Grid,10.d0); lcao_points=j
+    WRITE(ifatompaw,'("  LCAO_SIZE  ",i10)') j     !lcao_points
+    WRITE(ifatompaw,'("  LCAO_STEP   ",1p,1e20.13)') Grid%h     !hlcao
+
+    WRITE(ifatompaw,'("   CORE_DENSITY   ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (FC%coreden(i),i=1,PAW%mesh_size)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,'("   CORETAIL_DENSITY   ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%tcore(i),i=1,PAW%coretailpoints)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,'("   PSEUDO_VALENCE_DENSITY   ",3x,i8)') ivale
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%tden(i),i=1,ivale)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,'("   SHAPE_FUNC   ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%hatshape(i),i=1,PAW%mesh_size)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,'("   VLOCFUN      ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%vloc(i),i=1,PAW%mesh_size)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,&
+     '("   VLOCION      ",3x,i8," #ionic vloc for abinit in Ryd units")') ivion
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%abinitvloc(i),i=1,ivion)
+    WRITE(ifatompaw,'("  END     ")')
+
+    WRITE(ifatompaw,&
+     '("   VLOCION_NOHAT",3x,i8," #ionic vlocnohat for abinit in Ryd units")') ivion
+    WRITE(ifatompaw,'(1p,3e25.17)') (PAW%abinitnohat(i),i=1,ivion)
+    WRITE(ifatompaw,'("  END     ")')
+
+    DO ib=1,PAW%nbase
+       WRITE(ifatompaw,'("   TPROJECTOR",i4," #p(r), for p(r)/r*Ylm)")') ib
+       WRITE(ifatompaw,'(1p,3e25.17)') (PAW%otp(i,ib),i=1,PAW%mesh_size)
+       WRITE(ifatompaw,'("  END     ")')
+    ENDDO
+
+
+    DO ib=1,PAW%nbase
+       WRITE(ifatompaw,'("   PHI",i5," #phi(r), for phi(r)/r*Ylm)")') ib
+       WRITE(ifatompaw,'(1p,3e25.17)') (PAW%ophi(i,ib),i=1,PAW%mesh_size)
+       WRITE(ifatompaw,'("  END     ")')
+    ENDDO
+
+    DO ib=1,PAW%nbase
+       WRITE(ifatompaw,'("   TPHI",i5," #tphi(r), for tphi(r)/r*Ylm)")') ib
+       WRITE(ifatompaw,'(1p,3e25.17)') (PAW%otphi(i,ib),i=1,PAW%mesh_size)
+       WRITE(ifatompaw,'("  END     ")')
+    ENDDO
+
+    DO ib=1,PAW%nbase
+       f=PAW%tphi(:,ib)
+       CALL trunk(Grid,f(1:Grid%n),6.d0,10.d0)
+       WRITE(ifatompaw,'("   TPHI_LCAO",i4," #tphi0(r) for tphi0(r)/r*Ylm)")') ib
+       WRITE(ifatompaw,'(1p,3e25.17)') (f(j),j=1,lcao_points)
+       WRITE(ifatompaw,'("  END     ")')
+    ENDDO
+
+
+!! optional l-dependent shape functions
+    if (besselshapefunction) then
+       write(6,*) 'Socorro does not yet support l-dependent shape func'
+       stop
+!      li=MAXVAL(PAW%TOCCWFN%l(:)); li=MAX(li,PAW%lmax); li=2*li
+!      WRITE(ifatompaw,'("    SHAPE_L",i4,"  # for  l= 0 .. lmax")') li
+!      Do l=1,li+1
+!         f(2:PAW%mesh_size)=PAW%g(2:PAW%mesh_size,l)/(Grid%r(2:PAW%mesh_size)**2)
+!         call extrapolate(Grid,f)
+!         WRITE(ifatompaw,'(1p,3e25.17)') (f(i),i=1,PAW%mesh_size)
+!         WRITE(ifatompaw,'( "END")')
+!      ENddo
+    endif
+
+
+
+    ! spherical matrix elements
+    icount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          IF (PAW%l(ib)==PAW%l(ic)) THEN
+             icount=icount+1
+             f(icount)=PAW%oij(ib,ic)
+          ENDIF
+       ENDDO
+    ENDDO
+
+
+    WRITE(ifatompaw,'("   OVERLAP_SIZE    ",i10)') icount
+    WRITE(ifatompaw,'("   OVERLAP_MATRIX  ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (f(ic),ic=1,icount)
+    WRITE(ifatompaw,'("  END     ")')
+
+
+    icount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          IF (PAW%l(ib)==PAW%l(ic)) THEN
+             icount=icount+1
+             f(icount)=PAW%Kij(ib,ic)
+          ENDIF
+       ENDDO
+    ENDDO
+    WRITE(ifatompaw,'("   KINETIC_ENERGY_MATRIX  ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (f(ic),ic=1,icount)
+    WRITE(ifatompaw,'("  END     ")')
+
+
+    icount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          IF (PAW%l(ib)==PAW%l(ic)) THEN
+             icount=icount+1
+             call dvij(Grid,PAW,FC,Pot%zz,ib,ic,f(icount))
+          ENDIF
+       ENDDO
+    ENDDO
+    WRITE(ifatompaw,'("   V_ION_MATRIX  ")')
+    WRITE(ifatompaw,'(1p,3e25.17)') (f(ic),ic=1,icount)
+    WRITE(ifatompaw,'("  END     ")')
+
+    !
+    !  angularly dependent matrix elements
+    !
+    icount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO l=lmin,lmax,2
+             icount=icount+1
+          ENDDO
+       ENDDO
+    ENDDO
+
+    WRITE(ifatompaw,'("   DENVHAT_SIZE   ",i10)') icount
+    WRITE(ifatompaw,'("   DENSITY   ")')
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO l=lmin,lmax,2
+             WRITE(ifatompaw,'(3i10,1p,1e25.17)') ib,ic,l,PAW%mLij(ib,ic,l+1)
+          ENDDO
+       ENDDO
+    ENDDO
+    WRITE(ifatompaw,'("   END   ")')
+
+! Old VHAT matrix elements
+    WRITE(ifatompaw,'("   V_HAT   ")')
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO ll=lmin,lmax,2
+             CALL hatpotL(Grid,PAW,ll,f)
+             DO i=1,PAW%irc
+                f(i)=f(i)*PAW%otphi(i,ib)*PAW%otphi(i,ic)
+             ENDDO
+             WRITE(ifatompaw,'(3i10,1pe25.17)') ib,ic,ll,&
+&             integrator(Grid,f,1,PAW%irc)
+          ENDDO
+       ENDDO
+    ENDDO
+    WRITE(ifatompaw,'("   END   ")')
+
+
+
+    !
+    !  Old form of Hartree matrix elements
+    !
+
+    lcount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO l=lmin,lmax,2
+             DO id=1,PAW%nbase
+                DO ie=id,PAW%nbase
+                   lp=lmax+PAW%l(id)+PAW%l(ie)
+                   even=.false.
+                   if (2*(lp/2)==lp) even=.true.
+                   IF (l.GE.ABS(PAW%l(id)-PAW%l(ie)).AND.           &
+                        l.LE.PAW%l(id)+PAW%l(ie).AND.even) THEN
+                      lcount=lcount+1
+                   ENDIF
+                ENDDO
+             ENDDO
+          ENDDO
+       ENDDO
+    ENDDO
+
+    WRITE(ifatompaw,'("   HARTREE_SIZE   ",i10)') lcount
+    WRITE(ifatompaw,'("   V_HARTREE   ")')
+
+    icount=(PAW%nbase*(PAW%nbase+1))/2; n=Grid%n
+    ALLOCATE(shartree(lcount),sshartree(icount,icount,2*PAW%lmax+2),&
+&        wf(n),twf(n),rh(n),rth(n),dum(n),dum1(n),stat=ok)
+    IF (ok/=0) THEN
+       WRITE(6,*) 'Error in hartree allocation', icount,lcount,PAW%irc,ok
+       STOP
+    ENDIF
+    !
+    !  Hartree matrix elements
+    !
+    !! Due to precision error in apoisson solver, some equivalent Hartree
+    !!  matrix elements are not equal with an error of e-5; take average
+    !!  these elements in order to remove assymmetry errors
+    !!  Thanks to Francois Jollet for pointing out this problem
+    sshartree=0
+    shartree=0
+    icount=0
+    lcount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          icount=icount+1
+          DO i=1,PAW%irc
+             wf(i)=PAW%ophi(i,ib)*PAW%ophi(i,ic)
+             twf(i)=PAW%otphi(i,ib)*PAW%otphi(i,ic)
+          ENDDO
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO ll=lmin,lmax,2
+             CALL apoisson(Grid,ll,PAW%irc,wf,rh)
+             CALL apoisson(Grid,ll,PAW%irc,twf,rth)
+             jcount=0
+             DO id=1,PAW%nbase
+                DO ie=id,PAW%nbase
+                   jcount=jcount+1
+                   lp=lmax+PAW%l(id)+PAW%l(ie)
+                   even=.false.
+                   if (2*(lp/2)==lp) even=.true.
+                   IF (ll.GE.ABS(PAW%l(id)-PAW%l(ie)).AND.           &
+&                       ll.LE.PAW%l(id)+PAW%l(ie).AND.even) THEN
+                      lcount=lcount+1
+                      dum=0;dum1=0
+                      DO i=2,PAW%irc
+                         rr=Grid%r(i)
+                         dum(i)=PAW%ophi(i,id)*PAW%ophi(i,ie)*rh(i)/rr     &
+&                             -PAW%otphi(i,id)*PAW%otphi(i,ie)*rth(i)/rr
+                         dum1(i)=PAW%ophi(i,id)*PAW%ophi(i,ie)*rh(i)/rr
+                      ENDDO
+                      shartree(lcount)=integrator(Grid,dum(1:PAW%irc),1,PAW%irc)
+                      sshartree(icount,jcount,ll+1)=shartree(lcount)
+                   ENDIF
+                ENDDO
+             ENDDO
+          ENDDO
+       ENDDO
+    ENDDO
+
+    icount=0
+    lcount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          icount=icount+1
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO ll=lmin,lmax,2
+             jcount=0
+             DO id=1,PAW%nbase
+                DO ie=id,PAW%nbase
+                   jcount=jcount+1
+                   lp=lmax+PAW%l(id)+PAW%l(ie)
+                   even=.false.
+                   if (2*(lp/2)==lp) even=.true.
+                   IF (ll.GE.ABS(PAW%l(id)-PAW%l(ie)).AND.           &
+&                       ll.LE.PAW%l(id)+PAW%l(ie).AND.even) THEN
+                      lcount=lcount+1
+                      shartree(lcount)=                      &
+&                          0.5d0*(sshartree(icount,jcount,ll+1) + &
+&                          sshartree(jcount,icount,ll+1))
+                       write(6,*) ll,lcount,shartree(lcount); call flush(6);
+                   ENDIF
+                ENDDO
+             ENDDO
+          ENDDO
+       ENDDO
+    ENDDO
+
+    lcount=0
+    DO ib=1,PAW%nbase
+       DO ic=ib,PAW%nbase
+          lmin=ABS(PAW%l(ib)-PAW%l(ic))
+          lmax=PAW%l(ib)+PAW%l(ic)
+          DO ll=lmin,lmax,2
+             DO id=1,PAW%nbase
+                DO ie=id,PAW%nbase
+                   lp=lmax+PAW%l(id)+PAW%l(ie)
+                   even=.false.
+                   if (2*(lp/2)==lp) even=.true.
+                   IF (ll.GE.ABS(PAW%l(id)-PAW%l(ie)).AND.           &
+&                       ll.LE.PAW%l(id)+PAW%l(ie).AND.even) THEN
+                      lcount=lcount+1
+                      WRITE(ifatompaw,'(5i5,1pe25.17)')ib,ic,id,ie,ll, &
+&                        shartree(lcount)
+                   ENDIF
+                ENDDO
+             ENDDO
+          ENDDO
+       ENDDO
+    ENDDO
+    WRITE(ifatompaw,'("   END         ")')
+
+    WRITE(ifatompaw,'("   HAT_SELF-ENERGY    ",i10)') 2*PAW%lmax
+    DO ll=0,2*PAW%lmax
+       CALL selfhatpot(Grid,PAW,ll,eself)
+       WRITE(ifatompaw,'(i10,1pe25.17)') ll,eself
+    ENDDO
+    WRITE(ifatompaw,'("   END         ")')
+
+    call coretailselfenergy(Grid,PAW,ctctse,cthatse)
+    WRITE(ifatompaw,'("   CORETAILSELFENERGY   ",1pe25.17,"  END")') ctctse
+    WRITE(ifatompaw,'("   CORETAILHATENERGY   ",1pe25.17,"  END")') cthatse
+
+    WRITE(ifatompaw,'("   ENERGY   ",1p,1e25.17)') PAW%Etotal
+
+
+    CLOSE(ifatompaw)
+
+    DEALLOCATE(f)
+    DEALLOCATE(shartree,sshartree,wf,twf,rh,rth,dum,dum1)
+  END SUBROUTINE WRITE_SOCORROATOMDATA
+
   Subroutine Report_pseudo_energies(PAW,ien)
        Type(PseudoInfo), INTENT(IN) :: PAW
        Integer , INTENT(IN) :: ien

@@ -565,7 +565,7 @@ CONTAINS
     b=den(1:irc)*(Grid%r(1:irc))**L
     q=integrator(Grid,b,1,irc)/(2*l+1)
     h=Grid%h
-    WRITE(6,*) 'check l multipole',l,q
+!    WRITE(6,*) 'check l multipole',l,q
     IF (Grid%type==lineargrid) THEN
        a=0;b=0; c=0; rv=0
        DO i=2,irc

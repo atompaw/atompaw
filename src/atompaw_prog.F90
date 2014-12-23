@@ -124,6 +124,7 @@ PROGRAM atompaw
    WRITE(6,*) 'Enter 3 or PWSCFOUT to run atompaw2pwscf'
    WRITE(6,*) 'Enter 4 or XMLOUT  to run atompaw2xml'
    WRITE(6,*) 'Enter 5 or PWPAWOUT  to run atompaw2pwpaw'
+   WRITE(6,*) 'Enter 6 or SOCORROOUT  to run atompaw2socorro'
    WRITE(6,*) 'Enter 10 or EXPLORE to run exploreparms'
                      
    READ(5,'(a)',iostat=i) token
@@ -139,11 +140,14 @@ PROGRAM atompaw
      CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit,ifinput)
    else if (checkline2(token,"4","XMLOUT")) then    
      CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput) 
-   else if (checkline2(token,"5","PWPAWOUT")) then    
+   else if (checkline2(token,"5","PWPAWOUT")) then   
      CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
+   else if (checkline2(token,"6","SOCORROOUT")) then   
+     CALL WRITE_SOCORROATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
    else if (checkline2(token,"10","EXPLORE")) then    
      CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)    
    else 
+     write(6,*) token; call flush(6)      
      STOP 'Option not recognized -- pgm terminating'
    endif                                      
   Enddo

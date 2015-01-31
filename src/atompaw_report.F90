@@ -995,7 +995,7 @@ CONTAINS
                       shartree(lcount)=                      &
 &                          0.5d0*(sshartree(icount,jcount,ll+1) + &
 &                          sshartree(jcount,icount,ll+1))
-                       write(6,*) ll,lcount,shartree(lcount); call flush(6);
+                       write(6,*) ll,lcount,shartree(lcount); call flush_unit(6)
                    ENDIF
                 ENDDO
              ENDDO

@@ -147,7 +147,7 @@ PROGRAM atompaw
    else if (checkline2(token,"10","EXPLORE")) then    
      CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)    
    else 
-     write(6,*) token; call flush(6)      
+     write(6,*) token; call flush_unit(6)      
      STOP 'Option not recognized -- pgm terminating'
    endif                                      
   Enddo

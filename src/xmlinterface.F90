@@ -707,27 +707,27 @@ Module XMLInterface
    !Aliases
    select case(trim(xcname_short))
      case('LDA_X+LDA_C_PW')
-       xcname='PW'
+       xc_name='PW'
      case('GGA_X_PBE+GGA_C_PBE')
-       xcname='PBE'
+       xc_name='PBE'
      case('LDA_X+LDA_C_PZ')
-       xcname='PZ'
+       xc_name='PZ'
      case('LDA_X+LDA_C_WIGNER')
-       xcname='W'
+       xc_name='W'
      case('LDA_X+LDA_C_HL')
-       xcname='HL'
+       xc_name='HL'
      case('LDA_X+LDA_C_GL')
-       xcname='GL'
+       xc_name='GL'
      case('LDA_X+LDA_C_VWN')
-       xcname='VWN'
+       xc_name='VWN'
      case('GGA_X_PBE_R+GGA_C_PBE')
-       xcname='revPBE'
+       xc_name='revPBE'
      case('GGA_X_RPBE+GGA_C_PBE')
-       xcname='RPBE'
+       xc_name='RPBE'
      case('GGA_X_PW91+GGA_C_PW91')
-       xcname='PW91'
+       xc_name='PW91'
      case('GGA_X_B88+GGA_C_LYP')
-       xcname='BLYP'
+       xc_name='BLYP'
      case DEFAULT
        xc_name=xcname_short
    end select

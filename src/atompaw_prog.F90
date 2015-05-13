@@ -39,32 +39,27 @@ PROGRAM atompaw
   WRITE(6,*)
 
   j=iargc()
-  if (j==2) then
-       call GetArg(1,token)
-       call UpperCase(token)
-       if (TRIM(token)=='SAVEAEATOM') then
-           saveaeatom=.true.
-           call GetArg(2,outputfile)
-           write(6,*) 'AEATOM results will be saved to file ',TRIM(outputfile)
-       else if (TRIM(token)=='LOADAEATOM') then
-           loadaeatom=.true.
-           call GetArg(2,inputfile)
-           write(6,*) 'AEATOM results will be loaded from file ',TRIM(inputfile)
-           Inquire(file=TRIM(inputfile),exist=OK)
-           If (.not.OK) then
-              write(6,*) 'Load file does not exist -- program will stop'
-              stop
-           endif
-       else
-          write(6,*) 'Argument form not recognized', token
-          stop
-       endif
-
-  else if (j==0) then
-       write(6,*) 'Input/output not saved/dumped in this run'
+  if (j>=1) then
+    call GetArg(1,token)
+    call UpperCase(token)
+    if (TRIM(token)=='--VERSION') then
+      stop
+    else if (j==2.and.TRIM(token)=='SAVEAEATOM') then
+      saveaeatom=.true.
+      call GetArg(2,outputfile)
+      write(6,*) 'AEATOM results will be saved to file ',TRIM(outputfile)
+    else if (j==2.and.TRIM(token)=='LOADAEATOM') then
+      loadaeatom=.true.
+      call GetArg(2,inputfile)
+      write(6,*) 'AEATOM results will be loaded from file ',TRIM(inputfile)
+      Inquire(file=TRIM(inputfile),exist=OK)
+      If (.not.OK) stop 'Load file does not exist -- program will stop'
+    else
+      write(6,*) 'Argument form not recognized: ', token
+      stop
+    endif
   else
-       write(6,'(3a)') 'Argument form not recognized (', j,') !'
-       stop
+    write(6,*) 'Input/output not saved/dumped in this run'
   endif
   write(6,*)
 

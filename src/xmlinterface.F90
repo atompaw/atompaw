@@ -691,6 +691,7 @@ Module XMLInterface
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml,'("<paw_dataset version=""0.7"">")')
+ WRITE(unit_xml,'("<!-- PAW-XML specification: http://esl.cecam.org/mediawiki/index.php/Paw-xml -->")')
  WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
@@ -703,9 +704,34 @@ Module XMLInterface
  call get_xc_data(xc_type,xc_name)
  if (have_libxc) then
    call libxc_getshortname(xc_name,xcname_short)
-   xc_name=xcname_short
+   !Aliases
+   select case(trim(xcname_short))
+     case('LDA_X+LDA_C_PW')
+       xcname='PW'
+     case('GGA_X_PBE+GGA_C_PBE')
+       xcname='PBE'
+     case('LDA_X+LDA_C_PZ')
+       xcname='PZ'
+     case('LDA_X+LDA_C_WIGNER')
+       xcname='W'
+     case('LDA_X+LDA_C_HL')
+       xcname='HL'
+     case('LDA_X+LDA_C_GL')
+       xcname='GL'
+     case('LDA_X+LDA_C_VWN')
+       xcname='VWN'
+     case('GGA_X_PBE_R+GGA_C_PBE')
+       xcname='revPBE'
+     case('GGA_X_RPBE+GGA_C_PBE')
+       xcname='RPBE'
+     case('GGA_X_PW91+GGA_C_PW91')
+       xcname='PW91'
+     case('GGA_X_B88+GGA_C_LYP')
+       xcname='BLYP'
+     case DEFAULT
+       xc_name=xcname_short
+   end select
  endif
-! xc_name="PBE"
  WRITE(unit_xml,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
  code_name="atompaw-"//atp_version

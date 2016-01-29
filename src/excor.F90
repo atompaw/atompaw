@@ -69,9 +69,12 @@ CONTAINS
         call libxc_init_func(id,1)
         itype = LIBXC
       ELSE
-        itype = LDA_PW
-        exctype='LDA-PW'
-        WRITE(6,*) 'Perdew-Wang correlation'
+        WRITE(6,*) 'ERROR: cannot understand Exchange-Correlation functional from input file!'
+        WRITE(6,*) '       possible issue: atompaw not compiled with libXC.'
+        stop
+        !itype = LDA_PW
+        !exctype='LDA-PW'
+        !WRITE(6,*) 'Perdew-Wang correlation'
       END IF
     CASE('LDA-PW')
        itype = LDA_PW

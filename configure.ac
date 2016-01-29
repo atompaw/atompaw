@@ -155,7 +155,9 @@ ATP_FC_FEATURES
 #
 
 # Initialize Libtool
-LT_INIT
+#   Disable this shared-library feature because it is not convenient
+#   to have a script and not an executable for atompaw
+LT_INIT([disable-shared])
 LT_PREREQ([2.2.2])
 LTOBJEXT="lo"
 AC_SUBST(LTOBJEXT)

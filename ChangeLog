@@ -2,6 +2,15 @@
 =========                  ChangeLog for ATOMPAW v4.x                =========
 ==============================================================================
 
+ 02/2016  -- MT: Improved configuration script; added Mac compatibility
+                 added command line option   --version
+ 07/2015  -- NH: Minor changes to graphatom; allowing core hole
+ 06/2015  -- NH: partial libxc access for PWscf
+ 05/2015  -- MT: improved xml output for abinit
+ 12/2014  -- NH: fixed PBEsol for PWscf
+ 11/2014  -- NH: added socorro output option
+ 08/2014  -- NH: Added exchange core-valence terms
+ 
  07-07-13 -- MT: Re-introduce "build system" (from v3.1.x)
                  Now standard "configure;make" procedure is available
 

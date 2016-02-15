@@ -1,5 +1,5 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! This module contains the single subroutine Atompaw2PWscf
+! This module contains the subroutines Atompaw2PWscf and libxc2UPF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -15,6 +15,7 @@ Module PWscfInterface
   USE gridmod
   USE interpolation_mod
   USE pseudo
+  USE libxc_mod
 
   Implicit none
 
@@ -39,19 +40,44 @@ Module PWscfInterface
      REAL(8), POINTER :: vps(:)
      REAL(8), ALLOCATABLE :: dum(:),arg(:),rvion(:),rtvion(:),dij0(:,:)
      REAL(8), ALLOCATABLE :: upfr(:),upff(:)
-     CHARACTER(132) :: inputline
+     CHARACTER(256) :: inputline
+     CHARACTER(50) :: UPFlabel,tmplabel
+     LOGICAL :: testing
      ALLOCATE(dum(Grid%n),arg(Grid%n),rvion(Grid%n),rtvion(Grid%n),&
 &            dij0(PAW%nbase,PAW%nbase))
-
-  ! Stop if LibXC is used
-    if (TRIM(exctype)/='LDA-PW'.and.TRIM(exctype)/='GGA-PBE' &
-&     .and.TRIM(exctype)/='GGA-PBESOL') then
-     write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
-     write(6,'(2x,a)') "   Only LDA-PW and GGA-PBE(SOL) are supported"
-     write(6,'(2x,a)') "   for UPF output (libXC not supported) !"
-     write(6,'(2x,a)') "   No UPDF file written !"
-     return
-    end if
+   
+    testing=.false.
+    if (TRIM(exctype)=='LDA-PW')  then
+           UPFlabel='SLA PW NOGX NOGC'    
+           tmplabel=TRIM(exctype)
+           testing=.true.
+    elseif (TRIM(exctype)=='GGA-PBE')  then
+           UPFlabel='SLA PW PBX PBC'
+           tmplabel=TRIM(exctype)
+           testing=.true.
+    elseif (TRIM(exctype)=='GGA-PBESOL')  then
+           UPFlabel='SLA PW PSX PSC'    
+           tmplabel=TRIM(exctype)
+           testing=.true.
+    elseif (.not.testing.and.have_libxc) then
+           call libxc2UPF(exctype,UPFlabel,tmplabel,testing)
+           if (.not.testing) then
+              write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
+              write(6,'(2x,a)') " libxc2UPF incorrectly executed "
+              write(6,'(2x,a,a)') " exctype = ", exctype
+              write(6,'(2x,a,a)') " UPFlabel = ", UPFlabel
+              write(6,'(2x,a,a)') " tmplabel = ", tmplabel
+              write(6,'(2x,a)') "   Please contact natalie@wfu.edu"
+              stop 
+           endif   
+     else      
+           write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
+           write(6,'(2x,a,a)') " exctype = ", exctype
+           write(6,'(2x,a)') "   Limited functionals supported for UPF output "
+           write(6,'(2x,a)') "   No UPDF file written !"
+           write(6,'(2x,a)') "   Please contact natalie@wfu.edu"
+           return
+     end if
 
   ! set up grid
      read(5,'(a)',advance='no',iostat=ok) inputline
@@ -63,22 +89,22 @@ Module PWscfInterface
         if (i>0) then
            k=0;k=INDEX(inputline,'UPFDX')
              if (k>0) then
-                read(inputline(k+5:132),*) upfdx
+                read(inputline(k+5:256),*) upfdx
                 write(6,*) 'upfdx reset ', upfdx
              endif
            k=0;k=INDEX(inputline,'UPFXMIN')
              if (k>0) then
-                read(inputline(k+7:132),*) upfxmin
+                read(inputline(k+7:256),*) upfxmin
                 write(6,*) 'upfxmin reset ', upfxmin
              endif
            k=0;k=INDEX(inputline,'UPFZMESH')
              if (k>0) then
-                read(inputline(k+8:132),*) upfzmesh
+                read(inputline(k+8:256),*) upfzmesh
                 write(6,*) 'upfzmesh reset ', upfzmesh
              endif
            k=0;k=INDEX(inputline,'UPFRANGE')
              if (k>0) then
-                read(inputline(k+8:132),*) upfrange
+                read(inputline(k+8:256),*) upfrange
                 write(6,*) 'upfrange reset ', upfrange
              endif
          endif
@@ -132,7 +158,7 @@ Module PWscfInterface
          enddo
       enddo
 
-      OPEN(1001,file=TRIM(Pot%sym)//'.'//TRIM(exctype)//'-paw.UPF',&
+      OPEN(1001,file=TRIM(Pot%sym)//'.'//TRIM(tmplabel)//'-paw.UPF',&
  &          form='formatted')
       write(1001,'("<UPF version=""2.0.1"">")')
       write(1001,'("   <PP_INFO>")')
@@ -168,10 +194,7 @@ Module PWscfInterface
       WRITE(1001,'("             has_gipaw=""T""")')
       WRITE(1001,'("             paw_as_gipaw=""T""")')
       WRITE(1001,'("             core_correction=""T""")')
-      If (TRIM(exctype)=='LDA-PW') inputfileline='"SLA PW NOGX NOGC"'
-      If (TRIM(exctype)=='GGA-PBE') inputfileline='"SLA PW PBX PBC"'
-      If (TRIM(exctype)=='GGA-PBESOL') inputfileline='"SLA PW PSX PSC"'
-      WRITE(1001,'("             functional=",(a))') TRIM(inputfileline)
+      WRITE(1001,'("             functional=""",(a),"""")') TRIM(UPFlabel)
       WRITE(1001,'("             z_valence=""",f6.3,"""")')FC%zvale
       WRITE(1001,'("             l_max=""",i1,"""")') PAW%lmax
       WRITE(1001,'("             l_max_rho=""",i1,"""")') 2*PAW%lmax
@@ -370,11 +393,13 @@ Module PWscfInterface
         ncore = ncore + 1
         if (ncore.lt.10) then
            WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I1," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
+           WRITE(1001,'(" columns=""3"" index=""",I1,""" label=""",I1,A,""" n=""",I1,""" l=""",I1,""">")') &
+&          ncore, Orbit%np(io), label(Orbit%l(io)+1), Orbit%np(io), Orbit%l(io)
         else
            WRITE(1001,'("   <PP_GIPAW_CORE_ORBITAL.",I2," type=""real"" size=""",i6,"""")',advance="no") ncore, upfmesh
-        endif   
-        WRITE(1001,'(" columns=""3"" index=""",I1,""" label=""",I1,A,""" n=""",I1,""" l=""",I1,""">")') &
+           WRITE(1001,'(" columns=""3"" index=""",I2,""" label=""",I1,A,""" n=""",I1,""" l=""",I1,""">")') &
 &          ncore, Orbit%np(io), label(Orbit%l(io)+1), Orbit%np(io), Orbit%l(io)
+        endif   
         upff=0;call interpfunc(n,Grid%r,Orbit%wfn(:,io),upfmesh,upfr,upff)
         call filter(upfmesh,upff,machine_zero)
         WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
@@ -394,4 +419,43 @@ Module PWscfInterface
 
     DEALLOCATE(dum,arg,rvion,rtvion,dij0,upfr,upff)
   END SUBROUTINE Atompaw2PWscf
+
+   SUBROUTINE libxc2UPF(libxcform,qeform,shortqe,OK)
+   IMPLICIT NONE
+   CHARACTER(50), INTENT(IN) :: libxcform
+   CHARACTER(50), INTENT(OUT) :: qeform,shortqe
+   Logical, INTENT(OUT) :: OK
+
+   OK=.false.
+
+   if (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PW') then
+       qeform='SLA PW NOGX NOGC'
+       shortqe='LDA-PW'
+       OK=.true.
+       return
+   elseif (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PZ') then
+       qeform='SLA PZ NOGX NOGC'
+       shortqe='LDA-PZ'
+       OK=.true.
+       return
+   elseif (TRIM(libxcform)=='XC_GGA_X_PBE_SOL+XC_GGA_C_PBE_SOL') then
+       qeform='SLA PW PSX PSC' 
+       shortqe='GGA-PBESOL'
+       OK=.true.
+       return
+   elseif (TRIM(libxcform)=='XC_GGA_X_PBE+XC_GGA_C_PBE') then
+       qeform='SLA PW PBX PBC' 
+       shortqe='GGA-PBE'
+       OK=.true.
+       return
+   elseif (TRIM(libxcform)=='XC_GGA_X_WC+XC_GGA_C_PBE') then
+       qeform='SLA PW WCX PBC' 
+       shortqe='GGA-WC'
+       OK=.true.
+       return
+   endif 
+
+  END   SUBROUTINE libxc2UPF
+
+
 END Module PWscfInterface

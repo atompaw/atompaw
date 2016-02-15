@@ -28,7 +28,7 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 05/2015 -- XML output improved; --version command line option
+!--- Version ${PACKAGE_VERSION} - 02/2016 -- XML output improved; --version command line option
 EOF
 #!--- Version ${PACKAGE_VERSION} - 03/2015 -- PBESOL ; SOCCORO output
 #!--- Version ${PACKAGE_VERSION} - 08/2014 -- portability corrections; rename f90 in F90

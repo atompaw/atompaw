@@ -691,7 +691,7 @@ Module XMLInterface
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml,'("<paw_dataset version=""0.7"">")')
- WRITE(unit_xml,'("<!-- PAW-XML specification: http://esl.cecam.org/mediawiki/index.php/Paw-xml -->")')
+ WRITE(unit_xml,'("<!-- PAW-XML specification: http://esl.cecam.org/Paw-xml -->")')
  WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))

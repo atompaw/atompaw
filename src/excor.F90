@@ -370,9 +370,11 @@ CONTAINS
     INTEGER :: i,n,i1,i2
     REAL(8) :: r,r2,rho,exc,vxc
 
+    !write(6,*) 'In exch ', itype   ; call flush_unit(6)
     n=Grid%n
     IF (PRESENT(fin)) n=fin
     fpi=4*pi
+    !write(6,*) 'In exch ', n   ; call flush_unit(6)
     rvxc=0;etxc=0;eexc=0
     if (PRESENT(v0)) v0=0
     if (PRESENT(v0p)) v0p=0
@@ -392,7 +394,7 @@ CONTAINS
           CALL radialexcpbe(Grid,tmpd,eexc,tmpv)
        ENDIF
 
-       WRITE(6,*) 'eexc',eexc
+       !WRITE(6,*) 'eexc',eexc
 
        IF (PRESENT(v0).AND.PRESENT(v0p)) THEN
           CALL derivative(Grid,tmpv,tmpd,1,15)
@@ -409,6 +411,7 @@ CONTAINS
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
        DEALLOCATE(tmpd,tmpv)
     ELSE IF (itype==LDA_PW) then !!! ! Perdew-Wang LDA !!!!
+       !     write(6,*) 'LDA -- '; call flush_unit(6)
        ALLOCATE(tmpd(n),tmpv(n),dum(n))
        tmpd=0;tmpv=0;rvxc=0;dum=0
        DO i=2,n
@@ -432,7 +435,6 @@ CONTAINS
        !       eexc=dsum(n,b,1)*h
        etxc=integrator(Grid,tmpd(1:n),1,n)
        eexc=integrator(Grid,tmpv(1:n),1,n)
-       !WRITE(6,*) 'etxc,eexc = ',etxc,eexc
        IF (PRESENT(v0).AND.PRESENT(v0p)) THEN
           CALL derivative(Grid,dum,tmpd,1,15)
           v0p=tmpd(1)
@@ -465,11 +467,13 @@ CONTAINS
        tmpv(1:n)=tmpv(1:n)*den(1:n)
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
        deallocate(tmpd,tmpv,exci)
-       WRITE(6,*) 'etxc,eexc = ',etxc,eexc
+       !WRITE(6,*) 'etxc,eexc = ',etxc,eexc
     else
        WRITE(6,*) 'Warning (EXCOR): ', itype,' no results returned !'
        STOP
     END if
+
+    !write(6,*) 'Exiting exch '; call flush_unit(6)
   END SUBROUTINE exch
 
 END MODULE excor

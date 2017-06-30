@@ -69,10 +69,11 @@ CONTAINS
     INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir
     INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ilgd,ihfpp,ilcex
     INTEGER :: igrid,irelat,ilogder,ilogv4,ibd
-    INTEGER :: nps,npp,npd,npf,npg
+    INTEGER :: nps,npp,npd,npf,npg,finitenucleusmodel
     INTEGER, ALLOCATABLE :: nl(:,:)
     CHARACTER(128) :: exchangecorrelationandgridline,gridkey,relkey
     CHARACTER(132) :: inputline,inputword
+    CHARACTER(1) :: CHR
 
     BDsolve=.false.
     scalarrelativistic=.FALSE.; finitenucleus=.FALSE. ;
@@ -80,7 +81,9 @@ CONTAINS
     gaussianshapefunction=.FALSE.;besselshapefunction=.FALSE.
     ColleSalvetti=.FALSE.  ; HFpostprocess=.FALSE.
     localizedcoreexchange=.false.
-    hadjusted=0.d0
+    hadjusted=0.d0 ; finitenucleusmodel=-1
+    AEPot%sym="";AEPot%nz=0;AEPot%zz=0.d0;AEPot%q=0.d0;
+    AEPot%v0=0.d0;AEPot%v0p=0.d0;AEPot%Nv0=0;AEPot%Nv0p=0 
 
 !   First line : Atomic symbol and atomic number
 !   ---------------------------------------------
@@ -138,6 +141,16 @@ CONTAINS
     igrid=max(ilin,ilog)
     irelat=max(inrl,iscl)
     ilogder=ilgd
+    if (ifin>0) then
+      READ(exchangecorrelationandgridline(ifin+14:ifin+14),'(a)') CHR
+      write(6,*) 'CHR ', CHR
+      if (CHR==" ") AEPot%finitenucleusmodel=0      
+      if (CHR=="2") AEPot%finitenucleusmodel=2      
+      if (CHR=="3") AEPot%finitenucleusmodel=3      
+      if (CHR=="4") AEPot%finitenucleusmodel=4      
+      if (CHR=="5") AEPot%finitenucleusmodel=5      
+      write(6,*) 'Finite nucleus model number ', AEPot%finitenucleusmodel
+    endif  
 
 !   Treat simple logical variables
     if (iscl>0.and.inrl==0) scalarrelativistic=.true.
@@ -198,6 +211,9 @@ CONTAINS
        hadjusted=gridmatch/(gridpoints-1)
        CALL InitGrid(Grid,hadjusted,gridrange)
     ENDIF
+     
+    CALL InitPot(AEPot,Grid%n)
+    CALL Get_Nuclearpotential(Grid,AEPot)
 
 !   Treat logderiv data
     minlogderiv=logder_min;maxlogderiv=logder_max;nlogderiv=logder_pts
@@ -451,7 +467,6 @@ CONTAINS
 
     ELSE
       !LDA or GGA
-      write(6,*) 'before ldagga '; call flush_unit(6)
       CALL LDAGGA_SCF(scftype,lotsofoutput,Grid,OrbitPtr,PotPtr,FC,SCFPtr)
     ENDIF
 
@@ -720,14 +735,7 @@ CONTAINS
     INTEGER  :: i,io,ir,xocc,ip,l,nfix,j,np
     REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,ecoul,v0,etxc,eex
     LOGICAL :: success
-    INTEGER :: firsttime=1
 
-    write(6,*) 'In Potential_Init'; call flush_unit(6)
-    IF (firsttime==1) THEN
-          CALL InitPot(AEPot,Grid%n)
-          CALL Get_Nuclearpotential(Grid,AEPot)
-    firsttime=0
-    ENDIF
 
     CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
     write(6,*) 'In Potential_Init', Pot%q,ecoul; call flush_unit(6)

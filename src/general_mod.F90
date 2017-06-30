@@ -48,8 +48,13 @@ CONTAINS
     Pot%rv=rvin
     dum=rvin-Pot%rvn
     CALL zeropot(Grid,dum,Pot%v0,Pot%v0p)
-    IF (ABS(Pot%v0)> 100.d0) Pot%v0=0
-    IF (ABS(Pot%v0p)> 100.d0) Pot%v0p=0
+    IF (ABS(Pot%v0)> 1.d6) Pot%v0=0
+    IF (ABS(Pot%v0p)> 1.d6) Pot%v0p=0
+    
+    IF (finitenucleus) then
+            Pot%v0=Pot%v0+Pot%Nv0
+            Pot%v0p=Pot%v0p+Pot%Nv0p
+    Endif        
 
     !  solve for bound states of Schroedinger equation
     !
@@ -230,6 +235,8 @@ CONTAINS
     SCF%ecoul=ecoul
     counter=counter+1
 
+    !write(6,*) 'completed Get_KinCoul'
+
     DEALLOCATE(dum)
   END SUBROUTINE Get_KinCoul
 
@@ -324,25 +331,136 @@ CONTAINS
     DEALLOCATE(dum)
   END SUBROUTINE Get_FCKinCoul
 
-  SUBROUTINE Get_Nuclearpotential(Grid,Pot)
-    TYPE(GridInfo), INTENT(IN) :: Grid
-    TYPE(PotentialInfo), INTENT(INOUT) :: Pot
 
+  SUBROUTINE Get_Nuclearpotential(Grid,Pot)
+    TYPE(GridInfo), INTENT(INOUT) :: Grid
+    TYPE(PotentialInfo), INTENT(INOUT) :: Pot
+!  Various finite nuclear models follow the manuscript of Andrae
+!   Physics Reports 336 (2000) 413-525
+!    finitenucleusmodel 2,3,4,5 correspond to the options
+!     described in that paper while finitenucleusmodel 0 corresponds to
+!     Gaussian model originally programmed
+!     Note that logarithmic grid is reset to be compatible with
+!       nuclear model with approximately NN integration points within
+!       finite nucleus
     INTEGER :: n
     REAL(8) :: h,q,v0,v0p
-    REAL(8) :: r,RR
+    REAL(8) :: r,RR,r0,a
     INTEGER :: i,j,k
+    INTEGER, PARAMETER :: NN=651    ! number of grid points within RR
+    REAL(8), PARAMETER :: gridrange=100.d0
+    REAL(8), PARAMETER :: bohr=0.529177249d0  !Ang/Bohr from Andrae
 
     IF (.NOT.finitenucleus) THEN
+      !  grid already set      
        DO i=1,Grid%n
           Pot%rvn(i)=-2*Pot%nz
        ENDDO
     ELSE
-       RR=Pot%nz
-       RR=2.9d-5*(RR**0.3333333333333333333333333d0)
-       DO i=1,n
-          Pot%rvn(i)=-2*Pot%nz*derf(Grid%r(i)/RR)
-       ENDDO
+       write(6,*) 'Finite nucleus model  -- readjusting integration grid'
+       a=bohr*1.d-5*(0.57d0+0.836*   &
+        &     (-1.168d0+Pot%nz*(2.163d0+Pot%nz*0.004467d0)))
+           !  From Eqs. A.3 and 51 in Andrae paper
+       write(6,*) 'a parameter calculated to be', a
+       call destroygrid(Grid)
+       SELECT CASE(Pot%finitenucleusmodel)
+          CASE DEFAULT
+            write(6,*) 'Error in finitenucleusmodel',Pot%finitenucleusmodel
+            write(6,*) ' Exiting '
+            Stop
+          CASE(0)      
+            write(6,*) 'Original Gaussian model'      
+            RR=Pot%nz
+            RR=2.9d-5*(RR**0.3333333333333333333333333d0)
+            h=log(FLOAT(NN))/(NN-1)
+            r0=RR/(NN-1)
+            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            Call InitGrid(Grid,h,gridrange,r0)
+            write(6,*) 'New Grid ', Grid%n
+            Call DestroyPot(Pot)
+            Call InitPot(Pot,Grid%n)
+            DO i=1,Grid%n
+              Pot%rvn(i)=-2*Pot%nz*derf(Grid%r(i)/RR)
+            ENDDO
+              Pot%Nv0=-2*Pot%nz*sqrt(4.d0/pi)
+              Pot%Nv0p=0.d0
+          CASE(2)      
+            write(6,*) 'Model 2 -- Breit'      
+            RR=sqrt(2.d0)*a
+            h=log(FLOAT(NN))/(NN-1)
+            r0=RR/(NN-1)
+            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            Call InitGrid(Grid,h,gridrange,r0)
+            write(6,*) 'New Grid ', Grid%n
+            Call DestroyPot(Pot)
+            Call InitPot(Pot,Grid%n)
+            DO i=1,Grid%n
+               if (Grid%r(i)<RR) then
+                 Pot%rvn(i)=-2*Pot%nz*Grid%r(i)*(2.d0-Grid%r(i)/RR)/RR
+               else  
+                 Pot%rvn(i)=-2*Pot%nz
+               endif  
+            ENDDO
+              Pot%Nv0=-2*Pot%nz*2.0d0/RR
+              Pot%Nv0p=2*Pot%nz/(RR**2)
+          CASE(3)      
+            write(6,*) 'Model 3 -- uniform'      
+            RR=sqrt(5.d0/3.d0)*a
+            h=log(FLOAT(NN))/(NN-1)
+            r0=RR/(NN-1)
+            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            Call InitGrid(Grid,h,gridrange,r0)
+            write(6,*) 'New Grid ', Grid%n
+            Call DestroyPot(Pot)
+            Call InitPot(Pot,Grid%n)
+            DO i=1,Grid%n
+               if (Grid%r(i)<RR) then
+                 Pot%rvn(i)=-3*Pot%nz*Grid%r(i)*&
+                    &     (1.d0-(Grid%r(i)/RR)**2/3)/RR
+               else  
+                 Pot%rvn(i)=-2*Pot%nz
+               endif  
+            ENDDO
+              Pot%Nv0=-3*Pot%nz/RR
+              Pot%Nv0p=0.d0
+          CASE(4)      
+            write(6,*) 'Model 4 -- exponential'      
+            RR=sqrt(1.d0/12.d0)*a
+            h=log(FLOAT(NN))/(NN-1)
+            r0=RR/(NN-1)
+            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            Call InitGrid(Grid,h,gridrange,r0)
+            write(6,*) 'New Grid ', Grid%n
+            Call DestroyPot(Pot)
+            Call InitPot(Pot,Grid%n)
+            DO i=1,Grid%n
+             Pot%rvn(i)=-2*Pot%nz*   &
+               &  (1.d0-exp(-grid%r(i)/RR)*(1.d0+0.5d0*Grid%r(i)/RR))
+            ENDDO
+              Pot%Nv0=-Pot%nz/RR
+              Pot%Nv0p=0.d0
+          CASE(5)      
+            write(6,*) 'Model 5 -- Gaussian'      
+            RR=sqrt(2.d0/3.d0)*a
+            h=log(FLOAT(NN))/(NN-1)
+            r0=RR/(NN-1)
+            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            Call InitGrid(Grid,h,gridrange,r0)
+            write(6,*) 'New Grid ', Grid%n
+            Call DestroyPot(Pot)
+            Call InitPot(Pot,Grid%n)
+            DO i=1,Grid%n
+             Pot%rvn(i)=-2*Pot%nz*erf(Grid%r(i)/RR)
+            ENDDO
+              Pot%Nv0=-2*Pot%nz/RR*(sqrt(4.d0/pi))
+              Pot%Nv0p=0.d0
+    END SELECT     
+    open(7,file='nuclearpot.dat',form='formatted')
+       write(7,*) '#  ', Pot%Nv0, Pot%Nv0p
+    do i=1,Grid%n
+       write(7,'(1P2E16.7)') Grid%r(i),Pot%rvn(i)
+    enddo
+    close(7)   
     ENDIF
   END SUBROUTINE Get_Nuclearpotential
 

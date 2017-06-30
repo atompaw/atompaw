@@ -124,7 +124,7 @@ CONTAINS
   Endif     !BDsolve
 
     write(6,*) 'Before newboundsch',l,nroot, Eig(1:nroot); call flush_unit(6)
-    CALL newboundsch(Grid,rv,v0,v0p,l,nroot,Eig,Psi,success)
+    CALL newboundsch(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,success)
     write(6,*) 'After newboundsch',l,nroot, Eig(1:nroot); call flush_unit(6)
 
     ! adjust sign
@@ -240,9 +240,9 @@ CONTAINS
   END FUNCTION multres
 
   !******************************************************************
-  !  SUBROUTINE newboundsch(Grid,rv,v0,v0p,l,nroot,Eig,Psi,ok)
+  !  SUBROUTINE newboundsch(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,ok)
   !******************************************************************
-  SUBROUTINE newboundsch(Grid,rv,v0,v0p,l,nroot,Eig,Psi,ok)
+  SUBROUTINE newboundsch(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,ok)
     !  pgm to solve radial schroedinger equation for nroot bound state
     !    energies and wavefunctions for angular momentum l
     !    with potential rv/r
@@ -270,15 +270,15 @@ CONTAINS
     !
     TYPE(GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(IN) :: rv(:),v0,v0p
-    INTEGER, INTENT(IN) :: l,nroot
+    INTEGER, INTENT(IN) :: nz,l,nroot
     REAL(8), INTENT(INOUT) :: Eig(:), Psi(:,:)
     LOGICAL, INTENT(OUT) :: ok
 
     REAL(8), PARAMETER :: convre=1.d-10,vlrg=1.d30
-    INTEGER, PARAMETER :: niter=1000
+    INTEGER, PARAMETER :: niter=300
 
     REAL(8), ALLOCATABLE :: p1(:),p2(:),dd(:)
-    INTEGER :: nz,n,ierr
+    INTEGER :: n,ierr
     REAL(8) :: h,q
     REAL(8) :: err,convrez,energy,zeroval,zz
     REAL(8) :: scale,emin,emax,best,rout,ppp
@@ -295,10 +295,10 @@ CONTAINS
        STOP
     ENDIF
 
-    nz=-(rv(1)-0.1d0)/2;zz=nz
+    zz=nz
     qq=-rv(n)/2
     IF (qq<0.001d0) qq=0.d0
-    err=n*nz*(h**4)
+    err=n*nz*(h**4);  if (err<1.d-6) err=1.d-6
     convrez=convre
     IF (nz.GT.0) convrez=convre*nz
     !     write(6,*) 'expected error = ',err
@@ -345,9 +345,9 @@ CONTAINS
           !    correct behavior near r=0
           ! initialize p1
           p1=0
-          p1(2)=wfninit(zz,l,v0,v0p,energy,Grid%r(2))
+          p1(2)=wfninit(-0.5d0*rv(1),l,v0,v0p,energy,Grid%r(2))
           zeroval=0
-          IF (l==0) zeroval=-2*nz
+          IF (l==0) zeroval=rv(1)
           IF (l==1) zeroval=2
 
           CALL forward_numerov(Grid,l,match+6,energy,rv,zeroval,p1,node)
@@ -394,7 +394,7 @@ CONTAINS
                 best=x
              ENDIF
              IF (ABS(dele).LE.convrez) THEN
-                !WRITE(6,*) 'iter with dele' , iter,dele
+                WRITE(6,*) 'converged iter with dele' , iter,dele
                 ok=.TRUE.
                 !  eigenvalue found
                 ierr=ierr+10**(iroot-1)
@@ -438,10 +438,10 @@ CONTAINS
        ENDIF
     ENDDO !iroot
 
-    !WRITE(6,'("finish boundsch with eigenvalues -- ",1p,20e15.7)') &
-    !&    Eig(1:nroot)
+    WRITE(6,'("finish boundsch with eigenvalues -- ",1p,20e15.7)') &
+    &    Eig(1:nroot)
     DEALLOCATE(p1,p2,dd)
-    !WRITE(6,*) 'returning from newboundsch -- ierr=',ierr
+    WRITE(6,*) 'returning from newboundsch -- ierr=',ierr
 
   END SUBROUTINE newboundsch
 
@@ -462,8 +462,6 @@ CONTAINS
     c3=(v0p+(v0-energy)*c1-2*nz*c2)/(6*l+12.d0)
 
     wfninit=(r**(l+1))*(1+r*(c1+r*(c2+r*c3)))
-
-    !write(6,*) 'In wfninit', r,v0,v0p, energy,wfninit
 
   END FUNCTION wfninit
 
@@ -538,7 +536,7 @@ CONTAINS
     REAL(8), INTENT(INOUT) :: wfn(:)
     INTEGER, INTENT(INOUT) :: nodes
 
-    INTEGER :: n,nz,i,j,k,ierr
+    INTEGER :: n,i,j,k,ierr
     REAL(8) :: zeroval,scale,zz
 
     n=Grid%n
@@ -546,13 +544,12 @@ CONTAINS
        WRITE(6,*) 'Error in unboundsch -- nr > n', nr,n
        STOP
     ENDIF
-    nz=-(rv(1)-0.1d0)/2;zz=nz
 
     ! initialize wfn
     wfn=0
-    wfn(2)=wfninit(zz,l,v0,v0p,energy,Grid%r(2))
+    wfn(2)=wfninit(-0.5d0*rv(1),l,v0,v0p,energy,Grid%r(2))
     zeroval=0
-    if (l==0) zeroval=-2*nz
+    if (l==0) zeroval=rv(1)
     if (l==1) zeroval=2
 
     call forward_numerov(Grid,l,nr,energy,rv,zeroval,wfn,nodes)

@@ -12,8 +12,8 @@ MODULE ldagga_mod
   USE Tools
   USE atomdata
   USE anderson_driver
-  USE excor
   USE general_mod
+  USE excor
   USE globalmath
   USE gridmod
   USE report_mod
@@ -51,7 +51,7 @@ CONTAINS
     SCFwk=>SCFin
 
     !write(6,*) 'in ldagga '; call flush_unit(6)
-    n=Gridwk%n     ;write(6,*) 'n ', n; call flush_unit(6)
+    n=Gridwk%n     !;write(6,*) 'n ', n; call flush_unit(6)
     ALLOCATE(arg(n))
 
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex)
@@ -60,11 +60,13 @@ CONTAINS
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
     Potwk%rv=Potwk%rv+Potwk%rvn
 
-    !write(6,*) 'in ldagga before arg '; call flush_unit(6)
+    !write(6,*) 'in ldagga before arg ',Potwk%v0,Potwk%v0p; 
+    !call flush_unit(6)
     arg=Potwk%rv
 
     CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,1000,1.d-11,1.d-16,.true.)
     !write(6,*) 'in ldagga before Doand '; call flush_unit(6)
+    !write(6,*) arg(1),arg(2)
     CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
 
     SCFwk%iter=AC%CurIter
@@ -95,7 +97,6 @@ CONTAINS
     TYPE (OrbitInfo) :: tmpOrbit
     TYPE (PotentialInfo) :: tmpPot
 
-    write(6,*) 'in LDAGGAsub '; call flush_unit(6)
     ALLOCATE(dum(Gridwk%n),stat=i)
     IF (i/=0) THEN
        WRITE(6,*) 'Error in LDAGGAsub allocation' ,Gridwk%n
@@ -107,7 +108,6 @@ CONTAINS
     CALL CopyOrbit(Orbitwk,tmpOrbit)
     CALL CopyPot(Potwk,tmpPot)
 
-    write(6,*) 'in LDAGGAsub before Updatewfn'; call flush_unit(6)
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
     tmpPot%rv=w
       If (.not.success) then   !  attempt to stablize solution
@@ -131,10 +131,12 @@ CONTAINS
              tmpPot%rv(i)=-2.d0
           enddo
            write(6,*) 'Reset tmpPot ', j
-           !write(6,*) '   Last points '
-           !   write(6,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
+           write(6,*) '   Last points '
+              write(6,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
 
            CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,tmpPot%rv,success)
+           write(6,*) 'after updatwfn from reset ',success;
+           call flush_unit(6)
        Endif
 
     !if FC core calc , restore core info backinto tmpOrbit
@@ -154,8 +156,11 @@ CONTAINS
 
     !write(6,*) 'in LDAGGAsub before Get'; call flush_unit(6)
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
+    !write(6,*) 'in LDAGGAsub before EXC'; call flush_unit(6)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
+    !write(6,*) 'after Get_EXC'; call flush_unit(6)
     dum=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn-tmpPot%rv
+    !write(6,*) 'after Get_EXC'; call flush_unit(6)
 
 
     if(frozencorecalculation) then
@@ -198,7 +203,7 @@ CONTAINS
     !     assumes Orbit%den already known
     !     also assume kinetic and coulomb energies
     !       calculated and stored in SCF
-    TYPE(Gridinfo), INTENT(INOUT) :: Grid
+    TYPE(Gridinfo), INTENT(IN) :: Grid
     TYPE(Potentialinfo), INTENT(INOUT) :: Pot
     TYPE(Orbitinfo), INTENT(INOUT) :: Orbit
     TYPE(SCFInfo), INTENT(OUT) :: SCF
@@ -208,18 +213,28 @@ CONTAINS
     INTEGER :: k,n
 
     n=Grid%n
+    !write(6,*) 'In Get_EXC', n; call flush_unit(6)
     CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex)
+    !write(6,*) 'After exch', etxc,eex; call flush_unit(6)
 
     SCF%eexc=eex
     etot = SCF%ekin+SCF%estatic+SCF%eexc
     SCF%etot=etot
     WRITE(6,*) '    Total                    :  ',etot
 
+    !write(6,*) 'before allocate'; call flush_unit(6)
     ALLOCATE(dum(n))
     dum=0
+    !write(6,*) 'before dum'; call flush_unit(6)
     dum(2:n)=Pot%rvx(2:n)*Orbit%den(2:n)/Grid%r(2:n)
+    !write(6,*) 'after dum'; call flush_unit(6)
+    !write(6,*) SCF%eone;call flush_unit(6)
+    !write(6,*) SCF%ecoul;call flush_unit(6)
+    !write(6,*) eex;call flush_unit(6)
+    !write(6,*) integrator(Grid,dum);call flush_unit(6)
     WRITE(6,*) '    Total   (DC form)        :  ',&
 &        SCF%eone-SCF%ecoul+eex-integrator(Grid,dum)
+    call flush_unit(6)
     DEALLOCATE(dum)
   END SUBROUTINE Get_EXC
 
@@ -239,6 +254,7 @@ CONTAINS
     SCF%evale=SCF%valekin+SCF%valecoul+SCF%valeexc
 
   END SUBROUTINE Get_FCEXC
+
 
 
   SUBROUTINE Report_LDAGGA_functions(sub)

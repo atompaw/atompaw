@@ -34,11 +34,17 @@ MODULE atomdata
      REAL(8) :: zz        !  zz=nz is nuclear charge
      REAL(8) :: q,v0,v0p  !  q is total electron charge
      !  v0,v0p are potential value and deriv at r=0
+     REAL(8) :: Nv0,Nv0p    !  finite nucleus value and deriv at 0
      REAL(8) , POINTER :: rv(:),rvn(:),rvh(:),rvx(:)
      !  rv(n) is  veff * r
      !  rvh is hartree potential for den
      !  rvn is nuclear potential
      !  rvx is exchange-correlation potential
+     INTEGER :: finitenucleusmodel
+     ! Based on models 2, 3, 4, 5 discussed by Dirk Anrae ,
+     !   Physics Reports 336 (2000) 413-525
+     !    default is 0 for previous Gaussian model
+     !    for finitenucleusmodel<0, finite nucleus is false
   END TYPE PotentialInfo
 
   TYPE SCFInfo
@@ -181,6 +187,9 @@ CONTAINS
     CPot%q=SPot%q
     CPot%v0=SPot%v0
     CPot%v0p=SPot%v0p
+    CPot%finitenucleusmodel=SPot%finitenucleusmodel
+    CPot%Nv0=SPot%Nv0
+    CPot%Nv0p=SPot%Nv0p
     n=SIZE(SPot%rv,1)
     ALLOCATE(CPot%rv(n),CPot%rvn(n),CPot%rvh(n),CPot%rvx(n))
     CPot%rv(1:n)=SPot%rv(1:n)

@@ -65,7 +65,7 @@ CONTAINS
     SELECT CASE(TRIM(exctype))
     CASE default
       IF (have_libxc) THEN
-        call libxc_getid_fromname(exctype,id)
+        call libxc_getid_fromInput(exctype,id)
         call libxc_init_func(id,1)
         itype = LIBXC
       ELSE

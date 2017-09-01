@@ -156,6 +156,6 @@ PROGRAM atompaw
   Call DestroyPAW(PAW)
   Call DestroyFC(FC)
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
-  if (have_libxc) call libxc_end()
+  if (have_libxc) call libxc_end_func()
 
 END PROGRAM atompaw

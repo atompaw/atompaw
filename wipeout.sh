@@ -51,7 +51,6 @@ echo "done."
 echo "Removing object files, libraries and programs..."
 rm -f src/atompaw
 rm -f src/graphatom
-rm -f src/libxc_id.in
 find src -name '*.la' -o -name '*.lo' -exec rm {} \;
 find src -name '*.a' -o -name '*.o' -exec rm {} \;
 find src -name '*.mod' -exec rm {} \;

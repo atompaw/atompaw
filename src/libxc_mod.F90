@@ -635,12 +635,12 @@ end function libxc_getid_fromName
    xc_func%hyb_mixing=0.d0
    xc_func%hyb_mixing_sr=0.d0
    xc_func%hyb_range=0.d0
+#if defined HAVE_FC_ISO_C_BINDING
    if (associated(xc_func%conf)) then
-#if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
      call xc_func_end(xc_func%conf)
      call xc_func_type_free(c_loc(xc_func%conf))
-#endif
    end if
+#endif
 
  end do
 

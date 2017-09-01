@@ -57,7 +57,7 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
   atp_linalg_found="unknown"
 
   list_dirs="empty /opt/local /usr/local /usr / /Library/lapack /usr/local/lapack ${LINALG_ROOT} ${LINALG_DIR}"
-  list_funcs="zgemm"
+  list_funcs="zhpev zgemm"
 
   atp_saved_LDFLAGS="${LDFLAGS}"
   atp_saved_LIBS="${LIBS}"
@@ -88,7 +88,9 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
       LIBS="-L${with_linalg_prefix}/lib -lblas -llapack -lblas"
     fi
     atp_linalg_libs_ok="yes"
-    AC_SEARCH_LIBS(${list_funcs},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
+    for func in ${list_funcs}; do
+      AC_SEARCH_LIBS(${func},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
+    done
     if test "${atp_linalg_libs_ok}" = "yes"; then
       with_linalg_libs="${LDFLAGS}"
     else
@@ -118,7 +120,9 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
         fi
       fi
       atp_linalg_libs_ok="yes"
-      AC_SEARCH_LIBS(${list_funcs},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
+      for func in ${list_funcs}; do
+        AC_SEARCH_LIBS(${func},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
+      done
       if test "${atp_linalg_libs_ok}" = "yes"; then
         with_linalg_libs="${LDFLAGS}"
         break

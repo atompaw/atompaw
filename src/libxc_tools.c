@@ -123,7 +123,8 @@ char const *xc_get_info_refs(XC(func_type) *xc_func, const int *number)
  {if (*number>=0&&*number<=4)
    {if (xc_func_info_get_ref(xc_func->info,*number) != NULL)
     {return xc_func_info_get_ref(xc_func->info,*number);}}
-  else {return NULL;}}
+  else {return NULL;}
+  return NULL;}
 #else
  /* libXC before v3.0 */
 char const *xc_get_info_name(XC(func_type) *xc_func)
@@ -133,7 +134,8 @@ int xc_get_info_flags(XC(func_type) *xc_func)
 int xc_get_info_kind(XC(func_type) *xc_func)
  {return xc_func->info->kind;}
 char const *xc_get_info_refs(XC(func_type) *xc_func, const int *number)
- {if (*number==0) {return xc_func->info->refs;} else {return NULL;}}
+ {if (*number==0) {return xc_func->info->refs;} else {return NULL;}
+  return NULL;}
 #endif
 
 #endif

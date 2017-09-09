@@ -642,7 +642,11 @@ CONTAINS
 
     Do io=1,Orbit%norbit
        l=Orbit%l(io)
-       CALL kinetic_ij(Grid,Orbit%wfn(:,io),Orbit%wfn(:,io),l,y)
+       if (HFpostprocess) then
+          CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,y)    
+       else        
+          CALL kinetic_ij(Grid,Orbit%wfn(:,io),Orbit%wfn(:,io),l,y)
+       endif
        SCF%ekin=SCF%ekin+Orbit%occ(io)*y
        if(frozencorecalculation.and..not.Orbit%iscore(io))  &
 &            SCF%valekin=SCF%valekin+Orbit%occ(io)*y

@@ -442,10 +442,12 @@ CONTAINS
        DEALLOCATE(tmpd,tmpv,dum)
     ELSE IF (itype==LIBXC.and.have_libxc) then !!!!! External LibXC library !!!!!
        allocate(tmpd(n),tmpv(n),exci(n))
+       tmpd=0.d0; tmpv=0.d0; exci=0.d0
        tmpd(2:n)=den(2:n)/(fpi*(Grid%r(2:n)**2))
        call extrapolate(Grid,tmpd)
        if (libxc_isgga()) then
         allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
+        grad=0.d0;gradmag=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
         call derivative(Grid,tmpd,grad,1,n)
         gradmag=ABS(grad)
         call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,vxcgr=dfxcdgbg)
@@ -457,6 +459,7 @@ CONTAINS
        else
         call libxc_getvxc(n,exci,tmpv,1,tmpd)
        end if
+       rvxc=0.d0
        rvxc(1:n)=tmpv(1:n)*Grid%r(1:n)
        exci(1:n)=exci(1:n)*tmpd(1:n)*fpi*Grid%r(1:n)**2
        eexc=integrator(Grid,exci,1,n)
@@ -467,8 +470,9 @@ CONTAINS
        tmpv(1:n)=tmpv(1:n)*den(1:n)
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
        deallocate(tmpd,tmpv,exci)
-       !WRITE(6,*) 'etxc,eexc = ',etxc,eexc
+       !WRITE(6,*) 'etxc,eexc = ',etxc,eexc;call flush(6)
     else
+
        WRITE(6,*) 'Warning (EXCOR): ', itype,' no results returned !'
        STOP
     END if

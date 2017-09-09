@@ -265,7 +265,7 @@ CONTAINS
   END SUBROUTINE nderiv
 
   !**********************************************************************
-  ! subroutine derivative(Grid,f,dfdr)
+  ! subroutine derivative(Grid,f,dfdr,begin,bend)
   !*********************************************************************
   SUBROUTINE derivative(Grid,f,dfdr,begin,bend)
     TYPE(GridInfo), INTENT(IN) :: Grid

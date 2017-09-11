@@ -3481,9 +3481,9 @@ CONTAINS
 
       Write(6,*) 'Before EXC ', PAW%Ea
       irc=PAW%irc
-      call exch(Grid,arg,v1,x,y,irc)
+      call exch(Grid,arg,v1,x,y,fin=irc)
       PAW%Ea=PAW%Ea+y  ; write(6,*) 'AE EXC ' ,y
-      call exch(Grid,rhs,v2,x,y,irc)
+      call exch(Grid,rhs,v2,x,y,fin=irc)
       PAW%Ea=PAW%Ea-y  ; write(6,*) 'PS EXC ' ,y
 
       PAW%Etotal=PAW%tkin+PAW%tion+PAW%tvale+PAW%txc+PAW%Ea

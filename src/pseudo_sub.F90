@@ -1277,10 +1277,10 @@ CONTAINS
       PAW%Ea=PAW%Ea+x; PAW%Eaxc=x
     ELSE
       arg=PAW%tden+PAW%tcore
-      !CALL exch(Grid,arg,dum,y,x,irc)
+      !CALL exch(Grid,arg(1:irc),dum(1:irc),y,x,fin=irc)
       CALL exch(Grid,arg,dum,y,x)
       arg=PAW%den+FC%coreden
-      !CALL exch(Grid,arg,dum,y,z,irc)
+      !CALL exch(Grid,arg(1:irc),dum(1:irc),y,z,fin=irc)
       CALL exch(Grid,arg,dum,y,z)
       write(6,*) ' one center xc ', z,x,z-x
       PAW%Ea=PAW%Ea+z-x; PAW%Eaxc=z-x

@@ -869,10 +869,11 @@ end function libxc_family_from_id
  if (is_gga) vxcgr=0.d0
 
 !Filter density/gradient when density goes to zero
- izero=0
- do ipts=npts,2,-1
-  if (all(rho(ipts,:)<tol)) izero=ipts-1
- end do
+!This is useless ; libxc has its own filtering process
+  izero=npts
+! do ipts=npts,2,-1
+!  if (all(rho(ipts,:)<tol)) izero=ipts-1
+! end do
 
 !Define C pointers to libXC rutine arguments
 #if defined HAVE_FC_ISO_C_BINDING

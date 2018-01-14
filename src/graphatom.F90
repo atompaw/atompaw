@@ -63,5 +63,6 @@ PROGRAM graphatom
   ENDDO
 
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
+  if (diracrelativistic) CALL deallocate_Dirac_Relativistic
 
 END PROGRAM graphatom

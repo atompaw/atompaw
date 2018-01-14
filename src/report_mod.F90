@@ -52,6 +52,22 @@ CONTAINS
 
     WRITE(IF,*)
     WRITE(IF,*) 'Orbital energies'
+    If (diracrelativistic) then
+    WRITE(IF,"(' n   kappa   l   occupancy            energy')")
+    IF (frozencorecalculation) THEN
+       DO io=1,Orbit%norbit
+          IF (.NOT.Orbit%iscore(io)) &
+&              WRITE(IF,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+&              Orbit%np(io),Orbit%kappa(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+       ENDDO
+    ELSE
+       DO io=1,Orbit%norbit
+          WRITE(IF,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+&              Orbit%np(io),Orbit%kappa(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
+       ENDDO
+    ENDIF
+
+    else        
     WRITE(IF,"(' n  l     occupancy            energy')")
     IF (frozencorecalculation) THEN
        DO io=1,Orbit%norbit
@@ -65,6 +81,7 @@ CONTAINS
 &              Orbit%np(io),Orbit%l(io),Orbit%occ(io),Orbit%eig(io)
        ENDDO
     ENDIF
+    endif
   END SUBROUTINE One_electron_energy_Report
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -212,6 +229,8 @@ CONTAINS
           WRITE(ifen,*) &
 &              'Scalar relativistic calculation -- finite (Gaussian) nucleus'
        ENDIF
+    ELSEIF (diracrelativistic) then   
+       WRITE(ifen,*) 'Dirac-relativistic calculation'
     ELSE
        WRITE(ifen,*) 'Non-relativistic calculation'
     ENDIF
@@ -220,7 +239,7 @@ CONTAINS
 &        WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='FC'.OR.key=='SC') &
 &        WRITE(ifen,*) '  FCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%nz
+    WRITE(ifen,'(a,i3)') '     for nz = ',Pot%nz
     WRITE(ifen,*) '    delta  = ', SCF%delta
     CALL One_electron_energy_Report(Orbit,ifen)
     WRITE(ifen,*)

@@ -27,6 +27,7 @@ MODULE pseudo
   USE paw_sub
   USE pseudodata
   USE pseudo_sub
+  USE radialDirac
   USE radialsr
 
   IMPLICIT NONE

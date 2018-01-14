@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.0.1.0],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.1.0.0],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,8 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 09/2017 -- LibXC C API now used + libXC detection improved
+!--- Version ${PACKAGE_VERSION} - 01/2018 -- Dirac solver available for graphatom
 EOF
+#!--- Version ${PACKAGE_VERSION} - 09/2017 -- LibXC C API now used + libXC detection improved
 #!--- Version ${PACKAGE_VERSION} - 12/2016 -- Finite-Nucleus fixed for DFT
 #!--- Version ${PACKAGE_VERSION} - 02/2016 -- XML output improved; --version command line option
 #!--- Version ${PACKAGE_VERSION} - 03/2015 -- PBESOL ; SOCCORO output

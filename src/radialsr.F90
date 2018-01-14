@@ -28,8 +28,9 @@ MODULE radialsr
 
   IMPLICIT NONE
 
-  REAL(8), parameter :: inverse_fine_structure=137.03599911d0
-  Real(8), private :: gamma,c1,c2,MA,MB
+  !REAL(8), parameter :: inverse_fine_structure=137.035999139d0
+  !!! moved to globalmath
+  Real(8), private :: gamma,c1,c2,MA,MB,qq
   Real(8), private, allocatable :: ww(:),jj(:)
      ! jj stores (r+(alpha/2)**2*(E*r-rv) == r*M(r)
      ! ww stores kappa*(kappa+1)/(r**2*M(r)) - (E - V(r))
@@ -64,8 +65,8 @@ CONTAINS
 
 !*******************************************************************
 !  Subroutine Azeroexpand(Grid,Pot,l,energy)
-!      If finitenucleus==.true. assumes potential for r--> has form
-!         -2*Z*erf(r/RR)/r, where RR is a nuclear size parameter
+!      If finitenucleus==.true. assumes potential is non-singular
+!          at origin and Pot%v0 and Pot%v0p are properly set
 !      Otherwise, assumes nuclear potential is -2*Z/r
 !*******************************************************************
  Subroutine Azeroexpand(Grid,Pot,l,energy,nr)
@@ -77,9 +78,17 @@ CONTAINS
 
    Integer :: i,j,k,n
    Real(8) :: nz,xx,yy,angm,alpha2,balpha2
+   Real(8) :: Tm10,Tm11,T00,Tm21,Tm22,term
 
    n=Grid%n
    if (present(nr)) n=min(n,nr)
+
+!  check for possible ionic charge   
+    n=Grid%n
+    qq=-Pot%rv(n)/2
+    if(qq<0.001d0) qq=0
+    !write(6,*) 'In Azeroexpand -- qq = ',qq
+    !call flush(6)
 
    nz=Pot%nz
     ww=0; jj=0;
@@ -94,23 +103,28 @@ CONTAINS
 
    if (.not.finitenucleus) then
       gamma=sqrt(angm+1.d0-alpha2*nz**2)
-      c1=-((2.d0*balpha2)/(nz*(2*gamma+1)))*((1-gamma)*&
-&          (1+0.25d0*alpha2*(energy-Pot%v0))+alpha2*nz**2+&
-&          0.5d0*((nz*alpha2)**2)*(energy-Pot%v0))
-      xx=2*nz*(1+alpha2*(energy-Pot%v0)+3*(0.25*alpha2*(energy-Pot%v0))**2)&
-&      +0.25d0*alpha2*Pot%v0p*(alpha2*nz*nz+2*(gamma-1))
-      yy=(1+gamma)*(1+0.25d0*alpha2*(energy-Pot%v0))+alpha2*nz*nz+&
-&          0.5d0*((alpha2*nz)**2)*(energy-Pot%v0)
-      c2=-(xx+yy*c1)/(2*(gamma+1)*alpha2*nz)
+      term=1.d0+0.25d0*alpha2*(energy-Pot%v0)
+      Tm21=2*gamma+1;   Tm22=2*(2*gamma+2)
+      Tm10=nz*(2.d0+alpha2*(energy-Pot%v0))-(2*balpha2/nz)*term*(gamma-1.d0)
+      Tm11=nz*(2.d0+alpha2*(energy-Pot%v0))-(2*balpha2/nz)*term*(gamma)
+      T00=-alpha2*nz*Pot%v0p+term*(energy-Pot%v0) + &
+&        (Pot%v0p/nz+(4*balpha2**2/(nz*nz))*term**2)*(gamma-1.d0)
+      c1=-Tm10/Tm21
+      c2=-(Tm11*C1+T00)/Tm22      
       !write(6,*) 'Azeroexpand: ', gamma,c1,c2
       MA=0; MB=0
 
    else  ! version for finite nuclear size
-       gamma=0
-       MA=1.d0+0.25d0*alpha2*(energy-Pot%v0)
-       MB=0.25d0*alpha2*Pot%v0p
-       c1=-MB*l/(2*MA*(l+1))
-       c2=(-MA*MA*(energy-Pot%v0)*MB*c1*(l+1))/(MA*(4*l+6))
+       gamma=l+1.d0
+       term=1.d0+0.25d0*alpha2*(energy-Pot%v0)
+       Tm21=2*l+2;      Tm22=2*(2*l+3)
+       Tm10=(0.25d0*alpha2*Pot%v0p/term)*(l)
+       Tm11=(0.25d0*alpha2*Pot%v0p/term)*(l+1)
+       T00=(energy-Pot%v0)*term+l*((0.25d0*alpha2*Pot%v0p/term)**2)
+       c1=-Tm10/Tm21
+       c2=-(Tm11*C1+T00)/Tm22      
+       !write(6,*) 'Azeroexpand: ', gamma,c1,c2
+       MA=0; MB=0
    endif
 
   end subroutine Azeroexpand
@@ -158,7 +172,7 @@ CONTAINS
     REAL(8), INTENT(IN) :: energy
     INTEGER, INTENT(OUT) :: iend
 
-    REAL(8) :: rr,x,m
+    REAL(8) :: rr,x,m,qx
     INTEGER :: i,j,n
 
     if (energy>0.d0) then
@@ -166,16 +180,26 @@ CONTAINS
        stop
     endif
 
-    wfn=0; lwfn=0
+    wfn=0; lwfn=0; 
     n=Grid%n
 
-    m=1+0.25d0*energy/(inverse_fine_structure**2)
+
+    m=1.d0+0.25d0*energy/(inverse_fine_structure**2)
     x=sqrt(-m*energy)
-    !write(6,*) ' in wfnsrasym with x = ',x
+    qx=qq     !  Possible net ionic charge
+    qx=(qx/x)*(1.d0+0.5d0*energy/(inverse_fine_structure**2))
+    !write(6,*) ' in wfnsrasym with x = ',x, qx
+    !   call flush(6)
     iend=5
     do i=n-iend,n
        wfn(i)=exp(-x*(Grid%r(i)-Grid%r(n-iend)))
-       lwfn(i)=-wfn(i)*(x+1.d0/Grid%r(i))/m
+       if (qx>0.d0) then
+               rr=(Grid%r(i)/Grid%r(n-iend))**qx
+               wfn(i)=wfn(i)*rr
+       endif        
+       lwfn(i)=-wfn(i)*(x*Grid%r(i)+(1.d0-qx))/jj(i)
+       !write(6,*) i,Grid%r(i),wfn(i),lwfn(i),jj(i)
+       !call flush(6)
     enddo
   end subroutine wfnsrasym
 
@@ -471,25 +495,6 @@ CONTAINS
     DEALLOCATE(p1,p2,dd,lwfn,yy,zz)
              write(6,*) 'returning from boundsr -- ierr=',ierr
   END SUBROUTINE Boundsr
-
-  subroutine scalarrelativisticturningpt(Grid,least,turningpoint)
-     Type(GridInfo), INTENT(IN) :: Grid
-     Integer, INTENT(IN) :: least
-     Integer, INTENT(OUT) :: turningpoint
-
-    integer :: i,n
-
-    n=Grid%n
-
-    turningpoint=n
-    do i=n,least,-1
-      if (ww(i)<0.d0) exit
-    enddo
-    turningpoint=i
-
-    !write(6,*) 'Found turning point at ', turningpoint, Grid%r(turningpoint)
-
-  End subroutine scalarrelativisticturningpt
 
   subroutine prepareforcfdsol(Grid,i1,i2,n,wfn,lwfn,yy,zz)
      Type(gridinfo), INTENT(IN) :: Grid

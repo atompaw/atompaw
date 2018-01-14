@@ -282,10 +282,19 @@ CONTAINS
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
+    if (.not.diracrelativistic) then
     DO i = 1,n
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
 &           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
     ENDDO
+    endif
+    if (diracrelativistic) then
+    DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),Orbitwk%lwfn(i,j),j=1,Orbitwk%norbit)
+    ENDDO
+    endif
+
     CLOSE(1001)
 
     IF (ALLOCATED(mmap)) DEALLOCATE(mmap)

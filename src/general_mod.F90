@@ -14,6 +14,7 @@ MODULE general_mod
   USE numerov_mod
   USE globalmath
   USE gridmod
+  USE radialDirac
   USE radialsr
 
   IMPLICIT NONE
@@ -35,7 +36,7 @@ CONTAINS
     !  program to calculate wavefunctions given potential rvin
 
     INTEGER :: icount,i,j,k,n,it,start,np,ierr,nroot,s1,s2
-    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr,nz
+    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr,nz,kappa
     REAL(8) :: h,emin,zz
     REAL(8), ALLOCATABLE :: dum(:)
     LOGICAL :: OK
@@ -71,6 +72,12 @@ CONTAINS
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
+       ELSE IF (diracrelativistic) THEN
+          kappa=-1     
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 's s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -78,6 +85,7 @@ CONTAINS
           IF (.NOT.OK) THEN
              success=.FALSE.
           ENDIF
+       !write(6,*)'s ', nroot,s1,s2 ; call flush(6)   
     ENDIF
     !  p states :
     IF (Orbit%npp.GT.1) THEN
@@ -85,11 +93,25 @@ CONTAINS
        emin=-nz*nz/4.d0-0.5d0
        l=1
        nroot=Orbit%npp-1
-       start=start+Orbit%nps
-       s1=start;s2=start+nroot-1
+       s1=s2+1;s2=s1+nroot-1
+       !write(6,*)'p ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
+       ELSE IF (diracrelativistic) THEN
+          kappa=1     
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'p s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
+          s1=s2+1;s2=s1+nroot-1
+          kappa=-2     
+          emin=-nz*nz/4.d0-0.5d0
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'p s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
+       !write(6,*)'p ', nroot,s1,s2 ; call flush(6)   
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -104,11 +126,25 @@ CONTAINS
        emin=-nz*nz/9.d0-0.5d0
        l=2
        nroot=Orbit%npd-2
-       start=start+Orbit%npp-1
-       s1=start;s2=start+nroot-1
+       s1=s2+1;s2=s1+nroot-1
+       !write(6,*)'d ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
+       ELSE IF (diracrelativistic) THEN
+          kappa=2     
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'd s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
+          kappa=-3     
+       s1=s2+1;s2=s1+nroot-1
+       emin=-nz*nz/9.d0-0.5d0
+       !write(6,*)'d ', nroot,s1,s2 ; call flush(6)   
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'd s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -123,11 +159,25 @@ CONTAINS
        emin=-nz*nz/16.d0-0.5d0
        l=3
        nroot=Orbit%npf-3
-       start=start+Orbit%npd-2
-       s1=start;s2=start+nroot-1
+       s1=s2+1;s2=s1+nroot-1
+       !write(6,*)'f ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
+       ELSE IF (diracrelativistic) THEN
+          kappa=3     
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'f s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
+          kappa=-4     
+       s1=s2+1;s2=s1+nroot-1
+       emin=-nz*nz/16.d0-0.5d0
+       !write(6,*)'f ', nroot,s1,s2 ; call flush(6)   
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'f s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -142,11 +192,25 @@ CONTAINS
        emin=-nz*nz/25.d0-0.5d0
        l=4
        nroot=Orbit%npg-4
-       start=start+Orbit%npf-3
-       s1=start;s2=start+nroot-1
+       s1=s2+1;s2=s1+nroot-1
+       !write(6,*)'g ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
+       ELSE IF (diracrelativistic) THEN
+          kappa=4     
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'g s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
+          kappa=-5     
+       s1=s2+1;s2=s1+nroot-1
+       emin=-nz*nz/25.d0-0.5d0
+       !write(6,*)'g ', nroot,s1,s2 ; call flush(6)   
+          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+          !write(6,*) 'g s1:s2', s1,s2
+          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -192,12 +256,17 @@ CONTAINS
           DO i=1,n
              IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
              Orbit%den(i)=Orbit%den(i)+ Orbit%occ(io)*(Orbit%wfn(i,io)**2)
+             IF (diracrelativistic) then
+             IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
+             Orbit%den(i)=Orbit%den(i)+ &
+&                     Orbit%occ(io)*((Orbit%lwfn(i,io))**2)
+             ENDIF         
           ENDDO
        ENDIF
 
     ENDDO
     qcal=integrator(Grid,Orbit%den)
-    !WRITE(6,*) 'qcal = ', qcal
+    WRITE(6,*) 'qcal = ', qcal
 
     ! for FC, Big change here , electrons are total , not valence anymore!
     electrons=Pot%q
@@ -286,6 +355,10 @@ CONTAINS
             Endif
           Else
               FC%valeden(:)=FC%valeden(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)
+             IF (diracrelativistic) then
+              FC%valeden(:)=FC%valeden(:)+ &
+&              Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
+             ENDIF         
               If(present(noalt)) then
                   CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
               else
@@ -294,9 +367,15 @@ CONTAINS
               tv=tv+Orbit%occ(io)*x
           ENDIF
           Orbit%den(:)=Orbit%den(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)
+             IF (diracrelativistic) then
+              Orbit%den(:)=Orbit%den(:)+ &
+&              Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
+             ENDIF         
           SCF%eone=SCF%eone+Orbit%occ(io)*Orbit%eig(io)
        ENDIF
     ENDDO
+
+    write(6,*) 'electron density integral',integrator(Grid,Orbit%den) 
 
     write(6,*) 'eone = ', SCF%eone
 

@@ -3,10 +3,10 @@
 !      Init_GlobalConstants, sphbes, bessandneumfunc, shift4,
 !          linsol, minverse, filter, conthomas, thomas, jbessel, solvbes,
 !          shapebes, CALERF, SolveAXeqB, SolveAXeqBM, SolveAXeqB_eig,
-!          SVDINVERSE
+!          SVDINVERSE, dirachwfn
 !  This module contains the following active functions:
-!      ddlog, ddexp, ranx, factorial, hwfn, intjl,
-!      DERF, DERFC, DERFCX, ASSOCIATEDLAGUERRE, THRJ2
+!      ddlog, ddexp, ranx, factorial, hwfn, intjl, kummer,
+!      DERF, DERFC, DERFCX, ASSOCIATEDLAGUERRE, THRJ2, GAMMAFUNC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -17,6 +17,9 @@ MODULE GlobalMath
 
   IMPLICIT NONE
 
+  REAL(8), parameter :: inverse_fine_structure=137.035999139d0
+  REAL(8), parameter :: ifsalpha2=inverse_fine_structure**2
+  REAL(8), parameter :: fsalpha2=1.d0/inverse_fine_structure**2
   REAL(8) :: pi , machine_precision , machine_zero , machine_infinity
 
   REAL(8), PRIVATE :: minlog,maxlog,minexp,maxexp
@@ -419,6 +422,80 @@ CONTAINS
     !     write(6,*) 'r,hwfn=',r,hwfn
   END FUNCTION hwfn
 
+  !*****************************************************************
+  ! subroutine dirachwfn(np,kappa,z,r,eig,g,f)
+  !   Subroutine to calculate eigenenergy and radial wavefunctions*r 
+  !      for bound state solutions to the Hydrogenic Dirac equation
+  !      for nuclear charge z.   Energy in Rydberg atomic units
+  !      np is principal quantum number -- 
+  !           np=abs(kappa), abs(kappa)+1, abs(kappa)+2 ..
+  !*****************************************************************
+  subroutine dirachwfn(np,kappa,z,r,eig,g,f)
+      INTEGER, INTENT(IN) :: np, kappa
+      REAL(8), INTENT(IN) :: z,r
+      REAL(8), INTENT(INOUT) :: eig,g,f
+
+      INTEGER :: ak,nr
+      REAL(8) :: norm,s,rho,ne, term1, term2, term0,x
+
+      ak=abs(kappa)
+      nr=np-ak
+      s=sqrt(ak**2-(z**2)*(fsalpha2))
+      ne=sqrt(np**2-2*nr*(ak-s))
+      rho=2*z*r/ne
+      norm=gammafunc(2*s+nr+1.d0)/(gammafunc(nr+1.d0)*4*ne*(ne-kappa))
+      norm=sqrt(norm*2*z/ne)/gammafunc(2*s+1.d0)
+      term1=0.d0
+      if(nr>0) term1=nr*kummer(-nr+1,2*s+1.d0,rho)
+      term2=(ne-kappa)*kummer(-nr,2*s+1.d0,rho)
+      term0=norm*ddexp(-0.5d0*rho)*(rho**s)
+      eig=1.d0 + ((z**2)*(fsalpha2))/(np - ak +s)**2
+      eig=2*ifsalpha2*(1.d0/sqrt(eig) - 1.d0)
+      x=0.5d0*fsalpha2*eig
+      g=sqrt(2.d0+x)*term0*(term2-term1)
+      f=-sqrt(-x)*term0*(term2+term1)
+end subroutine dirachwfn      
+
+  !*****************************************************************
+  !   function kummer(n,b,z)
+  !     function to return confluent hypergeometric function (Kummer)
+  !         as defined in Handbook of mathematical functions pg. 504
+  !         assumes n=0, -1, -2, .. for polymomials of order 0, 1, 2, etc.
+  !*****************************************************************
+  FUNCTION kummer(n,b,z)
+    REAL(8) :: kummer
+    INTEGER, INTENT(IN) :: n
+    REAL(8), INTENT(IN) :: b,z    
+    
+    INTEGER :: i,k,j,nn
+    REAL(8) :: num,den,fac,bb
+
+    if (n>0) then
+      write(6,*) 'Error in kummer function -- n>0',n
+      stop
+    endif      
+    kummer=1.d0
+    if (n==0) return
+
+    j=-n
+    k=1
+    nn=n
+    bb=b
+    num=n
+    den=b
+    fac=z*nn/(bb*k)
+    kummer=kummer+fac
+    if (j>1) then
+       do i=1,j-1
+          nn=nn+1
+          bb=bb+1
+          k=k+1
+          fac=fac*z*nn/(bb*k)
+          kummer=kummer+fac
+       enddo
+    endif   
+
+    END FUNCTION kummer   
   !***************************************************************************
   ! subroutine filter(n,func,small)
   !***************************************************************************
@@ -1293,6 +1370,245 @@ CONTAINS
     ENDIF
 
   END FUNCTION THRJ2
+!***************************************************************
+! Gamma function function obtained from netlib.org
+ FUNCTION GAMMAFUNC(X)
+
+!---------------------------------------------------------------------
+
+! This routine calculates the GAMMA function for a real argument X
+!   Computation is based on an algorithm outlined in reference 1
+!   The program uses rational functions that approximate the GAMM
+!   function to at least 20 significant decimal digits.  Coefficient
+!   for the approximation over the interval (1,2) are unpublished
+!   Those for the approximation for X .GE. 12 are from reference 2
+!   The accuracy achieved depends on the arithmetic system, th
+!   compiler, the intrinsic functions, and proper selection of th
+!   machine-dependent constants
+
+
+!******************************************************************
+!******************************************************************
+
+! Explanation of machine-dependent constant
+
+! beta   - radix for the floating-point representatio
+! maxexp - the smallest positive power of beta that overflow
+! XBIG   - the largest argument for which GAMMA(X) is representabl
+!          in the machine, i.e., the solution to the equatio
+!                  GAMMA(XBIG) = beta**maxex
+! XINF   - the largest machine representable floating-point number
+!          approximately beta**maxex
+! EPS    - the smallest positive floating-point number such tha
+!          1.0+EPS .GT. 1.
+! XMININ - the smallest positive floating-point number such tha
+!          1/XMININ is machine representabl
+
+!     Approximate values for some important machines are
+
+!                            beta       maxexp        XBI
+
+! CRAY-1         (S.P.)        2         8191        966.96
+! Cyber 180/85
+!   under NOS    (S.P.)        2         1070        177.80
+! IEEE (IBM/XT
+!   SUN, etc.)   (S.P.)        2          128        35.04
+! IEEE (IBM/XT
+!   SUN, etc.)   (D.P.)        2         1024        171.62
+! IBM 3033       (D.P.)       16           63        57.57
+! VAX D-Format   (D.P.)        2          127        34.84
+! VAX G-Format   (D.P.)        2         1023        171.48
+
+!                            XINF         EPS        XMINI
+
+! CRAY-1         (S.P.)   5.45E+2465   7.11E-15    1.84E-246
+! Cyber 180/85
+!   under NOS    (S.P.)   1.26E+322    3.55E-15    3.14E-29
+! IEEE (IBM/XT
+!   SUN, etc.)   (S.P.)   3.40E+38     1.19E-7     1.18E-3
+! IEEE (IBM/XT
+!   SUN, etc.)   (D.P.)   1.79D+308    2.22D-16    2.23D-30
+! IBM 3033       (D.P.)   7.23D+75     2.22D-16    1.39D-7
+! VAX D-Format   (D.P.)   1.70D+38     1.39D-17    5.88D-3
+! VAX G-Format   (D.P.)   8.98D+307    1.11D-16    1.12D-30
+
+!******************************************************************
+!******************************************************************
+
+! Error return
+
+!  The program returns the value XINF for singularities o
+!     when overflow would occur.  The computation is believe
+!     to be free of underflow and overflow
+
+
+!  Intrinsic functions required are
+
+!     INT, DBLE, EXP, LOG, REAL, SI
+
+
+! References: "An Overview of Software Development for Specia
+!              Functions", W. J. Cody, Lecture Notes in Mathematics
+!              506, Numerical Analysis Dundee, 1975, G. A. Watso
+!              (ed.), Springer Verlag, Berlin, 1976
+
+!              Computer Approximations, Hart, Et. Al., Wiley an
+!              sons, New York, 1968
+
+!  Latest modification: October 12, 1989
+
+!  Authors: W. J. Cody and L. StoltZ
+!           Applied Mathematics DivisioN
+!           Argonne National LaboratorY
+!           Argonne, IL 60439
+
+!---------------------------------------------------------------------
+      REAL(8) :: GAMMAFUNC,X
+      INTEGER:: I,N
+      REAL(8) :: &
+&       CONV,EPS,FACT,HALF,ONE,RES,SQRTPI,SUM,TWELVE, &
+&       TWO,XBIG,XDEN,XINF,XMININ,XNUM,Y,Y1,YSQ,Z,ZERO
+      REAL(8) :: C(7),P(8),Q(8)
+      LOGICAL :: PARITY
+!---------------------------------------------------------------------
+!  Mathematical constants
+!---------------------------------------------------------------------
+    DATA ONE,HALF,TWELVE,TWO,ZERO/1.0D0,0.5D0,12.0D0,2.0D0,0.0D0/, &
+&     SQRTPI/0.9189385332046727417803297D0/
+!!!!&     PI/3.1415926535897932384626434D0/   (already defined)
+!---------------------------------------------------------------------
+!  Machine dependent parameter
+!---------------------------------------------------------------------
+    DATA XBIG,XMININ,EPS,XINF/171.624D0,2.23D-308,2.22D-16,1.79D308/
+!---------------------------------------------------------------------
+!  Numerator and denominator coefficients for rational minima
+!     approximation over (1,2)
+!---------------------------------------------------------------------
+    DATA P/-1.71618513886549492533811D+0,2.47656508055759199108314D+1, &
+&        -3.79804256470945635097577D+2,6.29331155312818442661052D+2, &
+&        8.66966202790413211295064D+2,-3.14512729688483675254357D+4, &
+&       -3.61444134186911729807069D+4,6.64561438202405440627855D+4/
+    DATA Q/-3.08402300119738975254353D+1,3.15350626979604161529144D+2, &
+&       -1.01515636749021914166146D+3,-3.10777167157231109440444D+3, &
+&        2.25381184209801510330112D+4,4.75584627752788110767815D+3, &
+&       -1.34659959864969306392456D+5,-1.15132259675553483497211D+5/
+!---------------------------------------------------------------------
+!  Coefficients for minimax approximation over (12, INF)
+!---------------------------------------------------------------------
+    DATA C/-1.910444077728D-03,8.4171387781295D-04 , &
+&        -5.952379913043012D-04,7.93650793500350248D-04 , &
+&        -2.777777777777681622553D-03,8.333333333333333331554247D-02 , &
+&         5.7083835261D-03/
+!---------------------------------------------------------------------
+!  Statement functions for conversion between integer and floa
+!---------------------------------------------------------------------
+    CONV(I) = DBLE(I)
+      PARITY = .FALSE.
+      FACT = ONE
+      N = 0
+      Y = X
+      IF (Y .LE. ZERO) THEN
+!---------------------------------------------------------------------
+!  Argument is negative
+!---------------------------------------------------------------------
+            Y = -X
+            Y1 = AINT(Y)
+            RES = Y - Y1
+            IF (RES .NE. ZERO) THEN
+                  IF (Y1 .NE. AINT(Y1*HALF)*TWO) PARITY = .TRUE.
+                  FACT = -PI / SIN(PI*RES)
+                  Y = Y + ONE
+          ELSE
+                  RES = XINF
+                  GO TO 900
+          END IF
+  END IF
+!---------------------------------------------------------------------
+!  Argument is positiv
+!---------------------------------------------------------------------
+      IF (Y .LT. EPS) THEN
+!---------------------------------------------------------------------
+!  Argument .LT. EPS
+!---------------------------------------------------------------------
+            IF (Y .GE. XMININ) THEN
+                  RES = ONE / Y
+          ELSE
+                  RES = XINF
+                  GO TO 900
+          END IF
+         ELSE IF (Y .LT. TWELVE) THEN
+            Y1 = Y
+            IF (Y .LT. ONE) THEN
+!---------------------------------------------------------------------
+!  0.0 .LT. argument .LT. 1.
+!---------------------------------------------------------------------
+                  Z = Y
+                  Y = Y + ONE
+          ELSE
+!---------------------------------------------------------------------
+!  1.0 .LT. argument .LT. 12.0, reduce argument if necessar
+!---------------------------------------------------------------------
+                  N = INT(Y) - 1
+
+                  Y = Y - CONV(N)
+                  Z = Y - ONE
+          END IF
+!---------------------------------------------------------------------
+!  Evaluate approximation for 1.0 .LT. argument .LT. 2.
+!---------------------------------------------------------------------
+            XNUM = ZERO
+            XDEN = ONE
+            DO 260 I = 1, 8
+               XNUM = (XNUM + P(I)) * Z
+               XDEN = XDEN * Z + Q(I)
+  260       CONTINUE
+            RES = XNUM / XDEN + ONE
+            IF (Y1 .LT. Y) THEN
+!---------------------------------------------------------------------
+!  Adjust result for case  0.0 .LT. argument .LT. 1.
+!---------------------------------------------------------------------
+                  RES = RES / Y1
+               ELSE IF (Y1 .GT. Y) THEN
+!---------------------------------------------------------------------
+!  Adjust result for case  2.0 .LT. argument .LT. 12.
+!---------------------------------------------------------------------
+                  DO 290 I = 1, N
+                     RES = RES * Y
+                     Y = Y + ONE
+  290             CONTINUE
+            END IF
+    ELSE
+!---------------------------------------------------------------------
+!  Evaluate for argument .GE. 12.0
+!---------------------------------------------------------------------
+            IF (Y .LE. XBIG) THEN
+                  YSQ = Y * Y
+                  SUM = C(7)
+                  DO 350 I = 1,6 
+                     SUM = SUM / YSQ + C(I)
+  350             CONTINUE
+                  SUM = SUM/Y - Y + SQRTPI
+                  SUM = SUM + (Y-HALF)*LOG(Y)
+                  RES = EXP(SUM)
+          ELSE
+                  RES = XINF
+                  GO TO 900
+          END IF
+  END IF
+!---------------------------------------------------------------------
+!  Final adjustments and retur
+!---------------------------------------------------------------------
+      IF (PARITY) RES = -RES
+      IF (FACT .NE. ONE) RES = FACT / RES
+900 GAMMAFUNC = RES
+      RETURN
+! ---------- Last line of GAMMA ---------
+END FUNCTION GAMMAFUNC
+
+
+
+
+
 
 END MODULE GlobalMath
 

@@ -15,8 +15,8 @@ MODULE atomdata
   TYPE OrbitInfo
      CHARACTER(132) :: exctype
      INTEGER :: nps, npp, npd ,npf, npg, norbit
-     INTEGER, POINTER :: np(:),l(:)
-     REAL(8), POINTER :: eig(:),occ(:),wfn(:,:)
+     INTEGER, POINTER :: np(:),l(:),kappa(:)
+     REAL(8), POINTER :: eig(:),occ(:),wfn(:,:),lwfn(:,:)
      REAL(8), POINTER :: lqp(:,:)     ! only used for HF
      REAL(8), POINTER :: X(:,:)       ! identical to HF%SumY(:,:)
      LOGICAL , POINTER :: iscore(:)
@@ -56,6 +56,7 @@ MODULE atomdata
   LOGICAL :: frozencorecalculation
   LOGICAL :: setupfrozencore
   LOGICAL :: scalarrelativistic
+  LOGICAL :: diracrelativistic
   LOGICAL :: BDsolve
   LOGICAL :: finitenucleus
   LOGICAL :: gaussianshapefunction,besselshapefunction
@@ -90,6 +91,12 @@ CONTAINS
     ALLOCATE(Orbit%wfn(n,norbit),Orbit%den(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of wfn, den...'
     Orbit%wfn=0.d0;Orbit%den=0.d0
+    If (diracrelativistic) then
+       ALLOCATE(Orbit%lwfn(n,norbit),Orbit%kappa(norbit),stat=ok)
+       IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
+       Orbit%lwfn=0.d0
+       Orbit%kappa=0.d0
+    Endif
     If (exctype == "HF".or.exctype == "EXXKLI") then
        ALLOCATE(Orbit%lqp(norbit,norbit),Orbit%X(n,norbit),stat=ok)
        IF (ok/=0) STOP 'Error in allocation of lqp, X...'
@@ -102,10 +109,12 @@ CONTAINS
     TYPE (OrbitInfo), INTENT(INOUT) :: Orbit
     IF (ASSOCIATED(Orbit%np)) DEALLOCATE(Orbit%np)
     IF (ASSOCIATED(Orbit%l)) DEALLOCATE(Orbit%l)
+    IF (ASSOCIATED(Orbit%kappa)) DEALLOCATE(Orbit%kappa)
     IF (ASSOCIATED(Orbit%iscore)) DEALLOCATE(Orbit%iscore)
     IF (ASSOCIATED(Orbit%eig)) DEALLOCATE(Orbit%eig)
     IF (ASSOCIATED(Orbit%occ)) DEALLOCATE(Orbit%occ)
     IF (ASSOCIATED(Orbit%wfn)) DEALLOCATE(Orbit%wfn)
+    IF (ASSOCIATED(Orbit%lwfn)) DEALLOCATE(Orbit%lwfn)
     IF (ASSOCIATED(Orbit%den)) DEALLOCATE(Orbit%den)
     IF (ASSOCIATED(Orbit%lqp)) DEALLOCATE(Orbit%lqp)
     IF (ASSOCIATED(Orbit%X)) DEALLOCATE(Orbit%X)
@@ -132,6 +141,11 @@ CONTAINS
     COrbit%wfn(:,1:SOrbit%norbit)=SOrbit%wfn(:,1:SOrbit%norbit)
     COrbit%iscore(1:SOrbit%norbit)=SOrbit%iscore(1:SOrbit%norbit)
     COrbit%den=SOrbit%den
+    If (diracrelativistic) then
+       COrbit%lwfn(:,1:SOrbit%norbit)=SOrbit%lwfn(:,1:SOrbit%norbit)
+       COrbit%kappa(1:SOrbit%norbit)=SOrbit%kappa(1:SOrbit%norbit)
+    Endif
+
     IF (SOrbit%exctype == "HF".or.SOrbit%exctype == "EXXKLI") then
         COrbit%X(:,1:SOrbit%norbit)=SOrbit%X(:,1:SOrbit%norbit)
         COrbit%lqp(1:SOrbit%norbit,1:SOrbit%norbit)= &

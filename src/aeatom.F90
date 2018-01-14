@@ -66,9 +66,9 @@ CONTAINS
     REAL(8) :: xocc,qf,small,zeff,hval,gridmatch,gridrange,logdmin,logdmax
     REAL(8) :: qcal,rescale,nzeff,h,hadjusted,r0
     INTEGER :: icount,i,j,k,it,start,np,ierr,gridpoints,logdpoints
-    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir
+    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,kappa
     INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ilgd,ihfpp,ilcex
-    INTEGER :: igrid,irelat,ilogder,ilogv4,ibd
+    INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac
     INTEGER :: nps,npp,npd,npf,npg,finitenucleusmodel
     INTEGER, ALLOCATABLE :: nl(:,:)
     CHARACTER(128) :: exchangecorrelationandgridline,gridkey,relkey
@@ -77,6 +77,7 @@ CONTAINS
 
     BDsolve=.false.
     scalarrelativistic=.FALSE.; finitenucleus=.FALSE. ;
+    diracrelativistic=.FALSE.
     frozencorecalculation=.FALSE.;setupfrozencore=.false.
     gaussianshapefunction=.FALSE.;besselshapefunction=.FALSE.
     ColleSalvetti=.FALSE.  ; HFpostprocess=.FALSE.
@@ -104,7 +105,7 @@ CONTAINS
     WRITE(6,*) '    * LibXC keyword beginning with XC_'
     WRITE(6,*) '    * EXX, EXXOCC, EXXKLI, EXXCS'
     WRITE(6,*) '    * HF, HFV'
-    WRITE(6,*) 'further optionally (space) "nonrelativistic/scalarrelativistic" keyword'
+    WRITE(6,*) 'further optionally (space) "nonrelativistic/scalarrelativistic/diracrelativistic" keyword'
     WRITE(6,*) 'further optionally (space) "point-nucleus/finite-nucleus" keyword'
     WRITE(6,*) 'optionally (space) "loggrid/lineargrid" keyword if appropriate'
     WRITE(6,*) 'Note: "loggridv4" puts more points near origin'
@@ -126,13 +127,14 @@ CONTAINS
 
 !   Retrieve keyword indexes
     ilin=0;ilin=0;ilog=0;ilogv4=0;inrl=0;iscl=0;ipnt=0;ifin=0;ilgd=0
-    ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0;ibd=0
+    ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0;ibd=0;idirac=0
     ilin=INDEX(exchangecorrelationandgridline,'LINEARGRID')
     ilog=INDEX(exchangecorrelationandgridline,'LOGGRID')
     ilogv4=INDEX(exchangecorrelationandgridline,'LOGGRIDV4')
     ibd=INDEX(exchangecorrelationandgridline,'BDSOLVE')
     inrl=INDEX(exchangecorrelationandgridline,'NONRELATIVISTIC')
     iscl=INDEX(exchangecorrelationandgridline,'SCALARRELATIVISTIC')
+    idirac=INDEX(exchangecorrelationandgridline,'DIRACRELATIVISTIC')
     ipnt=INDEX(exchangecorrelationandgridline,'POINT-NUCLEUS')
     ifin=INDEX(exchangecorrelationandgridline,'FINITE-NUCLEUS')
     ilgd=INDEX(exchangecorrelationandgridline,'LOGDERIVRANGE')
@@ -140,6 +142,7 @@ CONTAINS
     ilcex=INDEX(exchangecorrelationandgridline,'LOCALIZEDCOREEXCHANGE')
     igrid=max(ilin,ilog)
     irelat=max(inrl,iscl)
+    !!! note that above line may need attention....
     ilogder=ilgd
     if (ifin>0) then
       READ(exchangecorrelationandgridline(ifin+14:ifin+14),'(a)') CHR
@@ -154,11 +157,12 @@ CONTAINS
 
 !   Treat simple logical variables
     if (iscl>0.and.inrl==0) scalarrelativistic=.true.
+    if (idirac>0.and.inrl==0) diracrelativistic=.true.
     if (ifin>0.and.ipnt==0) finitenucleus=.true.
     if (ihfpp>0) HFpostprocess=.true.
     if (ilcex>0) localizedcoreexchange=.true.
-    write(6,'(" Logical variables scalarrelativistic,finitenucleus,HFpostprocess - ", 3L3)') &
-&      scalarrelativistic,finitenucleus,HFpostprocess
+    write(6,'(" Logical variables scalarrelativistic,diracrelativistic,finitenucleus,HFpostprocess - ", 4L3)') &
+&      scalarrelativistic,diracrelativistic,finitenucleus,HFpostprocess
 
 !   Treat grid data
     gridkey='LINEAR';gridpoints=mxgridlin
@@ -283,12 +287,14 @@ CONTAINS
     IF(npf>0) j=j+npf-3
     IF(npg>0) j=j+npg-4
 
+    If (diracrelativistic) j=j+j   !  need more orbitals
     CALL InitOrbit(AEOrbit,j,Grid%n,exctype)
     AEOrbit%nps=nps;AEOrbit%npp=npp;AEOrbit%npd=npd
     AEOrbit%npf=npf;AEOrbit%npg=npg
     ALLOCATE(nl(i,j));nl=0
 
     icount=0
+    if(.not.diracrelativistic) then
     IF (nps.GT.0) THEN
        DO is=1,nps
           icount=icount+1
@@ -361,6 +367,10 @@ CONTAINS
           READ(5,*) ip,l,xocc
        ENDIF
        IF (ip.LE.0) EXIT
+       IF (xocc.lt.0.d0.or.xocc.gt.2.d0*(2*l+1)) then
+          write(6,*) 'error in occupations -- ip,l,xocc', ip,l,xocc
+          stop
+       endif     
        nfix=nl(ip,l+1)
        IF (nfix.LE.0.OR.nfix.GT.AEOrbit%norbit) THEN
           WRITE(6,*) 'error in occupations -- ip,l,xocc', &
@@ -379,6 +389,145 @@ CONTAINS
 &           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%occ(io)
        electrons=electrons+AEOrbit%occ(io)
     ENDDO
+    ENDIF
+    If (diracrelativistic) then
+    icount=0        
+    deallocate(nl)
+    i=MAX(nps,npp,npd,npf,npg)
+    allocate(nl(i,-5:5))
+    nl=0
+    IF (nps.GT.0) THEN
+       DO is=1,nps
+          icount=icount+1
+          nl(is,-1)=icount
+          AEOrbit%occ(icount)=2.d0
+          AEOrbit%np(icount)=is
+          AEOrbit%l(icount)=0
+          AEOrbit%kappa(icount)=-1
+       ENDDO
+    ENDIF
+    IF (npp.GT.1) THEN
+       DO ip=2,npp
+          icount=icount+1
+          nl(ip,1)=icount
+          AEOrbit%occ(icount)=2.d0
+          AEOrbit%np(icount)=ip
+          AEOrbit%l(icount)=1
+          AEOrbit%kappa(icount)=1
+       ENDDO
+       DO ip=2,npp
+          icount=icount+1
+          nl(ip,-2)=icount
+          AEOrbit%occ(icount)=4.d0
+          AEOrbit%np(icount)=ip
+          AEOrbit%l(icount)=1
+          AEOrbit%kappa(icount)=-2
+       ENDDO
+    ENDIF
+    IF (npd.GT.2) THEN
+       DO id=3,npd
+          icount=icount+1
+          nl(id,2)=icount
+          AEOrbit%occ(icount)=4.d0
+          AEOrbit%np(icount)=id
+          AEOrbit%l(icount)=2
+          AEOrbit%kappa(icount)=2
+       ENDDO
+       DO id=3,npd
+          icount=icount+1
+          nl(id,-3)=icount
+          AEOrbit%occ(icount)=6.d0
+          AEOrbit%np(icount)=id
+          AEOrbit%l(icount)=2
+          AEOrbit%kappa(icount)=-3
+       ENDDO
+    ENDIF
+    IF (npf.GT.3) THEN
+       DO jf=4,npf
+          icount=icount+1
+          nl(jf,3)=icount
+          AEOrbit%occ(icount)=6.d0
+          AEOrbit%np(icount)=jf
+          AEOrbit%l(icount)=3
+          AEOrbit%kappa(icount)=3
+       ENDDO
+       DO jf=4,npf
+          icount=icount+1
+          nl(jf,-4)=icount
+          AEOrbit%occ(icount)=8.d0
+          AEOrbit%np(icount)=jf
+          AEOrbit%l(icount)=3
+          AEOrbit%kappa(icount)=-4
+       ENDDO
+    ENDIF
+    IF(npg.GT.4) THEN
+       DO ig=5,npg
+          icount=icount+1
+          nl(ig,4)=icount
+          AEOrbit%occ(icount)=8.d0
+          AEOrbit%np(icount)=ig
+          AEOrbit%l(icount)=4
+          AEOrbit%kappa(icount)=4
+       ENDDO
+       DO ig=5,npg
+          icount=icount+1
+          nl(ig,-5)=icount
+          AEOrbit%occ(icount)=10.d0
+          AEOrbit%np(icount)=ig
+          AEOrbit%l(icount)=4
+          AEOrbit%kappa(icount)=-5
+       ENDDO
+    ENDIF
+    AEOrbit%norbit=icount
+    AEOrbit%nps=nps
+    AEOrbit%npp=npp
+    AEOrbit%npd=npd
+    AEOrbit%npf=npf
+    AEOrbit%npg=npg
+    WRITE(6,*) AEOrbit%norbit, ' orbitals will be calculated'
+    !
+    WRITE(6,*)' Below are listed the default occupations '
+    WRITE(6,"(' n  l kappa     occupancy')")
+    DO io=1,AEOrbit%norbit
+       WRITE(6,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)') &
+&           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%kappa(io),AEOrbit%occ(io)
+    ENDDO
+    !
+    WRITE(6,*)' enter np l kappa occ for all occupations for all revisions'
+    WRITE(6,*)'  enter 0 0 0 0. to end'
+
+    DO
+       IF(PRESENT(ifinput)) THEN
+          READ(5,'(a)') inputline
+          WRITE(ifinput,'(a)') TRIM(inputline)
+          READ(inputline,*) ip,l,kappa,xocc
+       ELSE
+          READ(5,*) ip,l,kappa,xocc
+       ENDIF
+       IF (ip.LE.0) EXIT
+       IF (xocc.lt.0.d0.or.xocc.gt.2.d0*abs(kappa)) then
+          write(6,*) 'error in occupations -- ip,kappa,xocc', ip,kappa,xocc
+          stop
+       endif     
+       nfix=nl(ip,kappa)
+       IF (nfix.LE.0.OR.nfix.GT.AEOrbit%norbit) THEN
+          WRITE(6,*) 'error in occupations -- ip,l,kappa,xocc', &
+&              ip,l,kappa,xocc,nfix,AEOrbit%norbit
+          STOP
+       ENDIF
+       AEOrbit%occ(nfix)=xocc
+    ENDDO
+
+    !
+    WRITE(6,*) ' Corrected occupations are: '
+    WRITE(6,"(' n  l  kappa   occupancy')")
+    electrons=0.d0
+    DO io=1,AEOrbit%norbit
+       WRITE(6,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)')  &
+&           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%kappa(io),AEOrbit%occ(io)
+       electrons=electrons+AEOrbit%occ(io)
+    ENDDO
+    ENDIF    !   completed occupations
     AEPot%q=electrons
     qf=AEPot%nz-electrons
     WRITE(6,*)
@@ -388,6 +537,7 @@ CONTAINS
 
     CALL InitSCF(AESCF)
     IF (scalarrelativistic) CALL Allocate_Scalar_Relativistic(Grid)
+    IF (diracrelativistic) CALL Allocate_Dirac_Relativistic(Grid)
 
     write(6,*) 'Finish SCFatom_Init' ; call flush_unit(6)
 
@@ -487,7 +637,7 @@ CONTAINS
     IMPLICIT NONE
     TYPE(PotentialInfo),INTENT(INOUT) :: Pot
     TYPE(OrbitInfo),INTENT(INOUT) :: Orbit
-    INTEGER  :: i,io,ir,ip,l,nfix,np
+    INTEGER  :: i,io,ir,ip,l,nfix,np,kappa
     REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc
     INTEGER :: initialconfig=0
 
@@ -496,6 +646,7 @@ CONTAINS
        !  calculate initial charge density from hydrogen-like functions
        !  also initial energies
        zeff=Pot%nz
+       If  (.not.diracrelativistic) then
        DO io=1,Orbit%norbit
           np=Orbit%np(io)
           l=Orbit%l(io)
@@ -509,6 +660,27 @@ CONTAINS
           zeff=zeff-0.5d0*xocc
           zeff=MAX(zeff,1.d0)
        ENDDO
+       endif
+       If  (diracrelativistic) then
+       DO io=1,Orbit%norbit
+          np=Orbit%np(io)
+          l=Orbit%l(io)
+          kappa=Orbit%kappa(io)
+          xocc=Orbit%occ(io)
+          Orbit%eig(io)=-(zeff/(np))**2
+          WRITE(6,*) io,np,l,xocc,Orbit%eig(io)
+          DO ir=1,Grid%n
+           call dirachwfn(np,kappa,zeff,Grid%r(ir),Orbit%eig(io) &
+&               ,Orbit%wfn(ir,io),Orbit%lwfn(ir,io))
+            IF (ABS(Orbit%wfn(ir,io))<machine_zero) Orbit%wfn(ir,io)=0.d0
+            IF (ABS(Orbit%lwfn(ir,io))<machine_zero) Orbit%lwfn(ir,io)=0.d0
+          ENDDO
+          zeff=zeff-0.5d0*xocc
+          zeff=MAX(zeff,1.d0)
+       ENDDO
+       endif
+
+
 
        ! check charge and rescale
        Orbit%den=0.d0
@@ -516,6 +688,8 @@ CONTAINS
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
+             If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
+&                 xocc*((Orbit%lwfn(ir,io))**2)                     
           ENDDO
        ENDDO
        qcal=integrator(Grid,Orbit%den)
@@ -582,6 +756,8 @@ CONTAINS
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
+            If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
+&                 xocc*((Orbit%lwfn(ir,io))**2)
           ENDDO
        ENDDO
        !
@@ -701,6 +877,9 @@ CONTAINS
              xocc=Orbit%occ(io)
              DO ir=1,Grid%n
                 FC%valeden(ir)=FC%valeden(ir)+xocc*(Orbit%wfn(ir,io)**2)
+              If (diracrelativistic) FC%valeden(ir)=FC%valeden(ir) + &
+&                 xocc*((Orbit%lwfn(ir,io))**2)
+
              ENDDO
           ENDIF
        ENDDO
@@ -782,11 +961,16 @@ CONTAINS
        IF (FCOrbit%iscore(io)) THEN
           FC%zcore=FC%zcore+FCOrbit%occ(io)
           FC%coreden=FC%coreden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
+          If (diracrelativistic) FC%coreden=FC%coreden + &
+&                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
+
        ENDIF
        IF (.NOT.FCOrbit%iscore(io)) THEN
 
           FC%zvale=FC%zvale+FCOrbit%occ(io)
           FC%valeden=FC%valeden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
+          If (diracrelativistic) FC%valeden=FC%valeden + &
+&                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
        ENDIF
     ENDDO
 

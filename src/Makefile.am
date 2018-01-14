@@ -42,6 +42,7 @@ atp_srcs = \
   pseudo_sub.F90 \
   pseudo.F90 \
   pseudodata.F90 \
+  radialdirac.F90 \
   radialsr.F90 \
   report_mod.F90 \
   abinitinterface.F90 \
@@ -123,7 +124,8 @@ exxdata.$(LTOBJEXT):
 fock.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) globalmath.$(LTOBJEXT)
 
 general_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) numerov_mod.$(LTOBJEXT) \
-	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) radialsr.$(LTOBJEXT)
+	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
+	radialsr.$(LTOBJEXT)
 
 globalmath.$(LTOBJEXT):
 
@@ -162,7 +164,8 @@ pkginfo.$(LTOBJEXT):
 pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
 	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
-	pseudo_sub.$(LTOBJEXT) radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
+	radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
 
 pseudo_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT)
@@ -172,6 +175,8 @@ pseudodata.$(LTOBJEXT): gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 pwscfinterface.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	excor.$(LTOBJEXT) gridmod.$(LTOBJEXT) interpolation_mod.$(LTOBJEXT) \
 	pseudo.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+
+radialdirac.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 
 radialsr.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 

@@ -30,8 +30,8 @@ CONTAINS
     CHARACTER (len=20) :: nm
     CHARACTER (len=2) :: sym
     CHARACTER (len=1) :: syml
-    REAL(8), allocatable :: wav(:,:)
-    REAL(8), POINTER :: r(:),den(:),rv(:),wfn(:,:)
+    REAL(8), allocatable :: wav(:,:),lwav(:,:)
+    REAL(8), POINTER :: r(:),den(:),rv(:),wfn(:,:),lwfn(:,:)
     INTEGER :: n,nps,npp,npd,npf,npg
     INTEGER, PARAMETER :: ifen=10, ifden=11,ifwfn=12
 
@@ -54,8 +54,12 @@ CONTAINS
        npf=Orbit%npf
        npg=Orbit%npg
        wfn=>Orbit%wfn
+       lwfn=>Orbit%lwfn
+
        allocate(wav(n,Orbit%norbit))
+       if (diracrelativistic) allocate(lwav(n,Orbit%norbit))
        wav=wfn
+       if (diracrelativistic) lwav=lwfn
 
        !
        ! write density and wavefunctions
@@ -90,8 +94,12 @@ CONTAINS
        DO i = 1, n
           DO io = 1,Orbit%norbit
              IF (dabs (wav (i, io) ) .LT.1.d-8) wav (i, io) = 0.d0
+             if (diracrelativistic) then 
+              IF (dabs (lwav (i, io) ) .LT.1.d-8) lwav (i, io) = 0.d0
+             endif 
           ENDDO
        ENDDO
+       if (.not.diracrelativistic) then
        istart = 0
        DO l = 0, 4
           IF (l.EQ.0) many = nps
@@ -109,50 +117,28 @@ CONTAINS
              OPEN (unit = ifwfn, file = 'GAwfn'//flnm, form = 'formatted')
              DO i = 1, n
                 IF (r (i) .LE.6.d0) THEN
-                   WRITE (ifwfn, '(1p,8e10.2)') r (i) , (wav (i, j) , j = &
+                   WRITE (ifwfn, '(1p,100e10.2)') r (i) , (wav (i, j) , j = &
 &                       istart + 1, istart + many)
                 ENDIF
              ENDDO
-             CLOSE (ifwfn)
-             nm = 'GAwfn'//flnm
-             OPEN (unit = ifwfn, file = 'plotGAwfn'//flnm, form = 'formatted')
-             IF (many.EQ.1) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines")') syml, pot%sym, nm
-             IF (many.EQ.2) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines")') syml &
-                  , pot%sym, nm, nm
-             IF (many.EQ.3) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines -f ", &
-                  &a8," 1 4 lines")') syml, pot%sym, nm, nm, nm
-             IF (many.EQ.4) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines -f ", &
-                  &a8," 1 4 lines -f ",a8," 1 5 lines")') syml, pot%sym, nm, nm, nm, nm
-             IF (many.EQ.5) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines -f ", &
-                  &a8," 1 4 lines -f ",a8," 1 5 lines -f ",a8," 1 6 lines")') syml,  &
-                  &pot%sym, nm, nm, nm, nm, nm
-             IF (many.EQ.6) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines -f ", &
-                  &a8," 1 4 lines -f ",a8," 1 5 lines -f ",a8," 1 6 lines -f " &
-                  &,a8," 1 7 lines")') syml, pot%sym, nm, nm, nm, nm, nm, nm
-             IF (many.EQ.7) WRITE (ifwfn, '("gplot -t ""Radial ",a1, &
-                  &   " wavefunctions for ",a2, &
-                  &""" -tx ""r (bohr)"" -f ",a8, " 1 2 lines -f ",a8," 1 3 lines -f ", &
-                  &a8," 1 4 lines -f ",a8," 1 5 lines -f ",a8," 1 6 lines -f " &
-                  &,a8," 1 7 lines -f ",a8," 1 8 lines" )') syml, pot%sym, nm, nm, nm, nm &
-                  &, nm, nm, nm
+             
              CLOSE (ifwfn)
           ENDIF
           istart = istart + many
 
        ENDDO
-    deallocate(wav)
+       endif
+       if(diracrelativistic) then
+          OPEN(unit=ifwfn, file='GAwfnall', form='formatted')     
+             DO i = 1, n
+                IF (r (i) .LE.6.d0) THEN
+                   WRITE (ifwfn, '(1p,100e10.2)') r (i) , (wav (i, j) ,&
+&                     lwav(i,j),  j = 1,Orbit%norbit)
+                ENDIF
+             ENDDO
+          CLOSE(ifwfn)     
+       endif   
+    deallocate(wav,lwav)
     ENDIF
   END SUBROUTINE Report_Graphatom
 

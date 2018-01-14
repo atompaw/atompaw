@@ -79,6 +79,8 @@ CONTAINS
        else
          WRITE(ifen,*) 'Scalar relativistic calculation'
        endif
+    ELSEIF (diracrelativistic) then   
+         WRITE(ifen,*) 'Dirac-relativistic calculation'
     ELSE
        if (finitenucleus) then
          WRITE(ifen,*) 'Non-relativistic calculation -- finite nucleus'
@@ -94,6 +96,15 @@ CONTAINS
     WRITE(ifen,*) '    delta  = ', SCF%delta
     IF (key=='AE') THEN
       WRITE(ifen,*) ' All Electron Orbital energies:         '
+      if(diracrelativistic) then
+      WRITE(ifen,*) ' n   kappa  l   occupancy       energy'
+       DO io=1,Orbit%norbit
+          write(6,*) 'io',io, Orbit%norbit; call flush_unit(6)
+          WRITE(ifen,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+&               Orbit%np(io),Orbit%kappa(io),Orbit%l(io),&
+&               Orbit%occ(io),Orbit%eig(io)
+       ENDDO
+      else        
       WRITE(ifen,*) ' n  l     occupancy       energy'
        DO io=1,Orbit%norbit
           write(6,*) 'io',io, Orbit%norbit; call flush_unit(6)
@@ -101,14 +112,25 @@ CONTAINS
                Orbit%np(io),Orbit%l(io),&
                Orbit%occ(io),Orbit%eig(io)
        ENDDO
+       endif 
     ELSE IF (key=='SC') THEN
       WRITE(ifen,*) '  Valence Electron Orbital energies:         '
+      if(diracrelativistic) then
+      WRITE(ifen,*) ' n  kappa l   occupancy       energy'
+       DO io=1,Orbit%norbit
+          IF (.NOT.orbit%iscore(io)) &
+&          WRITE(ifen,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+&               Orbit%np(io),Orbit%kappa(io),Orbit%l(io),&
+&               Orbit%occ(io),Orbit%eig(io)
+       ENDDO
+      else        
       WRITE(ifen,*) ' n  l     occupancy       energy'
        DO io=1,Orbit%norbit
           IF (.NOT.orbit%iscore(io))WRITE(ifen,'(i2,1x,i2,4x,1p,2e15.7)') &
                Orbit%np(io),Orbit%l(io),&
                Orbit%occ(io),Orbit%eig(io)
        ENDDO
+       endif 
     ENDIF
     WRITE(ifen,*)
     WRITE(ifen,*) ' Total energy'

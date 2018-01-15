@@ -1,0 +1,53 @@
+\begin{thebibliography}{1}
+
+\bibitem{koelling:1977}
+D.~D. Koelling and B.~N. Harmon.
+\newblock A technique for relativisitic spin-polarised calculations.
+\newblock {\em Journal of Physics C: Solid State Physics}, 10:3107--3114, 1977.
+
+\bibitem{levine:1997}
+Svetlana Kotochigova, Zachary~H. Levine, Eric~L. Shirley, M.~D. Stiles, and
+  Charles~W. Clark.
+\newblock Local-density-functional calculations of the energy of atoms.
+\newblock {\em Phys. Rev. A}, 55:191--199, 1997.
+\newblock This paper is the companion to the NIST database at the URL:
+  \url{http://physics.nist.gov/PhysRefData/DFTdata/contents.html}.
+
+\bibitem{talman:1989a}
+B.~A. Shadwick, J.~D. Talman, and M.~R. Norman.
+\newblock A program to compute variationally optimized relativistic atomic
+  potentials.
+\newblock {\em Computer Physics Communications}, 54:95--102, 1989.
+
+\bibitem{andrae:2000}
+Dirk Andrae, Markus Reiher, and Juergen Hinze.
+\newblock A comparative study of finite nucleus models for low-lying states of
+  few-electron high-z atoms.
+\newblock {\em Chemical Physics Letters}, 320(5):457--468, 2000.
+
+\bibitem{Loucks:1965}
+T.~L. Loucks.
+\newblock Relativistic electronic structure in crystals. i. theory.
+\newblock {\em Phys. Rev.}, 139:A1333--A1337, Aug 1965.
+
+\bibitem{HBMF}
+Milton Abramowitz and Irene~A. Stegun.
+\newblock {\em {H}andbook of {M}athematical {F}unctions}.
+\newblock Dover Publications, Inc., New York, 1965.
+
+\bibitem{johnson_atomic_2007}
+Walter~R. Johnson.
+\newblock {\em Atomic Structure Theory: Lectures on Atomic Physics}.
+\newblock Springer-Verlag, 2007.
+
+\bibitem{Hartree}
+Douglas~R. Hartree.
+\newblock {\em The Calculation of Atomic Structures}.
+\newblock John Wiley \& Sons, Inc., 1957.
+
+\bibitem{BandS}
+Hans~A. Bethe and Edwin~E. Salpeter.
+\newblock {\em {Q}uantum {m}echanics of {O}ne- and {T}wo-{E}lectron {A}toms}.
+\newblock Springer-Verlag, Berlin, 1957.
+
+\end{thebibliography}

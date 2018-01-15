@@ -1,0 +1,433 @@
+\documentclass[11pt]{article}
+\special{papersize=8.5in,11in} \pagestyle{plain}
+\setlength{\oddsidemargin}{0in} \setlength{\evensidemargin}{0in}
+\setlength{\textwidth}{6.5in} \setlength{\parindent}{0in}
+\setlength{\parskip}{0.2in} \setlength{\topmargin}{-0.2in}
+\setlength{\headsep}{0in} \setlength{\headheight}{0in}
+\setlength{\textheight}{9.5in} \setlength{\jot}{0.2in}
+
+\usepackage{url}
+\usepackage{amsmath}
+
+\input{../../../../shortcuts}
+\begin{document}
+
+\cc{{\LARGE{\bf{Notes for Dirac equations and 
+scalar-relativistic equations used in the 
+ {\em{atompaw}} code.}}}}
+\cc{N. A. W. Holzwarth, Wake Forest University, Winston-Salem, NC 27106
+  (natalie@wfu.edu)\\
+ \today}
+
+\cc{Scalar-relativistic treatment}
+The scalar-relativistic equations were originally developed by Koelling and 
+Harmon\cite{koelling:1977} as a way to represent the physics of the Dirac
+equation, average over spin-orbit components. Another good reference for
+these equations is on the NIST website\cite{levine:1997} \\
+http://physics.nist.gov/PhysRefData/DFTdata/contents.html.   In terms of
+Rydberg
+energy units
+(where the fine structure constant $\alpha$ is related to the speed of light
+according to $c = 2/\alpha$).   Explicitly, the constants expressed
+ in SI units are as follows: 
+$\alpha=4 \pi \epsilon_0 e^2/(\hbar c)$, the unit of
+length is the Bohr radius, $a_B= 4 \pi \epsilon_0 \hbar^2/(m_e e^2)$,
+and the Rydberg energy is $\varepsilon_{Ry}= \alpha^2 m_e c^2/2$ ). 
+In these units, the differential equation satisfied by 
+upper component of the radial wavefunction $(G(r)/r$ with quantum number
+$\kappa$ is
+\ee{\left( \frac{d^2}{dr^2} - \frac{\ell(\ell+1)}{r^2} \right) G(r) + 
+M(r)(E-V(r)) G(r) - \frac{M^{\prime}(r)}{M(r)} \left( \frac{d}{dr}
++ \frac{\langle \kappa \rangle}{r} \right) G(r) = 0.   \label{SC}}
+Here,
+\ee{M(r) \equiv 1 + \left( \frac{\alpha}{2} \right)^2 (E - V(r)).}
+Here we are interested  in the spin-orbit splitting pair for each
+$\ell > 0$, where $\kappa=-\ell-1=-(j+\half)$ corresponds to
+$j=\ell+\half$ and $\kappa=\ell=(j+\half)$ corresponds to
+$j=\ell-\half$.
+The orbital angular momentum averaged value of  $\kappa$ is given by
+\ee{ \langle \kappa \rangle = \frac{1}{2(2 \ell + 1)} \left( \ell ( 2 \ell )
++ ( -\ell -1) (2 \ell + 2 ) \right) = -1.}
+
+Shadwick, Talman, and Normand\cite{talman:1989a} showed that it is possible to
+transform this equation into a form without the first derivative so that the
+Numerov integration scheme can be applied:
+\ee{y(r) = \frac{G(r)}{\sqrt{M(r)}},}
+with the resulting differential equation:
+\ee{\frac{d^2}{dr^2} y(r) = A(r) y(r),}
+\begin{eqnarray}
+\displaystyle{A(r) \equiv \frac{\ell ( \ell + 1)}{r^2}
++ (V(r) - E) M(r) + \frac{3}{4} \left( \frac{\alpha}{2} \right)^4
+\left( \frac{1}{M(r)} \frac{dV(r)}{dr} \right)^2} \\ \nonumber
+\displaystyle{+ \frac{1}{2} 
+\left( \frac{\alpha}{2} \right)^2 \frac{1}{M(r)} \frac{d^2 V(r)}{dr^2}
++ \left( \frac{\alpha}{2} \right)^2 \frac{1}{r M(r)} \frac{d V(r)}{dr}}.
+\end{eqnarray}
+
+We have programmed these equations, and find that they work reasonably well
+with LDA exchange-correlation functionals, but for GGA functionals their
+sensitivity to the potential tends to lead to uncontrolled oscillations.   
+Consequently, with the help of Marc Torrent and Francois Jollet of CEA, who
+modified a code of David Vanderbilt, we have developed the following alternate
+approach.    In the Vanderbilt code, the second-order scalar-relativistic
+code is written in terms of two coupled first order equations of the form:
+\ee{\frac{d}{dr} G(r) = \frac{G(r)}{r} + M(r) F(r).\label{first}}
+\ee{\frac{d}{dr} F(r) = - \frac{F(r)}{r} + \left( 
+\frac{\ell (\ell + 1)}{r^2} \frac{1} {M(r)} - (E - V(r)) \right) 
+G(r).\label{second}}
+
+In these expressions, $F(r)$ is an auxiliary function which is similar to
+the radial function of the lower component in the Dirac equation.
+In this form, the scalar-relativistic equations are much more stable, since
+they do not directly use derivatives of the potential.   Even with this
+approach, we find that the scalar-relativistic equations are sensitive to
+mesh size for the GGA exchange-correlation form.   
+For a point nucleus, the electron-nucleus interaction has the
+singular form $-2Z/r$.   
+In order to use the Vanderbilt
+code, it is necessary to to evaluate the wavefunction at several points
+at the origin and in the asymptotic regions.    For $r \rightarrow 0$,
+we can make a power series expansion  using
+\begin{equation}
+M(r) \underset{r \rightarrow 0}{\approx}
+ 1 +\left(\frac{\alpha}{2} \right)^2 \left( \frac{2Z}{r}+
+E - V_0
+ - V'_0 r \right) \label{smallr}
+\end{equation}
+The corresponding
+ form of the radial wavefunctions near the origin takes
+the form
+\begin{equation} \label{upsmall}
+G(r) \underset{r \rightarrow 0}{\approx} r^{\gamma} \left(C_0 + C_1 r  +C_2 r^2\right) 
+\end{equation}
+and, from Eq. (\ref{first}) the corresponding auxiliary function takes
+the form
+\ee{F(r) \underset{r \rightarrow 0}{\approx} \frac{r^{\gamma}}{r M(r)}\left( C_0 (\gamma -1) + 
+C_1 \gamma r
++ C_2 (\gamma+1) r^2 \right).\label{dnsmall}}
+In these expressions, 
+the coeffients can be determined by analyzing Eq. (\ref{SC}) 
+according to powers of $r$.
+For example,
+\ee{M(r)(E-V(r))  \underset{r \rightarrow 0}{\approx} 
+\frac{1}{r^2} \alpha^2 Z^2+
+\frac{1}{r} Z\left(2+\alpha^2 (E-V_0)\right)+
+r^0 \left( (E-V_0) + \frac{\alpha^2}{4} \left(
+(E-V_0)^2 -4ZV'_0 \right) \right)....}
+\ee{-\frac{M'(r)}{M(r)}  \underset{r \rightarrow 0}{\approx}
+\frac{1}{r} + r^0 \left(-\frac{2}{Z \alpha^2} \left( 1+ \frac{\alpha^2}{4}
+(E-V_0) \right) \right) + r^1 \left( \frac{4}{\alpha^2 Z^2} +
+\frac{V'_0}{Z} + \frac{E-V_0}{\alpha^2 Z^2} \left(2+\frac{\alpha^2}{4}
+(E-V_0) \right) \right)+ .....}
+The leading radial power coefficient is given by
+\begin{equation}
+\gamma= \sqrt{ \ell(\ell+1) + 1 -Z^2 \alpha^2 }.
+\end{equation}
+From the $r \rightarrow 0$ behavior of Eq. (\ref{SC}), the
+relationship between the coefficients $C_n$
+takes the general form:
+\ee{T_n^{(-2)}C_{n} + T_n^{(-1)} C_{n-1} + T_n^{(0)} C_{n-2}=0,}
+where
+\ee{T_n^{(-2)}=n(2 \gamma +n),}
+\ee{T_n^{(-1)} = Z(2+\alpha^2(E-V_0)) - \frac{2}{\alpha^2 Z} \left( 1 +
+\frac{\alpha^2}{4} (E-V_0) \right)(\gamma+n-1),}
+and
+\ee{T_n^{(0)}=-\alpha^2 Z V'_0+\left(1+
+\frac{\alpha^2}{4}(E-V_0)\right)(E-V_0) +
+\left( \frac{V'_0}{Z} + \frac{4}{Z^2 \alpha^4} \left( 1 + 
+ \frac{\alpha^2}{4} \left(E-V_0\right) \right)^2 
+\right)(\gamma+n-1).}
+With these parameters, we can determine
+\ee{C_1= - \frac{T_0^{(-1)} C_0}{T_1^{(-2)} } \;\;\;{\rm{and}}\;\;\;\;
+C_2= - \frac{T_1^{(-1)} C_1+T_0^{(0)} C_0}{T_2^{(-2)}}.\label{rec}}
+
+The code also implements several finite
+nuclear models described by Andrae\cite{andrae:2000} which has no
+singular behavior at the origin.   
+For the finite nuclear models, the singular electron-nuclear term is 
+omitted, while the values of the potential constants $V_0$ and $V'_0$ 
+are adjusted accordingly.  In this case, we can use the same small $r$
+expansions as in Eqs. \ref{upsmall} and \ref{dnsmall}, using
+the recursion formulas Eq. (\ref{rec}), however the
+parameters are altered to 
+\ee{\gamma \rightarrow \tilde{\gamma}= \ell + 1.}
+\ee{T_n^{(-2)} \rightarrow \tilde{T}_n^{(-2)}=n(2 \ell +1+n).}
+\ee{T_n^{(-1)} \rightarrow \tilde{T}_n^{(-1)}= \frac{\alpha^2}{4} V'_0
+\left(\frac{1}{\left(1 + \frac{\alpha^2}{4}(E-V_0) \right)}\right)(\ell+n).}
+\ee{T_n^{(0)} \rightarrow \tilde{T}_n^{(0)}= (E-V_0)
+\left(1 + \frac{\alpha^2}{4}(E-V_0) \right) +
+ \left( \frac{\alpha^2}{4} V'_0
+\left(\frac{1}
+{\left(1 + \frac{\alpha^2}{4}(E-V_0) \right)}\right)\right)^2 (\ell+n)
+.}
+Note that these equations are slightly inconsistent with the
+scalarrelativistic code versions $< 4.0.1.0$ for the $C_2$ coefficients.
+In order to find bound states $(0 > E \equiv -b^2$, the solver requires
+inward integration  from $r_{\rm max}$.   Here, we assume that the
+potential vanishes up to a possible (positive) Coulombic charge of $qe$
+so that
+\ee{V(r)\underset{r \rightarrow \infty} {\approx} = -\frac{2 q}{r}.}
+Then the asymptotic form of the radial wavefunctions are
+\ee{G(r) \underset{r \rightarrow \infty} {\approx}
+ \e{-br}r^g,\;\;\;\;\;{\rm{and}}\;\;\;\;\;\;
+F(r) \underset{r \rightarrow \infty} {\approx}
+\left(-b + \frac{g-1}{r} \right) \frac{G(r)}{M(r)}, }
+where
+\ee{b \equiv \sqrt{|E|\left(1-\frac{\alpha^2|E|}{4}\right)},}
+and
+\ee{g \equiv \frac{q}{b} \left(1- \frac{\alpha^2}{2}|E| \right).}
+
+
+
+
+
+
+\cc{Full Dirac treatment}
+It is also possible to analyze the full Dirac equation in a similar
+way.    For this, we follow the convention of Loucks\cite{Loucks:1965}
+and define the function 
+\begin{equation}
+cF(r) \equiv \frac{2}{\alpha} F(r).
+\end{equation}
+
+The function $cF(r)$ is used for input to and within the subroutine
+unboundD and boundD, but the output lower component wave function is
+$F(r)$.
+The coupled equations for the full Dirac radial functions in
+Rydberg energy units then become
+
+\begin{equation} \label{cFG}
+\left( \frac{d}{dr} + \frac{\kappa}{r} \right) G(r) =
+       \left( 1 +\left( \frac{\alpha}{2} \right)^2 \left(E - V(r))\right)
+           \right) cF(r)
+\end{equation}
+and
+\begin{equation}
+\left( \frac{d}{dr} - \frac{\kappa}{r} \right) cF(r) =
+  -\left(E - V(r))\right) G(r)
+\end{equation} 
+In order to determine the form of the radial wavefunctions in the
+limit as $r \rightarrow 0$, we again expand the potential as a power
+series in $r$:
+\begin{equation}
+V(r) \underset{r \rightarrow 0}{\approx} -\frac{2Z}{r}+V_0, \label{zero}
+\end{equation}
+and also represent the upper and lower radial wavefunctions in
+a power series with leading power coefficient $r^s$:
+\begin{equation}
+G(r)  \underset{r \rightarrow 0}{\approx} r^s \sum_{n=0}^{\infty} A_n r^n \;\;\;\;\;
+cF(r)  \underset{r \rightarrow 0}{\approx} r^s \sum_{n=0}^{\infty} B_n r^n.
+\end{equation}
+A recursion formula  for the coefficients takes the form
+\begin{equation}
+\left( \begin{array}{cc} s+n+\kappa & -Z \alpha^2/2 \\
+                        2Z & s+n-\kappa  \end{array} \right)
+\left( \begin{array}{c} A_n \\
+                       B_n \end{array} \right)
+  = \left( \begin{array}{cc} 
+                0 &      1+\alpha^2(E-V_0)/4 \\
+                  -(E-V_0)  & 0 \\  \end{array}  \right)
+   \left( \begin{array}{c} A_{n-1} \\ B_{n-1} \\ \end{array} \right).
+\label{rec1}
+\end{equation}
+
+The condition for a non-trivial solution fixes the value of the
+leading power $s$:
+\begin{equation}
+s= \sqrt{\kappa^2-Z^2 \alpha^2},
+\end{equation}
+and the corresponding ratio of the leading coefficients is given
+by 
+\ee{B_0 = \frac{2(s+\kappa)}{Z\alpha^2} A_0.}
+From evaluating Eq. (\ref{rec}), the first order coefficients can
+be computed to be
+\ee{A_1=\frac{ 4 \alpha^4 Z^2 + \left( 4 \alpha^2 +E -V_0 \right)
+\left( (s+\kappa) -2 \alpha^2 Z^2 \right)}{2Z(2s+1)} A_0,}
+and
+\ee{B_1=-\frac{  \left( 2 \alpha^2 +E -V_0 \right)
+\left(2 (s+\kappa) +(E-V_0) \right)}{(2s+1)} A_0.}
+With these results, we can use the following relationships to initialize
+the radial wavefunctions near the origin:
+\ee{G(r) \underset{r \rightarrow 0}{\approx} r^s(A_0 +A_1 r) \;\;\;\;
+{\rm and}\;\;\;\; 
+cF(r) \underset{r \rightarrow 0}{\approx} r^s(B_0 +B_1 r).}
+Note that for the case of a finite potential model or a pseudopotential
+where  $Z=0$ in Eq. (\ref{zero}), this analysis has to be re-examined since
+the expansion coefficients diverge.
+
+For evaluating the aymptotic form, 
+we can assume that the potential vanishes so that the upper component
+satisfies the equation
+\ee{\left( \frac{d^2}{dr^2} - \frac{\ell(\ell+1)}{r^2}  - b^2 \right)
+G(r)=0, }
+where 
+\ee{b= \sqrt{|E|\left(1 - \frac{\alpha^2}{4}|E| \right)}}
+and $\ell=\kappa$ for $\kappa>0$ and 
+and $\ell=-\kappa-1$ for $\kappa<0$.  
+We can thus assume the asymptotic solution form:
+\ee{G_{n \kappa}(r) \underset{r \rightarrow \infty} {\approx}
+k_{\ell}(br),}
+where $k_{\ell}(u)$ denotes $u$ times a modified bessel function
+of the third kind, having the values
+\ee{k_0(u)= \e{-u} \;\;\; k_1(u)= \e{-u} \left( 1 + \frac{1}{u} \right)
+\;\;\; k_2(u)= \e{-u} \left( 1 + \frac{3}{u} + \frac{3}{u^2} \right),}
+etc.
+These functions can be generated according to the recurrsion 
+relation\cite{HBMF}
+\ee{k_{\ell+2}(u)=k_{\ell}(u)+\frac{(2 \ell +3)}{u} k_{\ell+1}(u).}
+From the recurrsion relations\cite{HBMF}, one can also show that
+\ee{\left( \frac{d}{du} + \frac{\ell}{u} \right) k_{\ell}(u)
+= - k_{\ell-1}(u),}
+which can be used to obtain the asymptotic form of the lower component
+\ee{cF_{n \kappa}(r)\underset{r \rightarrow \infty}{\approx} -\frac{|E|}{b}
+k_{\ell-1}(br).}
+Note that the text, {\em{Atomic Structure Theory: Lectures on 
+Atomic Physics}} by Johnson\cite{johnson_atomic_2007} gives many more 
+details on the asymptotic forms and a later version of this code
+should include those results. At the moment, the code
+only includes the leading terms quoted here and will not work for an
+ion.
+    Johnson\cite{johnson_atomic_2007}
+also works out a very clever method of converging the energy 
+eigenvalues from the inward and outward integration.   In particular,
+he noted that the solutions of Eq. (\ref{cFG}) with labels 1 and 2 
+corresponding to energies $E_1$ and $E_2$ have the identity:
+\ee{\frac{d}{dr} ( G_1\; cF_2 - G_2\; cF_1) = (E_1-E_2) 
+\left( \frac{\alpha^2}{4} cF_1\;cF_2 +G_1 G_2 \right).\label{slope}}
+In a similar way that Hartree\cite{Hartree} used the mismatch
+of the slope of the inward and outward integration results to adjust
+the energy, Eq. (\ref{slope}) can be used to correct the energy.   At
+the matching radius $r_m$, we normalize the upper component so that
+$G_{\rm out}(r_m)=G_{\rm in}(r_m)$, but the corresponding lower component
+will have a discontinuity $\Delta [cF(r_m)] \equiv 
+cF_{\rm out}(r_m)-cF_{\rm in}(r_m)$.
+The first order estimate of the energy correction is thus given by
+\ee{ \Delta E  =  C\; G(r_m) \Delta [cF(r_m)],
+  \;\;\;\;{\rm where}\;\;\;\; C^{-1} \equiv \int_0^{\infty} \left(
+(G(r))^2 + \frac {\alpha^2}{4} (cF(r))^2 \right).}
+
+
+In order to test whether the code is working, it is helpful to check
+the analytic solutions for a H-like ion with nuclear charge $Z$,
+which is given in the textbook by Bethe and Saltpeter\cite{BandS}
+and can be expressed in terms of confluent hypergeometric polynomial 
+(Kummer) functions\cite{HBMF} $F(a,b,z)$, the principal quantum
+number 
+\ee{n = |\kappa|, |\kappa| +1, |\kappa| + 2, .... \equiv n'+|\kappa|,}
+the apparent principal quantum number
+\ee{N \equiv \sqrt{n^2 -2n'(|\kappa|-s)},}
+the normalization factor
+\ee{{\cal{N}} \equiv \sqrt{\frac{\Gamma(2s+n'+1)}{(n'!) 4 N (N-\kappa)}}
+\frac{1}{\Gamma(2s+1)}\left(\frac{2Z}{N}\right)^{1/2},}
+and the length parameter (in Bohr units)
+\ee{ \rho \equiv \frac{2Zr}{N}.}
+In terms of the previously defined parameters, including the
+energy $E$ relative to the electron rest mass energy (in
+Rydberg energy units), the
+normalized radial wavefunctions take the form  (up to an arbitrary sign
+convention)
+\ee{G_{n \kappa}(r)= {\cal{N}} \sqrt{\left(2+
+\frac{\alpha^2}{2}E_{n \kappa}\right)}
+\;\e{-\rho/2} \rho^s 
+\left((N-\kappa) F(-n',2s+1,\rho) 
+-n' F(-n'+1,2s+1,\rho) \right)-}
+and
+\ee{F_{n \kappa}(r)=- {\cal{N}} 
+\sqrt{\left(-\frac{\alpha^2}{2}E_{n \kappa}\right)}
+\;\e{-\rho/2} \rho^s 
+\left((N-\kappa) F(-n',2s+1,\rho) 
++n' F(-n'+1,2s+1,\rho) \right).}
+The energy eigenvalue $E_{n \kappa} < 0$ is given by:
+\ee{E_{n \kappa} = \frac{2}{\alpha^2} \left( \left(1+ \frac{\alpha^2 Z^2}
+{(n-|\kappa|+s)^2} \right)^{-1/2} -1 \right).}
+
+In order to take advantage of the solver properties, it is convenient
+to calculate all of the bound states for each $\kappa$ value.   These
+are called in the order of $\kappa = -1, 1, -2, 2, -3, 3, -4 ..$ 
+corresponding to orbital angular momenta of the upper component
+$\ell = 0, 1, 1, 2, 2, 3, 3, ...$.    If another ordering is
+desired, this can easily be accomplished with the use of a mapping
+algorithm.   
+
+\cc{Example input and output}
+At the moment, only graphatom is programmed to use the Dirac equation
+solver.     To run graphatom, use the following command in a directory
+containing the ``in'' file:
+
+\begin{verbatim}
+[path]/bin/graphatom<in>&out&
+\end{verbatim}
+
+An example ``in'' file for Bi is:
+
+\begin{verbatim}
+Bi  83             
+LDA-PW  diracrelativistic loggrid    2001
+6 6 5 4 0 0
+6 1 1 2
+6 1 -2 1
+0 0 0 0
+0
+\end{verbatim}
+
+The corresponding Bi.GA file is:
+
+\begin{verbatim}
+ 
+ Completed calculations for Bi
+ Perdew-Wang LDA -- PRB 45, 13244 (1992)
+  Radial integration grid is logarithmic 
+r0 =   8.3003918E-05 h =   6.8893252E-03   n =      2001 rmax =   8.0000000E+01
+ Dirac-relativistic calculation
+   AEatom converged in          29  iterations
+     for nz =  83
+     delta  =   3.313784838079538E-016
+ 
+ Orbital energies
+ n   kappa   l   occupancy            energy
+ 1 -1   0      2.0000000E+00 -6.6480533E+03
+ 2 -1   0      2.0000000E+00 -1.1934355E+03
+ 3 -1   0      2.0000000E+00 -2.8796157E+02
+ 4 -1   0      2.0000000E+00 -6.5980525E+01
+ 5 -1   0      2.0000000E+00 -1.1514073E+01
+ 6 -1   0      2.0000000E+00 -1.0379038E+00
+ 2  1   1      2.0000000E+00 -1.1468243E+03
+ 3  1   1      2.0000000E+00 -2.6688214E+02
+ 4  1   1      2.0000000E+00 -5.6821818E+01
+ 5  1   1      2.0000000E+00 -8.3277130E+00
+ 6  1   1      2.0000000E+00 -4.2545518E-01
+ 2 -2   1      4.0000000E+00 -9.7647279E+02
+ 3 -2   1      4.0000000E+00 -2.2874691E+02
+ 4 -2   1      4.0000000E+00 -4.7404690E+01
+ 5 -2   1      4.0000000E+00 -6.4975188E+00
+ 6 -2   1      1.0000000E+00 -2.8622974E-01
+ 3  2   2      4.0000000E+00 -1.9414140E+02
+ 4  2   2      4.0000000E+00 -3.2493774E+01
+ 5  2   2      4.0000000E+00 -2.0654190E+00
+ 3 -3   2      6.0000000E+00 -1.8605221E+02
+ 4 -3   2      6.0000000E+00 -3.0736387E+01
+ 5 -3   2      6.0000000E+00 -1.8441098E+00
+ 4  3   3      6.0000000E+00 -1.1362662E+01
+ 4 -4   3      8.0000000E+00 -1.0958823E+01
+ 
+  Total energy
+     Total                    :    -46803.6120503352     
+\end{verbatim}
+
+
+
+
+
+\newcommand{\bibdir}{../../../../bibfiles/}
+% Create the reference section using BibTeX
+\bibliographystyle{unsrt}
+\bibliography{\bibdir methods,\bibdir exx,specific}
+
+
+
+
+
+
+
+
+\end{document}

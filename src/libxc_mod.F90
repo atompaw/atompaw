@@ -15,13 +15,12 @@
 #include "config.h"
 #endif
 
-!ISO C bindings are mandatory
-
 module libxc_mod
 
  use Tools
  use globalmath
 
+!ISO C bindings are mandatory
 #ifdef HAVE_FC_ISO_C_BINDING
  use iso_c_binding
 #endif
@@ -174,11 +173,12 @@ module libxc_mod
  end interface
 
  interface
-   subroutine xc_lda_c_xalpha_set_params(xc_func,alpha) bind(C)
-     use iso_c_binding, only : C_DOUBLE,C_PTR
-     real(C_DOUBLE),value :: alpha
+   subroutine xc_func_set_params(xc_func,params,n_params) bind(C)
+     use iso_c_binding, only : C_INT,C_DOUBLE,C_PTR
+     integer(C_INT),value :: n_params
+     real(C_DOUBLE) :: params(*)
      type(C_PTR) :: xc_func
-   end subroutine xc_lda_c_xalpha_set_params
+   end subroutine xc_func_set_params
  end interface
 
  interface
@@ -506,8 +506,9 @@ end function libxc_getid_fromName
  type(libxc_functional_t),pointer :: xc_func
 #if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
  integer :: flags
- integer(C_INT) :: func_id_c,nspin_c,success_c
+ integer(C_INT) :: func_id_c,npar_c,nspin_c,success_c
  real(C_DOUBLE) :: alpha_c,beta_c,omega_c
+ real(C_DOUBLE) :: param_c(3)
  character(kind=C_CHAR,len=1),pointer :: strg_c
  type(C_PTR) :: func_ptr_c
 #endif
@@ -536,11 +537,12 @@ end function libxc_getid_fromName
    xc_func%hyb_mixing_sr=0.d0
    xc_func%hyb_range=0.d0
 
-   if (xc_func%id==0) cycle
+   if (xc_func%id<=0) cycle
 
 !  Get XC functional family
    libxc_funcs%family=libxc_family_from_id(xc_func%id)
-   if (xc_func%family/=XC_FAMILY_LDA.and.xc_func%family/=XC_FAMILY_GGA) then
+   if (.false.) then
+   !if (xc_func%family/=XC_FAMILY_LDA.and.xc_func%family/=XC_FAMILY_GGA) then
      write(6,'(a,i4,a)') 'The LibXC functional family ',xc_func%family, &
 &                        ' is currently unsupported by ATOMPAW!'
      write(6,'(a)') '(-1 means the family is unknown to the LibXC itself)'
@@ -565,8 +567,8 @@ end function libxc_getid_fromName
 
 !  Special treatment for LDA_C_XALPHA functional
    if (xc_func%id==libxc_getid_fromName('XC_LDA_C_XALPHA')) then
-     alpha_c=real(0.d0,kind=C_DOUBLE)
-     call xc_lda_c_xalpha_set_params(xc_func%conf,alpha_c);
+     param_c(1)=real(0.d0,kind=C_DOUBLE);npar_c=int(1,kind=C_INT)
+     call xc_func_set_params(xc_func%conf,param_c,npar_c)
    end if
 
 !  Get functional kind
@@ -622,7 +624,7 @@ end function libxc_getid_fromName
 
    xc_func => libxc_funcs(ii)
 
-   if (xc_func%id == 0) cycle
+   if (xc_func%id <= 0) cycle
    xc_func%id=-1
    xc_func%family=-1
    xc_func%xckind=-1
@@ -682,7 +684,7 @@ end function libxc_getid_fromName
  do ii=1,2
 
    xc_func => libxc_funcs(ii)
-   if (xc_func%id==0) cycle
+   if (xc_func%id<=0) cycle
 
    if (xc_func%xckind==XC_EXCHANGE) then
      write(unt,'(a)') 'Exchange functional (LibXC):'
@@ -926,7 +928,7 @@ end function libxc_family_from_id
 
 ! Loop over functionals
   do ii=1,2
-    if (libxc_funcs(ii)%id==0) cycle
+    if (libxc_funcs(ii)%id<=0) cycle
 
 !   Get the potential (and possibly the energy)
 #if defined HAVE_FC_ISO_C_BINDING

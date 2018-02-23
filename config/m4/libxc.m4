@@ -35,7 +35,7 @@ AC_DEFUN([ATP_LIBXC_CHECK],[
   AC_LANG_PUSH([C])
   AC_LINK_IFELSE([AC_LANG_PROGRAM(
      [#include "xc.h"
-      #include "xc_config.h"],
+      #include "xc_funcs.h"],
      [[xc_func_type func;
        double exc[5];
        double rho[3] = {0.1, 0.2, 0.3};
@@ -71,7 +71,7 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
   atp_libxc_found="unknown"
 
   list_dirs="empty /opt/local /usr/local /opt/etsf /usr / /Library/libxc /usr/local/libxc ${LIBXC_ROOT} ${LIBXC_DIR}"
-  list_headers="xc.h xc_config.h"
+  list_headers="xc.h xc_funcs.h"
   list_funcs="xc_func_init"
 
   atp_saved_CPPFLAGS="${CPPFLAGS}"

@@ -96,6 +96,8 @@ CONTAINS
        IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
        Orbit%lwfn=0.d0
        Orbit%kappa=0.d0
+    else
+       NULLIFY(Orbit%lwfn,Orbit%kappa)
     Endif
     If (exctype == "HF".or.exctype == "EXXKLI") then
        ALLOCATE(Orbit%lqp(norbit,norbit),Orbit%X(n,norbit),stat=ok)

@@ -541,8 +541,7 @@ end function libxc_getid_fromName
 
 !  Get XC functional family
    libxc_funcs%family=libxc_family_from_id(xc_func%id)
-   if (.false.) then
-   !if (xc_func%family/=XC_FAMILY_LDA.and.xc_func%family/=XC_FAMILY_GGA) then
+   if (xc_func%family/=XC_FAMILY_LDA.and.xc_func%family/=XC_FAMILY_GGA) then
      write(6,'(a,i4,a)') 'The LibXC functional family ',xc_func%family, &
 &                        ' is currently unsupported by ATOMPAW!'
      write(6,'(a)') '(-1 means the family is unknown to the LibXC itself)'

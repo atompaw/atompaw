@@ -667,6 +667,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 
  integer :: ib,ic,ii,n,ir,irc,nmesh,OK
+ integer :: mesh_start(mesh_data%nmesh)
  character(len=3) :: gridtype
  character(len=4) :: char4
  character(len=5) :: char5a,char5b,xc_type
@@ -735,13 +736,13 @@ Module XMLInterface
  WRITE(unit_xml,'("<xc_functional type=""",a,""" name=""",a,"""/>")') &
 &      TRIM(xc_type),TRIM(xc_name)
  code_name="atompaw-"//atp_version
+
 !Generator data
  if (scalarrelativistic) then
    WRITE(unit_xml,'("<generator type=""scalar-relativistic"" name=""",a,"""/>")')TRIM(code_name)
  else
    WRITE(unit_xml,'("<generator type=""non-relativistic"" name=""atompaw""/>")')
  endif
-! WRITE(unit_xml,'("</generator>)")')
 
 !Echo input file
  WRITE(unit_xml,'("<!-- Atompaw ",a)')atp_version
@@ -762,7 +763,7 @@ Module XMLInterface
  WRITE(unit_xml,'("<core_energy kinetic=""",1pe25.17,"""/>")') AESCF%corekin*0.5d0
 
 !PAW radius
- WRITE(unit_xml,'("<paw_radius rc=""",f13.10,"""/>")') PAW%rc
+ WRITE(unit_xml,'("<paw_radius rc=""",f17.14,"""/>")') PAW%rc
 
 !Electronic configuration
  WRITE(unit_xml,'("<valence_states>")')
@@ -803,12 +804,14 @@ Module XMLInterface
    case(1)
     char20='r=d*i'
     gridt(ii)="lin"
+    mesh_start(ii)=1
     radstp0=zero
     logstp0=mesh_data%radstp(ii)
     dum=logstp0
    case(2)
     char20='r=a*(exp(d*i)-1)'
     gridt(ii)="log"
+    mesh_start(ii)=1
     radstp0=mesh_data%radstp(ii)
     logstp0=mesh_data%logstp(ii)
     dum(:)=logstp0*(radstp0+Grid%r(:)) 
@@ -817,14 +820,13 @@ Module XMLInterface
     stop
   end select
   WRITE(unit_xml,'("<radial_grid eq=""",a,""" a=""",es23.16,$)') trim(char20),radstp0
-  WRITE(unit_xml,'(""" d=""",es23.16,""" istart=""0"" iend=""",i5,$)') &
-&  logstp0,mesh_data%meshsz(ii)-1
+  WRITE(unit_xml,'(""" d=""",es23.16,""" istart=""0"" iend=""",i5,$)') logstp0,mesh_data%meshsz(ii)-mesh_start(ii)
   WRITE(unit_xml,'(""" id=""",a,i1,""">")') gridt(ii),ii
   WRITE(unit_xml,'("  <values>")')
-  WRITE(unit_xml,'(3(1x,es23.16))') (Grid%r(ir),ir=1,mesh_data%meshsz(ii))
+  WRITE(unit_xml,'(3(1x,es23.16))') (Grid%r(ir),ir=mesh_start(ii),mesh_data%meshsz(ii))
   WRITE(unit_xml,'("  </values>")')
   WRITE(unit_xml,'("  <derivatives>")')
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ir),ir=1,mesh_data%meshsz(ii))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ir),ir=mesh_start(ii),mesh_data%meshsz(ii))
   WRITE(unit_xml,'("  </derivatives>")')
   WRITE(unit_xml,'("</radial_grid>")')
   deallocate(dum)
@@ -848,7 +850,7 @@ Module XMLInterface
  call extrapolate(Grid,dum)
  WRITE(unit_xml,'("<ae_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%icoremesh),mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</ae_core_density>")')
  dum=zero
  dum(2:mesh_data%meshsz(mesh_data%icoremesh))= &
@@ -857,7 +859,7 @@ Module XMLInterface
  call extrapolate(Grid,dum)
  WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%icoremesh))
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%icoremesh),mesh_data%meshsz(mesh_data%icoremesh))
  WRITE(unit_xml,'("</pseudo_core_density>")')
  DEALLOCATE(dum)
 
@@ -870,7 +872,7 @@ Module XMLInterface
  call extrapolate(Grid,dum)
  WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,maxval(PAW%rcio(1:PAW%nbase))
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivalemesh))
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivalemesh),mesh_data%meshsz(mesh_data%ivalemesh))
  WRITE(unit_xml,'("</pseudo_valence_density>")')
  DEALLOCATE(dum)
 
@@ -881,7 +883,7 @@ Module XMLInterface
 &              sqr4pi*half*PAW%vloc(1:mesh_data%meshsz(mesh_data%ivbaremesh))
  WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 & gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh,PAW%rc
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivbaremesh))
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivbaremesh),mesh_data%meshsz(mesh_data%ivbaremesh))
  WRITE(unit_xml,'("</zero_potential>")')
  DEALLOCATE(dum)
 
@@ -893,7 +895,7 @@ Module XMLInterface
 &            sqr4pi*half*PAW%abinitvloc(1:mesh_data%meshsz(mesh_data%ivionmesh))
    WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 &   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
-   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
+   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivionmesh),mesh_data%meshsz(mesh_data%ivionmesh))
    WRITE(unit_xml,'("</kresse_joubert_local_ionic_potential>")')
    DEALLOCATE(dum)
   end if
@@ -906,7 +908,7 @@ Module XMLInterface
 &               sqr4pi*half*PAW%abinitnohat(1:mesh_data%meshsz(mesh_data%ivionmesh))
   WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
 &  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%ivionmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivionmesh),mesh_data%meshsz(mesh_data%ivionmesh))
   WRITE(unit_xml,'("</blochl_local_ionic_potential>")')
   DEALLOCATE(dum)
  endif
@@ -923,7 +925,7 @@ Module XMLInterface
   call extrapolate(Grid,dum)
   WRITE(unit_xml,'("<ae_partial_wave state=",a6," grid=""",a,i1,""">")') &
 &  TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%iwavmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iwavmesh),mesh_data%meshsz(mesh_data%iwavmesh))
   WRITE(unit_xml,'("</ae_partial_wave>")')
   dum=zero
   dum(2:mesh_data%meshsz(mesh_data%iwavmesh))= &
@@ -932,7 +934,7 @@ Module XMLInterface
   call extrapolate(Grid,dum)
   WRITE(unit_xml,'("<pseudo_partial_wave state=",a6," grid=""",a,i1,""">")')&
 &  TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%iwavmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iwavmesh),mesh_data%meshsz(mesh_data%iwavmesh))
   WRITE(unit_xml,'("</pseudo_partial_wave>")')
   DEALLOCATE (dum)
   ALLOCATE(dum(mesh_data%meshsz(mesh_data%iprjmesh)),stat=OK)
@@ -943,7 +945,7 @@ Module XMLInterface
   call extrapolate(Grid,dum)
   WRITE(unit_xml,'("<projector_function state=",a6," grid=""",a,i1,""">")') &
 &  TRIM(char20),gridt(mesh_data%iprjmesh),mesh_data%iprjmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=1,mesh_data%meshsz(mesh_data%iprjmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iprjmesh),mesh_data%meshsz(mesh_data%iprjmesh))
   WRITE(unit_xml,'("</projector_function>")')
   DEALLOCATE (dum)
  Enddo

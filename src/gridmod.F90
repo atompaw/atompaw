@@ -487,6 +487,8 @@ CONTAINS
     n=Grid%n
     h=Grid%h
 
+!   do while (abs(den(n))<1.d-16);n=n-1;end do
+
     rv=0.d0
     q=integrator(Grid,den)
 
@@ -504,9 +506,11 @@ CONTAINS
 
     cc=0.d0
     cc(5)=aa(n-4);cc(4)=aa(n-3);cc(3)=aa(n-2);cc(2)=aa(n-1)
-    call extrapolate(Grid,cc);aa(n)=cc(1)
+    cc(1)=cc(4)+3.d0*(cc(2)-cc(3)) !call extrapolate(Grid,cc)
+    aa(n)=cc(1)
     cc(5)=bb(n-4);cc(4)=bb(n-3);cc(3)=bb(n-2);cc(2)=bb(n-1)
-    call extrapolate(Grid,cc);bb(n)=cc(1)
+    cc(1)=cc(4)+3.d0*(cc(2)-cc(3)) !call extrapolate(Grid,cc)
+    bb(n)=cc(1)
 
     cc(1)=0.d0;dd(1)=0.d0
     DO ir=3,n,2
@@ -516,15 +520,19 @@ CONTAINS
        dd(ir-1)=dd(ir-2)+h/3.d0*(1.25d0*bb(ir-2)+2.d0*bb(ir-1)-0.25d0*bb(ir))
     END DO
     IF (MOD(n,2)==0) THEN
-       cc(n)=cc(n-2)+h/3.d0*(aa(n-2)+4.d0*aa(n-1)+aa(n))
-       dd(n)=dd(n-2)+h/3.d0*(bb(n-2)+4.d0*bb(n-1)+bb(n))
+       cc(n)=cc(n-1)+h/3.d0*(1.25d0*aa(n-2)+2.d0*aa(n-1)-0.25d0*aa(n))
+       dd(n)=dd(n-1)+h/3.d0*(1.25d0*bb(n-2)+2.d0*bb(n-1)-0.25d0*bb(n))
+      !cc(n)=cc(n-2)+h/3.d0*(aa(n-2)+4.d0*aa(n-1)+aa(n))
+      !dd(n)=dd(n-2)+h/3.d0*(bb(n-2)+4.d0*bb(n-1)+bb(n))
     END IF
 
     rv(1)=0.d0
     DO ir=2,n
        jr=n-ir+1
-       rv(ir)=2.d0*(dd(jr)*Grid%r(ir)+(cc(n)-cc(jr)))
+       rv(ir)=2.d0*(dd(jr)*Grid%r(ir)+(cc(n)-cc(jr))) !Ha->Ry
     END DO
+
+    if (n<Grid%n) rv(n+1:Grid%n)=rv(n)
 
     !  calculate ecoul
     aa(1)=0.d0

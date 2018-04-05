@@ -162,7 +162,7 @@ Module ABINITInterface
 
 !ABINIT PAW dataset (except header)
  type pawps_type
-  real(dp), pointer :: coreden4pr2(:)  ! coreden4pr2(core_meshsz)
+  real(dp), pointer :: coreden4pr2(:)  ! coreden4pr2(max_meshsz)
                                        ! Gives the core density multiplied by 4Pi.r2
   real(dp), pointer :: tcoreden4pr2(:) ! tcoreden4pr2(core_meshsz)
                                        ! Gives the pseudized core density multiplied by 4Pi.r2
@@ -180,7 +180,7 @@ Module ABINITInterface
                                        ! Atomic initialization of rhoij
   real(dp), pointer :: vbare(:)        ! vbare(sph_meshsz)
                                        ! Gives the "bare" local potential
-  real(dp), pointer :: vhtnzc(:)       ! vhtnzc(core_meshsz)
+  real(dp), pointer :: vhtnzc(:)       ! vhtnzc(vloc_meshsz)
                                        ! Gives the Hartree potential of the pseudo density
                                        ! of the nucleus + core electrons of the atom
  end type pawps_type
@@ -314,7 +314,7 @@ Module ABINITInterface
  allocate(pawps%phi(pshead%wav_meshsz,pshead%basis_size))
  allocate(pawps%tphi(pshead%wav_meshsz,pshead%basis_size))
  allocate(pawps%tproj(pshead%prj_msz_max,pshead%basis_size))
- allocate(pawps%coreden4pr2(pshead%core_meshsz))
+ allocate(pawps%coreden4pr2(pshead%max_meshsz))
  allocate(pawps%tcoreden4pr2(pshead%core_meshsz))
  allocate(pawps%tvaleden4pr2(pshead%vale_meshsz))
  allocate(pawps%dij0(pshead%lmn2_size))
@@ -1021,8 +1021,8 @@ Module ABINITInterface
   pawps%tproj(1:pshead%wav_meshsz,ib)=PAW%otp  (1:pshead%wav_meshsz,ib)
  end do
 
-!--Read core density CORE_DENSTY
- pawps%coreden4pr2(1:pshead%wav_meshsz)=FC%coreden(1:pshead%wav_meshsz)
+!--Read core density CORE_DENSITY
+ pawps%coreden4pr2(1:pshead%max_meshsz)=FC%coreden(1:pshead%max_meshsz)
 
 !--Read pseudized core density CORETAIL_DENSITY
  pawps%tcoreden4pr2(1:pshead%core_meshsz)=PAW%tcore(1:pshead%core_meshsz)
@@ -1053,10 +1053,10 @@ Module ABINITInterface
   enddo
  enddo
 
-!--Copy pseudized core density to core density outside spheres
+!--Copy core density to pseudized core density outside spheres
  if (pshead%core_meshsz>pshead%wav_meshsz) &
-&  pawps%coreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz) = &
-&  pawps%tcoreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz)
+&  pawps%tcoreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz) = &
+&   pawps%coreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz)
 
 !--Test pseudo valence density
  if (pshead%vale_meshsz>0) then
@@ -1304,29 +1304,35 @@ end subroutine calc_shapef
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: il,ilm,iln,ilmn,j0lmn,jl,jlm,jln,jlmn,klmn,meshsz
+ integer :: il,ilm,iln,ilmn,j0lmn,jl,jlm,jln,jlmn,klmn
+ integer :: meshsz,meshszc,meshszh,meshszm,meshszs,meshszw
  real(dp) :: intg,intvh,ecoul,qq
- real(dp),allocatable :: ff(:),vhnzc(:)
- type(GridInfo) :: Grid_core
+ real(dp),allocatable :: ff(:),r2k(:),shpf(:),vhnzc(:)
 
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
- meshsz=pshead%sph_meshsz;allocate(ff(meshsz))
- call NullifyGrid(Grid_core)
- call grid2pawrad(Grid_core,pawrad,pshead%core_meshsz,-1)
+ meshszs=pshead%sph_meshsz
+ meshszm=pshead%max_meshsz
+ meshszw=pshead%wav_meshsz
+ meshszh=pshead%hat_meshsz
+ meshszc=pshead%core_meshsz
+ meshsz=min(meshszm,meshszw)
+ allocate(ff(meshszm))
 
 !Kinetic part of Dij0
  pawps%dij0(1:pshead%lmn2_size)=pawarray%kij(1:pshead%lmn2_size)
+write(78,*) "A: ",pawps%dij0
 
 !Computation of <phi_i|Vh(nZc)|phi_j>
- allocate(vhnzc(pshead%core_meshsz))
- call poisson_marc(Grid_core,qq,pawps%coreden4pr2,vhnzc,ecoul)
+ allocate(vhnzc(meshszm))
+write(78,*) "B0: ",pawps%coreden4pr2
+ call poisson_marc(Grid,qq,pawps%coreden4pr2,vhnzc,ecoul)
  vhnzc=half*vhnzc  ! Ryd. -> Ha
- vhnzc(2:pshead%core_meshsz)=(vhnzc(2:pshead%core_meshsz)-pshead%atomic_charge)/pawrad%rad(2:pshead%core_meshsz)
- call extrapolate(Grid_core,vhnzc)
- 
+ vhnzc(2:meshszm)=(vhnzc(2:meshszm)-pshead%atomic_charge)/pawrad%rad(2:meshszm)
+ vhnzc(1)=vhnzc(4)+3.d0*(vhnzc(2)-vhnzc(3)) !call extrapolate(Grid,vhnzc)
+write(78,*) "B1: ",vhnzc
  do jlmn=1,pshead%lmn_size
   j0lmn=jlmn*(jlmn-1)/2
   jlm=pawarray%indlmn(4,jlmn);jln=pawarray%indlmn(5,jlmn)
@@ -1335,15 +1341,15 @@ end subroutine calc_shapef
    ilm=pawarray%indlmn(4,ilmn);iln=pawarray%indlmn(5,ilmn)
    if (jlm==ilm) then
     ff(1:meshsz)=pawps%phi(1:meshsz,iln)*pawps%phi(1:meshsz,jln)*vhnzc(1:meshsz)
-    call csimp(ff,pawrad,meshsz,intg)
-
+    call csimp(ff,pawrad,meshszs,intg)
     pawps%dij0(klmn)=pawps%dij0(klmn)+intg
    endif
   enddo
  enddo
  deallocate(vhnzc)
+write(78,*) "B: ",pawps%dij0
 
-!Computation of <tphi_i|Vh(tnZc)|tphi_j>
+!Computation of -<tphi_i|Vh(tnZc)|tphi_j>
  if (pshead%vlocopt==1.or.pshead%vlocopt==2) then
   do jlmn=1,pshead%lmn_size
    j0lmn=jlmn*(jlmn-1)/2
@@ -1352,18 +1358,32 @@ end subroutine calc_shapef
     klmn=j0lmn+ilmn
     ilm=pawarray%indlmn(4,ilmn);iln=pawarray%indlmn(5,ilmn)
     if (jlm==ilm) then
-     ff(1:meshsz)=pawps%tphi(1:meshsz,iln)*pawps%tphi(1:meshsz,jln)*pawps%vhtnzc(1:meshsz)
-     call csimp(ff,pawrad,meshsz,intg)
+     ff(1:meshsz)=pawps%tphi(1:meshszs,iln)*pawps%tphi(1:meshsz,jln)*pawps%vhtnzc(1:meshsz)
+     call csimp(ff,pawrad,meshszs,intg)
      pawps%dij0(klmn)=pawps%dij0(klmn)-intg
     endif
    enddo
   enddo
  endif
+write(78,*) "C: ",pawps%dij0
 
 !Computation of int[Vh(tnzc)*Qijhat(r)dr]
  if (pshead%vlocopt==1.or.pshead%vlocopt==2) then
-  ff(1:meshsz)=pawps%vhtnzc(1:meshsz)*pawarray%shapefunc(1:meshsz)*pawrad%rad(1:meshsz)**2
-  call csimp(ff,pawrad,meshsz,intvh)
+  allocate(shpf(meshszw))
+  shpf(1:meshszw)=pawarray%shapefunc(1:meshszw)
+write(78,*) "D0: ",shpf
+  if (pshead%shape_type==3) then
+   allocate(r2k(meshszh)) ; r2k=zero
+   r2k(2:meshszh)=shpf(2:meshszh)*pawrad%rad(2:meshszh)**2
+   call csimp(r2k,pawrad,meshszh,intg)
+   shpf(1:meshszw)=shpf(1:meshszw)/intg
+   deallocate(r2k)
+  end if
+write(78,*) "D1: ",shpf
+  ff(1:meshsz)=pawps%vhtnzc(1:meshsz)*shpf(1:meshsz)*pawrad%rad(1:meshsz)**2
+write(78,*) "D2: ",ff
+  call csimp(ff,pawrad,meshszs,intvh)
+write(78,*) "D: ",intvh
   do jlmn=1,pshead%lmn_size
    j0lmn=jlmn*(jlmn-1)/2
    jl=pawarray%indlmn(1,jlmn);jln=pawarray%indlmn(5,jlmn);jlm=pawarray%indlmn(4,jlmn)
@@ -1373,15 +1393,15 @@ end subroutine calc_shapef
     if (ilm==jlm) then
      ff(1:meshsz)=(pawps%phi (1:meshsz,iln)*pawps%phi (1:meshsz,jln)&
 &                 -pawps%tphi(1:meshsz,iln)*pawps%tphi(1:meshsz,jln))
-     call csimp(ff,pawrad,meshsz,intg)
+     call csimp(ff,pawrad,meshszs,intg)
      pawps%dij0(klmn)=pawps%dij0(klmn)-intvh*intg
     endif
    enddo
   enddo
  endif
+write(78,*) "E: ",pawps%dij0
 
  deallocate(ff)
- call DestroyGrid(Grid_core)
 
  end subroutine calc_dij0
 
@@ -2591,7 +2611,8 @@ end subroutine calc_shapef
   hh=pawrad%rstep
  end if
 
- ii=meshsz;do while(abs(ff(ii))<eps.and.ii>0);ii=ii-1;enddo
+ ii=meshsz
+ !do while(abs(ff(ii))<eps.and.ii>0);ii=ii-1;enddo
  if (ii<=0) then
    simp=zero;return
  end if

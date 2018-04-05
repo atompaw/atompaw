@@ -42,7 +42,7 @@ MODULE pseudo
   INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3
   INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=4, SETVLOC=5
 
-  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-7, gausstol=1.d-4
+  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12, gausstol=1.d-4
 
   INTEGER, PRIVATE :: coretailpoints=-1,besselopt=-1
   INTEGER, PRIVATE :: Projectorindex=-1,PSindex=-1,Orthoindex=-1,Vlocalindex=-1

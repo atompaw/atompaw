@@ -1323,16 +1323,13 @@ end subroutine calc_shapef
 
 !Kinetic part of Dij0
  pawps%dij0(1:pshead%lmn2_size)=pawarray%kij(1:pshead%lmn2_size)
-write(78,*) "A: ",pawps%dij0
 
 !Computation of <phi_i|Vh(nZc)|phi_j>
  allocate(vhnzc(meshszm))
-write(78,*) "B0: ",pawps%coreden4pr2
  call poisson_marc(Grid,qq,pawps%coreden4pr2,vhnzc,ecoul)
  vhnzc=half*vhnzc  ! Ryd. -> Ha
  vhnzc(2:meshszm)=(vhnzc(2:meshszm)-pshead%atomic_charge)/pawrad%rad(2:meshszm)
  vhnzc(1)=vhnzc(4)+3.d0*(vhnzc(2)-vhnzc(3)) !call extrapolate(Grid,vhnzc)
-write(78,*) "B1: ",vhnzc
  do jlmn=1,pshead%lmn_size
   j0lmn=jlmn*(jlmn-1)/2
   jlm=pawarray%indlmn(4,jlmn);jln=pawarray%indlmn(5,jlmn)
@@ -1347,7 +1344,6 @@ write(78,*) "B1: ",vhnzc
   enddo
  enddo
  deallocate(vhnzc)
-write(78,*) "B: ",pawps%dij0
 
 !Computation of -<tphi_i|Vh(tnZc)|tphi_j>
  if (pshead%vlocopt==1.or.pshead%vlocopt==2) then
@@ -1365,13 +1361,11 @@ write(78,*) "B: ",pawps%dij0
    enddo
   enddo
  endif
-write(78,*) "C: ",pawps%dij0
 
 !Computation of int[Vh(tnzc)*Qijhat(r)dr]
  if (pshead%vlocopt==1.or.pshead%vlocopt==2) then
   allocate(shpf(meshszw))
   shpf(1:meshszw)=pawarray%shapefunc(1:meshszw)
-write(78,*) "D0: ",shpf
   if (pshead%shape_type==3) then
    allocate(r2k(meshszh)) ; r2k=zero
    r2k(2:meshszh)=shpf(2:meshszh)*pawrad%rad(2:meshszh)**2
@@ -1379,11 +1373,8 @@ write(78,*) "D0: ",shpf
    shpf(1:meshszw)=shpf(1:meshszw)/intg
    deallocate(r2k)
   end if
-write(78,*) "D1: ",shpf
   ff(1:meshsz)=pawps%vhtnzc(1:meshsz)*shpf(1:meshsz)*pawrad%rad(1:meshsz)**2
-write(78,*) "D2: ",ff
   call csimp(ff,pawrad,meshszs,intvh)
-write(78,*) "D: ",intvh
   do jlmn=1,pshead%lmn_size
    j0lmn=jlmn*(jlmn-1)/2
    jl=pawarray%indlmn(1,jlmn);jln=pawarray%indlmn(5,jlmn);jlm=pawarray%indlmn(4,jlmn)
@@ -1399,7 +1390,6 @@ write(78,*) "D: ",intvh
    enddo
   enddo
  endif
-write(78,*) "E: ",pawps%dij0
 
  deallocate(ff)
 

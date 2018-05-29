@@ -112,6 +112,7 @@ Module ABINITInterface
 
 !PAW dataset "header" for ABINIT
  type pshead_type
+  integer :: atompaw_meshsz   ! Dimension of radial mesh used in Atompaw (=Grid%n)
   integer :: basis_size      ! Number of elements for the paw nl basis
   integer :: core_size       ! Number of core states
   integer :: core_meshsz     ! Dimension of radial mesh for core density
@@ -162,11 +163,11 @@ Module ABINITInterface
 
 !ABINIT PAW dataset (except header)
  type pawps_type
-  real(dp), pointer :: coreden4pr2(:)  ! coreden4pr2(max_meshsz)
+  real(dp), pointer :: coreden4pr2(:)  ! coreden4pr2(atompaw_meshsz)
                                        ! Gives the core density multiplied by 4Pi.r2
   real(dp), pointer :: tcoreden4pr2(:) ! tcoreden4pr2(core_meshsz)
                                        ! Gives the pseudized core density multiplied by 4Pi.r2
-  real(dp), pointer :: tvaleden4pr2(:) ! tvaleden4pr2(core_meshsz)
+  real(dp), pointer :: tvaleden4pr2(:) ! tvaleden4pr2(vale_meshsz)
                                        ! Gives the pseudized core density multiplied by 4Pi.r2 (up to r(vale_meshsz))
   real(dp), pointer :: phi(:,:)        ! phi(sph_meshsz,basis_size)
                                        ! Gives, on the radial grid, the PAW atomic wavefunctions
@@ -314,7 +315,7 @@ Module ABINITInterface
  allocate(pawps%phi(pshead%wav_meshsz,pshead%basis_size))
  allocate(pawps%tphi(pshead%wav_meshsz,pshead%basis_size))
  allocate(pawps%tproj(pshead%prj_msz_max,pshead%basis_size))
- allocate(pawps%coreden4pr2(pshead%max_meshsz))
+ allocate(pawps%coreden4pr2(pshead%atompaw_meshsz))
  allocate(pawps%tcoreden4pr2(pshead%core_meshsz))
  allocate(pawps%tvaleden4pr2(pshead%vale_meshsz))
  allocate(pawps%dij0(pshead%lmn2_size))
@@ -478,6 +479,7 @@ Module ABINITInterface
  end do
 
 !--Read GRID parameters
+ pshead%atompaw_meshsz=Grid%n
  pshead%wav_meshsz=PAW%irc+Grid%ishift
  if (usingloggrid(Grid)) then
   pshead%mesh_type=2
@@ -862,7 +864,8 @@ Module ABINITInterface
 
 !Total radial mesh
  pshead%max_meshsz=max(pshead%sph_meshsz,pshead%hat_meshsz,pshead%core_meshsz,pshead%vale_meshsz,&
-&                      pshead%vloc_meshsz,pshead%prj_msz_max,pshead%prj_meshsz,pshead%corewf_meshsz)
+&                      pshead%vloc_meshsz,pshead%prj_msz_max,pshead%prj_meshsz,pshead%corewf_meshsz,&
+&                      pshead%atompaw_meshsz)
 
 !Initialization of the orbital basis indexes (indlmn)
  ilmn=0;iln=0
@@ -978,7 +981,7 @@ Module ABINITInterface
 !!  pawarray
 !!    %kij(lmn2_size)= Kinetic overlap operator
 !!  pawps
-!!    %coreden4pr2(core_meshsz)= Core density multiplied by 4Pi.r2
+!!    %coreden4pr2(atompaw_meshsz)= Core density multiplied by 4Pi.r2
 !!    %tcoreden4pr2(core_meshsz)= Pseudized core density multiplied by 4Pi.r2
 !!    %tvaleden4pr2(vale_meshsz)= Pseudized valence density multiplied by 4Pi.r2
 !!    %phi(wav_meshsz,basis_size)= PAW atomic wavefunctions on the radial grid
@@ -1022,7 +1025,7 @@ Module ABINITInterface
  end do
 
 !--Read core density CORE_DENSITY
- pawps%coreden4pr2(1:pshead%max_meshsz)=FC%coreden(1:pshead%max_meshsz)
+ pawps%coreden4pr2(1:pshead%atompaw_meshsz)=FC%coreden(1:pshead%atompaw_meshsz)
 
 !--Read pseudized core density CORETAIL_DENSITY
  pawps%tcoreden4pr2(1:pshead%core_meshsz)=PAW%tcore(1:pshead%core_meshsz)
@@ -1184,7 +1187,7 @@ end subroutine calc_shapef
 !!    %phi(wav_meshsz,basis_size)= PAW atomic wavefunctions on the radial grid
 !!    %tcoreden4pr2(core_meshsz)= Pseudized core density multiplied by 4Pi.r2
 !!    %tphi(wav_meshsz,basis_size)= PAW atomic pseudo-wavefunctions on the radial grid
-!!    %tvaleden4pr2(core_meshsz)= Pseudized valence density multiplied by 4Pi.r2 (if read in input file)
+!!    %tvaleden4pr2(vale_meshsz)= Pseudized valence density multiplied by 4Pi.r2 (if read in input file)
 !!  pawrad= radial grid definitions
 !!  pshead
 !!    %basis_size= Number of elements for the paw nl basis
@@ -1268,7 +1271,7 @@ end subroutine calc_shapef
 !!    %kij(lmn2_size)= Kinetic overlap operator
 !!    %shapefunc(wav_meshsz)= Normalized shape function
 !!  pawps
-!!    %coreden4pr2(core_meshsz)= Core density multiplied by 4Pi.r2
+!!    %coreden4pr2(atompaw_meshsz)= Core density multiplied by 4Pi.r2
 !!    %phi(wav_meshsz,basis_size)= PAW atomic wavefunctions on the radial grid
 !!    %tphi(wav_meshsz,basis_size)= PAW atomic pseudo-wavefunctions on the radial grid
 !!    %vhtnzc(core_meshsz)= Hartree potential of the ps-density
@@ -1314,7 +1317,7 @@ end subroutine calc_shapef
 !------------------------------------------------------------------
 
  meshszs=pshead%sph_meshsz
- meshszm=pshead%max_meshsz
+ meshszm=pshead%atompaw_meshsz
  meshszw=pshead%wav_meshsz
  meshszh=pshead%hat_meshsz
  meshszc=pshead%core_meshsz
@@ -1354,7 +1357,7 @@ end subroutine calc_shapef
     klmn=j0lmn+ilmn
     ilm=pawarray%indlmn(4,ilmn);iln=pawarray%indlmn(5,ilmn)
     if (jlm==ilm) then
-     ff(1:meshsz)=pawps%tphi(1:meshszs,iln)*pawps%tphi(1:meshsz,jln)*pawps%vhtnzc(1:meshsz)
+     ff(1:meshsz)=pawps%tphi(1:meshsz,iln)*pawps%tphi(1:meshsz,jln)*pawps%vhtnzc(1:meshsz)
      call csimp(ff,pawrad,meshszs,intg)
      pawps%dij0(klmn)=pawps%dij0(klmn)-intg
     endif

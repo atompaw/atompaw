@@ -42,7 +42,6 @@ CONTAINS
 
     CLOSE(ifen)
 
-    write(6,*) 'finished summary'; call flush_unit(6)
     IF (key=='AE') THEN
        n=Grid%n
        r=>Grid%r
@@ -138,8 +137,10 @@ CONTAINS
              ENDDO
           CLOSE(ifwfn)     
        endif   
-    deallocate(wav,lwav)
+    deallocate(wav)
+    if (diracrelativistic) deallocate(lwav)
     ENDIF
+
   END SUBROUTINE Report_Graphatom
 
 END MODULE Graphatom_report

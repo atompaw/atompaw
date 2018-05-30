@@ -155,8 +155,9 @@ CONTAINS
     n=Grid%n
     OPEN (unit=1001,file='AE_pot')
     DO i = 1,n
-       WRITE(1001,'(1p,7e15.7)') Grid%r(i),AEPot%rv(i) ,&
-&           AEPOt%rvx(i),AEPot%rvh(i),AEPot%rvn(i),AEOrbit%den(i)
+       WRITE(1001,'(1p,9e15.7)') Grid%r(i),AEPot%rv(i) ,&
+&           AEPOt%rvx(i),AEPot%rvh(i),AEPot%rvn(i),AEOrbit%den(i), &
+&           AEOrbit%tau(i),AEPot%vtau(i)
     ENDDO
     CLOSE(1001)
 
@@ -183,8 +184,9 @@ CONTAINS
     n=Grid%n
     OPEN (unit=2001,file='FC_Pot')
     DO i = 1,n
-       WRITE(1001,'(1p,7e15.7)') Grid%r(i),FCPot%rv(i) ,&
-&           FCPot%rvx(i),FCPot%rvh(i),FCPot%rvn(i),FCOrbit%den(i)
+       WRITE(1001,'(1p,9e15.7)') Grid%r(i),FCPot%rv(i) ,&
+&           FCPot%rvx(i),FCPot%rvh(i),FCPot%rvn(i),FCOrbit%den(i), &
+&           FCOrbit%tau(i),FCPot%vtau(i)
     ENDDO
     CLOSE(2001)
 

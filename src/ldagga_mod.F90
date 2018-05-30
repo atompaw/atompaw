@@ -39,7 +39,7 @@ CONTAINS
     TYPE(FCInfo),TARGET :: FCin
     TYPE(SCFInfo),TARGET :: SCFin
 
-    INTEGER :: n
+    INTEGER :: n,i
     REAL(8) :: en1,etxc,eex
     REAL(8), ALLOCATABLE :: arg(:)
     LOGICAL :: success
@@ -51,10 +51,21 @@ CONTAINS
     SCFwk=>SCFin
 
     !write(6,*) 'in ldagga '; call flush_unit(6)
-    n=Gridwk%n     !;write(6,*) 'n ', n; call flush_unit(6)
+    n=Gridwk%n     ;!write(6,*) 'n ', n; call flush_unit(6)
     ALLOCATE(arg(n))
 
-    CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex)
+    !write(6,*) 'Before exch'; call flush_unit(6)
+    CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
+&       needvtau=Potwk%needvtau,tau=Orbitwk%tau,vtau=Potwk%vtau)
+    
+    !open(1001,file='testpot',form='formatted')
+    !do i=1,n
+    !   write(1001,'(1p,50e15.6)') Gridwk%r(i),Orbitwk%den(i),Potwk%rvx(i), &
+&   !    Orbitwk%tau(i),Potwk%vtau(i)
+    !enddo
+    !close(1001)
+    !stop
+               
 
     Potwk%rv=Potwk%rvh+Potwk%rvx
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
@@ -214,7 +225,8 @@ CONTAINS
 
     n=Grid%n
     !write(6,*) 'In Get_EXC', n; call flush_unit(6)
-    CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex)
+    CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex,&
+&       needvtau=Pot%needvtau,tau=Orbit%tau,vtau=Pot%vtau)
     !write(6,*) 'After exch', etxc,eex; call flush_unit(6)
 
     SCF%eexc=eex
@@ -277,7 +289,7 @@ CONTAINS
 &           Potwk%rvh(i),Potwk%rvx(i)
       else
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i)
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%tau(i),Potwk%vtau(i)
       endif
     ENDDO
     CLOSE(1001)

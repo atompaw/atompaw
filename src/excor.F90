@@ -15,7 +15,7 @@ MODULE excor
   USE globalmath
   USE gridmod
   USE libxc_mod
-  USE atomdata, only : scalarrelativistic
+  USE atomdata, only : scalarrelativistic,diracrelativistic
 
   IMPLICIT NONE
 
@@ -60,7 +60,7 @@ CONTAINS
     integer :: id(2)=(/0,0/)
     !  choose form of exchange-correlation potential
     CALL Uppercase(exctype)
-    WRITE(6,*)
+    WRITE(6,*) exctype; call flush_unit(6)
 
     SELECT CASE(TRIM(exctype))
     CASE default
@@ -68,6 +68,7 @@ CONTAINS
         call libxc_getid_fromInput(exctype,id)
         call libxc_init_func(id,1)
         itype = LIBXC
+        WRITE(6,*) 'Using Libxc -- ', TRIM(exctype) ; call flush_unit(6)
       ELSE
         WRITE(6,*) 'ERROR: cannot understand Exchange-Correlation functional from input file!'
         WRITE(6,*) '       possible issue: atompaw not compiled with libXC.'
@@ -109,6 +110,8 @@ CONTAINS
      CASE(GGA_PBESOL)
         write(if,*) 'Perdew-Burke-Ernzerhof modified (PBEsol) GGA'
         write(if,*) 'http://chem.ps.uci.edu/~kieron/dft/pubs/PBEsol.html'
+     CASE(LIBXC)   
+        write(if,*)  'Using Libxc -- ',TRIM(exctype)   
      END SELECT
 
   END SUBROUTINE Report_EXC
@@ -349,23 +352,146 @@ CONTAINS
     RETURN
   END SUBROUTINE radialexcpbe
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! mggascanfunc contains only x part and is not working
+!x  subroutine mggascanfunc(Grid,tmpd,tmpt,eexc,vxc,vtau)
+!x     IMPLICIT NONE
+!x     TYPE(GridInfo), INTENT(IN) :: Grid
+!x     REAL(8), INTENT(IN) :: tmpd(:),tmpt(:)
+!x     REAL(8), INTENT(OUT) :: eexc,vxc(:),vtau(:)
+!x !   For eexc=int(Gxc)
+!x !           vxc=partial Gxc/partial n
+!x !           gxc=partial Gxc/partial abs(grad(n))/abs(grad(n))
+!x !           vtau=partial Gxc/partial tau
+!x 
+!x   ! parameters set in PRL 115, 036402 (2015)
+!x     REAL(8), PARAMETER :: sch0x=1.174d0  
+!x     REAL(8), PARAMETER :: sca1=4.9479d0
+!x     REAL(8), PARAMETER :: scc1x=0.667d0
+!x     REAL(8), PARAMETER :: scc2x=0.8d0
+!x     REAL(8), PARAMETER :: scdx=1.24d0
+!x     REAL(8), PARAMETER :: sck1=0.065d0
+!x     REAL(8), PARAMETER :: scmuAK=0.1234567901d0
+!x     REAL(8), PARAMETER :: scb1=0.1566320775d0
+!x     REAL(8), PARAMETER :: scb2=0.1208304597d0
+!x     REAL(8), PARAMETER :: scb3=0.5d0
+!x     REAL(8), PARAMETER :: scb4=0.1218315102d0
+!x 
+!x     REAL(8), PARAMETER :: tol=1.d-64
+!x     INTEGER :: i,j,k,l,m,n
+!x     REAL(8), allocatable :: grad(:),exc(:),deriv(:),arg(:),gxc(:),stuff(:)
+!x     REAL(8) :: den,term1,g,a,s,s2,x,h1x,gx,fx,ffx,abrev,dfxda,dh1xda
+!x     REAL(8) :: dffxda,dffxds,abrev1,dh1xds,term2
+!x     REAL(8) :: dsdn,dsdg,dadn,dadg,dadt,dterm1dn
+!x 
+!x     n=Grid%n
+!x     vxc=0.d0;vtau=0.d0;eexc=0.d0
+!x     allocate( grad(n),exc(n),deriv(n),arg(n),gxc(n),stuff(n))
+!x     grad=0.d0;exc=0.d0;deriv=0.d0;arg=0.d0;gxc=0.d0
+!x     call derivative(Grid,tmpd,grad,1,n)
+!x !!!Testing  -- explicitly H atom  
+!x     grad(1:n)=-2.d0*tmpd(1:n)
+!x !!!Testing    
+!x     do i=1,n
+!x        den=max(tmpd(i),tol)
+!x        g=abs(grad(i))   
+!x        term1=-0.7385587660d0*(den**(4.d0/3.d0))
+!x        dterm1dn=-0.7385587660d0*(4.d0/3.d0)*(den**(1.d0/3.d0))
+!x        term2=0.1616204597d0*(den**(-4.d0/3.d0))
+!x        s=term2*g
+!x        dsdn=-(4.d0/3.d0)*0.1616204597d0*g*(den**(-7.d0/3.d0))
+!x        dsdg=term2
+!x        s2=s*s
+!x        a=0.3482823063d0*(tmpt(i)-(g**2)/(8*den))*(den**(-5.d0/3.d0))
+!x        dadt=0.3482823063d0*(den**(-5.d0/3.d0))
+!x        dadn=-(5.d0/3.d0)*0.3482823063d0*(tmpt(i))*(den**(-8.d0/3.d0)) &
+!x &      + (8.d0/3.d0)*0.3482823063d0*(g**2)*(den**(-11.d0/3.d0))/8 
+!x        dadg=0.3482823063d0*(g)*(den**(-8.d0/3.d0))/4
+!x        x=scmuAK*s2*(1+(scb4*s2/scmuAK)*exp(-scb4*s2/scmuAK)) &
+!x &             * (scb1*s+scb2*(1.d0-a)*exp(-scb3*(1.d0-a)**2))**2
+!x        abrev1=exp(-scb4*s2/scmuAK)
+!x        abrev=exp(-scb3*(1.d0-a)**2)
+!x        h1x=1.d0+sck1-sck1/(1.d0*x/sck1)
+!x        gx=1.d0
+!x        if(s>0.d0)gx=gx-exp(-sca1/sqrt(s))
+!x        fx=0.d0
+!x        if(a<1.d0)  fx=exp(-scc1x*a/(1.d0-a))
+!x        if(a>1.d0)  fx=-scdx*exp(-scc2x/(a-1.d0))
+!x        ffx=(h1x+fx*(sch0x-h1x))*gx
+!x        exc(i)=term1*ffx
+!x        dfxda=0.d0
+!x        if(a<1.d0)  dfxda=-scc1x*fx/(1.d0-a)**2
+!x        if(a>1.d0)  dfxda=scc2x*fx/(1.d0-a)**2
+!x        dh1xda= 2.d0*abrev*scb2*(scb1*s2+scb2*(1.d0-a)*abrev)*&
+!x &               (-1.d0+2*scb3*(1.d0-a)**2)/(1.d0+x/sck1)**2
+!x        dffxda=gx*(dfxda*(sch0x-h1x)+dh1xda*(1.d0-fx))
+!x        vtau(i)=term1*dffxda*dadt
+!x        dh1xds=(2*scmuAK*s*abrev1*(((1.d0+scb4*s2/scmuAK)*(1.d0-2*scb4*s2)) &
+!x &       +2*s2*scb4)+4*scb1*s*(scb1*s2+scb2*(1.d0-a)*abrev))/(1.d0+x/sck1)**2               
+!x        dffxds=0.d0
+!x        if(s>0.d0)gxc(i)=dffxds&
+!x &          -0.5d0**sca1*(exp(-sca1/sqrt(s))/(s**1.5d0))*(h1x+fx*(sch0x-h1x))
+!x        dffxds=dffxds+dh1xds*gx*(1.d0-fx)
+!x        arg(i)=term1*dffxds*dsdg   !  g term alone
+!x        gxc(i)=arg(i)+term1*dffxda*dadg
+!x        vxc(i)=dterm1dn*ffx &
+!x &       +term1*dffxds*dsdn+term1*dffxda*dadn
+!x        write(101,'(1p,50e15.7)') &
+!x &       Grid%r(i),den,s,a,x,exc(i),vtau(i),arg(i),gxc(i),vxc(i)
+!x 
+!x     enddo    
+!x     open(1001,file='pexc',form='formatted')
+!x       arg=gxc*grad
+!x       call derivative(Grid,arg,deriv,1,n)
+!x       stuff=vxc
+!x       vxc(2:n)=vxc(2:n)-deriv(2:n)-2*arg(2:n)/Grid%r(2:n)
+!x       call extrapolate(Grid,vxc)
+!x       do i=1,n
+!x         write(1001,'(1p,50e15.7)')Grid%r(i),tmpd(i),grad(i),tmpt(i),exc(i),vtau(i),stuff(i),gxc(i),arg(i),deriv(i),vxc(i)
+!x       enddo  
+!x    close(1001)
+!x     open(1001,file='veff',form='formatted')
+!x       arg=log(1.d0+vtau)
+!x       call derivative(Grid,arg,deriv,1,n)
+!x       do i=1,n
+!x        write(1001,'(1p,50e15.7)')Grid%r(i),tmpd(i),exc(i),deriv(i),vxc(i)/(1.d0+vtau(i))
+!x        enddo
+!x     close(1001)   
+!x    stop   
+!x ! note at the moment vxc is not rvxc   and still in Hartree units 
+!x !   only x included -- c not included yet
+!x     deallocate(grad,exc,deriv,arg,gxc)
+!x 
+!x end   subroutine mggascanfunc
+!x 
+
   !*******************************************************************
-  SUBROUTINE exch(Grid,den,rvxc,etxc,eexc,fin,v0,v0p)
-    !  calculate exchange correlation potentials and energys
+  SUBROUTINE exch(Grid,den,rvxc,etxc,eexc,fin,v0,v0p,needvtau,tau,vtau)
+    !  calculate exchange correlation potentials and energies
     !    for density functional theory from electron density
     !  den(n) is electron density * (4*pi*r**2)
     !  rvxc(n) is returned as vxc * r
-    !    to the total energy
     !  eexc is the total exchange energy (int(den*exc))
     !  etxc is eexc - int(den*vxc)
+    !  fin (optional) is integer range of densities and potentials
+    !  v0  (optional) is extrapolated value of vxc for r=0
+    !  v0p  (optional) is extrapolated value of dvxc/dr for r=0
+    !  needvtau (optional) is logical .true. if mgga
+    !  tau(n) (optional) is kinetic energy density * (4*pi*r**2)
+    !  vtau(n) (optional) is kinetic energy contribution for mgga
     TYPE (GridInfo), INTENT(IN) :: Grid
     REAL(8), INTENT(IN) :: den(:)
     REAL(8), INTENT(INOUT) :: rvxc(:),etxc,eexc
     INTEGER, INTENT(IN), OPTIONAL :: fin
     REAL(8), INTENT(OUT), OPTIONAL :: v0,v0p
-
-    REAL(8), ALLOCATABLE ::  tmpd(:),tmpv(:),dum(:)
-    REAL(8), ALLOCATABLE :: exci(:),dfxcdgbg(:),gxc(:),dgxcdr(:),grad(:),gradmag(:)
+    LOGICAL, INTENT(OUT), OPTIONAL :: needvtau
+    REAL(8), INTENT(IN),OPTIONAL :: tau(:)
+    REAL(8), INTENT(INOUT),OPTIONAL :: vtau(:)
+    REAL(8), ALLOCATABLE ::  tmpd(:),tmpv(:),dum(:),lrho(:)
+            !  lrho(n)  is Laplacian of the density for mgga
+    REAL(8), ALLOCATABLE :: exci(:),dfxcdgbg(:),gxc(:),dgxcdr(:)
+    REAL(8), ALLOCATABLE :: grad(:),gradmag(:)
+    REAL(8), ALLOCATABLE :: tmpt(:),tmpl(:),dgxcdl(:)
     REAL(8) :: fpi
     INTEGER :: i,n,i1,i2
     REAL(8) :: r,r2,rho,exc,vxc
@@ -378,7 +504,8 @@ CONTAINS
     rvxc=0;etxc=0;eexc=0
     if (PRESENT(v0)) v0=0
     if (PRESENT(v0p)) v0p=0
-
+    if (PRESENT(needvtau)) needvtau=.false.
+    if (PRESENT(vtau)) vtau=0.d0
     If (itype==GGA_PBE.or.itype==GGA_PBESOL) then !!!!!!!PBE form!!!!!!
        ALLOCATE(tmpd(n),tmpv(n))
 
@@ -410,6 +537,7 @@ CONTAINS
 
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
        DEALLOCATE(tmpd,tmpv)
+
     ELSE IF (itype==LDA_PW) then !!! ! Perdew-Wang LDA !!!!
        !     write(6,*) 'LDA -- '; call flush_unit(6)
        ALLOCATE(tmpd(n),tmpv(n),dum(n))
@@ -441,11 +569,13 @@ CONTAINS
        ENDIF
        DEALLOCATE(tmpd,tmpv,dum)
     ELSE IF (itype==LIBXC.and.have_libxc) then !!!!! External LibXC library !!!!!
-       allocate(tmpd(n),tmpv(n),exci(n))
-       tmpd=0.d0; tmpv=0.d0; exci=0.d0
+       allocate(tmpd(n),tmpv(n),exci(n),tmpt(n))
+       tmpd=0.d0; tmpv=0.d0; exci=0.d0;tmpt=0.d0
        tmpd(2:n)=den(2:n)/(fpi*(Grid%r(2:n)**2))
        call extrapolate(Grid,tmpd)
-       if (libxc_isgga()) then
+       if (libxc_islda()) then
+        call libxc_getvxc(n,exci,tmpv,1,tmpd)
+       elseif (libxc_isgga()) then
         allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
         grad=0.d0;gradmag=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
         call derivative(Grid,tmpd,grad,1,n)
@@ -455,9 +585,57 @@ CONTAINS
         call derivative(Grid,gxc,dgxcdr,1,n)
         tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
         call extrapolate(Grid,tmpv)
-        deallocate(grad,gradmag,gxc,dfxcdgbg)
+        deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
+        !  not sure why/if this is needed
+        do i=1,n
+           if (isnan(tmpv(i))) tmpv(i)=0.d0
+           if (isnan(exci(i))) exci(i)=0.d0
+        enddo   
+       elseif (libxc_ismgga()) then
+        write(6,*) '  atompaw not yet available for mgga -- stop '
+        call flush_unit(6)
+        stop       
+        if(PRESENT(needvtau)) needvtau=.true.       
+        allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
+        grad=0.d0;gradmag=0.d0;gxc=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
+        call derivative(Grid,tmpd,grad,1,n)
+        gradmag=ABS(grad)
+        tmpt(2:n)=tau(2:n)/(fpi*(Grid%r(2:n)**2))
+        call extrapolate(Grid,tmpt)
+        if(libxc_needlap()) then
+          allocate(dum(n),lrho(n))
+          dum=0.d0;lrho=0
+          call derivative(Grid,grad,dum,1,n)
+          lrho(2:n)=dum(2:n)+2.d0*grad(2:n)/Grid%r(2:n)
+          call extrapolate(Grid,lrho); dum=0.d0       
+          call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,lrho=lrho, &
+&            tau=tmpt,vxcgr=dfxcdgbg,vxclrho=dum,vxctau=vtau)
+          gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+          call derivative(Grid,gxc,dgxcdr,1,n)
+          tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
+          call derivative(Grid,dum,gxc,1,n)  ! add Laplacian contributions
+          call derivative(Grid,gxc,dgxcdr,1,n)
+          tmpv(2:n)=tmpv(2:n)+dgxcdr(2:n)+2.d0*gxc(2:n)/Grid%r(2:n)
+          call extrapolate(Grid,tmpv)
+          deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg,dum,lrho)
+        else   ! no Laplacian contribution
+          call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag, &
+&            tau=tmpt,vxcgr=dfxcdgbg,vxctau=vtau)
+!          open(1001,file='expot',form='formatted')
+!          do i=1,n
+!             write(1001,'(1p,50e15.7)')Grid%r(i),tmpd(i),gradmag(i),tmpt(i),exci(i),tmpv(i),dfxcdgbg(i),vtau(i)
+!             enddo
+!          close(1001)
+!          stop   
+          gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+          call derivative(Grid,gxc,dgxcdr,1,n)
+          tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
+          call extrapolate(Grid,tmpv)
+          deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
+        endif
        else
-        call libxc_getvxc(n,exci,tmpv,1,tmpd)
+           write(6,*) 'unknown libxc family -- need to work harder '
+           stop        
        end if
        rvxc=0.d0
        rvxc(1:n)=tmpv(1:n)*Grid%r(1:n)
@@ -469,8 +647,12 @@ CONTAINS
        endif
        tmpv(1:n)=tmpv(1:n)*den(1:n)
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
-       deallocate(tmpd,tmpv,exci)
-       !WRITE(6,*) 'etxc,eexc = ',etxc,eexc;call flush(6)
+       WRITE(6,*) 'etxc,eexc = ',etxc,eexc;call flush_unit(6)
+       open(1001,file='expot',form='formatted')
+       do i=1,n
+          write(1001,'(1p,20e15.7)')Grid%r(i),rvxc(i),den(i),exci(i)
+          enddo   
+       deallocate(tmpd,tmpv,exci,tmpt)
     else
 
        WRITE(6,*) 'Warning (EXCOR): ', itype,' no results returned !'

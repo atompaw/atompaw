@@ -20,7 +20,7 @@ MODULE atomdata
      REAL(8), POINTER :: lqp(:,:)     ! only used for HF
      REAL(8), POINTER :: X(:,:)       ! identical to HF%SumY(:,:)
      LOGICAL , POINTER :: iscore(:)
-     REAL(8),POINTER :: den(:)
+     REAL(8),POINTER :: den(:),tau(:)
   END TYPE OrbitInfo
 
   TYPE FCinfo
@@ -40,6 +40,8 @@ MODULE atomdata
      !  rvh is hartree potential for den
      !  rvn is nuclear potential
      !  rvx is exchange-correlation potential
+     LOGICAL :: needvtau
+     REAL(8) , POINTER :: vtau(:) !for meta-gga
      INTEGER :: finitenucleusmodel
      ! Based on models 2, 3, 4, 5 discussed by Dirk Anrae ,
      !   Physics Reports 336 (2000) 413-525
@@ -88,9 +90,9 @@ CONTAINS
     Orbit%iscore=.false.
     Orbit%np=0;Orbit%l=0
     Orbit%eig=0.d0;Orbit%occ=0.d0
-    ALLOCATE(Orbit%wfn(n,norbit),Orbit%den(n),stat=ok)
+    ALLOCATE(Orbit%wfn(n,norbit),Orbit%den(n),Orbit%tau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of wfn, den...'
-    Orbit%wfn=0.d0;Orbit%den=0.d0
+    Orbit%wfn=0.d0;Orbit%den=0.d0;Orbit%tau=0.d0
     If (diracrelativistic) then
        ALLOCATE(Orbit%lwfn(n,norbit),Orbit%kappa(norbit),stat=ok)
        IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
@@ -118,6 +120,7 @@ CONTAINS
     IF (ASSOCIATED(Orbit%wfn)) DEALLOCATE(Orbit%wfn)
     IF (ASSOCIATED(Orbit%lwfn)) DEALLOCATE(Orbit%lwfn)
     IF (ASSOCIATED(Orbit%den)) DEALLOCATE(Orbit%den)
+    IF (ASSOCIATED(Orbit%tau)) DEALLOCATE(Orbit%tau)
     IF (ASSOCIATED(Orbit%lqp)) DEALLOCATE(Orbit%lqp)
     IF (ASSOCIATED(Orbit%X)) DEALLOCATE(Orbit%X)
   END SUBROUTINE DestroyOrbit
@@ -143,6 +146,7 @@ CONTAINS
     COrbit%wfn(:,1:SOrbit%norbit)=SOrbit%wfn(:,1:SOrbit%norbit)
     COrbit%iscore(1:SOrbit%norbit)=SOrbit%iscore(1:SOrbit%norbit)
     COrbit%den=SOrbit%den
+    COrbit%tau=SOrbit%tau
     If (diracrelativistic) then
        COrbit%lwfn(:,1:SOrbit%norbit)=SOrbit%lwfn(:,1:SOrbit%norbit)
        COrbit%kappa(1:SOrbit%norbit)=SOrbit%kappa(1:SOrbit%norbit)
@@ -176,9 +180,10 @@ CONTAINS
     TYPE (PotentialInfo), INTENT(INOUT) :: Pot
     INTEGER :: ok
 !   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0
-    ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),stat=ok)
+    ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),Pot%vtau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
-    Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0
+    Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0;Pot%vtau=0.d0
+    Pot%needvtau=.false.
   END SUBROUTINE InitPot
 
   SUBROUTINE DestroyPot(Pot)
@@ -187,6 +192,7 @@ CONTAINS
     IF (ASSOCIATED(Pot%rvn)) DEALLOCATE(Pot%rvn)
     IF (ASSOCIATED(Pot%rvh)) DEALLOCATE(Pot%rvh)
     IF (ASSOCIATED(Pot%rvx)) DEALLOCATE(Pot%rvx)
+    IF (ASSOCIATED(Pot%vtau)) DEALLOCATE(Pot%vtau)
   END SUBROUTINE DestroyPot
 
 !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -207,11 +213,13 @@ CONTAINS
     CPot%Nv0=SPot%Nv0
     CPot%Nv0p=SPot%Nv0p
     n=SIZE(SPot%rv,1)
-    ALLOCATE(CPot%rv(n),CPot%rvn(n),CPot%rvh(n),CPot%rvx(n))
+    ALLOCATE(CPot%rv(n),CPot%rvn(n),CPot%rvh(n),CPot%rvx(n),CPot%vtau(n))
     CPot%rv(1:n)=SPot%rv(1:n)
     CPot%rvn(1:n)=SPot%rvn(1:n)
     CPot%rvh(1:n)=SPot%rvh(1:n)
     CPot%rvx(1:n)=SPot%rvx(1:n)
+    CPot%vtau(1:n)=SPot%vtau(1:n)
+    CPot%needvtau=SPot%needvtau
   END SUBROUTINE CopyPot
 
   SUBROUTINE InitSCF(SCF)

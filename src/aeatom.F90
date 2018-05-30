@@ -632,13 +632,16 @@ CONTAINS
   !!       From nuclear charge -- generate hydrogenic-like initial wfns
   !!          and densities --
   !!          fill AEOrbit%wfn, AEOrbit%eig, and AEOrbit%den and AEOrbit%q
+  !!          also AEOrbit%tau
+  !!          Note that both den and tau need to be divided by 4 \pi r^2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Orbit_Init(Orbit,Pot)
     IMPLICIT NONE
     TYPE(PotentialInfo),INTENT(INOUT) :: Pot
     TYPE(OrbitInfo),INTENT(INOUT) :: Orbit
     INTEGER  :: i,io,ir,ip,l,nfix,np,kappa
-    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc
+    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac
+    REAL(8),allocatable :: dpdr(:),pbr(:)
     INTEGER :: initialconfig=0
 
        IF (initialconfig/=0) STOP 'Error in aeatom -- Orbit_Init already called'
@@ -683,22 +686,34 @@ CONTAINS
 
 
        ! check charge and rescale
-       Orbit%den=0.d0
+       allocate(dpdr(Grid%n),pbr(Grid%n))
+       Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
+          dpdr=0.d0;pbr=0.d0
+          pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
+          CALL extrapolate(Grid,pbr)
+          CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
+          l=Orbit%l(io)
+          fac=l*(l+1)
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
+             Orbit%tau(ir)=Orbit%tau(ir)+&
+&             xocc*((dpdr(ir)-pbr(ir))**2+fac*(pbr(ir))**2)
              If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
 &                 xocc*((Orbit%lwfn(ir,io))**2)                     
           ENDDO
        ENDDO
+       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density
        qcal=integrator(Grid,Orbit%den)
        qf=qcal
        !WRITE(6,*) 'qcal electrons = ',qcal, electrons
        !rescale density
        rescale=electrons/qcal
        Orbit%den(1:Grid%n)=Orbit%den(1:Grid%n)*rescale
+       Orbit%tau(1:Grid%n)=Orbit%tau(1:Grid%n)*rescale
 
+       deallocate(dpdr,pbr)
        initialconfig=1
         write(6,*) 'completed Orbit_Init '; call flush_unit(6)
 
@@ -709,7 +724,8 @@ CONTAINS
     TYPE(PotentialInfo),INTENT(INOUT) :: Pot
     TYPE(OrbitInfo),INTENT(INOUT) :: Orbit
     INTEGER  :: i,io,ir,ip,l,nfix,j,np
-    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc
+    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac
+    REAL(8),allocatable :: dpdr(:),pbr(:)
        !----------New Configuration--AE calculation--------------
        ! readin revision and normalize the density
 
@@ -751,15 +767,25 @@ CONTAINS
        !  calculate initial charge density from stored wavefunctions
        !    also initial energies
        !
-       Orbit%den=0.d0
+       allocate(dpdr(Grid%n),pbr(Grid%n))
+       Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
+          dpdr=0.d0;pbr=0.d0
+          pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
+          CALL extrapolate(Grid,pbr)
+          CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
+          l=Orbit%l(io)
+          fac=l*(l+1)
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
+             Orbit%tau(ir)=Orbit%tau(ir)+&
+&             xocc*((dpdr(ir)-pbr(ir))**2+fac*(pbr(ir))**2)
             If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
 &                 xocc*((Orbit%lwfn(ir,io))**2)
           ENDDO
        ENDDO
+       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density       
        !
        !  check charge
        !
@@ -769,7 +795,9 @@ CONTAINS
        !  rescale density
        rescale=electrons/qcal
        Orbit%den=Orbit%den*rescale
+       Orbit%tau=Orbit%tau*rescale
 
+       deallocate(dpdr,pbr)
   END SUBROUTINE NC_Init
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

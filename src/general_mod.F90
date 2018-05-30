@@ -233,10 +233,12 @@ CONTAINS
     TYPE(SCFInfo), INTENT(INOUT) :: SCF
     LOGICAL, OPTIONAL :: noalt
 
-    REAL(8) :: ecoul,eex,etot,ekin,eone,h,x,v0,qcal,etxc,small,rescale,electrons
+    REAL(8) :: ecoul,eex,etot,ekin,eone,h,x,v0,qcal,etxc,small,rescale
+    REAL(8) :: electrons,fac
     INTEGER :: icount,i,j,k,l,m,n,io
     REAL(8), ALLOCATABLE :: dum(:)
     REAL(8) :: small0=1.d-6
+    REAL(8),allocatable :: dpdr(:),pbr(:)
     INTEGER :: counter=1
 
 
@@ -250,12 +252,22 @@ CONTAINS
     ENDIF
 
     !update density
-    Orbit%den(1:n)=0.d0
+    allocate(dpdr(Grid%n),pbr(Grid%n))
+    Orbit%den=0.d0;Orbit%tau=0.d0
+
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
+         dpdr=0.d0;pbr=0.d0
+         pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
+         CALL extrapolate(Grid,pbr)
+         CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
+         l=Orbit%l(io)
+         fac=l*(l+1)
           DO i=1,n
              IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
              Orbit%den(i)=Orbit%den(i)+ Orbit%occ(io)*(Orbit%wfn(i,io)**2)
+             Orbit%tau(i)=Orbit%tau(i)+&
+&             Orbit%occ(io)*((dpdr(i)-pbr(i))**2+fac*(pbr(i))**2)
              IF (diracrelativistic) then
              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
              Orbit%den(i)=Orbit%den(i)+ &
@@ -265,6 +277,8 @@ CONTAINS
        ENDIF
 
     ENDDO
+       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density
+
     qcal=integrator(Grid,Orbit%den)
     WRITE(6,*) 'qcal = ', qcal
 
@@ -272,7 +286,9 @@ CONTAINS
     electrons=Pot%q
     rescale=electrons/qcal
     Orbit%den(1:n)=Orbit%den(1:n)*rescale
+    Orbit%tau(1:n)=Orbit%tau(1:n)*rescale
     !WRITE(6,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
+    deallocate(dpdr,pbr)
 
     CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
 

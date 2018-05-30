@@ -17,9 +17,10 @@ PROGRAM graphatom
 
   IMPLICIT NONE
 
-  INTEGER :: i,iargc,ifinput
+  INTEGER :: i,iargc
   CHARACTER(80) :: verbose
   LOGICAL :: lotsofoutput=.false.
+  INTEGER, PARAMETER :: ifinput=7
 
   if (iargc()>0) then
        call GetArg(1,verbose)

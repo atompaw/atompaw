@@ -1227,7 +1227,7 @@ CONTAINS
       write(6,*) 'Warning: does not include core contributions'
     ELSE
       arg=PAW%tden+PAW%tcore
-      CALL exch(Grid,arg,dum,y,x)
+         CALL exch(Grid,arg,dum,y,x)
     ENDIF
     write(6,*) 'Smooth exchange-correlation contribution ', x
     PAW%txc=x   ; PAW%tvale=PAW%tvale+PAW%txc
@@ -1278,10 +1278,10 @@ CONTAINS
     ELSE
       arg=PAW%tden+PAW%tcore
       !CALL exch(Grid,arg(1:irc),dum(1:irc),y,x,fin=irc)
-      CALL exch(Grid,arg,dum,y,x)
+         CALL exch(Grid,arg,dum,y,x)
       arg=PAW%den+FC%coreden
       !CALL exch(Grid,arg(1:irc),dum(1:irc),y,z,fin=irc)
-      CALL exch(Grid,arg,dum,y,z)
+         CALL exch(Grid,arg,dum,y,z)
       write(6,*) ' one center xc ', z,x,z-x
       PAW%Ea=PAW%Ea+z-x; PAW%Eaxc=z-x
     ENDIF

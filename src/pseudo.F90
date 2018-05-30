@@ -7,7 +7,9 @@
 !        makebasis_V_setvloc, formprojectors, bsolv, ftprod, fthatpot,
 !        ftkin, ftvloc, unboundsep, boundsep, PStoAE, Set_PAW_MatrixElements,
 !        logderiv, FindVlocfromVeff, SCFPAW, PAWIter_LDA, exploreparms,
-!        EXPLORElogderiv, Report_PseudobasisRP
+!        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
+!
+! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -2025,7 +2027,7 @@ CONTAINS
    call poisson(Grid,gp,tdum,dum,stuff)    ! Coulomb from tcore and tden
    write(6,*) 'After Poisson ', gp,stuff
    PAW%rveff=PAW%rveff+dum
-   CALL exch(Grid,tdum,hat,gp,stuff)
+      CALL exch(Grid,tdum,hat,gp,stuff)
    PAW%rveff=PAW%rveff+hat
    do i=1,n
       write(901,'(1p,20e15.7)') Grid%r(i),PAW%rveff(i),PAW%AErefrv(i),dum(i),&
@@ -2998,6 +3000,9 @@ CONTAINS
     !   and to compare them with all electron wavefunctions
     !  optionally, wavefunctions are written to a file
     !  Assumes prior call to SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
+    ! 5/2018 program modified by Casey Brock to output atan(logderiv)
+    !      values, with pi jumps taken into account
+    !   
     !************************************************************************
     SUBROUTINE logderiv(Grid,Pot,PAW)
       TYPE(GridInfo), INTENT(IN) :: Grid
@@ -3010,6 +3015,11 @@ CONTAINS
       REAL(8) :: de,h,x,dwdr,dcwdr,scale,energy
       REAL(8), ALLOCATABLE :: psi(:),tpsi(:),ttpsi(:)
       CHARACTER(4)  :: flnm
+      REAL(8) :: y_ae, x_ae, y_ps, x_ps 
+      REAL(8) :: atan_ae, atan_ps, atan_ae_prev, atan_ps_prev
+      REAL(8) :: atan_ae_shifted, atan_ps_shifted
+      REAL(8) :: cumshift_ae, cumshift_ps
+
 
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc;  nr=irc+10
 
@@ -3034,6 +3044,8 @@ CONTAINS
       DO l=0,PAW%lmax+1
          CALL mkname(l,flnm)
          OPEN(56,file='logderiv.'//TRIM(flnm),form='formatted')
+         cumshift_ae = 0.d0  ! initialize atan phase shifts
+         cumshift_ps = 0.d0  
 
          DO ie=1,nlogderiv
             energy=minlogderiv+de*(ie-1)
@@ -3049,10 +3061,38 @@ CONTAINS
             CALL unboundsep(Grid,PS,PAW,nr,l,energy,tpsi,nodes)
             CALL PStoAE(Grid,PAW,nr,l,tpsi,ttpsi)
             !
-            dwdr=Gfirstderiv(Grid,irc,psi)/psi(irc)
-            dcwdr=Gfirstderiv(Grid,irc,ttpsi)/ttpsi(irc)
+!            dwdr=Gfirstderiv(Grid,irc,psi)/psi(irc)
+!            dcwdr=Gfirstderiv(Grid,irc,ttpsi)/ttpsi(irc)
+             !!! CALCULATE ATANS 
+             y_ae = Gfirstderiv(Grid,irc,psi)
+             x_ae = psi(irc)
+             y_ps = Gfirstderiv(Grid,irc,ttpsi)
+             x_ps = ttpsi(irc)
+ 
+             dwdr = y_ae/x_ae
+             dcwdr = y_ps/x_ps
+             
+! calculate atan and 
+! phase shift by n*pi if necessary so the atan curve is continous
+             IF (ie > 1) THEN
+                 atan_ae_prev = atan_ae
+                 atan_ps_prev = atan_ps
+                 atan_ae = atan2(y_ae,x_ae)
+                 atan_ps = atan2(y_ps,x_ps)
+                 CALL phase_unwrap(atan_ae, atan_ae_prev, cumshift_ae)
+                 atan_ae_shifted = atan_ae + cumshift_ae
+                 CALL phase_unwrap(atan_ps, atan_ps_prev, cumshift_ps)
+                 atan_ps_shifted = atan_ps + cumshift_ps
+             ELSE
+                 atan_ae = atan2(y_ae,x_ae)
+                 atan_ps = atan2(y_ps,x_ps)
+                 atan_ae_shifted = atan_ae
+                 atan_ps_shifted = atan_ps
+             ENDIF
+ 
 
-            WRITE(56,'(1p,5e12.4)') energy,dwdr,dcwdr ;
+            WRITE(56,'(1p,5e12.4)') energy,dwdr,dcwdr,atan_ae_shifted,&
+&                 atan_ps_shifted                    
             IF (ie.EQ.ke) THEN
                mbase=mbase+1
                CALL mkname(mbase,flnm)
@@ -3139,7 +3179,7 @@ CONTAINS
         PAW%trvx=0.d0
       ELSE
         d=PAW%tden+PAW%tcore
-        CALL exch(Grid,d,dvx,etxc,eexc)
+           CALL exch(Grid,d,dvx,etxc,eexc)
         PAW%trvx=dvx
         dv=dv+dvx
       endif
@@ -3174,11 +3214,11 @@ CONTAINS
 
 !     Compute Vxc(tcore+tDEN)
       d=PAW%tcore+PAW%tden
-      CALL exch(Grid,d,v,etxc,eexc)
+         CALL exch(Grid,d,v,etxc,eexc)
 
 !     Compute Vxc(tcore+tDEN+hatDEN)
       d=PAW%tcore+PAW%tden+tq*PAW%hatden
-      CALL exch(Grid,d,vv,etxc,eexc)
+         CALL exch(Grid,d,vv,etxc,eexc)
 
 !     Store Vxc(tcore+tDEN)-Vxc(tcore+tDEN+hatDEN)
       do i=2,n
@@ -3434,7 +3474,7 @@ CONTAINS
         PAW%tion=overlap(Grid,arg,PAW%tden)
         rv=rv+rhs    ! vion + valence-Hartree
         arg=PAW%tden+PAW%tcore
-        call exch(Grid,arg,rhs,x,y)
+           call exch(Grid,arg,rhs,x,y)
         PAW%txc=y
         rv=rv+rhs    ! + vxc
 
@@ -3482,9 +3522,9 @@ CONTAINS
 
       Write(6,*) 'Before EXC ', PAW%Ea
       irc=PAW%irc
-      call exch(Grid,arg,v1,x,y,fin=irc)
+         call exch(Grid,arg,v1,x,y,fin=irc)
       PAW%Ea=PAW%Ea+y  ; write(6,*) 'AE EXC ' ,y
-      call exch(Grid,rhs,v2,x,y,fin=irc)
+         call exch(Grid,rhs,v2,x,y,fin=irc)
       PAW%Ea=PAW%Ea-y  ; write(6,*) 'PS EXC ' ,y
 
       PAW%Etotal=PAW%tkin+PAW%tion+PAW%tvale+PAW%txc+PAW%Ea
@@ -3850,4 +3890,26 @@ CONTAINS
     deallocate(mapp)
 
   END SUBROUTINE Report_PseudobasisRP
+
+
+!************************************************************************
+! 5/2018 Program written by Casey Brock from Vanderbilt U.
+!  unwraps phase so it is continuous (no jumps of pi)
+!
+!  prev and curr should always be unshifted
+!  the cumulative shift is modified in place
+!************************************************************************
+SUBROUTINE phase_unwrap(curr, prev, cumshift)
+   REAL(8), INTENT(IN) :: prev, curr
+   REAL(8), INTENT(INOUT) :: cumshift
+
+   REAL(8) :: phase_diff
+
+   phase_diff = curr - prev
+   IF (abs(phase_diff) > pi/2.d0) THEN
+       cumshift = cumshift - sign(pi, phase_diff)  
+! sign so the phase shift is in the right direction
+   ENDIF
+END SUBROUTINE phase_unwrap
+
 END MODULE pseudo

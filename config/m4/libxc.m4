@@ -40,9 +40,9 @@ AC_DEFUN([ATP_LIBXC_CHECK],[
        double exc[5];
        double rho[3] = {0.1, 0.2, 0.3};
        int err,func_id = 1;
-       err=xc_func_init(&func, func_id, XC_UNPOLARIZED)
+       err=xc_func_init(&func, func_id, XC_UNPOLARIZED);
        xc_lda_exc(&func, 3, rho, exc);
-     ]])],,[atp_libxc_ok="yes"], [atp_libxc_ok="no"])
+     ]])],[atp_libxc_ok="yes"], [atp_libxc_ok="no"])
   AC_LANG_POP([C])
 
   AC_MSG_RESULT([${atp_libxc_ok}])

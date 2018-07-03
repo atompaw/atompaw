@@ -90,7 +90,11 @@ void xc_get_flags_constants(int *xc_cst_flags_have_exc,
  *xc_cst_flags_have_fxc  = XC_FLAGS_HAVE_FXC;
  *xc_cst_flags_have_kxc  = XC_FLAGS_HAVE_KXC;
  *xc_cst_flags_have_lxc  = XC_FLAGS_HAVE_LXC;
+#if ( XC_MAJOR_VERSION > 3 )
  *xc_cst_flags_needs_laplacian  = XC_FLAGS_NEEDS_LAPLACIAN;
+#else
+ *xc_cst_flags_needs_laplacian  = 0;
+#endif
 }
 
 /* ===============================================================
@@ -199,5 +203,19 @@ void xc_func_set_params(XC(func_type) *xc_func, double *ext_params, int n_ext_pa
   else
    {fprintf(stderr, "BUG: invalid entry in set_params!\n");abort();}
  }
+
+/* ===============================================================
+ * Wrapper to xc_func_set_dens_threshold for backward compatibility
+ *    Allows to change the zero-density threshold of a XC functional
+ *    Only available from libXC v4
+ * ===============================================================
+ */
+void xc_func_set_density_threshold(XC(func_type) *xc_func, double *dens_threshold)
+#if ( XC_MAJOR_VERSION > 3 ) 
+/* ==== libXC v4.0 and later ==== */
+   {XC(func_set_dens_threshold)(xc_func, *dens_threshold);}
+#else
+   {fprintf(stderr, "WARNING: setting density threshold not available for libXC<4.0!\n");}
+#endif
 
 #endif

@@ -4,7 +4,7 @@
 !  This module contains the following active functions:
 !     Logofterm, Aofec
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+ 
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -602,7 +602,7 @@ CONTAINS
         gradmag=ABS(grad)
         tmpt(2:n)=tau(2:n)/(fpi*(Grid%r(2:n)**2))
         call extrapolate(Grid,tmpt)
-        if(libxc_needlap()) then
+        if(libxc_needs_laplacian()) then
           allocate(dum(n),lrho(n))
           dum=0.d0;lrho=0
           call derivative(Grid,grad,dum,1,n)

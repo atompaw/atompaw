@@ -3000,7 +3000,7 @@ CONTAINS
     !   and to compare them with all electron wavefunctions
     !  optionally, wavefunctions are written to a file
     !  Assumes prior call to SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
-    ! 5/2018 program modified by Casey Brock to output atan(logderiv)
+    ! 7/2018 program modified by Casey Brock to output atan(logderiv)
     !      values, with pi jumps taken into account
     !   
     !************************************************************************
@@ -3016,9 +3016,11 @@ CONTAINS
       REAL(8), ALLOCATABLE :: psi(:),tpsi(:),ttpsi(:)
       CHARACTER(4)  :: flnm
       REAL(8) :: y_ae, x_ae, y_ps, x_ps 
-      REAL(8) :: atan_ae, atan_ps, atan_ae_prev, atan_ps_prev
-      REAL(8) :: atan_ae_shifted, atan_ps_shifted
       REAL(8) :: cumshift_ae, cumshift_ps
+      REAL(8) :: atan_ae, atan_ps, atan_prev_ae, atan_prev_ps 
+      REAL(8) :: slope_ae, slope_ps, slope_prev_ae, slope_prev_ps
+      REAL(8) :: atan_shifted_ae, atan_shifted_ps
+      INTEGER :: cnt_ae, cnt_ps
 
 
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc;  nr=irc+10
@@ -3044,8 +3046,14 @@ CONTAINS
       DO l=0,PAW%lmax+1
          CALL mkname(l,flnm)
          OPEN(56,file='logderiv.'//TRIM(flnm),form='formatted')
-         cumshift_ae = 0.d0  ! initialize atan phase shifts
-         cumshift_ps = 0.d0  
+
+! initialize variables for atan calculation
+         cnt_ae = 1
+         slope_ae = 0.d0
+         cumshift_ae = 0.d0 
+         cnt_ps = 1
+         slope_ps = 0.d0
+         cumshift_ps = 0.d0 
 
          DO ie=1,nlogderiv
             energy=minlogderiv+de*(ie-1)
@@ -3074,25 +3082,25 @@ CONTAINS
              
 ! calculate atan and 
 ! phase shift by n*pi if necessary so the atan curve is continous
-             IF (ie > 1) THEN
-                 atan_ae_prev = atan_ae
-                 atan_ps_prev = atan_ps
-                 atan_ae = atan2(y_ae,x_ae)
-                 atan_ps = atan2(y_ps,x_ps)
-                 CALL phase_unwrap(atan_ae, atan_ae_prev, cumshift_ae)
-                 atan_ae_shifted = atan_ae + cumshift_ae
-                 CALL phase_unwrap(atan_ps, atan_ps_prev, cumshift_ps)
-                 atan_ps_shifted = atan_ps + cumshift_ps
-             ELSE
-                 atan_ae = atan2(y_ae,x_ae)
-                 atan_ps = atan2(y_ps,x_ps)
-                 atan_ae_shifted = atan_ae
-                 atan_ps_shifted = atan_ps
-             ENDIF
- 
+            atan_ae = atan2(y_ae, x_ae)
+            IF (ie>1) THEN
+               slope_ae = atan_ae - atan_prev_ae
+               CALL phase_unwrap(ie, y_ae, x_ae, atan_ae, atan_prev_ae, slope_ae, slope_prev_ae, cumshift_ae, cnt_ae)
+            ENDIF
+            atan_shifted_ae = atan_ae + cumshift_ae
+            slope_prev_ae = slope_ae
+            atan_prev_ae = atan_ae
+            atan_ps = atan2(y_ps, x_ps)
+            IF (ie>1) THEN
+               slope_ps = atan_ps - atan_prev_ps
+               CALL phase_unwrap(ie, y_ps, x_ps, atan_ps, atan_prev_ps, slope_ps, slope_prev_ps, cumshift_ps, cnt_ps)
+            ENDIF
+            atan_shifted_ps = atan_ps + cumshift_ps
+            slope_prev_ps = slope_ps
+            atan_prev_ps = atan_ps
 
-            WRITE(56,'(1p,5e12.4)') energy,dwdr,dcwdr,atan_ae_shifted,&
-&                 atan_ps_shifted                    
+            WRITE(56,'(1p,5e12.4)') energy,dwdr,dcwdr,atan_shifted_ae,&
+&                 atan_shifted_ps
             IF (ie.EQ.ke) THEN
                mbase=mbase+1
                CALL mkname(mbase,flnm)
@@ -3893,22 +3901,36 @@ CONTAINS
 
 
 !************************************************************************
-! 5/2018 Program written by Casey Brock from Vanderbilt U.
-!  unwraps phase so it is continuous (no jumps of pi)
+! 7/2018 Program written by Casey Brock from Vanderbilt U.
+!  Unwraps phase so it is continuous (no jumps of pi)
+!  The algorithm was designed by Alan Tackett.
 !
-!  prev and curr should always be unshifted
-!  the cumulative shift is modified in place
+!  x, y: psi and psi' used to calculate atan
+!  atan_curr, atan_prev: value of atan, and values from prev. iteration
+!     These should always be unshifted.
+!  s2, s1: current (s2) and previous (s1) values of atan slope
+!  cumshift: an integer multiple of pi, the cumulative shift applied
+!     to atan
+!  cnt: the number of previous points that were shifted
 !************************************************************************
-SUBROUTINE phase_unwrap(curr, prev, cumshift)
-   REAL(8), INTENT(IN) :: prev, curr
+SUBROUTINE phase_unwrap(ie, y, x, atan_curr, atan_prev, s2, s1, cumshift, cnt)
+   INTEGER, INTENT(IN) :: ie
+   REAL(8), INTENT(IN) :: x, y, s1, s2
+   REAL(8), INTENT(IN) :: atan_curr, atan_prev
    REAL(8), INTENT(INOUT) :: cumshift
+   INTEGER, INTENT(INOUT) :: cnt
 
-   REAL(8) :: phase_diff
+   cnt = cnt + 1
 
-   phase_diff = curr - prev
-   IF (abs(phase_diff) > pi/2.d0) THEN
-       cumshift = cumshift - sign(pi, phase_diff)  
-! sign so the phase shift is in the right direction
+! if (x<0) AND (slope changes sign)
+   IF ((x<0) .AND. (atan_curr*atan_prev < 0)) THEN
+      cnt = 0
+      cumshift = cumshift - sign(pi, y)
+! if (slope changes sign) AND (last two points weren't shifted) 
+!    AND (absolute change in slope > 0.01)
+   ELSE IF ((s1*s2 < 0) .AND. (cnt>2) .AND. (ABS(s2-s1)>0.01)) THEN
+      cnt = 0
+      cumshift = cumshift + sign(pi, s1)
    ENDIF
 END SUBROUTINE phase_unwrap
 

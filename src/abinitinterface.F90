@@ -308,6 +308,14 @@ Module ABINITInterface
 !---- Allocations and initializations
 
 !---- Initialize some useful data
+!!! test for positive  pseudo core + nhat
+     if (pshead%vlocopt==1.and..not.PAW%poscorenhat) then
+      write(6,*) ' Detected negative values for pseudo core + nhat '
+      write(6,*)  '  which is incompatible with usexcnhat '
+      write(6,*)  ' Please try reducing rc_core '
+      write(6,*)  ' abinit file not created '
+      return
+    endif    
  allocate(pawarray%indlmn(6,pshead%lmn_size))
  call initpawps(pshead,pawarray)
 

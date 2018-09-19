@@ -3222,7 +3222,7 @@ CONTAINS
 
 !     Compute Vxc(tcore+tDEN)
       d=PAW%tcore+PAW%tden
-         CALL exch(Grid,d,v,etxc,eexc)
+        CALL exch(Grid,d,v,etxc,eexc)
 
 !     Compute Vxc(tcore+tDEN+hatDEN)
       d=PAW%tcore+PAW%tden+tq*PAW%hatden
@@ -3256,6 +3256,16 @@ CONTAINS
       do i=1,n
         PAW%abinitvloc(i)=PAW%abinitvloc(i)+PAW%abinitnohat(i)  ! in Rydberg units
       enddo
+
+! check if PAW%tcore+tq*PAW%hatden is positive      
+      PAW%poscorenhat=.true.
+      PAW%nhatv=tq*PAW%hatden
+      do i=1,irc
+         if ((PAW%tcore(i)+PAW%nhatv(i))<-1.d-8) then
+          PAW%poscorenhat=.false.
+          exit       
+         endif
+      enddo   
 
       open(123,file='compare.abinit', form='formatted')
       do i=2,n

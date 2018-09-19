@@ -43,6 +43,16 @@ Module PWscfInterface
      CHARACTER(256) :: inputline
      CHARACTER(50) :: UPFlabel,tmplabel
      LOGICAL :: testing
+
+!!! test for positive  pseudo core + nhat
+     if (.not.PAW%poscorenhat) then
+       write(6,*) ' Detected negative values for pseudo core + nhat '
+       write(6,*)  '  which is not correctly treated in the current form '
+       write(6,*)  '  of Quantum Espresso '
+       write(6,*)  ' Please try reducing rc_core '
+       write(6,*)  ' UPF file not created '
+       return
+     endif      
      ALLOCATE(dum(Grid%n),arg(Grid%n),rvion(Grid%n),rtvion(Grid%n),&
 &            dij0(PAW%nbase,PAW%nbase))
    
@@ -233,7 +243,6 @@ Module PWscfInterface
       WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
       WRITE(1001,'("                             </PP_LOCAL> ")')
 
-
       WRITE(1001,'("<PP_NONLOCAL> ")')
       do io=1,PAW%nbase
         call mkname(io,s1)  ; inputfileline=' <PP_BETA.'//TRIM(s1)
@@ -245,6 +254,11 @@ Module PWscfInterface
             call filter(upfmesh,upff,machine_zero)
             upff(upfirc+1:upfmesh)=0.d0
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
+            open(800,file='beta.'//TRIM(s1),form='formatted')
+            do i=1,upfmesh
+              write(800,'(i10,1p,2e15.7)') i,upfr(i),upff(i)
+            enddo  
+            close(800)
          WRITE(1001,'(30x,(a))') '</PP_BETA.'//TRIM(s1)//'>'
       enddo
 
@@ -313,6 +327,11 @@ Module PWscfInterface
             upff=0;call interpfunc(n,Grid%r,PAW%otphi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
+            open(800,file='ppchi.'//TRIM(s1),form='formatted')
+            do i=1,upfmesh
+              write(800,'(i10,1p,2e15.7)') i,upfr(i),upff(i)
+            enddo  
+            close(800)
             WRITE(1001,'(30x,(a))') '</PP_CHI.'//TRIM(s1)//'>'
       enddo
       WRITE(1001,'("                             </PP_PSWFC> ")')
@@ -327,7 +346,13 @@ Module PWscfInterface
 &           TRIM(inputfileline),upfmesh,PAW%l(io)
             upff=0;call interpfunc(n,Grid%r,PAW%ophi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
+! doesn't seem like a good idea      upff(upfirc+1:upfmesh)=0.d0
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
+            open(800,file='aepsi.'//TRIM(s1),form='formatted')
+            do i=1,upfmesh
+              write(800,'(i10,1p,2e15.7)') i,upfr(i),upff(i)
+            enddo  
+            close(800)
          WRITE(1001,'(30x,(a))') '</PP_AEWFC.'//TRIM(s1)//'>'
       enddo
 
@@ -338,6 +363,12 @@ Module PWscfInterface
 &           TRIM(inputfileline),upfmesh,PAW%l(io)
             upff=0;call interpfunc(n,Grid%r,PAW%otphi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
+!!-- doen't seem like a good idea            upff(upfirc+1:upfmesh)=0.d0
+            open(800,file='pspsi.'//TRIM(s1),form='formatted')
+            do i=1,upfmesh
+              write(800,'(i10,1p,2e15.7)') i,upfr(i),upff(i)
+            enddo  
+            close(800)
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
          WRITE(1001,'(30x,(a))') '</PP_PSWFC.'//TRIM(s1)//'>'
       enddo

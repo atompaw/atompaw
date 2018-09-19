@@ -216,6 +216,14 @@ Module XMLInterface
 &                                    +(AEPot%nz-FC%zcore)/Grid%r(mesh_data%vion_meshsz)
   write(std_out,'(2x,a)') '  This quantity must be as small as possible.'
  endif
+ !!! test for positive  pseudo core + nhat 
+   if (vlocopt==1.and..not.PAW%poscorenhat) then 
+     write(6,*) ' Detected negative values for pseudo core + nhat '
+     write(6,*)  '  which is incompatible with usexcnhat '
+     write(6,*)  ' Please try reducing rc_core '
+     write(6,*)  ' xml file not created '
+     return
+   endif    
  if (vlocopt==2) then
   write(std_out,'(/,2x,a,a,f5.2,a,a,g11.4)') 'Atompaw2XML info:',&
 &   '  At r_vloc=',Grid%r(mesh_data%vion_meshsz),' a.u.,',&

@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.1.0.3],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.1.0.4],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,9 +28,10 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!- Version ${PACKAGE_VERSION} - 7/2018 - MT fixed some libxc issues 
+!- Version ${PACKAGE_VERSION} - 9/2018 - NH check for positive xc argument
 EOF
-!- Version ${PACKAGE_VERSION} - 5/2018 - mod. abinitinterface, other updates
+#!- Version ${PACKAGE_VERSION} - 7/2018 - MT fixed some libxc issues 
+#!- Version ${PACKAGE_VERSION} - 5/2018 - mod. abinitinterface, other updates
 #!--- Version ${PACKAGE_VERSION} - 3/2018 -- MT enabled libxc4
 #!--- Version ${PACKAGE_VERSION} - 01/2018 -- Dirac solver available for graphatom
 #!--- Version ${PACKAGE_VERSION} - 09/2017 -- LibXC C API now used + libXC detection improved

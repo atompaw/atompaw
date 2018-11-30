@@ -124,7 +124,7 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
       atp_libxc_libs_ok="yes"
       AC_SEARCH_LIBS(${list_funcs},[xc],[],[atp_libxc_libs_ok="no"],[-lm])
       if test "${atp_libxc_libs_ok}" = "yes"; then
-        with_libxc_libs="${LDFLAGS}"
+        with_libxc_libs="${LDFLAGS} -lm"
       else
         AC_MSG_ERROR([LibXC library (libxc.*) was not found with the specified --with_libxc_libs/--with_libxc_prefix option])
       fi

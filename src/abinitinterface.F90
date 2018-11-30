@@ -538,16 +538,21 @@ Module ABINITInterface
   pshead%pspxc_abinit=7
  elseif (trim(ADJUSTL(exctype))=="GGA-PBE") then
   pshead%pspxc_abinit=11
+ elseif (trim(ADJUSTL(exctype))=="GGA-PBESOL") then
+  pshead%pspxc_abinit=-116133
+  write(std_out,'(/,2x,a)') "Atompaw2Abinit - WARNING:"
+  write(std_out,'(2x,a)') "   PBESOL exchange-correlation functional will be only usable"
+  write(std_out,'(2x,a)') "   if ABINIT is compiled with libXC library!"
  else if (have_libxc) then
   call libxc_getid(id)
   if (id(1)>=0.and.id(2)>=0) then
    pshead%pspxc_abinit=-(1000*id(1)+id(2))
   else
-   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type !"
+   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type!"
    stop
   end if
  else
-  write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type !"
+  write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type!"
   stop
  endif
 
@@ -571,21 +576,21 @@ Module ABINITInterface
  if (pshead%core_meshsz<pshead%wav_meshsz) then
   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1):"
   write(std_out,'(2x,a)') "   Mesh size for tcore density (CORETAIL_POINTS)"
-  write(std_out,'(2x,a)') "   must be greater or equal than MESH_SIZE !"
+  write(std_out,'(2x,a)') "   must be greater or equal than MESH_SIZE!"
   stop
  endif
  if (pshead%mesh_type==1) then
   if (pshead%rc_sph>pshead%rad_step*dble(pshead%wav_meshsz-1)+tol8) then
    write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1):"
    write(std_out,'(2x,a)') "   Radius for PAW spheres (RC)"
-   write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE) !"
+   write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE)!"
    stop
   endif
  else
   if (pshead%rc_sph>pshead%rad_step*(exp(pshead%log_step*dble(pshead%wav_meshsz-1))-one)+tol8) then
    write(std_out,'(/,2x,a)') "Error in :Atompaw2Abinit(rdpawps1)"
    write(std_out,'(2x,a)') "   Radius for PAW spheres (RC)"
-   write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE) !"
+   write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE)!"
    stop
   endif
  endif
@@ -2376,7 +2381,7 @@ end subroutine calc_shapef
  icor=0
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
-   icor=icor+1;if (icor>pshead%core_size) stop "Atompaw : bug in wrcorewf !"
+   icor=icor+1;if (icor>pshead%core_size) stop "Atompaw : bug in wrcorewf!"
    do isppol=1,nsppol
     if (nsppol==2) then
      if (isppol==1) spstrg=" UP"
@@ -2505,7 +2510,7 @@ end subroutine calc_shapef
  if (idir==1) then
 
   if (nn>Grid%n) then
-   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large !"
+   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large!"
   end if
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=Grid%n
@@ -2529,7 +2534,7 @@ end subroutine calc_shapef
  else if (idir==-1) then
 
   if (nn>pawrad%meshsz) then
-   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large !"
+   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large!"
   end if
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=pawrad%meshsz

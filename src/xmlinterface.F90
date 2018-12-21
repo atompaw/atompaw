@@ -29,6 +29,7 @@ Module XMLInterface
  use gridmod
  use excor
  use pseudo
+ use interpolation_mod
  use pkginfo
  use libxc_mod
 
@@ -168,7 +169,7 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: id,vlocopt,prtcorewf
+ integer :: id,vlocopt,prtcorewf,nsplgrid
  type(mesh_data_type) :: mesh_data
  type(pawrso_type) :: pawrso
  character*(fnlen) :: author,file_xml,file_xml_core,xcname
@@ -191,7 +192,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Read choices from input file
 
- call rdinputxml(vlocopt,prtcorewf,pawrso,author,input_string)
+ call rdinputxml(vlocopt,prtcorewf,pawrso,author,nsplgrid,input_string)
 
 !------------------------------------------------------------------
 !---- Build radial meshes definitions
@@ -247,13 +248,13 @@ Module XMLInterface
  file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw'
 
  call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
- &              input_string,author)
+ &              input_string,author,nsplgrid)
 
 !------------------------------------------------------------------
 !---- Write core wave functions in XML format
 
  if (prtcorewf==1) then
-   file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-corewf'
+   file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.xml.corewf'
    call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
  &                 input_string,author)
  endif
@@ -285,6 +286,8 @@ Module XMLInterface
 !!    %gfact=Real Space Optimization parameter: Gamma/Gmax ratio
 !!    %userso=TRUE if REAL Space Optimization is required
 !!    %werror=Real Space Optimization parameter: max. error W_l allowed
+!!  author= name of the author(s)
+!!  nsplgrid=if >0, size of a (reduced) grid on which interpolate all data in XML file
 !!
 !! SIDE EFFECTS
 !!  input_string= string containing a copy of atompaw input file
@@ -297,9 +300,9 @@ Module XMLInterface
 !! extractword,uppercase
 !!=================================================================
 
- subroutine rdinputxml(vlocopt,prtcorewf,pawrso,author,input_string)
+ subroutine rdinputxml(vlocopt,prtcorewf,pawrso,author,nsplgrid,input_string)
 
- integer,intent(out) :: vlocopt,prtcorewf
+ integer,intent(out) :: vlocopt,prtcorewf,nsplgrid
  type(pawrso_type),intent(out) :: pawrso
  character(len=*),intent(out) :: author
  character(len=*),intent(inout) :: input_string
@@ -308,7 +311,7 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_author,i_prtcorewf,i_usexcnhat,i_rsoptim,iend,ok,nn
+ integer :: i_author,i_prtcorewf,i_splgrid,i_usexcnhat,i_rsoptim,iend,ok,nn
  character*(fnlen) :: readline,readline_u,inputline,inputword
 
 !------------------------------------------------------------------
@@ -324,6 +327,7 @@ Module XMLInterface
  i_prtcorewf=index(readline_u,'PRTCOREWF')
  i_rsoptim  =index(readline_u,'RSOPTIM')
  i_author   =index(readline_u,'AUTHOR')
+ i_splgrid  =index(readline_u,'WITHSPLGRID')
 
 !Option for use of NHAT in XC
  if (i_usexcnhat>0) then
@@ -338,7 +342,7 @@ Module XMLInterface
 &  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
 
 !Option for the PRinTing of CORE Wave Functions
- if (i_prtcorewf>0) prtcorewf=1
+ prtcorewf=0 ; if (i_prtcorewf>0) prtcorewf=1
 
 !Option for use of REAL SPACE OPTIMIZATION
  pawrso%userso=userso_def
@@ -382,6 +386,17 @@ Module XMLInterface
    author=""
    write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
 &   "XMLOUT",char(10),trim(readline)
+ end if
+
+ nsplgrid=-1
+ if(i_splgrid>0) then
+   iend=128
+   inputline=""
+   if (iend>i_splgrid+11) inputline=trim(readline(i_splgrid+11:iend))
+   if (inputline/="") then
+     call extractword(1,inputline,inputword);inputword=trim(inputword)
+     if (inputword/="") read(inputword,*) nsplgrid
+   end if
  end if
 
  end subroutine rdinputxml
@@ -649,6 +664,7 @@ Module XMLInterface
 !! vlocopt= option for local potential (1=Blochl, 2=Kresse)
 !! input_string= string containing a copy of atompaw input file
 !! author= string containing the author(s) name
+!! nsplgrid=if >0, size of a (reduced) grid on which interpolate all data in XML file
 !!
 !! PARENTS
 !! atompaw2xml
@@ -658,9 +674,9 @@ Module XMLInterface
 !!=================================================================
 
  SUBROUTINE xmloutput(fname,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,&
-&                     vlocopt,input_string,author)
+&                     vlocopt,input_string,author,nsplgrid)
 
- integer,intent(in) :: vlocopt
+ integer,intent(in) :: vlocopt,nsplgrid
  character(len=*),intent(in) :: input_string,author,fname
  TYPE(Gridinfo),intent(in) :: Grid
  TYPE (SCFInfo),intent(in) :: AESCF
@@ -674,16 +690,19 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: ib,ic,ii,n,ir,irc,nmesh,OK
- integer :: mesh_start(mesh_data%nmesh)
+ real(dp), parameter :: tol_zero=1.d-50 ! Threshold below which quantities are zero
+ real(dp), parameter :: sqr4pi=sqrt(4*pi)
+ 
+ integer :: ib,ic,ii,n,ir,irc,meshsz,meshsz_aux,meshst_aux,nmesh,OK
+ integer :: mesh_start(mesh_data%nmesh),mesh_size(mesh_data%nmesh)
  character(len=3) :: gridtype
  character(len=4) :: char4
  character(len=5) :: char5a,char5b,xc_type
  character(len=20) :: char20
  character(len=132) :: xc_name,xcname_short,code_name
- real(dp) :: radstp0,logstp0,sqr4pi
+ real(dp) :: rad,radstp0,logstp0,radstp_spl,logstp_spl
  character(len=3) :: gridt(mesh_data%nmesh)
- real(dp),allocatable :: dum(:)
+ real(dp),allocatable :: dum(:),dum_aux(:),rad_aux(:),dudr(:)
 
 !------------------------------------------------------------------
 !---- Executable code
@@ -693,7 +712,24 @@ Module XMLInterface
  gridtype="log"
  sqr4pi=sqrt(4*pi)
  n=Grid%n;irc=PAW%irc
+ allocate(dum(n))
 
+!In a change of grid has been requested, determine new grid data
+ radstp_spl=-1.d0 ; logstp_spl=-1.d0
+ if (nsplgrid>0) then
+   logstp_spl=0.02d0
+   call findh(AEPot%zz,Grid%r(mesh_data%meshsz(1)-1),nsplgrid,logstp_spl,radstp_spl)
+   allocate(rad_aux(nsplgrid))
+   allocate(dum_aux(nsplgrid))
+   do ir=1,nsplgrid
+     rad_aux(ir)=radstp_spl*(exp(logstp_spl*(ir-1))-1.d0)
+   end do
+ else
+   allocate(rad_aux(n))
+   allocate(dum_aux(n))
+   rad_aux(1:n)=Grid%r(1:n)
+ end if
+   
 !Open file for writing
  OPEN(unit_xml,file=TRIM(fname)//'.xml',form='formatted')
 
@@ -759,7 +795,7 @@ Module XMLInterface
  WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
  Call PrintDate(unit_xml, ' PAW functions generated on ')
  if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
-!WRITE(unit_xml,'(" JTH table v0.2")')
+!WRITE(unit_xml,'(" JTH table v1.2")')
  WRITE(unit_xml,'(" The input file is available at the end of this file")')
  WRITE(unit_xml,'(" Atompaw -->")')
 
@@ -771,7 +807,7 @@ Module XMLInterface
  WRITE(unit_xml,'("<core_energy kinetic=""",1pe25.17,"""/>")') AESCF%corekin*0.5d0
 
 !PAW radius
- WRITE(unit_xml,'("<paw_radius rc=""",f17.14,"""/>")') PAW%rc
+ WRITE(unit_xml,'("<paw_radius rc=""",f17.14,"""/>")') match_on_splgrid(PAW%rc)
 
 !Electronic configuration
  WRITE(unit_xml,'("<valence_states>")')
@@ -807,157 +843,161 @@ Module XMLInterface
  endif
 
  do ii=1,nmesh
-  allocate(dum(mesh_data%meshsz(ii)),stat=OK)
+  allocate(dudr(mesh_data%meshsz(ii)),stat=OK)
+
   select case(mesh_data%meshtp(ii))
+
    case(1)
     char20='r=d*i'
     gridt(ii)="lin"
     mesh_start(ii)=1
+    mesh_size(ii)=mesh_data%meshsz(ii)
     radstp0=zero
     logstp0=mesh_data%radstp(ii)
-    dum=logstp0
+    dudr(1:mesh_data%meshsz(ii))=logstp0
+
    case(2)
     char20='r=a*(exp(d*i)-1)'
     gridt(ii)="log"
     mesh_start(ii)=1
-    radstp0=mesh_data%radstp(ii)
-    logstp0=mesh_data%logstp(ii)
-    dum(:)=logstp0*(radstp0+Grid%r(:)) 
+    if (nsplgrid<=0) then
+      mesh_size(ii)=mesh_data%meshsz(ii)
+      radstp0=mesh_data%radstp(ii)
+      logstp0=mesh_data%logstp(ii)
+    else
+      mesh_size(ii)=int(tol8+log(1.d0+Grid%r(mesh_data%meshsz(ii))/radstp_spl)/logstp_spl)+1
+      radstp0=radstp_spl
+      logstp0=logstp_spl
+    end if
+    dudr(1:mesh_size(ii))=logstp0*(radstp0+rad_aux(1:mesh_size(ii)))
+
    case default
     write(std_out, '(a)' ) 'This mesh type is not implemented in Atompaw.'
     stop
   end select
-  WRITE(unit_xml,'("<radial_grid eq=""",a,""" a=""",es23.16,$)') trim(char20),radstp0
-  WRITE(unit_xml,'(""" d=""",es23.16,""" istart=""0"" iend=""",i5,$)') logstp0,mesh_data%meshsz(ii)-mesh_start(ii)
+
+  WRITE(unit_xml,'(""" d=""",es23.16,""" istart=""0"" iend=""",i5,$)') logstp0,mesh_size(ii)-mesh_start(ii)
   WRITE(unit_xml,'(""" id=""",a,i1,""">")') gridt(ii),ii
   WRITE(unit_xml,'("  <values>")')
-  WRITE(unit_xml,'(3(1x,es23.16))') (Grid%r(ir),ir=mesh_start(ii),mesh_data%meshsz(ii))
+  WRITE(unit_xml,'(3(1x,es23.16))') (rad_aux(ir),ir=mesh_start(ii),mesh_size(ii))
   WRITE(unit_xml,'("  </values>")')
   WRITE(unit_xml,'("  <derivatives>")')
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ir),ir=mesh_start(ii),mesh_data%meshsz(ii))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dudr(ir),ir=mesh_start(ii),mesh_size(ii))
   WRITE(unit_xml,'("  </derivatives>")')
   WRITE(unit_xml,'("</radial_grid>")')
-  deallocate(dum)
+  deallocate(dudr)
+  
  end do
 
 !Compensation charge shape function
  if (gaussianshapefunction) then
-   WRITE(unit_xml,'("<shape_function type=""gauss"" rc=""",f19.16,"""/>")') PAW%gausslength
+   WRITE(unit_xml,'("<shape_function type=""gauss"" rc=""",f19.16,"""/>")') match_on_splgrid(PAW%gausslength)
  else if (besselshapefunction) then
-   WRITE(unit_xml,'("<shape_function type=""bessel"" rc=""",f19.16,"""/>")') PAW%rc_shap
+   WRITE(unit_xml,'("<shape_function type=""bessel"" rc=""",f19.16,"""/>")') match_on_splgrid(PAW%rc_shap)
  else
-   WRITE(unit_xml,'("<shape_function type=""sinc"" rc=""",f19.16,"""/>")') PAW%rc_shap
+   WRITE(unit_xml,'("<shape_function type=""sinc"" rc=""",f19.16,"""/>")') match_on_splgrid(PAW%rc_shap)
  endif
 
 !Core densities
- allocate(dum(mesh_data%meshsz(mesh_data%icoremesh)),stat=OK)
- dum=zero
- dum(2:mesh_data%meshsz(mesh_data%icoremesh))= &
-&              sqr4pi*FC%coreden(2:mesh_data%meshsz(mesh_data%icoremesh))&
-&              /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
- call extrapolate(Grid,dum)
+ meshsz=mesh_data%meshsz(mesh_data%icoremesh)
+ meshsz_aux=mesh_size(mesh_data%icoremesh)
+ meshst_aux=mesh_start(mesh_data%icoremesh)
+ dum(2:meshsz)=sqr4pi*FC%coreden(2:meshsz))/(4*pi*(Grid%r(2:meshsz))**2)
+ call extrapolate(Grid,dum(1:meshsz))
+ call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
  WRITE(unit_xml,'("<ae_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%icoremesh),mesh_data%meshsz(mesh_data%icoremesh))
+& gridt(mesh_data%icoremesh),mesh_data%icoremesh,match_on_splgrid(PAW%rc_core)
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</ae_core_density>")')
- dum=zero
- dum(2:mesh_data%meshsz(mesh_data%icoremesh))= &
-&              sqr4pi*PAW%tcore(2:mesh_data%meshsz(mesh_data%icoremesh))&
-&               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%icoremesh)))**2)
- call extrapolate(Grid,dum)
+ dum(2:meshsz)=sqr4pi*PAW%tcore(2:meshsz)/(4*pi*(Grid%r(2:meshsz)))**2)
+ call extrapolate(Grid,dum(1:meshsz))
+ call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
  WRITE(unit_xml,'("<pseudo_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%icoremesh),mesh_data%icoremesh,PAW%rc_core
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%icoremesh),mesh_data%meshsz(mesh_data%icoremesh))
+& gridt(mesh_data%icoremesh),mesh_data%icoremesh,match_on_splgrid(PAW%rc_core)
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</pseudo_core_density>")')
- DEALLOCATE(dum)
 
 !Valence density
- ALLOCATE(dum(mesh_data%meshsz(mesh_data%ivalemesh)),stat=OK)
- dum=zero
- dum(2:mesh_data%meshsz(mesh_data%ivalemesh))= &
-&              sqr4pi*PAW%tden(2:mesh_data%meshsz(mesh_data%ivalemesh))&
-&               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%ivalemesh)))**2)
- call extrapolate(Grid,dum)
+ meshsz=mesh_data%meshsz(mesh_data%ivalemesh)
+ meshsz_aux=mesh_size(mesh_data%ivalemesh)
+ meshst_aux=mesh_start(mesh_data%ivalemesh)
+ dum(2:meshsz))=sqr4pi*PAW%tden(2:meshsz))/(4*pi*(Grid%r(2:meshsz))**2)
+ call extrapolate(Grid,dum(1:meshsz))
+ call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
+ rad=maxval(PAW%rcio(1:PAW%nbase)
  WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,maxval(PAW%rcio(1:PAW%nbase))
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivalemesh),mesh_data%meshsz(mesh_data%ivalemesh))
+& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,match_on_splgrid(rad)
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</pseudo_valence_density>")')
- DEALLOCATE(dum)
 
 !Vbare potential
- ALLOCATE(dum(mesh_data%meshsz(mesh_data%ivbaremesh)),stat=OK)
- dum=zero
- dum(1:mesh_data%meshsz(mesh_data%ivbaremesh))= &
-&              sqr4pi*half*PAW%vloc(1:mesh_data%meshsz(mesh_data%ivbaremesh))
+ meshsz=mesh_data%meshsz(mesh_data%ibaremesh)
+ meshsz_aux=mesh_size(mesh_data%ibaremesh)
+ meshst_aux=mesh_start(mesh_data%ibaremesh)
+ dum(1:meshsz)=sqr4pi*half*PAW%vloc(1:meshsz)
+ call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
  WRITE(unit_xml,'("<zero_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh,PAW%rc
- WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivbaremesh),mesh_data%meshsz(mesh_data%ivbaremesh))
+& gridt(mesh_data%ivbaremesh),mesh_data%ivbaremesh,match_on_splgrid(PAW%rc)
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</zero_potential>")')
- DEALLOCATE(dum)
 
 !Local ionic potential
  if (vlocopt==1) then
-  ALLOCATE(dum(mesh_data%meshsz(mesh_data%ivionmesh)),stat=OK)
-  dum=zero
-  dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
-&            sqr4pi*half*PAW%abinitvloc(1:mesh_data%meshsz(mesh_data%ivionmesh))
+  meshsz=mesh_data%meshsz(mesh_data%ivionmesh)
+  meshsz_aux=mesh_size(mesh_data%ivionmesh)
+  meshst_aux=mesh_start(mesh_data%ivionmesh)
+  dum(1:meshsz)=sqr4pi*half*PAW%abinitvloc(1:meshsz)
    WRITE(unit_xml,'("<kresse_joubert_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
-&   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
-   WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivionmesh),mesh_data%meshsz(mesh_data%ivionmesh))
+&   gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,match_on_splgrid(PAW%rc)
+   WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
    WRITE(unit_xml,'("</kresse_joubert_local_ionic_potential>")')
-   DEALLOCATE(dum)
   end if
 
 !Local Blochl''s potential
  if(vlocopt==2) then
-  ALLOCATE(dum(mesh_data%meshsz(mesh_data%ivionmesh)),stat=OK)
-  dum=zero
-  dum(1:mesh_data%meshsz(mesh_data%ivionmesh))= &
-&               sqr4pi*half*PAW%abinitnohat(1:mesh_data%meshsz(mesh_data%ivionmesh))
+  meshsz=mesh_data%meshsz(mesh_data%ivionmesh)
+  meshsz_aux=mesh_size(mesh_data%ivionmesh)
+  meshst_aux=mesh_start(mesh_data%ivionmesh)
+  dum(1:meshsz)=sqr4pi*half*PAW%abinitnohat(1:meshsz)
   WRITE(unit_xml,'("<blochl_local_ionic_potential grid=""",a,i1,""" rc=""",f19.16,""">")') &
-&  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,PAW%rc
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivionmesh),mesh_data%meshsz(mesh_data%ivionmesh))
+&  gridt(mesh_data%ivionmesh),mesh_data%ivionmesh,match_on_splgrid(PAW%rc)
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</blochl_local_ionic_potential>")')
-  DEALLOCATE(dum)
  endif
 
 !Partial waves and projectors
  Do ib=1,PAW%nbase
+  meshsz=mesh_data%meshsz(mesh_data%iwavmesh)
+  meshsz_aux=mesh_size(mesh_data%iwavmesh)
+  meshst_aux=mesh_start(mesh_data%iwavmesh)
   call mkname(ib,char4)
   char20=stripchar('"'//AEPot%sym//char4//'"')
-  ALLOCATE(dum(mesh_data%meshsz(mesh_data%iwavmesh)),stat=OK)
-  dum=zero
-  dum(2:mesh_data%meshsz(mesh_data%iwavmesh))= &
-&               PAW%ophi(2:mesh_data%meshsz(mesh_data%iwavmesh),ib) &
-&              /Grid%r(2:mesh_data%meshsz(mesh_data%iwavmesh))
-  call extrapolate(Grid,dum)
+  dum(2:meshsz)=PAW%ophi(2:meshsz,ib)/Grid%r(2:meshsz)
+  call extrapolate(Grid,dum(1:meshsz))
+  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<ae_partial_wave state=",a6," grid=""",a,i1,""">")') &
 &  TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iwavmesh),mesh_data%meshsz(mesh_data%iwavmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</ae_partial_wave>")')
-  dum=zero
-  dum(2:mesh_data%meshsz(mesh_data%iwavmesh))= &
-&               PAW%otphi(2:mesh_data%meshsz(mesh_data%iwavmesh),ib) &
-&              /Grid%r(2:mesh_data%meshsz(mesh_data%iwavmesh))
-  call extrapolate(Grid,dum)
+  dum(2:meshsz)=PAW%otphi(2:meshsz,ib)/Grid%r(2:meshsz)
+  call extrapolate(Grid,dum(1:meshsz))
+  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<pseudo_partial_wave state=",a6," grid=""",a,i1,""">")')&
 &  TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iwavmesh),mesh_data%meshsz(mesh_data%iwavmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</pseudo_partial_wave>")')
-  DEALLOCATE (dum)
-  ALLOCATE(dum(mesh_data%meshsz(mesh_data%iprjmesh)),stat=OK)
-  dum=zero
-  dum(2:mesh_data%meshsz(mesh_data%iprjmesh))= &
-&               tproj(2:mesh_data%meshsz(mesh_data%iprjmesh),ib) &
-&              /Grid%r(2:mesh_data%meshsz(mesh_data%iprjmesh))
-  call extrapolate(Grid,dum)
+  meshsz=mesh_data%meshsz(mesh_data%iprjmesh)
+  meshsz_aux=mesh_size(mesh_data%iprjmesh)
+  meshst_aux=mesh_start(mesh_data%iprjmesh)
+  dum(2:meshsz)=tproj(2:meshsz,ib)/Grid%r(2:meshsz)
+  call extrapolate(Grid,dum(1:meshsz))
+  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<projector_function state=",a6," grid=""",a,i1,""">")') &
 &  TRIM(char20),gridt(mesh_data%iprjmesh),mesh_data%iprjmesh
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%iprjmesh),mesh_data%meshsz(mesh_data%iprjmesh))
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</projector_function>")')
-  DEALLOCATE (dum)
  Enddo
-
+ 
 !Kinetic terms
  WRITE(unit_xml,'("<kinetic_energy_differences>")')
  WRITE(unit_xml,'(3(1x,es23.16))') ((PAW%kij(ib,ic)/2,ic=1,PAW%nbase),ib=1,PAW%nbase)
@@ -982,6 +1022,54 @@ Module XMLInterface
 
 !Close file
  CLOSE(unit_xml)
+
+ deallocate(rad_spl)
+ deallocate(dum_spl)
+ deallocate(dum)
+ 
+ CONTAINS
+ !**************************************************
+ ! If an interpolation on an auxilliary grid is
+ !   requested, match input radius on this auxilliary
+ !   grid (defined by radstp_spl, logstp_spl)
+ !**************************************************
+  function match_on_splgrid(input_radius)
+    integer :: indx
+    match_on_splgrid=input_radius
+    if (nsplgrid>0) then
+      if (logstp_spl>0.d0) then
+        indx=int(tol8+log(1.d0+input_radius/radstp_spl)/logstp_spl)+1
+        match_on_splgrid=radstp_spl*(exp(logstp_spl*(indx-1))-1.d0)
+      else if (radstp_spl>0.d0) then
+        indx=int(tol8+input_radius/radstp_spl)+1
+        match_on_splgrid=radstp_spl*(indx-1)
+      end if
+    end if
+  end function match_on_splgrid
+
+ !**************************************************
+ ! If an interpolation on an auxilliary grid is
+ !   requested, inerpolate an input function on
+ !   this auxilliary grid.
+ ! Also filter the input function (put zero below
+ !   a given threshold)
+ !**************************************************
+  subroutine interp_and_filter(func_in,func_out)
+  read(dp),intent(in) :: func_in(:)
+  read(dp),intent(out) :: func_out(:)
+  integer :: jj,msz_in,msz_out
+  msz_in=size(func) ; msz_out=size(func_out)
+  if (nsplgrid>0) then
+    if (msz_out/=nsplgrid) stop 'Bug in xmlinterface: msz_out/=nsplgrid!'
+    call interpfunc(msz_in,Grid%r,func_in,msz_out,rad_spl,func_out)
+  else
+    if (msz_out/=msz_in) stop 'Bug in xmlinterface: msz_out/=msz_in!'
+    func_out(1:msz_out)=func_in(1:msz_out)
+  end if
+  do jj=1,msz_out
+    if (abs(func_out(ii))<tol_zero) func_out(jj)=0.d0
+  end do
+  end subroutine interp_and_filter(func_in,func_out) 
 
  END SUBROUTINE xmloutput
 
@@ -1044,7 +1132,7 @@ Module XMLInterface
  nsppol=1
  char_orb(1)="s";char_orb(2)="p";char_orb(3)="d";char_orb(4)="f"
 !Open file for writing
- OPEN(unit_xml_core,file=TRIM(fname)//'.xml',form='formatted')
+ OPEN(unit_xml_core,file=TRIM(fname),form='formatted')
 
 !Write header
  WRITE(unit_xml_core,'("<?xml  version=""1.0""?>")')
@@ -1114,7 +1202,7 @@ Module XMLInterface
      char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
      WRITE(unit_xml_core,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
 &        AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%occ(ib)
-     WRITE(unit_xml_core,'("""  e=""",1pe14.7,""" id=",a10,"/>")')&
+     WRITE(unit_xml_core,'("""  e=""",1pe14.7,""" id=",a11,"/>")')&
 &        AEOrbit%eig(ib)*0.5d0,TRIM(char20)
    end if
  enddo

@@ -176,6 +176,8 @@ LT_INIT([disable-shared])
 LT_PREREQ([2.2.2])
 LTOBJEXT="lo"
 AC_SUBST(LTOBJEXT)
+OBJEXT="o"
+AC_SUBST(OBJEXT)
 
 
                     # ------------------------------------ #

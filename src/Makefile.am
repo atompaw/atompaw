@@ -76,114 +76,114 @@ clean-local:
 
 # Explicit dependencies
 
-abinitinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) excor.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	interpolation_mod.$(LTOBJEXT) pkginfo.$(LTOBJEXT) \
-	libxc_mod.$(LTOBJEXT)  tools_mod.$(LTOBJEXT)
+abinitinterface.$(OBJEXT): atomdata.$(OBJEXT) globalmath.$(OBJEXT) \
+	gridmod.$(OBJEXT) excor.$(OBJEXT) pseudo.$(OBJEXT) \
+	interpolation_mod.$(OBJEXT) pkginfo.$(OBJEXT) \
+	libxc_mod.$(OBJEXT)  tools_mod.$(OBJEXT)
 
-aeatom.$(LTOBJEXT): atomdata.$(LTOBJEXT) excor.$(LTOBJEXT) exx_mod.$(LTOBJEXT) \
-	general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+aeatom.$(OBJEXT): atomdata.$(OBJEXT) excor.$(OBJEXT) exx_mod.$(OBJEXT) \
+	general_mod.$(OBJEXT) globalmath.$(OBJEXT) gridmod.$(OBJEXT) \
+	hf_mod.$(OBJEXT) ldagga_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-anderson_driver.$(LTOBJEXT): globalmath.$(LTOBJEXT)
+anderson_driver.$(OBJEXT): globalmath.$(OBJEXT)
 
-atomdata.$(LTOBJEXT):
+atomdata.$(OBJEXT):
 
-atompaw_lib.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	atomdata.$(LTOBJEXT) atompaw_report.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	abinitinterface.$(LTOBJEXT) pwscfinterface.$(LTOBJEXT) xmlinterface.$(LTOBJEXT) \
-	pkginfo.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+atompaw_lib.$(OBJEXT): globalmath.$(OBJEXT) aeatom.$(OBJEXT) \
+	atomdata.$(OBJEXT) atompaw_report.$(OBJEXT) pseudo.$(OBJEXT) \
+	abinitinterface.$(OBJEXT) pwscfinterface.$(OBJEXT) xmlinterface.$(OBJEXT) \
+	pkginfo.$(OBJEXT) libxc_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-atompaw_prog.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	atomdata.$(LTOBJEXT) atompaw_report.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	abinitinterface.$(LTOBJEXT) pwscfinterface.$(LTOBJEXT) xmlinterface.$(LTOBJEXT) \
-	pkginfo.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+atompaw_prog.$(OBJEXT): globalmath.$(OBJEXT) aeatom.$(OBJEXT) \
+	atomdata.$(OBJEXT) atompaw_report.$(OBJEXT) pseudo.$(OBJEXT) \
+	abinitinterface.$(OBJEXT) pwscfinterface.$(OBJEXT) xmlinterface.$(OBJEXT) \
+	pkginfo.$(OBJEXT) libxc_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-atompaw_report.$(LTOBJEXT): atomdata.$(LTOBJEXT) fock.$(LTOBJEXT) \
-	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+atompaw_report.$(OBJEXT): atomdata.$(OBJEXT) fock.$(OBJEXT) \
+	globalmath.$(OBJEXT) gridmod.$(OBJEXT) pseudo.$(OBJEXT) \
+	pseudodata.$(OBJEXT) libxc_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-blockdavidson_mod.$(LTOBJEXT): globalmath.$(LTOBJEXT) search_sort.$(LTOBJEXT) \
-	 tools_mod.$(LTOBJEXT)
+blockdavidson_mod.$(OBJEXT): globalmath.$(OBJEXT) search_sort.$(OBJEXT) \
+	 tools_mod.$(OBJEXT)
 
-excor.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	libxc_mod.$(LTOBJEXT)
+excor.$(OBJEXT): atomdata.$(OBJEXT) globalmath.$(OBJEXT) gridmod.$(OBJEXT) \
+	libxc_mod.$(OBJEXT)
 
-exx_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
-	exxdata.$(LTOBJEXT) fock.$(LTOBJEXT) general_mod.$(LTOBJEXT) \
-	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) hf_mod.$(LTOBJEXT) \
-	report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+exx_mod.$(OBJEXT): anderson_driver.$(OBJEXT) atomdata.$(OBJEXT) \
+	exxdata.$(OBJEXT) fock.$(OBJEXT) general_mod.$(OBJEXT) \
+	globalmath.$(OBJEXT) gridmod.$(OBJEXT) hf_mod.$(OBJEXT) \
+	report_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-exx_pseudo.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
-	exx_mod.$(LTOBJEXT) fock.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) \
-	tools_mod.$(LTOBJEXT)
+exx_pseudo.$(OBJEXT): anderson_driver.$(OBJEXT) atomdata.$(OBJEXT) \
+	exx_mod.$(OBJEXT) fock.$(OBJEXT) globalmath.$(OBJEXT) \
+	gridmod.$(OBJEXT) pseudodata.$(OBJEXT) pseudo_sub.$(OBJEXT) \
+	tools_mod.$(OBJEXT)
 
-exxdata.$(LTOBJEXT):
+exxdata.$(OBJEXT):
 
-fock.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) globalmath.$(LTOBJEXT)
+fock.$(OBJEXT): atomdata.$(OBJEXT) gridmod.$(OBJEXT) globalmath.$(OBJEXT)
 
-general_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) numerov_mod.$(LTOBJEXT) \
-	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialsr.$(LTOBJEXT)
+general_mod.$(OBJEXT): atomdata.$(OBJEXT) numerov_mod.$(OBJEXT) \
+	globalmath.$(OBJEXT) gridmod.$(OBJEXT) radialdirac.$(OBJEXT) \
+	radialsr.$(OBJEXT)
 
-globalmath.$(LTOBJEXT):
+globalmath.$(OBJEXT):
 
-graphatom.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	atomdata.$(LTOBJEXT) graphatom_report.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+graphatom.$(OBJEXT): globalmath.$(OBJEXT) aeatom.$(OBJEXT) \
+	atomdata.$(OBJEXT) graphatom_report.$(OBJEXT) tools_mod.$(OBJEXT)
 
-graphatom_report.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+graphatom_report.$(OBJEXT): globalmath.$(OBJEXT) atomdata.$(OBJEXT) \
+	gridmod.$(OBJEXT) report_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-gridmod.$(LTOBJEXT): globalmath.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+gridmod.$(OBJEXT): globalmath.$(OBJEXT) tools_mod.$(OBJEXT)
 
-hf_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
-	fock.$(LTOBJEXT) general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+hf_mod.$(OBJEXT): anderson_driver.$(OBJEXT) atomdata.$(OBJEXT) \
+	fock.$(OBJEXT) general_mod.$(OBJEXT) globalmath.$(OBJEXT) \
+	gridmod.$(OBJEXT) report_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-hf_pseudo.$(LTOBJEXT): atomdata.$(LTOBJEXT) hf_mod.$(LTOBJEXT) fock.$(LTOBJEXT) \
-	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+hf_pseudo.$(OBJEXT): atomdata.$(OBJEXT) hf_mod.$(OBJEXT) fock.$(OBJEXT) \
+	globalmath.$(OBJEXT) gridmod.$(OBJEXT) paw_sub.$(OBJEXT) \
+	pseudodata.$(OBJEXT) pseudo_sub.$(OBJEXT) tools_mod.$(OBJEXT)
 
-interpolation_mod.$(LTOBJEXT):
+interpolation_mod.$(OBJEXT):
 
-ldagga_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) anderson_driver.$(LTOBJEXT) \
-	excor.$(LTOBJEXT) general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+ldagga_mod.$(OBJEXT): atomdata.$(OBJEXT) anderson_driver.$(OBJEXT) \
+	excor.$(OBJEXT) general_mod.$(OBJEXT) globalmath.$(OBJEXT) \
+	gridmod.$(OBJEXT) report_mod.$(OBJEXT) tools_mod.$(OBJEXT)
 
-libxc_mod.$(LTOBJEXT): libxc_tools.$(LTOBJEXT) globalmath.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+libxc_mod.$(OBJEXT): libxc_tools.$(OBJEXT) globalmath.$(OBJEXT) tools_mod.$(OBJEXT)
 
-libxc_mod.$(LTOBJEXT):
+libxc_mod.$(OBJEXT):
 
-numerov_mod.$(LTOBJEXT): gridmod.$(LTOBJEXT) blockdavidson_mod.$(LTOBJEXT)
+numerov_mod.$(OBJEXT): gridmod.$(OBJEXT) blockdavidson_mod.$(OBJEXT)
 
-paw_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT)
+paw_sub.$(OBJEXT): globalmath.$(OBJEXT) gridmod.$(OBJEXT)
 
-pkginfo.$(LTOBJEXT):
+pkginfo.$(OBJEXT):
 
-pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
-	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
-	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+pseudo.$(OBJEXT): globalmath.$(OBJEXT) atomdata.$(OBJEXT) aeatom.$(OBJEXT) \
+	excor.$(OBJEXT) exx_pseudo.$(OBJEXT) hf_pseudo.$(OBJEXT) \
+	numerov_mod.$(OBJEXT) paw_sub.$(OBJEXT) pseudodata.$(OBJEXT) \
+	pseudo_sub.$(OBJEXT) radialdirac.$(OBJEXT) \
+	radialsr.$(OBJEXT) tools_mod.$(OBJEXT)
 
-pseudo_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT)
+pseudo_sub.$(OBJEXT): globalmath.$(OBJEXT) gridmod.$(OBJEXT) \
+	pseudodata.$(OBJEXT) excor.$(OBJEXT) fock.$(OBJEXT)
 
-pseudodata.$(LTOBJEXT): gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
+pseudodata.$(OBJEXT): gridmod.$(OBJEXT) atomdata.$(OBJEXT)
 
-pwscfinterface.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
-	excor.$(LTOBJEXT) gridmod.$(LTOBJEXT) interpolation_mod.$(LTOBJEXT) \
-	pseudo.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+pwscfinterface.$(OBJEXT): globalmath.$(OBJEXT) atomdata.$(OBJEXT) \
+	excor.$(OBJEXT) gridmod.$(OBJEXT) interpolation_mod.$(OBJEXT) \
+	pseudo.$(OBJEXT) tools_mod.$(OBJEXT)
 
-radialdirac.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
+radialdirac.$(OBJEXT): globalmath.$(OBJEXT) gridmod.$(OBJEXT) atomdata.$(OBJEXT)
 
-radialsr.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
+radialsr.$(OBJEXT): globalmath.$(OBJEXT) gridmod.$(OBJEXT) atomdata.$(OBJEXT)
 
-report_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) excor.$(LTOBJEXT)
+report_mod.$(OBJEXT): atomdata.$(OBJEXT) gridmod.$(OBJEXT) excor.$(OBJEXT)
 
-search_sort.$(LTOBJEXT):
+search_sort.$(OBJEXT):
 
-xmlinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) excor.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	pkginfo.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+xmlinterface.$(OBJEXT): atomdata.$(OBJEXT) globalmath.$(OBJEXT) \
+	gridmod.$(OBJEXT) excor.$(OBJEXT) pseudo.$(OBJEXT) \
+	pkginfo.$(OBJEXT) tools_mod.$(OBJEXT)

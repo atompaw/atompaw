@@ -1938,31 +1938,27 @@ CONTAINS
      REAL(8), parameter :: eps=1.e-15
      LOGICAL :: success
 
-     IF (Grid%type==lineargrid) THEN
-       r0=range/dble(n)
-     ELSE
-       h0=hval
-       success=.false.
-       do i=1,iter
-         f=LOG(Z*range/h0+1.d0)/h0
-         df=-f/h0-(Z*range/h0**3)/(Z*range/h0+1.d0)
-         dh=(n-1-f)/df
-         if (ABS(dh)< eps) then
-           success=.true.
-           exit
-         endif
-         if (h0+dh<0.d0) then
-           h0=h0/2
-         else
-           h0=h0+dh
-         endif
-       enddo
-       if (.not.success) then
-         write(6,*) 'Warning in findh -- dh > eps ', dh,h0
+     h0=hval
+     success=.false.
+     do i=1,iter
+       f=LOG(Z*range/h0+1.d0)/h0
+       df=-f/h0-(Z*range/h0**3)/(Z*range/h0+1.d0)
+       dh=(n-1-f)/df
+       if (ABS(dh)< eps) then
+         success=.true.
+         exit
        endif
-       hval=h0
-       r0=hval/Z
-     END IF
+       if (h0+dh<0.d0) then
+         h0=h0/2
+       else
+         h0=h0+dh
+       endif
+     enddo
+     if (.not.success) then
+       write(6,*) 'Warning in findh -- dh > eps ', dh,h0
+     endif
+     hval=h0
+     r0=hval/Z
 
   end subroutine findh
 

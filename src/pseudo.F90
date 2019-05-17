@@ -2990,10 +2990,88 @@ CONTAINS
          do ic=1,nbase
              PAW%wij(ib,ic)=wij(ib,ic)
         enddo
-      enddo       
+      enddo
 
       DEALLOCATE(wij)
+
+      if (.not.Check_overlap_of_projectors(Grid,PAW)) then
+         write(6,*) "The overlap operator has at leat one negative eigenvalue!"
+         write(6,*) "It might be no positive definite..."
+         write(6,*) "Program is stopping."
+         write(6,*) "This probably means that your projectors are too similar"
+         write(6,*) "or that your PAW basis is incomplete."
+         write(6,*) "Advice: try to change your input parameters (f.i. : reference energies)."
+         stop
+      end if
+
   END SUBROUTINE Set_PAW_MatrixElements
+
+   FUNCTION Check_overlap_of_projectors(Grid,PAW)
+  ! Check that the overlap operator is positive definite
+  !  in the "basis" of projectors
+      LOGICAL :: Check_overlap_of_projectors
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+
+      REAL(8),PARAMETER :: tol=1.d-10
+
+      INTEGER :: n,nbase,i,j,k,m,info
+      REAL(8) :: ovlp_ik,ovlp_jm 
+      REAL(8),allocatable :: ovlp(:,:),dum(:)
+      REAL(8),allocatable :: wr(:),wi(:),work(:),vl(:,:),vr(:,:)
+
+      Check_overlap_of_projectors=.true.
+
+      n=PAW%irc ; nbase=PAW%nbase
+      allocate(ovlp(nbase,nbase))
+      ovlp(:,:)=0.d0
+
+      allocate(dum(n))
+      do k=1,nbase
+        do m=1,nbase
+          if (PAW%l(k)==PAW%l(m)) then
+            dum(1:n)=PAW%otp(1:n,k)*PAW%otp(1:n,m)
+            ovlp(m,k)=integrator(Grid,dum(1:n),1,n)
+
+            do i=1,nbase
+              if (PAW%l(i)==PAW%l(k)) then
+                dum(1:n)=PAW%otp(1:n,i)*PAW%otp(1:n,k)
+                ovlp_ik=integrator(Grid,dum(1:n),1,n)
+
+                do j=1,nbase
+                  if (PAW%l(j)==PAW%l(m)) then
+                    dum(1:n)=PAW%otp(1:n,j)*PAW%otp(1:n,m)
+                    ovlp_jm=integrator(Grid,dum(1:n),1,n)
+
+                    ovlp(m,k)=ovlp(m,k)+ovlp_ik*PAW%oij(i,j)*ovlp_jm
+
+                  end if ! l_j=l_m
+                end do   ! Loop j
+              end if     ! l_i=l_k
+            end do       ! Loop i
+          end if         ! l_k=l_m
+        end do           ! Loop m
+      end do             ! Loop k
+      deallocate(dum)
+
+      allocate(wr(nbase),wi(nbase),work(4*nbase))
+      allocate(vl(nbase,nbase),vr(nbase,nbase))
+      call dgeev('N','N',nbase,ovlp,nbase,wr,wi,vl,nbase,vr,nbase,work,4*nbase,info)
+
+      write(6,*) " "
+      write(6,*) "Eigenvalues of overlap operator (in the basis of projectors):"
+      do i=1,nbase
+        write(6,*) i,wr(i)
+        if (wr(i)<tol) Check_overlap_of_projectors=.false.
+      end do
+      write(6,*) " "
+
+      deallocate(wr,wi,work)
+      deallocate(vl,vr)
+      deallocate(ovlp)
+
+
+   END FUNCTION Check_overlap_of_projectors
 
     !************************************************************************
     !  program to calculate logerivatives of paw wavefunctions

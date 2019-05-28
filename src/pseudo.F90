@@ -8,6 +8,8 @@
 !        ftkin, ftvloc, unboundsep, boundsep, PStoAE, Set_PAW_MatrixElements,
 !        logderiv, FindVlocfromVeff, SCFPAW, PAWIter_LDA, exploreparms,
 !        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
+!        Check_overlap_of_projectors
+!        smoothcore, settau
 !
 ! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -949,9 +951,74 @@ CONTAINS
     END SUBROUTINE coretailselfenergy
 
 
-    SUBROUTINE setcoretail(Grid,coreden)
+!    SUBROUTINE setcoretail(Grid,coreden)
+!      TYPE(GridInfo), INTENT(IN) :: Grid
+!      REAL(8), INTENT(IN) :: coreden(:)
+!
+!      REAL(8) :: rc,h,x,y,z,u0,u2,u4
+!      REAL(8), allocatable :: d1(:),d2(:)
+!      INTEGER :: i,j,k,n,irc
+!
+!      n=Grid%n
+!      h=Grid%h
+!      irc=PAW%irc_core
+!      rc=PAW%rc_core
+!
+!      allocate(d1(n),d2(n),stat=i)
+!          if (i /= 0) then
+!             write(6,*) 'setcoretail: allocation error -- ', n,i
+!             stop
+!          endif
+!      CALL derivative(Grid,coreden,d1)
+!      CALL derivative(Grid,d1,d2)
+!
+!      x=coreden(irc)
+!      y=d1(irc)*rc
+!      z=d2(irc)*(rc*rc)
+!      write(6,*) 'setcoretail: x,y,z = ', x,y,z
+!
+!      u0=3*x - 9*y/8 + z/8
+!      u2=-3*x + 7*y/4 - z/4
+!      u4=x - 5*y/8 + z/8
+!
+!      write(6,*) 'setcoretail: u0,u2,u4 = ', u0,u2,u4
+!
+!      PAW%core=coreden
+!      PAW%tcore=coreden
+!
+!      do i=1,irc
+!         x=(Grid%r(i)/rc)**2
+!         PAW%tcore(i)= x*(u0+x*(u2+x*u4))
+!      enddo
+!
+!  ! Find coretailpoints
+!     z = integrator(Grid,coreden)
+!
+!     coretailpoints=PAW%irc+Grid%ishift    !! coretailpoints should be>=PAW%irc
+!        do i=PAW%irc+Grid%ishift,n
+!           if(ABS(z-integrator(Grid,coreden,1,i))<coretailtol) then
+!             coretailpoints=i
+!             exit
+!           endif
+!        enddo
+!     write(6,*) 'coretailpoints = ',coretailpoints
+!     PAW%coretailpoints=coretailpoints
+!
+!      deallocate(d1,d2)
+!
+!    END SUBROUTINE setcoretail
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! SUBROUTINE smoothcore
+!    program to take array orig (all electron den or tau
+!        and return smooth polynomial function for 0 \le r \le rc_core
+!        with first and second derivatives continuous
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    SUBROUTINE smoothcore(Grid,orig,smooth)
       TYPE(GridInfo), INTENT(IN) :: Grid
-      REAL(8), INTENT(IN) :: coreden(:)
+      REAL(8), INTENT(IN) :: orig(:)
+      REAL(8), INTENT(INOUT) :: smooth(:)
 
       REAL(8) :: rc,h,x,y,z,u0,u2,u4
       REAL(8), allocatable :: d1(:),d2(:)
@@ -964,30 +1031,48 @@ CONTAINS
 
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
-             write(6,*) 'setcoretail: allocation error -- ', n,i
+             write(6,*) 'smoothcore: allocation error -- ', n,i
              stop
           endif
-      CALL derivative(Grid,coreden,d1)
+      CALL derivative(Grid,orig,d1)
       CALL derivative(Grid,d1,d2)
 
-      x=coreden(irc)
+      x=orig(irc)
       y=d1(irc)*rc
       z=d2(irc)*(rc*rc)
-      write(6,*) 'setcoretail: x,y,z = ', x,y,z
+      write(6,*) 'smoothcore: x,y,z = ', x,y,z
 
       u0=3*x - 9*y/8 + z/8
       u2=-3*x + 7*y/4 - z/4
       u4=x - 5*y/8 + z/8
 
-      write(6,*) 'setcoretail: u0,u2,u4 = ', u0,u2,u4
+      write(6,*) 'smoothcore: u0,u2,u4 = ', u0,u2,u4
 
-      PAW%core=coreden
-      PAW%tcore=coreden
-
+      smooth=orig
       do i=1,irc
          x=(Grid%r(i)/rc)**2
-         PAW%tcore(i)= x*(u0+x*(u2+x*u4))
+         smooth(i)= x*(u0+x*(u2+x*u4))
       enddo
+
+      deallocate(d1,d2)
+  END SUBROUTINE smoothcore
+
+
+    SUBROUTINE setcoretail(Grid,coreden)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      REAL(8), INTENT(IN) :: coreden(:)
+
+      REAL(8) :: rc,h,x,y,z,u0,u2,u4
+      INTEGER :: i,j,k,n,irc
+
+      n=Grid%n
+      h=Grid%h
+      irc=PAW%irc_core
+      rc=PAW%rc_core
+
+      CALL smoothcore(Grid,coreden,PAW%tcore) 
+
+      PAW%core=coreden
 
   ! Find coretailpoints
      z = integrator(Grid,coreden)
@@ -1002,10 +1087,19 @@ CONTAINS
      write(6,*) 'coretailpoints = ',coretailpoints
      PAW%coretailpoints=coretailpoints
 
-      deallocate(d1,d2)
-
     END SUBROUTINE setcoretail
 
+    SUBROUTINE setttau(Grid,coretau)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      REAL(8), INTENT(IN) :: coretau(:)
+
+      write(6,*) 'in setttau '
+      CALL smoothcore(Grid,coretau,PAW%tcoretau) 
+
+      PAW%coretau=coretau
+      write(6,*) 'completed setttau'
+  
+   END SUBROUTINE setttau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !   Set smooth core functions for EXXKLI case  using proceedure
@@ -1943,6 +2037,7 @@ CONTAINS
       REAL(8) :: rc,gp,gpp,xx,occ,stuff
       REAL(8), POINTER :: r(:)
       REAL(8), ALLOCATABLE :: Ci(:),dum(:),tdum(:),hat(:),aa(:,:),ai(:,:)
+      REAL(8), ALLOCATABLE :: dpdr(:),pdr(:)
       CHARACTER(132) :: inputline
       REAL(8), PARAMETER :: threshold=1.d-6
 
@@ -2012,6 +2107,7 @@ CONTAINS
 
   ! Find rveff
    PAW%den=0.d0; PAW%tden=0.d0
+   allocate(dpdr(n),pdr(n))
    do io=1,PAW%OCCWFN%norbit
       if (.not.PAW%OCCwfn%iscore(io)) then
          occ=PAW%OCCwfn%occ(io)
@@ -2996,7 +3092,7 @@ CONTAINS
 
       if (.not.Check_overlap_of_projectors(Grid,PAW)) then
          write(6,*) "The overlap operator has at leat one negative eigenvalue!"
-         write(6,*) "It might be no positive definite..."
+         write(6,*) "It might be not positive definite..."
          write(6,*) "Program is stopping."
          write(6,*) "This probably means that your projectors are too similar"
          write(6,*) "or that your PAW basis is incomplete."
@@ -3006,6 +3102,13 @@ CONTAINS
 
   END SUBROUTINE Set_PAW_MatrixElements
 
+  !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  !  FUNCTION Check_overlap_of_projectors(Grid,PAW)
+  !     function written by Francois Jollet and Marc Torrent 
+  !       Approximate assessment of "completeness" of PAW basis set
+  !       measured by the eigenvalues of the 1+O operator int
+  !       the "basis" of the projectors     May 2019
+  !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    FUNCTION Check_overlap_of_projectors(Grid,PAW)
   ! Check that the overlap operator is positive definite
   !  in the "basis" of projectors
@@ -3018,7 +3121,8 @@ CONTAINS
       INTEGER :: n,nbase,i,j,k,m,info
       REAL(8) :: ovlp_ik,ovlp_jm 
       REAL(8),allocatable :: ovlp(:,:),dum(:)
-      REAL(8),allocatable :: wr(:),wi(:),work(:),vl(:,:),vr(:,:)
+!      REAL(8),allocatable :: wr(:),wi(:),work(:),vl(:,:),vr(:,:)
+      REAL(8), allocatable :: eig(:),work(:)
 
       Check_overlap_of_projectors=.true.
 
@@ -3054,22 +3158,33 @@ CONTAINS
       end do             ! Loop k
       deallocate(dum)
 
-      allocate(wr(nbase),wi(nbase),work(4*nbase))
-      allocate(vl(nbase,nbase),vr(nbase,nbase))
-      call dgeev('N','N',nbase,ovlp,nbase,wr,wi,vl,nbase,vr,nbase,work,4*nbase,info)
+!      allocate(wr(nbase),wi(nbase),work(4*nbase))
+!      allocate(vl(nbase,nbase),vr(nbase,nbase))
+!      call dgeev('N','N',nbase,ovlp,nbase,wr,wi,vl,nbase,vr,nbase,work,4*nbase,info)
 
-      write(6,*) " "
-      write(6,*) "Eigenvalues of overlap operator (in the basis of projectors):"
-      do i=1,nbase
-        write(6,*) i,wr(i)
-        if (wr(i)<tol) Check_overlap_of_projectors=.false.
-      end do
+      allocate(eig(nbase),work(4*nbase))
+      call DSYEV('N','U',nbase,ovlp,nbase,eig,work,4*nbase,info)
+      write(6,'(" Completed diagonalization of ovlp with info = ", i8)')info
+       if (info==0) then
+         write(6,*) " "
+         write(6,*) "Eigenvalues of overlap operator (in the basis of projectors):"
+         do i=1,nbase
+            write(6,'( i5,5x,1p,1e17.8)') i,eig(i)
+            if (eig(i)<tol) Check_overlap_of_projectors=.false.
+         enddo
+        else
+          write(6,*) 'Stopping due to failure of ovlp diagonalization'
+          stop
+       endif       
       write(6,*) " "
 
-      deallocate(wr,wi,work)
-      deallocate(vl,vr)
+!      do i=1,nbase
+!        write(6,*) i,wr(i)
+!        if (wr(i)<tol) Check_overlap_of_projectors=.false.
+!      end do
+
+      deallocate(eig,work)
       deallocate(ovlp)
-
 
    END FUNCTION Check_overlap_of_projectors
 
@@ -3209,9 +3324,9 @@ CONTAINS
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
 
       REAL(8), POINTER  :: r(:)
-      REAL(8) :: h,qeff,tq,rat,q00,ecoul,etxc,eexc,occ
+      REAL(8) :: h,qeff,tq,rat,q00,ecoul,etxc,eexc,occ,fac
       INTEGER :: n,i,irc,io,nbase,ib,ic
-      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:)
+      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:),dpdr(:),pbr(:)
 
       CALL FillHat(Grid,PAW)
 
@@ -3226,13 +3341,31 @@ CONTAINS
       irc=max(PAW%irc,PAW%irc_shap,PAW%irc_vloc,PAW%irc_core)
 
       PAW%den=0.d0;PAW%tden=0.d0
+      PAW%valetau=0.d0;PAW%tvaletau=0.d0
+      allocate(pbr(n),dpdr(n),d(n))
       do io=1,PAW%OCCWFN%norbit
          if (.not.PAW%OCCwfn%iscore(io)) then
             occ=PAW%OCCwfn%occ(io)
+            fac=PAW%OCCwfn%l(io)*(PAW%OCCwfn%l(io)+1)
             PAW%den=PAW%den+occ*PAW%OCCwfn%wfn(:,io)**2
             PAW%tden=PAW%tden+occ*PAW%TOCCwfn%wfn(:,io)**2
+            dpdr=0.d0;pbr=0.d0
+            pbr(2:n)=PAW%OCCwfn%wfn(2:n,io)/Grid%r(2:n)
+            CALL derivative(Grid,pbr,dpdr,2,Grid%n)
+            CALL extrapolate(Grid,pbr)
+            CALL extrapolate(Grid,dpdr)
+            d(:)=((Grid%r(:)*dpdr(:)))**2+fac*(pbr(:))**2
+            PAW%valetau=PAW%valetau+occ*d
+            dpdr=0.d0;pbr=0.d0
+            pbr(2:n)=PAW%TOCCwfn%wfn(2:n,io)/Grid%r(2:n)
+            CALL derivative(Grid,pbr,dpdr,2,Grid%n)
+            CALL extrapolate(Grid,pbr)
+            CALL extrapolate(Grid,dpdr)
+            d(:)=((Grid%r(:)*dpdr(:)))**2+fac*(pbr(:))**2
+            PAW%tvaletau=PAW%tvaletau+occ*d
           endif
       enddo
+      deallocate(pbr,dpdr,d)
 
       allocate(d(n),dv(n),dvx(n),STAT=i)
       if (i/=0) stop 'Error (1) in allocating  arrays in findvlocfromveff'
@@ -3781,6 +3914,7 @@ CONTAINS
         Call InitPAW(PAW,Grid,FCOrbit)
         CALL setbasis(Grid,FCPot,FCOrbit,ifinput)
         Call setcoretail(Grid,FC%coreden)
+        Call setttau(Grid,FC%coretau)
         If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
         If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
         Call SetPAWOptions2(ifinput,ifen,Grid,FCOrbit,FCPot,success)

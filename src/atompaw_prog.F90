@@ -1,6 +1,10 @@
 !*************************************************************
 !  Driver program for atompaw program
 !
+!    Energies always in Rydberg (except when preparing output for
+!          datasets to be used in programs that need Hartree units)
+!    Lengths always in Bohr
+!
 !    The following is not currently available:
 !      arguments can be SAVEAEATOM (save file name),  OR
 !                       LOADAEATOM (load file name)
@@ -92,6 +96,7 @@ PROGRAM atompaw
   CALL InitPAW(PAW,Grid,FCOrbit)
   CALL setbasis(Grid,FCPot,FCOrbit,ifinput)
   Call setcoretail(Grid,FC%coreden)
+  Call setttau(Grid,FC%coretau)
   If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
   If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
   Call SetPAWOptions2(ifinput,ifen,Grid,FCOrbit,FCPot,OK)

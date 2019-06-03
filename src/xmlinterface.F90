@@ -108,6 +108,7 @@ Module XMLInterface
   integer :: iwavmesh            ! Index of mesh for partial waves
   integer :: iprjmesh            ! Index of mesh for projectors
   integer :: icoremesh           ! Index of mesh for core density
+  integer :: itaumesh            ! Index of mesh for kinetic energy core density
   integer :: ivionmesh           ! Index of mesh for vion potential
   integer :: ivbaremesh          ! Index of mesh for vbare potential
   integer :: ivalemesh           ! Index of mesh for valence density
@@ -115,6 +116,7 @@ Module XMLInterface
   integer :: sph_meshsz          ! Size of mesh for partial waves
   integer :: prj_meshsz          ! Size of mesh for projectors
   integer :: core_meshsz         ! Size of mesh for core density
+  integer :: tau_meshsz          ! Size of mesh for kinetic energy core density
   integer :: vion_meshsz         ! Size of mesh for vion potential
   integer :: vbare_meshsz        ! Size of mesh for vbare potential
   integer :: vale_meshsz         ! Size of mesh for valence density
@@ -195,7 +197,7 @@ Module XMLInterface
 
 !------------------------------------------------------------------
 !---- Build radial meshes definitions
- call build_mesh_data(mesh_data,Grid,PAW%irc,PAW%ivion,PAW%ivale,PAW%coretailpoints)
+ call build_mesh_data(mesh_data,Grid,PAW%irc,PAW%ivion,PAW%ivale,PAW%coretailpoints,PAW%itau)
 
 !------------------------------------------------------------------
 !--Check that the pseudo valence density is zero at grid end
@@ -263,7 +265,7 @@ Module XMLInterface
  deallocate(tproj)
  call destroy_mesh_data(mesh_data)
 
- write(std_out,'(2x,a,a)') 'Atompaw2XML ended.',ch10
+ write(std_out,'(/,2x,a,a)') 'Atompaw2XML ended.',ch10
 
  end subroutine Atompaw2XML
 
@@ -799,6 +801,7 @@ Module XMLInterface
    mesh_data%meshsz(1:mesh_data%nmesh)=maxval(mesh_data%meshsz(1:mesh_data%nmesh))
    nmesh=1
    mesh_data%icoremesh=1
+   mesh_data%itaumesh=1
    mesh_data%iprjmesh=1
    mesh_data%iwavmesh=1
    mesh_data%ivionmesh=1
@@ -883,6 +886,35 @@ Module XMLInterface
  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%ivalemesh),mesh_data%meshsz(mesh_data%ivalemesh))
  WRITE(unit_xml,'("</pseudo_valence_density>")')
  DEALLOCATE(dum)
+
+!Kinetic energy core densities
+!Temporarily not available in scalar relativistic
+ if (.not.scalarrelativistic) then
+  allocate(dum(mesh_data%meshsz(mesh_data%itaumesh)),stat=OK)
+  dum=zero
+  dum(2:mesh_data%meshsz(mesh_data%itaumesh))= &
+&               sqr4pi*FC%coretau(2:mesh_data%meshsz(mesh_data%itaumesh))&
+&               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%itaumesh)))**2)
+  call extrapolate(Grid,dum)
+  WRITE(unit_xml,'("<ae_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
+&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,PAW%rc_core
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%itaumesh),mesh_data%meshsz(mesh_data%itaumesh))
+  WRITE(unit_xml,'("</ae_core_kinetic_energy_density>")')
+  dum=zero
+  dum(2:mesh_data%meshsz(mesh_data%itaumesh))= &
+&               sqr4pi*PAW%tcoretau(2:mesh_data%meshsz(mesh_data%itaumesh))&
+&                /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%itaumesh)))**2)
+  call extrapolate(Grid,dum)
+  WRITE(unit_xml,'("<pseudo_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
+&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,PAW%rc_core
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%itaumesh),mesh_data%meshsz(mesh_data%itaumesh))
+  WRITE(unit_xml,'("</pseudo_core_kinetic_energy_density>")')
+  DEALLOCATE(dum)
+ else
+  write(std_out,'(3(/,a))') '  Atompaw2XML info:',&
+&   '    Kinetic energy core density is not available within scalar relativistic scheme!',&
+&   '    This is temporary, sorry!'
+ end if
 
 !Vbare potential
  ALLOCATE(dum(mesh_data%meshsz(mesh_data%ivbaremesh)),stat=OK)
@@ -1414,11 +1446,11 @@ Module XMLInterface
 !!
 !!=================================================================
 
-subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints)
+subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints,itau)
 
  type(mesh_data_type),intent(out) :: mesh_data
  type(GridInfo),intent(in) :: Grid
- integer,intent(in) :: irc,ivion,ivale,coretailpoints
+ integer,intent(in) :: irc,ivion,ivale,coretailpoints,itau
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1459,6 +1491,7 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints)
 
  mesh_data%core_meshsz=coretailpoints
  mesh_data%vale_meshsz=ivale
+ mesh_data%tau_meshsz=itau
 
  mesh_data%vion_meshsz=ivion
  if (mesh_data%vion_meshsz<=0) then
@@ -1584,6 +1617,37 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints)
   endif
  else
   mesh_data%ivalemesh=mesh_data%iwavmesh
+ endif
+!Kinetic energy density
+ if (mesh_data%wav_meshsz/=mesh_data%tau_meshsz) then
+  if(mesh_data%prj_meshsz/=mesh_data%tau_meshsz) then
+   if(mesh_data%core_meshsz/=mesh_data%tau_meshsz) then
+    if(mesh_data%vion_meshsz/=mesh_data%tau_meshsz) then
+     if(mesh_data%vbare_meshsz/=mesh_data%tau_meshsz) then
+      if(mesh_data%vale_meshsz/=mesh_data%tau_meshsz) then
+       mesh_data%nmesh=mesh_data%nmesh+1
+       mesh_data%itaumesh=mesh_data%nmesh
+       mesh_data%meshtp(mesh_data%nmesh)=mesh_data%mesh_type
+       mesh_data%meshsz(mesh_data%nmesh)=mesh_data%tau_meshsz
+       mesh_data%radstp(mesh_data%nmesh)=mesh_data%rad_step
+       mesh_data%logstp(mesh_data%nmesh)=mesh_data%log_step
+      else
+       mesh_data%itaumesh=mesh_data%ivalemesh
+      endif
+     else
+      mesh_data%itaumesh=mesh_data%ivbaremesh
+     endif
+    else
+     mesh_data%itaumesh=mesh_data%ivionmesh
+    endif
+   else
+    mesh_data%itaumesh=mesh_data%icoremesh
+   endif
+  else
+   mesh_data%itaumesh=mesh_data%iprjmesh
+  endif
+ else
+  mesh_data%itaumesh=mesh_data%iwavmesh
  endif
 
  end subroutine build_mesh_data

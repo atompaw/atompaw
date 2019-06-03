@@ -1092,13 +1092,21 @@ CONTAINS
     SUBROUTINE setttau(Grid,coretau)
       TYPE(GridInfo), INTENT(IN) :: Grid
       REAL(8), INTENT(IN) :: coretau(:)
+      REAL(8) :: sqr4pi
 
       write(6,*) 'in setttau '
       CALL smoothcore(Grid,coretau,PAW%tcoretau) 
 
       PAW%coretau=coretau
       write(6,*) 'completed setttau'
-  
+
+      sqr4pi=sqrt(4*pi)*1.d-10
+      PAW%itau=max(PAW%coretailpoints,1)
+      do while (PAW%itau<Grid%n.and. &
+&       abs(PAW%tcoretau(PAW%itau))>sqr4pi*Grid%r(PAW%itau)**2)
+       PAW%itau=PAW%itau+1
+      end do
+
    END SUBROUTINE setttau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

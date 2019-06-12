@@ -2,6 +2,8 @@
 !  This module constains the following active subroutines:
 !   InitOrbit, DestroyOrbit, CopyOrbit, InitFC, DestroyFC,
 !      InitPot, DestroyPot, CopyPot, InitSCF, CopySCF
+!
+!  Note that all energies including tau are in Rydberg units
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -17,14 +19,15 @@ MODULE atomdata
      INTEGER :: nps, npp, npd ,npf, npg, norbit
      INTEGER, POINTER :: np(:),l(:),kappa(:)
      REAL(8), POINTER :: eig(:),occ(:),wfn(:,:),lwfn(:,:)
+     REAL(8), POINTER :: otau(:,:)    ! kinetic energy density for orbital
      REAL(8), POINTER :: lqp(:,:)     ! only used for HF
      REAL(8), POINTER :: X(:,:)       ! identical to HF%SumY(:,:)
      LOGICAL , POINTER :: iscore(:)
-     REAL(8),POINTER :: den(:),tau(:)
+     REAL(8),POINTER :: den(:),tau(:) ! accumulated over states
   END TYPE OrbitInfo
 
   TYPE FCinfo
-     REAL(8), POINTER :: coreden(:),valeden(:)
+     REAL(8), POINTER :: coreden(:),valeden(:),coretau(:),valetau(:)
      REAL(8) :: zvale,zcore
   END TYPE FCinfo
 
@@ -90,9 +93,10 @@ CONTAINS
     Orbit%iscore=.false.
     Orbit%np=0;Orbit%l=0
     Orbit%eig=0.d0;Orbit%occ=0.d0
-    ALLOCATE(Orbit%wfn(n,norbit),Orbit%den(n),Orbit%tau(n),stat=ok)
+    ALLOCATE(Orbit%wfn(n,norbit),Orbit%otau(n,norbit), &
+&                      Orbit%den(n),Orbit%tau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of wfn, den...'
-    Orbit%wfn=0.d0;Orbit%den=0.d0;Orbit%tau=0.d0
+    Orbit%wfn=0.d0;Orbit%den=0.d0;Orbit%tau=0.d0;Orbit%otau=0.d0
     If (diracrelativistic) then
        ALLOCATE(Orbit%lwfn(n,norbit),Orbit%kappa(norbit),stat=ok)
        IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
@@ -118,6 +122,7 @@ CONTAINS
     IF (ASSOCIATED(Orbit%eig)) DEALLOCATE(Orbit%eig)
     IF (ASSOCIATED(Orbit%occ)) DEALLOCATE(Orbit%occ)
     IF (ASSOCIATED(Orbit%wfn)) DEALLOCATE(Orbit%wfn)
+    IF (ASSOCIATED(Orbit%otau)) DEALLOCATE(Orbit%otau)
     IF (ASSOCIATED(Orbit%lwfn)) DEALLOCATE(Orbit%lwfn)
     IF (ASSOCIATED(Orbit%den)) DEALLOCATE(Orbit%den)
     IF (ASSOCIATED(Orbit%tau)) DEALLOCATE(Orbit%tau)
@@ -144,6 +149,7 @@ CONTAINS
     COrbit%eig(1:SOrbit%norbit)=SOrbit%eig(1:SOrbit%norbit)
     COrbit%occ(1:SOrbit%norbit)=SOrbit%occ(1:SOrbit%norbit)
     COrbit%wfn(:,1:SOrbit%norbit)=SOrbit%wfn(:,1:SOrbit%norbit)
+    COrbit%otau(:,1:SOrbit%norbit)=SOrbit%otau(:,1:SOrbit%norbit)
     COrbit%iscore(1:SOrbit%norbit)=SOrbit%iscore(1:SOrbit%norbit)
     COrbit%den=SOrbit%den
     COrbit%tau=SOrbit%tau
@@ -167,12 +173,17 @@ CONTAINS
     ALLOCATE(FC%coreden(n),FC%valeden(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of coreden, valeden,...'
     FC%coreden=0.d0;FC%valeden=0.d0
+    ALLOCATE(FC%coretau(n),FC%valetau(n),stat=ok)
+    IF (ok/=0) STOP 'Error in allocation of coretau, valetau,...'
+    FC%coretau=0.d0;FC%valetau=0.d0
   END SUBROUTINE InitFC
 
   SUBROUTINE DestroyFC(FC)
     TYPE (FCInfo), INTENT(INOUT) :: FC
     IF (ASSOCIATED(FC%valeden)) DEALLOCATE(FC%valeden)
     IF (ASSOCIATED(FC%coreden)) DEALLOCATE(FC%coreden)
+    IF (ASSOCIATED(FC%valetau)) DEALLOCATE(FC%valetau)
+    IF (ASSOCIATED(FC%coretau)) DEALLOCATE(FC%coretau)
   END SUBROUTINE DestroyFC
 
   SUBROUTINE InitPot(Pot,n)

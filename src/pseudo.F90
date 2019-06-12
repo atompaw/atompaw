@@ -236,16 +236,19 @@ CONTAINS
    endif
 
    if (Orthoindex==VANDERBILTORTHO) then
+    PAW%orthogonalization_scheme='vanderbilt'
     write(PAW%Proj_description,'(a," + Vanderbilt ortho.")') &
 &         trim(PAW%Proj_description)
    else if (Orthoindex==GRAMSCHMIDTORTHO) then
-     write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
+    PAW%orthogonalization_scheme='gramschmidt'
+    write(PAW%Proj_description,'(a," + Gram-Schmidt ortho.")') &
 &         trim(PAW%Proj_description)
    else if (Orthoindex==SVDORTHO) then
-     write(PAW%Proj_description,'(a," + SVD ortho.")') &
+    PAW%orthogonalization_scheme='svd'
+    write(PAW%Proj_description,'(a," + SVD ortho.")') &
 &         trim(PAW%Proj_description)
    end if
-   
+
    write(6,*) PAW%Proj_description
 
    gaussianshapefunction=.false.;besselshapefunction=.false.

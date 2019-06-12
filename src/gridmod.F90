@@ -33,7 +33,7 @@ MODULE gridmod
      INTEGER :: TYPE
      INTEGER :: n
      INTEGER :: ishift
-     REAL(8) :: h
+     REAL(8) :: h,r0,range
      REAL(8), POINTER :: r(:)
      REAL(8), POINTER :: drdu(:)    ! for loggrid -- dr/du
      REAL(8), POINTER :: pref(:)    ! for loggrid -- r0*exp(u/2)
@@ -2036,12 +2036,13 @@ CONTAINS
     INTEGER :: i,n
 
     IF (PRESENT(r0)) THEN
-
+       Grid%h=h
+       Grid%r0=r0
        Grid%type=loggrid
+       Grid%range=range
        n=LOG(range/r0+1)/h+1
        Grid%ishift=5
        IF (r0*(EXP(h*(n-1))-1)<range-1.d-5) n=n+1
-       Grid%h=h
        Grid%n=n
        WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
@@ -2055,13 +2056,16 @@ CONTAINS
           Grid%pref(i)=r0*EXP(Grid%h*(i-1)/2.d0)
           Grid%rr02(i)=(Grid%r(i)+r0)**2
        ENDDO
+
     ELSE
+       Grid%h=h
+       Grid%r0=0.d0
        Grid%type=lineargrid
+       Grid%range=range
        n=range/h+1
        Grid%ishift=25
        IF (h*(n-1)<range-1.d-5) n=n+1
        Grid%n=n
-       Grid%h=h
        WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN

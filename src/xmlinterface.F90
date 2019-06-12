@@ -82,7 +82,7 @@ Module XMLInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2xmlver='2.0.1', verdate='june 2013'
+ character*10 :: atompaw2xmlver='3.0.0', verdate='june 2019'
 
 !Default unit for XML file(s)
  integer, parameter :: unit_xml=22,unit_xml_core=23,unit_ldam12=24
@@ -224,7 +224,7 @@ Module XMLInterface
      write(6,*)  ' Please try reducing rc_core '
      write(6,*)  ' xml file not created '
      return
-   endif    
+   endif
  if (vlocopt==2) then
   write(std_out,'(/,2x,a,a,f5.2,a,a,g11.4)') 'Atompaw2XML info:',&
 &   '  At r_vloc=',Grid%r(mesh_data%vion_meshsz),' a.u.,',&
@@ -264,7 +264,7 @@ Module XMLInterface
  deallocate(tproj)
  call destroy_mesh_data(mesh_data)
 
- write(std_out,'(2x,a,a)') 'Atompaw2XML ended.',ch10
+ write(std_out,'(/,2x,a,a)') 'Atompaw2XML ended.',ch10
 
  end subroutine Atompaw2XML
 
@@ -717,6 +717,8 @@ Module XMLInterface
 !In a change of grid has been requested, determine new grid data
  radstp_spl=-1.d0 ; logstp_spl=-1.d0
  if (nsplgrid>0) then
+   write(std_out,'(/,2x,a,a,i5,a)') 'Atompaw2XML info:',&
+&   ' all quantities will be interpolated on a ',nsplgrid,'-point log. grid.'
    n_aux=nsplgrid
    logstp_spl=0.02d0
    call findh(AEPot%zz,Grid%r(mesh_data%meshsz(1)-1),nsplgrid,logstp_spl,radstp_spl)
@@ -731,7 +733,7 @@ Module XMLInterface
      radstp_spl= PAW%rc/(exp(logstp_spl*(irc_aux-1))-1.d0)
    end if
    allocate(rad_aux(n_aux),dum_aux(n_aux))
-   call InitGrid(Grid1,logstp_spl,Grid%range,radstp_spl)
+   call InitGrid(Grid1,logstp_spl,Grid%range,r0=radstp_spl,do_not_print=.true.)
    rad_aux(1:nsplgrid)=Grid1%r(1:nsplgrid)
  else
    allocate(rad_aux(n),dum_aux(n))
@@ -1172,7 +1174,6 @@ Module XMLInterface
        do io=1,nbase
         if (PAW%l(io)==l) icount=icount+1
        enddo
-       write(6,*) 'In xmlinterface: for l = ', l,icount,' basis functions'
        if (icount==0) cycle
        allocate(aa(icount,icount),ai(icount,icount),omap(icount))
        aa=0;icount=0

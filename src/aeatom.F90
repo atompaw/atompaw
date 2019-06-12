@@ -206,11 +206,11 @@ CONTAINS
     IF (TRIM(gridkey)=='LOGGRID'.and.ilogv4>0) THEN
        hval=logh
        CALL findh_given_r0(AEPot%zz,gridmatch,lor00,gridpoints,hval)
-       CALL InitGrid(Grid,hval,gridrange,lor00/AEPot%zz)
+       CALL InitGrid(Grid,hval,gridrange,r0=lor00/AEPot%zz)
     ELSEIF (TRIM(gridkey)=='LOGGRID'.and.ilogv4==0) THEN
        hval=logh
        CALL findh(AEPot%zz,gridmatch,gridpoints,hval,r0)
-       CALL InitGrid(Grid,hval,gridrange,r0)
+       CALL InitGrid(Grid,hval,gridrange,r0=r0)
     ELSE
        hadjusted=gridmatch/(gridpoints-1)
        CALL InitGrid(Grid,hadjusted,gridrange)

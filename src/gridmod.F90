@@ -2027,13 +2027,17 @@ CONTAINS
   !******************************************************************
   ! subroutine initgrid(Grid,h,range,r0)
   !******************************************************************
-  SUBROUTINE InitGrid(Grid,h,range,r0)
+  SUBROUTINE InitGrid(Grid,h,range,r0,do_not_print)
     TYPE (GridInfo), INTENT(INOUT) :: Grid
     REAL(8), INTENT(IN) :: range
     REAL(8), INTENT(IN) :: h
     REAL(8), OPTIONAL, INTENT(IN) :: r0
+    LOGICAL, OPTIONAL, INTENT(IN) :: do_not_print
 
     INTEGER :: i,n
+    LOGICAL :: do_print
+
+    do_print=.true.;if (present(do_not_print)) do_print=.not.do_not_print
 
     IF (PRESENT(r0)) THEN
        Grid%h=h
@@ -2044,7 +2048,7 @@ CONTAINS
        Grid%ishift=5
        IF (r0*(EXP(h*(n-1))-1)<range-1.d-5) n=n+1
        Grid%n=n
-       WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
+       if (do_print) WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(6,*) 'Allocation error in initgrid ', n,i
@@ -2066,7 +2070,7 @@ CONTAINS
        Grid%ishift=25
        IF (h*(n-1)<range-1.d-5) n=n+1
        Grid%n=n
-       WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
+       if (do_print) WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(6,*) 'Allocation error in initgrid ', n,i

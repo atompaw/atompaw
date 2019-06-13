@@ -17,7 +17,7 @@ MODULE pseudodata
   TYPE  Pseudoinfo
      CHARACTER(132) :: exctype
      INTEGER  :: lmax,irc,irc_shap,irc_vloc,irc_core,coretailpoints,mesh_size
-     INTEGER  :: ivale,ivion
+     INTEGER  :: ivale,itau,ivion
      CHARACTER(15) :: orthogonalization_scheme
      CHARACTER(132) :: Vloc_description
      CHARACTER(132) :: Proj_description

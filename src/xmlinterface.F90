@@ -951,26 +951,23 @@ Module XMLInterface
 !Kinetic energy core densities
 !Temporarily not available in scalar relativistic
  if (.not.scalarrelativistic) then
-  allocate(dum(mesh_data%meshsz(mesh_data%itaumesh)),stat=OK)
-  dum=zero
-  dum(2:mesh_data%meshsz(mesh_data%itaumesh))= &
-&               sqr4pi*FC%coretau(2:mesh_data%meshsz(mesh_data%itaumesh))&
-&               /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%itaumesh)))**2)
-  call extrapolate(Grid,dum)
+  meshsz=mesh_data%meshsz(mesh_data%itaumesh)
+  meshsz_aux=merge(nsplgrid,mesh_size(mesh_data%itaumesh),extra1)
+  meshst_aux=mesh_start(mesh_data%itaumesh)
+  dum(2:meshsz)= sqr4pi*FC%coretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
+  call extrapolate(Grid,dum(1:meshsz))
+  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<ae_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,PAW%rc_core
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%itaumesh),mesh_data%meshsz(mesh_data%itaumesh))
+&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,match_on_splgrid(PAW%rc_core)
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</ae_core_kinetic_energy_density>")')
-  dum=zero
-  dum(2:mesh_data%meshsz(mesh_data%itaumesh))= &
-&               sqr4pi*PAW%tcoretau(2:mesh_data%meshsz(mesh_data%itaumesh))&
-&                /(4*pi*(Grid%r(2:mesh_data%meshsz(mesh_data%itaumesh)))**2)
-  call extrapolate(Grid,dum)
+  dum(2:meshsz)= sqr4pi*PAW%tcoretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
+  call extrapolate(Grid,dum(1:meshsz))
+  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<pseudo_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,PAW%rc_core
-  WRITE(unit_xml,'(3(1x,es23.16))') (dum(ii),ii=mesh_start(mesh_data%itaumesh),mesh_data%meshsz(mesh_data%itaumesh))
+&  gridt(mesh_data%itaumesh),mesh_data%itaumesh,match_on_splgrid(PAW%rc_core)
+  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</pseudo_core_kinetic_energy_density>")')
-  DEALLOCATE(dum)
  else
   write(std_out,'(3(/,a))') '  Atompaw2XML info:',&
 &   '    Kinetic energy core density is not available within scalar relativistic scheme!',&

@@ -103,7 +103,7 @@ PROGRAM atompaw
   If (.not.OK) stop 'Stopping due to options failure'
   Call Report_Pseudobasis(Grid,PAW,ifen)
 
-  Call Set_PAW_MatrixElements(Grid,PAW)
+  Call Set_PAW_MatrixElements(Grid,PAW,ifen)
   CALL logderiv(Grid,FCPot,PAW)
   CALL ftprod(Grid)
 

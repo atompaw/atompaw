@@ -3055,11 +3055,12 @@ CONTAINS
       ENDDO
     END SUBROUTINE PStoAE
 
-   SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
+    SUBROUTINE Set_PAW_MatrixElements(Grid,PAW,ifen)
   ! Calculate PAW matrix elements from reference configuration before
   !       unscreening/rescreening
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+      INTEGER, INTENT(IN) :: ifen
 
       INTEGER :: nbase,l,ib,ic,io
       REAL(8) :: x
@@ -3101,7 +3102,7 @@ CONTAINS
 
       DEALLOCATE(wij)
 
-      if (.not.Check_overlap_of_projectors(Grid,PAW)) then
+      if (.not.Check_overlap_of_projectors(Grid,PAW,ifen)) then
          write(6,*) "The overlap operator has at leat one negative eigenvalue!"
          write(6,*) "It might be not positive definite..."
          write(6,*) "Program is stopping."
@@ -3114,18 +3115,19 @@ CONTAINS
   END SUBROUTINE Set_PAW_MatrixElements
 
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  !  FUNCTION Check_overlap_of_projectors(Grid,PAW)
+  !  FUNCTION Check_overlap_of_projectors(Grid,PAW,ifen)
   !     function written by Francois Jollet and Marc Torrent 
   !       Approximate assessment of "completeness" of PAW basis set
   !       measured by the eigenvalues of the 1+O operator int
   !       the "basis" of the projectors     May 2019
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   FUNCTION Check_overlap_of_projectors(Grid,PAW)
+  FUNCTION Check_overlap_of_projectors(Grid,PAW,ifen)
   ! Check that the overlap operator is positive definite
   !  in the "basis" of projectors
       LOGICAL :: Check_overlap_of_projectors
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+      INTEGER, INTENT(IN) :: ifen
 
       REAL(8),PARAMETER :: tol=1.d-10
 
@@ -3176,18 +3178,24 @@ CONTAINS
       allocate(eig(nbase),work(4*nbase))
       call DSYEV('N','U',nbase,ovlp,nbase,eig,work,4*nbase,info)
       write(6,'(" Completed diagonalization of ovlp with info = ", i8)')info
+      write(ifen,'(" Completed diagonalization of ovlp with info = ", i8)')info
        if (info==0) then
          write(6,*) " "
          write(6,*) "Eigenvalues of overlap operator (in the basis of projectors):"
+         write(ifen,*) " "
+         write(ifen,*) "Eigenvalues of overlap operator (in the basis of projectors):"
          do i=1,nbase
             write(6,'( i5,5x,1p,1e17.8)') i,eig(i)
+            write(ifen,'( i5,5x,1p,1e17.8)') i,eig(i)
             if (eig(i)<tol) Check_overlap_of_projectors=.false.
          enddo
         else
           write(6,*) 'Stopping due to failure of ovlp diagonalization'
+          write(ifen,*) 'Stopping due to failure of ovlp diagonalization'
           stop
        endif       
       write(6,*) " "
+      write(ifen,*) " "
 
 !      do i=1,nbase
 !        write(6,*) i,wr(i)
@@ -3931,7 +3939,7 @@ CONTAINS
         Call SetPAWOptions2(ifinput,ifen,Grid,FCOrbit,FCPot,success)
         Call Report_PseudobasisRP(Grid,PAW,ifen,fdata)
         if (success) then
-           Call Set_PAW_MatrixElements(Grid,PAW)
+           Call Set_PAW_MatrixElements(Grid,PAW,ifen)
            CALL EXPLORElogderiv(Grid,FCPot,PAW,fdata,EBEGIN,EEND,&
 &           logderiverror(:,i))
         endif

@@ -75,7 +75,7 @@ module libxc_mod
  public :: libxc_islda           ! Return TRUE if the XC functional is LDA
  public :: libxc_isgga           ! Return TRUE if the XC functional is GGA
  public :: libxc_ismgga          ! Return TRUE if the XC functional is MGGA
- public :: libxc_needs_laplacian ! Return TRUE if functional uses LAPLACIAN 
+ public :: libxc_needs_laplacian ! Return TRUE if functional uses LAPLACIAN
  public :: libxc_ishybrid        ! Return TRUE if the XC functional is Hybrid
  public :: libxc_getvxc          ! Return XC potential and energy, from input density
 
@@ -812,7 +812,7 @@ end function libxc_family_from_id
 
  libxc_islda = .false.
  if (.not.libxc_constants_initialized) call libxc_constants_load()
- 
+
  libxc_islda = (any(libxc_funcs(:)%family == XC_FAMILY_LDA))
 
  end function libxc_islda
@@ -954,7 +954,7 @@ end function libxc_family_from_id
 
 !---- Local variables
  real(8),parameter :: tol=1.d-14
- 
+
  integer :: ii,ipts,izero
  logical :: is_lda,is_gga,is_mgga,needs_laplacian
  real(8),target :: exctmp
@@ -978,7 +978,7 @@ end function libxc_family_from_id
  is_gga=libxc_isgga()
  is_mgga=libxc_ismgga()
  needs_laplacian=libxc_needs_laplacian()
- 
+
  if (is_gga.and.((.not.present(vxcgr).or.(.not.present(grho))))) then
    write(6,'(/,2x,a)') "Bug in libxc_getvxc:"
    write(6,'(2x,a)')   " GGA called without grho or vxcgr!"
@@ -988,7 +988,7 @@ end function libxc_family_from_id
    write(6,'(/,2x,a)') "Error in libxc_getvxc:"
     write(6,'(2x,a)')  " getvxc need Laplacian of density!"
     stop
- endif    
+ endif
 !Need to add more consistency tests
 
 !Initialize all output arrays to zero
@@ -1007,7 +1007,7 @@ end function libxc_family_from_id
 
 !Adjust zero-density threshold
  do ii = 1,2
-   if (libxc_funcs(ii)%id/=0) then
+   if (libxc_funcs(ii)%id>0) then
      call xc_func_set_density_threshold(libxc_funcs(ii)%conf,tol)
    end if
  end do
@@ -1032,8 +1032,8 @@ end function libxc_family_from_id
      vsigma_c(ii)=c_loc(vsigma)
      vlrho_c(ii)=c_loc(vlrho)
      vtau_c(ii)=c_loc(vtau)
-   endif    
- enddo  
+   endif
+ enddo
 #endif
 
 !Initialize temporary arrays
@@ -1041,10 +1041,10 @@ end function libxc_family_from_id
  rhotmp=0.d0 ; rho_c=c_loc(rhotmp)
  if (is_gga.or.is_mgga) then
    sigma=0.d0 ; sigma_c=c_loc(sigma)
- endif  
- if (is_mgga) then  
-   tautmp=0.d0; tau_c=c_loc(tautmp)      
-   lrhotmp=0.d0; lrho_c=c_loc(lrhotmp)      
+ endif
+ if (is_mgga) then
+   tautmp=0.d0; tau_c=c_loc(tautmp)
+   lrhotmp=0.d0; lrho_c=c_loc(lrhotmp)
  end if
 #endif
 
@@ -1077,7 +1077,7 @@ end function libxc_family_from_id
    if (is_mgga) then
      if (ipts<=izero) then
        if (nsp==1) then
-         !AtomPAW passes tau while LibXC needs tau     
+         !AtomPAW passes tau while LibXC needs tau
          tautmp(1)=tau(ipts,1)
          if (needs_laplacian) lrhotmp(1)=lrho(ipts,1)
        else
@@ -1089,7 +1089,7 @@ end function libxc_family_from_id
          if (needs_laplacian) then
             lrhotmp(1)= lrho(ipts,1)
             lrhotmp(2)= lrho(ipts,2)
-         endif   
+         endif
        end if
      else
        tautmp=0.d0
@@ -1126,7 +1126,7 @@ end function libxc_family_from_id
 &         C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR)
 !     write(6,'(2i5,2x,1P,20e15.7)') ii,ipts,rhotmp(1),tautmp(1),&
 !&          lrhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1),&
-!&          vlrho(1),vtau(1)                   
+!&          vlrho(1),vtau(1)
     end if
 #endif
 
@@ -1154,9 +1154,9 @@ end function libxc_family_from_id
 !     end if
     end if
     if (is_mgga) then
-      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2*vtau(1:nsp) !Ha to Ry    
+      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2*vtau(1:nsp) !Ha to Ry
       if (needs_laplacian) &
-&       vxclrho(ipts,1:nsp)=vxclrho(ipts,1:nsp)+2*vlrho(1:nsp) !Ha to Ry 
+&       vxclrho(ipts,1:nsp)=vxclrho(ipts,1:nsp)+2*vlrho(1:nsp) !Ha to Ry
     end if
 
   end do ! loop over functional(s)

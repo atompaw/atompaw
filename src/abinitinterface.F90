@@ -315,7 +315,7 @@ Module ABINITInterface
       write(6,*)  ' Please try reducing rc_core '
       write(6,*)  ' abinit file not created '
       return
-    endif    
+    endif
  allocate(pawarray%indlmn(6,pshead%lmn_size))
  call initpawps(pshead,pawarray)
 
@@ -545,8 +545,12 @@ Module ABINITInterface
   write(std_out,'(2x,a)') "   if ABINIT is compiled with libXC library!"
  else if (have_libxc) then
   call libxc_getid(id)
-  if (id(1)>=0.and.id(2)>=0) then
+  if (id(1)>0.and.id(2)>0) then
    pshead%pspxc_abinit=-(1000*id(1)+id(2))
+  else if (id(1)>0) then
+   pshead%pspxc_abinit=-id(1)
+  else if (id(2)>=0) then
+   pshead%pspxc_abinit=-id(2)
   else
    write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type!"
    stop
@@ -758,7 +762,7 @@ Module ABINITInterface
    write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
 &   "ABINITOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
  else
-   author="" 
+   author=""
    write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
 &   "ABINITOUT",char(10),trim(readline)
  end if
@@ -1537,7 +1541,7 @@ end subroutine calc_shapef
    irc=max(PAW%irc,PAW%irc_shap,PAW%irc_vloc,PAW%irc_core)
    qeff=integrator(Grid,dd,1,irc)
    dd(1:pshead%vloc_meshsz)=PAW%tden(1:pshead%vloc_meshsz)+PAW%tcore(1:pshead%vloc_meshsz)+qeff*PAW%hatden(1:pshead%vloc_meshsz)
-   call exch(Grid,dd,vxc2,etxc,eexc,fin=pshead%vloc_meshsz) 
+   call exch(Grid,dd,vxc2,etxc,eexc,fin=pshead%vloc_meshsz)
    pawps%vhtnzc(2:pshead%vloc_meshsz)=pawps%vhtnzc(2:pshead%vloc_meshsz)+&
 &                        half*(vxc1(2:pshead%vloc_meshsz)-vxc2(2:pshead%vloc_meshsz))/pawrad%rad(2:pshead%vloc_meshsz)
    call extrapolate(Grid,pawps%vhtnzc)
@@ -1547,7 +1551,7 @@ end subroutine calc_shapef
 
  end subroutine calc_vloc
 
- 
+
 !!=================================================================
 !! NAME
 !! opt_proj
@@ -1961,7 +1965,7 @@ end subroutine calc_shapef
  else
    write(funit,'(a)') trim(pshead%title)
  end if
- 
+
  write(funit,'(1x,f7.3,1x,f7.3,1x,a,14x,a)') &
 &      pshead%atomic_charge,&
 &      pshead%atomic_charge-pshead%core_charge,&
@@ -2790,7 +2794,7 @@ subroutine meshes_def(coremeshsz,icoremesh,iprjmesh,ivalemesh,ivlocmesh,&
 !------------------------------------------------------------------
 
   radstp=zero;logstp=zero
- 
+
 !--- Use of an auxilliary log grid
  if (loggrd%uselog) then
   loggrd%rad_step=(pawrad%rad(pshead%wav_meshsz)*(one-tol12))*exp(-loggrd%log_step*dble(loggrd%meshsz-2))

@@ -1,7 +1,7 @@
 ATOMPAW
 ================
 
-The software ATOMPAW generates projector and basis functions which are needed for
+The software `ATOMPAW` generates projector and basis functions which are needed for
 performing electronic structure calculations (Density-Functional Theory)
 based on the Projector Augmented Wave (PAW) method.
 
@@ -12,16 +12,21 @@ For each element, the user inputs the atomic number, the electronic configuratio
 a choice of basis functions, and an augmentation radius.
 The program produces output files containing the projector and basis functions
 and the corresponding matrix elements in a format which can be read by several
-DFT codes (abinit, quantum expresso, gpaw, pwpaw, onetep and all codes that
-can read atomic PAW setups in the PAW-XML format).
+DFT codes ([abinit](https://www.abinit.org),
+[quantum expresso](https://www.quantum-espresso.org),
+[gpaw](https://wiki.fysik.dtu.dk/gpaw),
+[pwpaw](http://users.wfu.edu/natalie/papers/pwpaw),
+[onetep](http://www.onetep.org),
+and all codes that can read atomic PAW setups in the
+[PAW-XML](https://esl.cecam.org/Paw-xml) format).
 
 
 Most of the relevant information can be found on the
-ATOMPAW official website : http://users.wfu.edu/natalie/papers/pwpaw
+ATOMPAW [official website](http://users.wfu.edu/natalie/papers/pwpaw).
 
 Many documentation files can be found in the doc directory.
-See especially the ~/doc/atompaw-usersguide.pdf file.
+See especially the `~/doc/atompaw-usersguide.pdf` file.
 
 ### License
 
-See COPYING file
+See `COPYING file`

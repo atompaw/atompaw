@@ -258,8 +258,8 @@ CONTAINS
    if (i>0) then
       gaussianshapefunction=.true.
       gaussparam=gausstol
-      read(unit=inputfileline(i+8:80),fmt=*) x
-      if (x>0) gaussparam=x
+      read(unit=inputfileline(i+8:80),fmt=*,err=222,end=222,iostat=i) gaussparam
+222   continue
       CALL sethat(Grid,PAW,gaussparam=gaussparam)    ! Gaussian shape function
       write(PAW%Comp_description,&
 &      '("Gaussian compensation charge shape with gausstol = ",1p,1e12.4)')&

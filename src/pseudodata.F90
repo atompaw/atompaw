@@ -17,17 +17,20 @@ MODULE pseudodata
   TYPE  Pseudoinfo
      CHARACTER(132) :: exctype
      INTEGER  :: lmax,irc,irc_shap,irc_vloc,irc_core,coretailpoints,mesh_size
-     INTEGER  :: ivale, ivion
+     INTEGER  :: ivale,itau,ivion
+     CHARACTER(15) :: orthogonalization_scheme
      CHARACTER(132) :: Vloc_description
      CHARACTER(132) :: Proj_description
      CHARACTER(132) :: Comp_description
-     LOGICAL :: multi_rc
+     LOGICAL :: multi_rc,poscorenhat
      REAL(8) :: rc,rc_shap,rc_vloc,rc_core,energyoflmax,gausslength
      REAL(8), POINTER :: rcio(:)
      REAL(8), POINTER :: vloc(:),abinitvloc(:),abinitnohat(:)
      REAL(8), POINTER :: rveff(:),AErefrv(:),rvx(:),trvx(:)
      REAL(8), POINTER :: projshape(:),hatshape(:),hatden(:),hatpot(:)
-     REAL(8), POINTER :: den(:),tden(:),core(:),tcore(:)
+     REAL(8), POINTER :: den(:),tden(:),core(:),tcore(:),nhatv(:)
+     REAL(8), POINTER :: coretau(:),tcoretau(:)
+     REAL(8), POINTER :: valetau(:),tvaletau(:)
      INTEGER :: nbase,ncoreshell
      INTEGER, POINTER :: np(:),l(:),nodes(:)
      INTEGER, POINTER :: rng(:)       ! rng particularly of continuum states
@@ -61,6 +64,9 @@ MODULE pseudodata
       TYPE(OrbitInfo), INTENT(IN) :: Orbit
       Type(PseudoInfo), INTENT(INOUT) :: PAW
       INTEGER :: io,l,n,mxbase,nbase,ok
+!     Initialize logical variables
+      PAW%multi_rc=.false.
+      PAW%poscorenhat=.true.
       CALL DestroyPAW(PAW)
 !     Compute initial size of basis
       n=Grid%n
@@ -80,14 +86,18 @@ MODULE pseudodata
 &        PAW%hatshape(n),PAW%vloc(n),PAW%rveff(n),PAW%abinitvloc(n),&
 &        PAW%abinitnohat(n),PAW%AErefrv(n),PAW%rvx(n),PAW%trvx(n),&
 &        PAW%den(n),PAW%tden(n),PAW%core(n),PAW%tcore(n),&
-&        stat=ok)
+&        PAW%coretau(n),PAW%tcoretau(n),&
+&        PAW%valetau(n),PAW%tvaletau(n),&
+&        PAW%nhatv(n),stat=ok)
       IF (ok/=0) STOP 'Allocation error 1 in InitPAW'
       PAW%projshape=0.d0;PAW%hatden=0.d0;PAW%hatpot=0.d0
       PAW%hatshape=0.d0;PAW%vloc=0.d0;PAW%rveff=0.d0
       PAW%abinitvloc=0.d0;PAW%abinitnohat=0.d0
       PAW%AErefrv=0.d0;PAW%rvx=0.d0;PAW%trvx=0.d0
       PAW%den=0.d0;PAW%tden=0.d0;PAW%core=0.d0;PAW%tcore=0.d0
-      PAW%XCORECORE=0.d0
+      PAW%XCORECORE=0.d0;PAW%nhatv=0.d0
+      PAW%coretau=0.d0;PAW%tcoretau=0.d0
+      PAW%valetau=0.d0;PAW%tvaletau=0.d0
       ALLOCATE(PAW%phi(n,mxbase),PAW%tphi(n,mxbase),PAW%tp(n,mxbase),&
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
@@ -138,6 +148,11 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%tden)) DEALLOCATE(PAW%tden)
     If (ASSOCIATED(PAW%core)) DEALLOCATE(PAW%core)
     If (ASSOCIATED(PAW%tcore)) DEALLOCATE(PAW%tcore)
+    If (ASSOCIATED(PAW%coretau)) DEALLOCATE(PAW%coretau)
+    If (ASSOCIATED(PAW%tcoretau)) DEALLOCATE(PAW%tcoretau)
+    If (ASSOCIATED(PAW%valetau)) DEALLOCATE(PAW%valetau)
+    If (ASSOCIATED(PAW%tvaletau)) DEALLOCATE(PAW%tvaletau)
+    If (ASSOCIATED(PAW%nhatv)) DEALLOCATE(PAW%nhatv)
     If (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
     If (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)
     If (ASSOCIATED(PAW%nodes)) DEALLOCATE(PAW%nodes)

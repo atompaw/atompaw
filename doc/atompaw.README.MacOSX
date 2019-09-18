@@ -1,5 +1,5 @@
 ===============================================================================
-=         This file describes how to install ATOMPAW on Mac OS X               =
+=         This file describes how to install ATOMPAW on MacOS                 =
 =          - Using Homebrew package manager                                   =
 =          - Using MacPorts package manager                                   =
 =          - Compiling by yourself                                            =
@@ -11,131 +11,73 @@ This manpage is available as ~atompaw_src_dir/doc/README.MacOSX
 =  1- USING HOMEBREW    (http://brew.sh)                                      =
 ===============================================================================
 
-Tested with mac OS X v10.9 (Mavericks), v10.10 (Yosemite), 10.11 (El Capitan).
+A Homebrew third-party Formula for ATOMPAW is available (author: M. Torrent).
+Tested with macOS v10.9 to v10.14.
 
-A Homebrew official formula for ATOMPAW is available (author: M. Torrent).
+Prerequisite: Homebrew installed (see: http://brew.sh/#install)
 
------ Prerequesites -----
+To install ATOMPAW just type:
+brew install atompaw/repo/atompaw
 
-* Homebrew installed (see: http://brew.sh/#install)
-
-* Notes:
-  - Homebrew needs Xcode and "Xcode command line tools" to be installed; just type:
-    xcode-select --install
-
------ Installing ATOMPAW -----
-
-* Just type:
-    brew install homebrew/science/atompaw
-
-* ATOMPAW should install smoothly... with its dependencies (gfortran, libXC, ...).
-
------ Comments -----
-
-* LibXC exchange-correlation library is used by default.
-  To build ATOMPAW without libXC support, use the --without-libxc option.
+Note: LibXC library is used by default.
+This can be disabled by passing "--without-libxc" option to "brew install".
 
 
 ===============================================================================
 =  2- USING MACPORTS    (http://www.macports.org)                             =
 ===============================================================================
 
-Tested with mac OS X v10.10 (Yosemite), v10.11 (El Capitan).
+ABINIT is available on MacPorts project, not necessarily in its latest version.
+Tested with mac OS v10.8 to 10.14.
 
-There is an available port in the MacPorts system for ATOMPAW,
-originally created by ATOMPAW developers.
-
------ Prerequesites -----
-
+Prerequisites:
 * MacPorts installed (see: https://www.macports.org/install.php)
-
 * gcc (last version) port installed with Fortran variant (Fortran compiler),
-
 * Before starting, it is preferable to update MacPorts system:
-    sudo port selfupdate
-    sudo port upgrade outdated
 
-* Notes:
-  - It is recommended to completely reinstall MacPorts after a MacOS upgrade.
-  - MacPorts needs Xcode and "Xcode command line tools" to be installed; just type:
-    xcode-select --install
+To install ABINIT just type:
+sudo port install atompaw
 
------ Installing ATOMPAW -----
-
-* Install official ATOMPAW port:
-    sudo port install atompaw
-
------ ATOMPAW port variants -----
-
-* By default, ATOMPAW is installed with the following dependencies:
+By default, ATOMPAW is installed with the following dependencies:
      libXC, vecLibFort (linear algebra)
 
-* Linking ATOMPAW to Atlas library:
-     sudo port install atompaw @X.Y.Z +atlas
-
-* Linking ATOMPAW to OpenBLAS library:
-     sudo port install atompaw @X.Y.Z +openblas
-
-* Linking ATOMPAW to vecLibFort library:
-     sudo port install atompaw @X.Y.Z +veclibfort
-
-* Other options available by typing:
-     port info atompaw
+Variant:
+Linking to OpenBLAS library: sudo port install atompaw @X.Y.Z +openblas
 
 
 ===============================================================================
 =  3- COMPILING ATOMPAW BY YOURSELF under MacOSX                               =
 ===============================================================================
 
------ Prerequesites -----
-
-* Mac OSX
-
-* Xcode installed with "Xcode command line tools"; just type:
-    xcode-select --install
-
-* A Fortran compiler installed.
-  Possible options:
+Prerequisites:
+* MacOS (10.8+)
+* Xcode installed with “command line tools” (type: xcode-select --install)
+* A Fortran compiler installed. Possible options:
   - gfortran binary from: http://hpc.sourceforge.net
   - gfortran binary from: https://gcc.gnu.org/wiki/GFortranBinaries#MacOS
   - gfortran installed via a package manager (MacPorts, Homebrew, Fink)
   - Intel Fortran compiler
-  - ...
+* A Linear Algebra library installed. By default the 'accelerate' Framework is included in MacOS.
+* LibXC library installed [optional but recommended] (https://tddft.org/programs/libxc)
 
-* A Linear Algebra library installed.
-  By default the 'accelerate' Framework is included in MacOSX.
-
-* Optional, but recommended:
-  libXC exchange-correlation library installed.
-  To be found at: http://www.tddft.org/programs/octopus/wiki/index.php/Libxc
-  
------ Installing ATOMPAW -----
-
+Installing ATOMPAW:
 * Create a working directory:
     cd atompaw_src_dir
     mkdir build && cd build
-
 * Configure:
     With libXC support:
-    ../configure FC=gfortran --enable-libxc \
+    ../configure FC=gfortran --prefix=where_to_install_atompaw \
+                 --enable-libxc \
                  --with-libxc-incs="-Ipath_to_libxc/include" \
                  --with-libxc-libs="-Lpath_to_libxc/lib -lxc -lxcf90"
     Without libXC support:
-    ../configure FC=gfortran
-
-* Compile:
+    ../configure FC=gfortran  --prefix=where_to_install_atompaw
+                 
+* Compile and install [optional]:
     make
-
-* Install (optional):
     make install
 
------ Comments -----
-
-* The Linear Algebra library should be automatically found.
-  If not, try to add the following option to the configure line:
-  --with-linalg-libs="-L/usr/lib -lblas -llapack"
-
-
+Help available by typing: ../configure --help
 
 ===============================================================================
-Author: M. Torrent, Feb. 2016
+Author: M. Torrent, Aug. 2019

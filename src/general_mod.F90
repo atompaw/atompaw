@@ -470,7 +470,7 @@ CONTAINS
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
             write(6,*) 'calling InitGrid with h, r0 =',h,r0
-            Call InitGrid(Grid,h,gridrange,r0)
+            Call InitGrid(Grid,h,gridrange,r0=r0)
             write(6,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
@@ -485,7 +485,7 @@ CONTAINS
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
             write(6,*) 'calling InitGrid with h, r0 =',h,r0
-            Call InitGrid(Grid,h,gridrange,r0)
+            Call InitGrid(Grid,h,gridrange,r0=r0)
             write(6,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
@@ -504,7 +504,7 @@ CONTAINS
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
             write(6,*) 'calling InitGrid with h, r0 =',h,r0
-            Call InitGrid(Grid,h,gridrange,r0)
+            Call InitGrid(Grid,h,gridrange,r0=r0)
             write(6,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
@@ -524,7 +524,7 @@ CONTAINS
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
             write(6,*) 'calling InitGrid with h, r0 =',h,r0
-            Call InitGrid(Grid,h,gridrange,r0)
+            Call InitGrid(Grid,h,gridrange,r0=r0)
             write(6,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
@@ -540,7 +540,7 @@ CONTAINS
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
             write(6,*) 'calling InitGrid with h, r0 =',h,r0
-            Call InitGrid(Grid,h,gridrange,r0)
+            Call InitGrid(Grid,h,gridrange,r0=r0)
             write(6,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)

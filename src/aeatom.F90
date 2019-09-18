@@ -206,11 +206,11 @@ CONTAINS
     IF (TRIM(gridkey)=='LOGGRID'.and.ilogv4>0) THEN
        hval=logh
        CALL findh_given_r0(AEPot%zz,gridmatch,lor00,gridpoints,hval)
-       CALL InitGrid(Grid,hval,gridrange,lor00/AEPot%zz)
+       CALL InitGrid(Grid,hval,gridrange,r0=lor00/AEPot%zz)
     ELSEIF (TRIM(gridkey)=='LOGGRID'.and.ilogv4==0) THEN
        hval=logh
        CALL findh(AEPot%zz,gridmatch,gridpoints,hval,r0)
-       CALL InitGrid(Grid,hval,gridrange,r0)
+       CALL InitGrid(Grid,hval,gridrange,r0=r0)
     ELSE
        hadjusted=gridmatch/(gridpoints-1)
        CALL InitGrid(Grid,hadjusted,gridrange)
@@ -632,8 +632,9 @@ CONTAINS
   !!       From nuclear charge -- generate hydrogenic-like initial wfns
   !!          and densities --
   !!          fill AEOrbit%wfn, AEOrbit%eig, and AEOrbit%den and AEOrbit%q
-  !!          also AEOrbit%tau
+  !!          also AEOrbit%otau and AEOrbit%tau
   !!          Note that both den and tau need to be divided by 4 \pi r^2
+  !!          Note that tau is only correct for non-relativistic case
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Orbit_Init(Orbit,Pot)
     IMPLICIT NONE
@@ -691,20 +692,23 @@ CONTAINS
        DO io=1,Orbit%norbit
           dpdr=0.d0;pbr=0.d0
           pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
+          CALL derivative(Grid,pbr,dpdr,2,Grid%n)
           CALL extrapolate(Grid,pbr)
-          CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
+          CALL extrapolate(Grid,dpdr)
           l=Orbit%l(io)
           fac=l*(l+1)
+          Orbit%otau(:,io)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
-             Orbit%tau(ir)=Orbit%tau(ir)+&
-&             xocc*((dpdr(ir)-pbr(ir))**2+fac*(pbr(ir))**2)
+             Orbit%tau(ir)=Orbit%tau(ir)+xocc*Orbit%otau(ir,io)
              If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
 &                 xocc*((Orbit%lwfn(ir,io))**2)                     
           ENDDO
        ENDDO
-       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density
+!   Note that kinetic energy density (tau) is in Rydberg units
+!   Note that kinetic energy density is only correct for non-relativistic
+!               formulation
        qcal=integrator(Grid,Orbit%den)
        qf=qcal
        !WRITE(6,*) 'qcal electrons = ',qcal, electrons
@@ -772,20 +776,23 @@ CONTAINS
        DO io=1,Orbit%norbit
           dpdr=0.d0;pbr=0.d0
           pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
+          CALL derivative(Grid,pbr,dpdr,2,Grid%n)
           CALL extrapolate(Grid,pbr)
-          CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
+          CALL extrapolate(Grid,dpdr)
           l=Orbit%l(io)
           fac=l*(l+1)
+          Orbit%otau(:,io)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
-             Orbit%tau(ir)=Orbit%tau(ir)+&
-&             xocc*((dpdr(ir)-pbr(ir))**2+fac*(pbr(ir))**2)
-            If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
-&                 xocc*((Orbit%lwfn(ir,io))**2)
+             Orbit%tau(ir)=Orbit%tau(ir)+xocc*Orbit%otau(ir,io)
+             If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
+&                 xocc*((Orbit%lwfn(ir,io))**2)                     
           ENDDO
        ENDDO
-       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density       
+!   Note that kinetic energy density (tau) is in Rydberg units
+!   Note that kinetic energy density is only correct for non-relativistic
+!               formulation
        !
        !  check charge
        !
@@ -885,6 +892,7 @@ CONTAINS
        WRITE(6,"(' n  l     occupancy')")
 
        FC%zvale=0.d0
+
        DO io=1,Orbit%norbit
           If (.not.Orbit%iscore(io))then
             WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)')  &
@@ -899,12 +907,13 @@ CONTAINS
        !  calculate initial charge density from stored wavefunctions
        !    also initial energies
        !
-       FC%valeden=0
+       FC%valeden=0; FC%valetau=0
        DO io=1,Orbit%norbit
           IF (.NOT.Orbit%iscore(io)) THEN
              xocc=Orbit%occ(io)
              DO ir=1,Grid%n
                 FC%valeden(ir)=FC%valeden(ir)+xocc*(Orbit%wfn(ir,io)**2)
+                FC%valetau(ir)=FC%valetau(ir)+xocc*Orbit%otau(ir,io)
               If (diracrelativistic) FC%valeden(ir)=FC%valeden(ir) + &
 &                 xocc*((Orbit%lwfn(ir,io))**2)
 
@@ -921,6 +930,7 @@ CONTAINS
        else
           rescale=FC%zvale/qcal
           FC%valeden=FC%valeden*rescale
+          FC%valetau=FC%valetau*rescale
        endif
 
        Orbit%den=FC%valeden+FC%coreden
@@ -966,6 +976,7 @@ CONTAINS
     WRITE(6,*) 'for each state enter c for core or v for valence'
     FC%zcore=0; FC%zvale=0
     FC%coreden=0; FC%valeden=0
+    FC%coretau=0; FC%valetau=0
     DO io=1,FCOrbit%norbit
        WRITE(6,'(3i5,1p,2e15.7)') io,FCOrbit%np(io),FCOrbit%l(io),&
 &           FCOrbit%occ(io),FCOrbit%eig(io)
@@ -989,6 +1000,7 @@ CONTAINS
        IF (FCOrbit%iscore(io)) THEN
           FC%zcore=FC%zcore+FCOrbit%occ(io)
           FC%coreden=FC%coreden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
+          FC%coretau=FC%coretau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
           If (diracrelativistic) FC%coreden=FC%coreden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
 
@@ -997,6 +1009,7 @@ CONTAINS
 
           FC%zvale=FC%zvale+FCOrbit%occ(io)
           FC%valeden=FC%valeden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
+          FC%valetau=FC%valetau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
           If (diracrelativistic) FC%valeden=FC%valeden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
        ENDIF
@@ -1006,8 +1019,11 @@ CONTAINS
          write(6,*) 'Core electrons', FC%zcore,integrator(Grid,FC%coreden)
          write(6,*) 'Vale electrons', FC%zvale,integrator(Grid,FC%valeden)
 
+         write(6,*) 'Coretau:',FC%coretau(1:20)
+         write(6,*) 'Valetau:',FC%valetau(1:20)
   END SUBROUTINE Set_Valence
 
+! dump and load subroutines need to be updated!!!!  
   SUBROUTINE dump_aeatom(Fn,Grid,AEOrbit,AEPot,AESCF,FCOrbit,FCPot,FCSCF,FC)
      Character(*), INTENT(IN) :: Fn
      Type(GridInfo), INTENT(IN) :: Grid

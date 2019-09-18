@@ -33,7 +33,7 @@ MODULE gridmod
      INTEGER :: TYPE
      INTEGER :: n
      INTEGER :: ishift
-     REAL(8) :: h
+     REAL(8) :: h,r0,range
      REAL(8), POINTER :: r(:)
      REAL(8), POINTER :: drdu(:)    ! for loggrid -- dr/du
      REAL(8), POINTER :: pref(:)    ! for loggrid -- r0*exp(u/2)
@@ -1941,25 +1941,24 @@ CONTAINS
      h0=hval
      success=.false.
      do i=1,iter
-        f=LOG(Z*range/h0+1.d0)/h0
-        df=-f/h0-(Z*range/h0**3)/(Z*range/h0+1.d0)
-        dh=(n-1-f)/df
-        if (ABS(dh)< eps) then
-           success=.true.
-           exit
-        endif
-        if (h0+dh<0.d0) then
-           h0=h0/2
-        else
-           h0=h0+dh
-        endif
-      enddo
-
-      if (.not.success) then
-        write(6,*) 'Warning in findh -- dh > eps ', dh,h0
-      endif
-      hval=h0
-      r0=hval/Z
+       f=LOG(Z*range/h0+1.d0)/h0
+       df=-f/h0-(Z*range/h0**3)/(Z*range/h0+1.d0)
+       dh=(n-1-f)/df
+       if (ABS(dh)< eps) then
+         success=.true.
+         exit
+       endif
+       if (h0+dh<0.d0) then
+         h0=h0/2
+       else
+         h0=h0+dh
+       endif
+     enddo
+     if (.not.success) then
+       write(6,*) 'Warning in findh -- dh > eps ', dh,h0
+     endif
+     hval=h0
+     r0=hval/Z
 
   end subroutine findh
 
@@ -2028,23 +2027,28 @@ CONTAINS
   !******************************************************************
   ! subroutine initgrid(Grid,h,range,r0)
   !******************************************************************
-  SUBROUTINE InitGrid(Grid,h,range,r0)
+  SUBROUTINE InitGrid(Grid,h,range,r0,do_not_print)
     TYPE (GridInfo), INTENT(INOUT) :: Grid
     REAL(8), INTENT(IN) :: range
     REAL(8), INTENT(IN) :: h
     REAL(8), OPTIONAL, INTENT(IN) :: r0
+    LOGICAL, OPTIONAL, INTENT(IN) :: do_not_print
 
     INTEGER :: i,n
+    LOGICAL :: do_print
+
+    do_print=.true.;if (present(do_not_print)) do_print=.not.do_not_print
 
     IF (PRESENT(r0)) THEN
-
+       Grid%h=h
+       Grid%r0=r0
        Grid%type=loggrid
+       Grid%range=range
        n=LOG(range/r0+1)/h+1
        Grid%ishift=5
        IF (r0*(EXP(h*(n-1))-1)<range-1.d-5) n=n+1
-       Grid%h=h
        Grid%n=n
-       WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
+       if (do_print) WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(6,*) 'Allocation error in initgrid ', n,i
@@ -2056,14 +2060,17 @@ CONTAINS
           Grid%pref(i)=r0*EXP(Grid%h*(i-1)/2.d0)
           Grid%rr02(i)=(Grid%r(i)+r0)**2
        ENDDO
+
     ELSE
+       Grid%h=h
+       Grid%r0=0.d0
        Grid%type=lineargrid
+       Grid%range=range
        n=range/h+1
        Grid%ishift=25
        IF (h*(n-1)<range-1.d-5) n=n+1
        Grid%n=n
-       Grid%h=h
-       WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
+       if (do_print) WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(6,*) 'Allocation error in initgrid ', n,i

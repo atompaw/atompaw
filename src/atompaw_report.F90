@@ -217,13 +217,26 @@ CONTAINS
      n=Grid%n; irc=PAW%irc
 
      OPEN(ifout,file='density', form='formatted')
+     WRITE(ifout,*) '#  r       coreden        valeden         tcoreden        tvaleden      nhatden'
      DO i=1,n
         IF (PAW%core(i)<machine_zero) PAW%core(i)=0
         IF (PAW%tcore(i)<machine_zero) PAW%tcore(i)=0
         IF (PAW%den(i)<machine_zero) PAW%den(i)=0
         IF (PAW%tden(i)<machine_zero) PAW%tden(i)=0
-        WRITE(ifout,'(1p,1e15.7,1p,4e25.17)') Grid%r(i),PAW%core(i),&
-             PAW%den(i),PAW%tcore(i),PAW%tden(i)
+        WRITE(ifout,'(1p,1e15.7,1p,5e25.17)') Grid%r(i),PAW%core(i),&
+             PAW%den(i),PAW%tcore(i),PAW%tden(i),PAW%nhatv(i)
+     ENDDO
+     CLOSE(ifout)
+
+     OPEN(ifout,file='tau', form='formatted')
+     WRITE(ifout,*) '#  r       coretau        valetau         tcoretau        tvaletau '
+     DO i=1,n
+        IF (PAW%coretau(i)<machine_zero) PAW%coretau(i)=0
+        IF (PAW%tcoretau(i)<machine_zero) PAW%tcoretau(i)=0
+        IF (PAW%valetau(i)<machine_zero) PAW%valetau(i)=0
+        IF (PAW%tvaletau(i)<machine_zero) PAW%tvaletau(i)=0
+        WRITE(ifout,'(1p,1e15.7,1p,5e25.17)') Grid%r(i),PAW%coretau(i),&
+&           PAW%valetau(i),PAW%tcoretau(i),PAW%tvaletau(i)
      ENDDO
      CLOSE(ifout)
 

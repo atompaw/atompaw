@@ -672,6 +672,7 @@ end function libxc_getid_fromName
    xc_func%has_vxc=.false.
    xc_func%has_fxc=.false.
    xc_func%has_kxc=.false.
+   xc_func%needs_laplacian=.false.
    xc_func%hyb_mixing=0.d0
    xc_func%hyb_mixing_sr=0.d0
    xc_func%hyb_range=0.d0

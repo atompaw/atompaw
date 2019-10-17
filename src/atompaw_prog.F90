@@ -116,7 +116,7 @@ PROGRAM atompaw
 
   CLOSE(ifinput)
   CLOSE(ifen)
-  
+
   Do
    WRITE(6,*) 'Enter 0 or END to end program'
    WRITE(6,*) 'Enter 1 or SCFPAW to run SCFPAW'
@@ -126,7 +126,7 @@ PROGRAM atompaw
    WRITE(6,*) 'Enter 5 or PWPAWOUT  to run atompaw2pwpaw'
    WRITE(6,*) 'Enter 6 or SOCORROOUT  to run atompaw2socorro'
    WRITE(6,*) 'Enter 10 or EXPLORE to run exploreparms'
-                     
+
    READ(5,'(a)',iostat=i) token
    if (i/=0) exit
 
@@ -136,20 +136,20 @@ PROGRAM atompaw
      CALL SCFPAW(Grid,PAW)
    else if (checkline2(token,"2","ABINITOUT")) then
      CALL Atompaw2Abinit(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput)
-   else if (checkline2(token,"3","PWSCFOUT")) then    
+   else if (checkline2(token,"3","PWSCFOUT")) then
      CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit,ifinput)
-   else if (checkline2(token,"4","XMLOUT")) then    
+   else if (checkline2(token,"4","XMLOUT")) then
      CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput) 
-   else if (checkline2(token,"5","PWPAWOUT")) then   
+   else if (checkline2(token,"5","PWPAWOUT")) then
      CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
-   else if (checkline2(token,"6","SOCORROOUT")) then   
+   else if (checkline2(token,"6","SOCORROOUT")) then
      CALL WRITE_SOCORROATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
-   else if (checkline2(token,"10","EXPLORE")) then    
-     CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)    
-   else 
-     write(6,*) token; call flush_unit(6)      
+   else if (checkline2(token,"10","EXPLORE")) then
+     CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)
+   else
+     write(6,*) token; call flush_unit(6)
      STOP 'Option not recognized -- pgm terminating'
-   endif                                      
+   endif
   Enddo
 
 ! Free Memory

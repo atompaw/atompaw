@@ -184,17 +184,20 @@ End Subroutine
 !******************************************************************************
 !  checkline2 - logical function
 !     Returns .true. if inputline matchs either in1 or in2
-!     Note: in1 and in2 should either be integers or uppercase characters
+!     Note: in1 and in2 should either be integers or characters
 !******************************************************************************
   LOGICAL FUNCTION checkline2(inputline,in1,in2)
      CHARACTER(*), INTENT(IN) :: inputline
      CHARACTER(*), INTENT(IN) :: in1,in2
-     INTEGER :: i,len1,len2
-     CHARACTER(120) :: inputline_u
-     inputline_u=trim(inputline)
-     call UpperCase(inputline_u)
-     len1=len(trim(in1));len2=len(trim(in2))
-     checkline2=(inputline_u(1:len1)==trim(in1).or.inputline_u(1:len2)==trim(in2))
+     INTEGER :: i,leninput,len1,len2
+     CHARACTER(120) :: inputline_u,in1_u,in2_u
+     inputline_u=trim(inputline) ; call UpperCase(inputline_u)
+     in1_u=trim(in1) ; call UpperCase(in1_u)
+     in2_u=trim(in2) ; call UpperCase(in2_u)
+     leninput=len(trim(inputline));len1=len(trim(in1));len2=len(trim(in2))
+     checkline2=.false.
+     if (leninput==len1) checkline2=(inputline_u(1:len1)==trim(in1))
+     if ((.not.checkline2).and.leninput==len2) checkline2=(inputline_u(1:len2)==trim(in2))
      RETURN
   END FUNCTION checkline2
 

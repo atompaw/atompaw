@@ -265,7 +265,7 @@ CONTAINS
 !   Find radii ensuring:
 !     - Abs(density)<10e-10 (for the pseudo-valence density)
 !     - r>=10 bohr (for the ionic potential)
-    sqr4pi=sqrt(4*pi)*1.d-10;PAW%ivion=gridindex(Grid,10.d0);
+    sqr4pi=sqrt(4*pi)*1.d-10;PAW%ivion=gridindex(Grid,20.d0);
     PAW%ivale=PAW%ivion
     do while (PAW%ivale<Grid%n.and. &
 &        abs(PAW%tden(PAW%ivale))>sqr4pi*Grid%r(PAW%ivale)**2)

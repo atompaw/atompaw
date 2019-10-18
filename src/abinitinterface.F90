@@ -2260,6 +2260,7 @@ end subroutine calc_shapef
 !! * allowed values for method are:
 !!    1 for restricted, compatible only with nsppol=1.
 !!    2 for spin unrestricted, compatible only with nsppol=2.
+!!    3 for spinors
 !!* psp_version= ID of core WF file version
 !!    4 characters string of the form 'coren' (with n varying)
 !!* creatorID= ID of psp generator
@@ -2293,7 +2294,7 @@ end subroutine calc_shapef
 !------------------------------------------------------------------
 
  integer, parameter :: nmesh_max=2
- integer :: ib,icor,ii,imesh,ir,isppol,method,nmesh,nspinor,nsppol
+ integer :: ib,icor,ii,imesh,ir,isppol,method,nmesh,nspinor,nsppol,flagrel
  integer :: meshsz(nmesh_max),meshtp(nmesh_max)
  real(dp) :: radstp(nmesh_max),logstp(nmesh_max)
  character*3 :: spstrg
@@ -2313,6 +2314,13 @@ end subroutine calc_shapef
  method=1
  nspinor=1
  nsppol=1
+
+!Adding Core wave function spinor support
+ if(diracrelativistic) then
+   nspinor=2
+   nsppol=1 !nsppol 4 is not yet supported
+   method=3
+ end if
 
 !Mesh(es) definitions
  nmesh=1;imesh=1
@@ -2339,7 +2347,15 @@ end subroutine calc_shapef
 
 !Write the header
  write(funit,'(2a)') "All-electron core wavefunctions - ",trim(pshead%title)
- write(funit,'(3(1x,i2),30x,a)') method,nspinor,nsppol," : method,nspinor,nsppol"
+ if(diracrelativistic) then
+   flagrel=2
+ else if(scalarrelativistic) then
+   flagrel=1
+ else
+  flagrel=0
+ endif
+   write(funit,'(4(1x,i2),27x,a)') flagrel,method,nspinor,nsppol," : relativismflag,method,nspinor,nsppol"
+
  write(funit,'(1x,f7.3,1x,f7.3,1x,a,14x,a)') &
 &      pshead%atomic_charge,pshead%core_charge,&
 &      trim(strdate),&
@@ -2390,16 +2406,22 @@ end subroutine calc_shapef
     if (nsppol==2) then
      if (isppol==1) spstrg=" UP"
      if (isppol==2) spstrg=" DN"
-     write(funit,'(a,i1,2a)') "===== Core wave functions PHI ",icor,&
+     write(funit,'(a,i2,2a)') "===== Core wave functions PHI ",icor,&
 &        spstrg," =====   [phi(r)=PHI(r)/r*Ylm(th,ph)] "
     else
-     write(funit,'(a,i1,a)') "===== Core wave functions PHI ",icor,&
+     write(funit,'(a,i2,a)') "===== Core wave functions PHI ",icor,&
 &        " =====   [phi(r)=PHI(r)/r*Ylm(th,ph)]"
     end if
     write(funit,'(i2,a)') imesh,"  : radial mesh index"
-    write(funit,'(1x,3(i3,1x),26x,a)') &
-&       AEOrbit%np(ib),AEOrbit%l(ib),isppol,&
-&       " : n,l,spin"
+    if(diracrelativistic) then
+      write(funit,'(1x,4(i3,1x),26x,a)') &
+&         AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%kappa(ib),isppol,&
+&         " : n,l,kappa,spin"
+    else
+      write(funit,'(1x,3(i3,1x),26x,a)') &
+&         AEOrbit%np(ib),AEOrbit%l(ib),isppol,&
+&         " : n,l,spin"
+    end if
     write(funit,'((1x,2(es16.8,1x),4x,a))') &
 &       AEOrbit%eig(ib),AEOrbit%occ(ib),&
 &       " : ene,occ"
@@ -2417,6 +2439,34 @@ end subroutine calc_shapef
   end if ! if icore
  end do   !ib
 
+!Write second spinor component of the core wave functions in case of 2D Dirac equation
+ if(diracrelativistic) then
+   icor=0
+   do ib=1,AEOrbit%norbit
+     if (AEOrbit%iscore(ib)) then
+       icor=icor+1;if (icor>pshead%core_size) stop "Atompaw : bug in wrcorewf !"
+       write(funit,'(a,i2,a)') "===== Core wave functions PHI second spinor component",icor,&
+&          " =====   [phi(r)=PHI(r)/r*Ylm(th,ph)]"
+       write(funit,'(i2,a)') imesh,"  : radial mesh index"
+       write(funit,'(1x,3(i3,1x),26x,a)') &
+&         AEOrbit%np(ib),AEOrbit%l(ib),isppol,&
+&         " : n,l,spin"
+       write(funit,'((1x,2(es16.8,1x),4x,a))') &
+&         AEOrbit%eig(ib),AEOrbit%occ(ib),&
+&         " : ene,occ"
+       if (loggrd%uselog) then
+         allocate(ffit(meshsz(1)))
+         call interpfunc(pshead%corewf_meshsz,pawrad%rad(1:pshead%corewf_meshsz),&
+&                      AEOrbit%lwfn(1:pshead%corewf_meshsz,ib),&
+&                      meshsz(1),rr_log(1:meshsz(1)),ffit)
+         write(funit,'(3(1x,es23.16))') ffit
+         deallocate(ffit)
+       else
+         write(funit,'(3(1x,es23.16))') (AEOrbit%lwfn(ir,ib),ir=1,meshsz(1))
+       endif
+     end if ! if icore
+   end do   !ib
+ end if
 !Close the file and end
  close(funit)
  if (loggrd%uselog) deallocate(rr_log)

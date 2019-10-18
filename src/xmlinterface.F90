@@ -331,6 +331,7 @@ Module XMLInterface
  i_author   =index(readline_u,'AUTHOR')
  i_splgrid  =index(readline_u,'WITHSPLGRID')
 
+
 !Option for use of NHAT in XC
  if (i_usexcnhat>0) then
   vlocopt=1
@@ -344,6 +345,7 @@ Module XMLInterface
 &  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
 
 !Option for the PRinTing of CORE Wave Functions
+
  prtcorewf=0 ; if (i_prtcorewf>0) prtcorewf=1
 
 !Option for use of REAL SPACE OPTIMIZATION
@@ -1319,6 +1321,8 @@ Module XMLInterface
 !Generator data
  if (scalarrelativistic) then
    WRITE(unit_xml_core,'("<generator type=""scalar-relativistic"" name=""atompaw"">")')
+ else if (diracrelativistic) then
+   WRITE(unit_xml_core,'("<generator type=""dirac-relativistic"" name=""atompaw"">")')
  else
    WRITE(unit_xml_core,'("<generator type=""non-relativistic"" name=""atompaw"">")')
  endif
@@ -1364,8 +1368,13 @@ Module XMLInterface
      icor=icor+1;if (icor>core_size) stop "Atompaw : bug in prtcorewf !"
      call mkname(icor,char4)
      char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
-     WRITE(unit_xml_core,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
-&        AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%occ(ib)
+     if(diracrelativistic) then
+       WRITE(unit_xml_core,'("  <state n=""",i2,""" l=""",i1,""" kappa=""",i2,""" f=""",1pe14.7,$)')&
+&          AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%kappa(ib),AEOrbit%occ(ib)
+     else
+       WRITE(unit_xml_core,'("  <state n=""",i2,""" l=""",i1,""" f=""",1pe14.7,$)')&
+&          AEOrbit%np(ib),AEOrbit%l(ib),AEOrbit%occ(ib)
+     endif
      WRITE(unit_xml_core,'("""  e=""",1pe14.7,""" id=",a11,"/>")')&
 &        AEOrbit%eig(ib)*0.5d0,TRIM(char20)
    end if
@@ -1426,6 +1435,29 @@ Module XMLInterface
     WRITE(unit_xml_core,'("</ae_core_wavefunction>")')
   end if ! if icore
  end do   !ib
+
+!Write the core lwave functions
+ if(diracrelativistic) then
+   icor=0
+   do ib=1,AEOrbit%norbit
+    if (AEOrbit%iscore(ib)) then
+      icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorelwf !"
+      call mkname(AEOrbit%np(ib),char4)
+      char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
+      WRITE(unit_xml_core,'("<ae_core_lwavefunction state=",a6," grid=""",a,i1,""">")') &
+&       TRIM(char20),gridt(mesh_data%iwavmesh),mesh_data%iwavmesh
+      ALLOCATE(dum(mesh_data%meshsz(mesh_data%iwavmesh)),stat=OK)
+      dum=zero
+      dum(2:mesh_data%meshsz(mesh_data%iwavmesh))= &
+&                 AEOrbit%lwfn(2:mesh_data%meshsz(mesh_data%iwavmesh),ib) &
+&                /Grid%r(2:mesh_data%meshsz(mesh_data%iwavmesh))
+      call extrapolate(Grid,dum)
+      WRITE(unit_xml_core,'(3(1x,es23.16))') (dum(ir),ir=1,corewf_meshsz)
+      DEALLOCATE(dum)
+      WRITE(unit_xml_core,'("</ae_core_lwavefunction>")')
+    end if ! if icore
+   end do   !ib
+ end if ! diracrelativistic
 ! Input file
  WRITE(unit_xml_core,'("<!-- Program:  atompaw - input data follows: ")')
  WRITE(unit_xml_core,'(a)') trim(input_string)

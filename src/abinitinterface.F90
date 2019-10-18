@@ -86,7 +86,7 @@ Module ABINITInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2abinitver='3.4.1', abinitver='6.1.0+', verdate='june 2013'
+ character*10 :: atompaw2abinitver='3.4.2', abinitver='6.1.0+', verdate='oct. 2019'
 
 !Default name for Abinit file
  integer, parameter :: unit_abinit=22
@@ -367,7 +367,7 @@ Module ABINITInterface
 !---- Write core Wave Function file for ABINIT
  if (prtcorewf) then
   xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
-  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.abinit.corewf'
+  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.corewf.abinit'
   call wrcorewf(AEOrbit,FC,pshead,pawrad,loggrd,file_abinit,unit_abinit)
  end if
 
@@ -2257,7 +2257,7 @@ end subroutine calc_shapef
 !!    (14) phi_core(r) (for ir=1 to phi_core_meshsz)
 !!
 !!Comments:
-!! * allowed values for method are:
+!!* allowed values for method are:
 !!    1 for restricted, compatible only with nsppol=1.
 !!    2 for spin unrestricted, compatible only with nsppol=2.
 !!    3 for spinors
@@ -2310,16 +2310,15 @@ end subroutine calc_shapef
 
  call date_and_time(strdate)
 
-!Hard-coded values, spin unrestricted, spinors or collinear magnetism not yet supported
- method=1
- nspinor=1
- nsppol=1
+!Hard-coded values, spin unrestricted or spinors; collinear magnetism not yet supported
+ method=1 ; nspinor=1 ; nsppol=1
+ flagrel=0;if (scalarrelativistic) flagrel=1
 
 !Adding Core wave function spinor support
  if(diracrelativistic) then
-   nspinor=2
+   method=3 ; nspinor=2
    nsppol=1 !nsppol 4 is not yet supported
-   method=3
+   flagrel=2
  end if
 
 !Mesh(es) definitions
@@ -2347,15 +2346,7 @@ end subroutine calc_shapef
 
 !Write the header
  write(funit,'(2a)') "All-electron core wavefunctions - ",trim(pshead%title)
- if(diracrelativistic) then
-   flagrel=2
- else if(scalarrelativistic) then
-   flagrel=1
- else
-  flagrel=0
- endif
-   write(funit,'(4(1x,i2),27x,a)') flagrel,method,nspinor,nsppol," : relativismflag,method,nspinor,nsppol"
-
+ write(funit,'(4(1x,i2),27x,a)') flagrel,method,nspinor,nsppol," : relativism_flag,method,nspinor,nsppol"
  write(funit,'(1x,f7.3,1x,f7.3,1x,a,14x,a)') &
 &      pshead%atomic_charge,pshead%core_charge,&
 &      trim(strdate),&
@@ -2467,6 +2458,7 @@ end subroutine calc_shapef
      end if ! if icore
    end do   !ib
  end if
+
 !Close the file and end
  close(funit)
  if (loggrd%uselog) deallocate(rr_log)

@@ -82,7 +82,7 @@ Module XMLInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2xmlver='3.0.0', verdate='june 2019'
+ character*10 :: atompaw2xmlver='3.1.0', verdate='oct. 2019'
 
 !Default unit for XML file(s)
  integer, parameter :: unit_xml=22,unit_xml_core=23,unit_ldam12=24
@@ -247,7 +247,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Write PAW dataset file in XML format
  xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
- file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw'
+ file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.xml'
 
  call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
  &              input_string,author,nsplgrid)
@@ -256,7 +256,7 @@ Module XMLInterface
 !---- Write core wave functions in XML format
 
  if (prtcorewf==1) then
-   file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.xml.corewf'
+   file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.corewf.xml'
    call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
  &                 input_string,author)
  endif
@@ -345,8 +345,7 @@ Module XMLInterface
 &  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
 
 !Option for the PRinTing of CORE Wave Functions
-
- prtcorewf=0 ; if (i_prtcorewf>0) prtcorewf=1
+ prtcorewf=merge(0,1,i_prtcorewf<=0)
 
 !Option for use of REAL SPACE OPTIMIZATION
  pawrso%userso=userso_def
@@ -655,7 +654,7 @@ Module XMLInterface
 !! Write the PAW data file in XML format
 !!
 !! INPUTS
-!! fname=file name (without .xml suffixe)
+!! fname=file name (with .xml suffixe)
 !! Grid= Grid datastructure from atompaw
 !! AESCF= AESCF datastructure from atompaw
 !! AEPOT= AEPOT datastructure from atompaw
@@ -746,7 +745,7 @@ Module XMLInterface
  end if
 
 !Open file for writing
- OPEN(unit_xml,file=TRIM(fname)//'.xml',form='formatted')
+ OPEN(unit_xml,file=TRIM(fname),form='formatted')
 
 !Write header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
@@ -1247,7 +1246,7 @@ Module XMLInterface
 !! Write the core wave functions in XML format
 !!
 !! INPUTS
-!! fname=file name (without .xml suffixe)
+!! fname=file name (with .xml suffixe)
 !! Grid= Grid datastructure from atompaw
 !! AEOrbit= AEOrbit datastructure from atompaw
 !! AEPot= AEPOT datastructure from atompaw
@@ -1365,7 +1364,7 @@ Module XMLInterface
  icor=0
  do ib=1,AEOrbit%norbit
    if (AEOrbit%iscore(ib)) then
-     icor=icor+1;if (icor>core_size) stop "Atompaw : bug in prtcorewf !"
+     icor=icor+1;if (icor>core_size) stop "Atompaw : bug in prtcorewf (1)!"
      call mkname(icor,char4)
      char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
      if(diracrelativistic) then
@@ -1419,7 +1418,7 @@ Module XMLInterface
  icor=0
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
-    icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorewf !"
+    icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorewf (2)!"
     call mkname(AEOrbit%np(ib),char4)
     char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
     WRITE(unit_xml_core,'("<ae_core_wavefunction state=",a6," grid=""",a,i1,""">")') &
@@ -1441,7 +1440,7 @@ Module XMLInterface
    icor=0
    do ib=1,AEOrbit%norbit
     if (AEOrbit%iscore(ib)) then
-      icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorelwf !"
+      icor=icor+1;if (icor>core_size) stop "Atompaw : bug in wrcorelwf (3)!"
       call mkname(AEOrbit%np(ib),char4)
       char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
       WRITE(unit_xml_core,'("<ae_core_lwavefunction state=",a6," grid=""",a,i1,""">")') &
@@ -1458,7 +1457,8 @@ Module XMLInterface
     end if ! if icore
    end do   !ib
  end if ! diracrelativistic
-! Input file
+
+!Echi input file content
  WRITE(unit_xml_core,'("<!-- Program:  atompaw - input data follows: ")')
  WRITE(unit_xml_core,'(a)') trim(input_string)
  WRITE(unit_xml_core,'(a)') "END"

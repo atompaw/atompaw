@@ -22,6 +22,7 @@ atp_srcs = \
   general_mod.F90 \
   globalmath.F90 \
   search_sort.F90 \
+  input_dataset_mod.F90 \
   aeatom.F90 \
   anderson_driver.F90 \
   atomdata.F90 \
@@ -144,6 +145,8 @@ hf_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 hf_pseudo.$(LTOBJEXT): atomdata.$(LTOBJEXT) hf_mod.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+
+input_dataset_mod.$(LTOBJEXT):
 
 interpolation_mod.$(LTOBJEXT):
 

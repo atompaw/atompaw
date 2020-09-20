@@ -3,7 +3,7 @@ ATOMPAW
 
 The software `ATOMPAW` generates projector and basis functions which are needed for
 performing electronic structure calculations (Density-Functional Theory)
-based on the Projector Augmented Wave (PAW) method.
+based on the Projector Augmented-Wave (PAW) method.
 
 ### What does AtomPAW?
 
@@ -25,8 +25,34 @@ Most of the relevant information can be found on the
 ATOMPAW [official website](http://users.wfu.edu/natalie/papers/pwpaw).
 
 Many documentation files can be found in the doc directory.
-See especially the `~/doc/atompaw-usersguide.pdf` file.
+See especially the 
+[~/doc/atompaw-usersguide.pdf](https://github.com/atompaw/atompaw/blob/master/doc/atompaw-usersguide.pdf)
+ file.
 
 ### License
 
 See `COPYING file`
+
+### Installation
+
+
+If you obtained the sources directly from the git repository,
+you will first need to generate the configure script by running
+```
+./bootstrap.sh
+```
+(Not needed if you downloaded the sources from ATOMPAW
+[website](http://users.wfu.edu/natalie/papers/pwpaw))  
+
+Then run:  
+```
+./configure --prefix=PATH/TO/ATOMPAW [options]
+make
+make install
+```
+Most common options (complete list: `./configure --help`):
+- A `blas/lapack` library is required. If not present in a standard directory, use:  
+  `--with-linalg-prefix=PATH/TO/LINEAR/ALGEBRA`
+- To link with [libxc](https://www.tddft.org/programs/libxc/) collection of 
+  exchange-correlation functionals, use:  
+  `--enable-libxc --with-libxc-prefix=PATH/TO/LIBXC`.

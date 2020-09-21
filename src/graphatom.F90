@@ -20,7 +20,6 @@ PROGRAM graphatom
   INTEGER :: i,iargc
   CHARACTER(80) :: verbose
   LOGICAL :: lotsofoutput=.false.
-  INTEGER, PARAMETER :: ifinput=7
 
   if (iargc()>0) then
        call GetArg(1,verbose)
@@ -28,16 +27,14 @@ PROGRAM graphatom
        if (TRIM(verbose)=='VERBOSE') lotsofoutput=.true.
   endif
 
-  OPEN(ifinput,file='dummy',form='formatted')
+  call input_dataset_read(echofile='dummy')
 
   CALL Init_GlobalConstants()
-  CALL SCFatom_Init(ifinput)
+  CALL SCFatom_Init()
   CALL SCFatom('AE',lotsofoutput)
 
   CALL Report_Graphatom('AE',Grid,AEOrbit,AEPot,AESCF)
 
-  CLOSE(ifinput)
-  
   DO
      WRITE(6,*) ' Input 0  for plotting results and completing program (once)'
      WRITE(6,*) ' Input 1  for changing all-electron configuration (many)'
@@ -65,5 +62,6 @@ PROGRAM graphatom
 
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (diracrelativistic) CALL deallocate_Dirac_Relativistic
+  CALL input_dataset_free()
 
 END PROGRAM graphatom

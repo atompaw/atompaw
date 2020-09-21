@@ -33,90 +33,58 @@ MODULE pseudo
   USE pseudo_sub
   USE radialDirac
   USE radialsr
+  USE input_dataset_mod
 
   IMPLICIT NONE
 
   Type(Pseudoinfo), TARGET :: PAW
 
  !  Parameters controlling PAW options
-  INTEGER,PRIVATE,PARAMETER :: BLOECHL=1, VANDERBILT=2, CUSTOM=3, MODRRKJ=7
+  INTEGER,PRIVATE,PARAMETER :: BLOECHL=1, VANDERBILT=2, CUSTOM=3, MODRRKJ=7, HFPROJ=8
   INTEGER,PRIVATE,PARAMETER :: BLOECHLPS=0, POLYNOM=1, POLYNOM2=2, RRKJ=3
   INTEGER,PRIVATE,PARAMETER :: VANDERBILTORTHO=0, GRAMSCHMIDTORTHO=1
   INTEGER,PRIVATE,PARAMETER :: SVDORTHO=2
-  INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3
+  INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3, KERKER_E=4, KERKER_P=5
   INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=4, SETVLOC=5
 
-  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12, gausstol=1.d-4
-
+  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12
   INTEGER, PRIVATE :: coretailpoints=-1,besselopt=-1
   INTEGER, PRIVATE :: Projectorindex=-1,PSindex=-1,Orthoindex=-1,Vlocalindex=-1
   REAL(8), PRIVATE :: gaussparam=-1
 
 CONTAINS
 
- SUBROUTINE SetPAWOptions1(ifinput,ifen,Grid)
-   INTEGER, INTENT(IN) :: ifinput,ifen
+ SUBROUTINE SetPAWOptions1(ifen,Grid)
+   INTEGER, INTENT(IN) :: ifen
    Type(Gridinfo), INTENT(IN) :: Grid
 
-  INTEGER :: n
-  INTEGER :: i,j,l,irc
-  REAL(8):: h
-  REAL(8) :: rc1,rc2,rc3,rc4,rc
-  CHARACTER(132) :: inputline,inputword
+  INTEGER :: n,i,j,l,irc
+  REAL(8):: h,rc
   LOGICAL :: multi_rc
 
   n=Grid%n
-  WRITE(6,*) 'Enter maximum L for basis and projector functions'
-  READ(5,'(a)') inputline
-  WRITE(ifinput,'(a)') TRIM(inputline)
-  READ(inputline,*) PAW%lmax
 
-  PAW%rc=0;multi_rc=.false.
-  PAW%rc_shap=0;PAW%rc_vloc=0;PAW%rc_core=0
-  WRITE(6,*) 'enter  rc [and eventually: rc_shape, rc_vloc, rc_core]'
-  READ(5,'(a)') inputline
-  WRITE(ifinput,'(a)') TRIM(inputline)
-  CALL extractword(1,inputline,inputword);inputword=trim(inputword)
-  IF (inputword/="") READ(inputword,*) rc1
-  rc2=rc1;rc3=rc1;rc4=rc1
-  CALL extractword(2,inputline,inputword);inputword=trim(inputword)
-  IF (inputword/="") THEN
-   multi_rc=.true.
-   READ(inputword,*) rc2
-   CALL extractword(3,inputline,inputword);inputword=trim(inputword)
-   IF (inputword/="") THEN
-    READ(inputword,*) rc3
-    CALL extractword(4,inputline,inputword);inputword=trim(inputword)
-    IF (inputword/="") THEN
-     READ(inputword,*) rc4
-    ELSE
-     WRITE(6,*) 'error -- rc(core) is missing '
-     STOP
-    ENDIF
-   ELSE
-    WRITE(6,*) 'error -- rc(Vloc) is missing '
-    STOP
-   ENDIF
-  ENDIF
-  IF (multi_rc) THEN
-   IF (rc1.LE.0.d0.or.rc2.LE.0.d0.or.rc3.LE.0.d0.or.rc4.LE.0.d0) THEN
-     WRITE(6,*) 'error -- one rc is too small !'
-     STOP
-   ENDIF
-   IF (rc2.GT.rc1.or.rc3.GT.rc1.or.rc4.GT.rc1) THEN
-     WRITE(6,*) 'error -- rc_shape, rc_vloc and rc_core must be <rc !'
-     STOP
-   ENDIF
-  ELSEIF (rc1.LE.0.d0) THEN
-     WRITE(6,*) 'error -- rc too small ',rc1
-     STOP
-  ENDIF
-  PAW%multi_rc=multi_rc
-  PAW%irc     =FindGridIndex(Grid,rc1) ; PAW%rc     =Grid%r(PAW%irc)
-  PAW%irc_shap=FindGridIndex(Grid,rc2) ; PAW%rc_shap=Grid%r(PAW%irc_shap)
-  PAW%irc_vloc=FindGridIndex(Grid,rc3) ; PAW%rc_vloc=Grid%r(PAW%irc_vloc)
-  PAW%irc_core=FindGridIndex(Grid,rc4) ; PAW%rc_core=Grid%r(PAW%irc_core)
+! Maximum l for basis functions (from input dataset)
+  PAW%lmax=input_dataset%lmax
+
+! Cut-off radii (from input dataset)
+  multi_rc=(input_dataset%rc/=input_dataset%rc_shap.or.&
+&           input_dataset%rc/=input_dataset%rc_vloc.or.&
+&           input_dataset%rc/=input_dataset%rc_core.or.&
+&           input_dataset%rc_shap/=input_dataset%rc_vloc.or.&
+&           input_dataset%rc_shap/=input_dataset%rc_core.or.&
+&           input_dataset%rc_vloc/=input_dataset%rc_core)
+  PAW%irc     =FindGridIndex(Grid,input_dataset%rc)
+  PAW%irc_shap=FindGridIndex(Grid,input_dataset%rc_shap)
+  PAW%irc_vloc=FindGridIndex(Grid,input_dataset%rc_vloc)
+  PAW%irc_core=FindGridIndex(Grid,input_dataset%rc_core)
+
+  PAW%rc     =Grid%r(PAW%irc)
+  PAW%rc_shap=Grid%r(PAW%irc_shap)
+  PAW%rc_vloc=Grid%r(PAW%irc_vloc)
+  PAW%rc_core=Grid%r(PAW%irc_core)
   irc=PAW%irc;rc=PAW%rc
+
   if (irc>n-Grid%ishift) stop 'error -- rc is too big !'
   WRITE(6,*) ' adjusted rc ',rc, Grid%r(irc)
   WRITE(6,*) ' irc,rc = ',irc,rc
@@ -136,89 +104,37 @@ CONTAINS
   endif
  End Subroutine SetPAWOptions1
 
- SUBROUTINE SetPAWOptions2(ifinput,ifen,Grid,Orbit,Pot,success)
-   INTEGER, INTENT(IN) :: ifinput,ifen
+ SUBROUTINE SetPAWOptions2(ifen,Grid,Orbit,Pot,success)
+   INTEGER, INTENT(IN) :: ifen
    Type(Gridinfo), INTENT(IN) :: Grid
    Type(OrbitInfo), INTENT(IN) :: Orbit
    Type(PotentialInfo), INTENT(IN) :: Pot
    LOGICAL , INTENT(OUT) :: success
 
-  CHARACTER(132) :: inputfileline
-  CHARACTER(50) :: Projectortype
   INTEGER :: i,pdeg,l
   REAL(8) :: qcut,x,y,e
 
   success=.true.
-  ! default value for HF core functions
-  PAW%coretol=1.d-4
-  ! defalult value for SETVLOC
-  PAW%VlocCoef=0.d0; PAW%VlocRad=PAW%rc
 
-   WRITE(6,*) 'Enter "Bloechl", "Vanderbilt", "modrrkj" or "custom" keywords',&
-&             ' for projector generation method.'
-   WRITE(6,*) ' In case of "custom" choice, enter additional (optional) keywords :'
-   WRITE(6,*) ' - for partial waves pseudization scheme:'
-   WRITE(6,*) '                       "bloechlps", "polynom", "polynom2 p qcut" or "RRKJ"'
-   WRITE(6,*) ' - for orthogonalization scheme: "GramSchmidtOrtho" or "VanderbiltOrtho" or "svdortho"'
-   WRITE(6,*) 'Compensation charge shape defaults set to "sinc^2";'
-   WRITE(6,*) ' - Gaussian shape can be specified by adding "Gaussian" keyword',&
-&             '   and tol (1.d-4, for ex).'
-   WRITE(6,*) ' - Bessel shape can be specified by adding "Besselshape" keyword'
-   READ(5,'(a)') inputfileline
-   WRITE(ifinput,'(a)') TRIM(inputfileline)
-   call Uppercase(inputfileline)
-   inputfileline=TRIM(inputfileline)
-   write(6,*) 'inputfileline ', inputfileline
-   Projectorindex=BLOECHL;PSindex=BLOECHLPS;Orthoindex=GRAMSCHMIDTORTHO
-   pdeg=4;qcut=10.d0
-   read(unit=inputfileline,fmt=*) Projectortype
-   if (TRIM(Projectortype)=='BLOECHL'.or.TRIM(Projectortype)=='VNCT') then
-    Projectorindex=BLOECHL;PSindex=BLOECHLPS;Orthoindex=GRAMSCHMIDTORTHO
-   else if (TRIM(Projectortype)=='VANDERBILT'.or.TRIM(Projectortype)=='VNCTV') then
-    Projectorindex=VANDERBILT;PSindex=POLYNOM;Orthoindex=VANDERBILTORTHO
-   else if (TRIM(Projectortype)=='MODRRKJ') then
-     Projectorindex=MODRRKJ;PSindex=RRKJ;Orthoindex=VANDERBILTORTHO
-     i=0;i=INDEX(inputfileline,'VANDERBILTORTHO')
-       if (i>0) Orthoindex=VANDERBILTORTHO
-     i=0;i=INDEX(inputfileline,'GRAMSCHMIDTORTHO')
-       if (i>0) Orthoindex=GRAMSCHMIDTORTHO
-     i=0;i=INDEX(inputfileline,'SVDORTHO')
-       if (i>0) Orthoindex=SVDORTHO
-   else if (TRIM(Projectortype)=='CUSTOM') then
-    Projectorindex=CUSTOM
-    i=0;i=INDEX(inputfileline,'BLOECHLPS')
-    if (i>0) then
-     PSindex=BLOECHLPS;Orthoindex=GRAMSCHMIDTORTHO
-    else
-     i=INDEX(inputfileline,'POLYNOM2')
-     if (i>0) then
-      PSindex=POLYNOM2
-      read(unit=inputfileline(i+8:80),fmt=*,err=111,end=111,iostat=i) pdeg,qcut
-111   continue
-     else
-      i=INDEX(inputfileline,'POLYNOM')
-      if (i>0) then
-       PSindex=POLYNOM
-      else
-       i=INDEX(inputfileline,'RRKJ')
-       if (i>0) PSindex=RRKJ
-      endif
-     endif
-     i=INDEX(inputfileline,'GRAMSCHMIDTORTHO')
-     if (i>0) Orthoindex=GRAMSCHMIDTORTHO
-     i=INDEX(inputfileline,'VANDERBILTORTHO')
-     if (i>0) Orthoindex=VANDERBILTORTHO
-    endif
-   endif
-   if (TRIM(Orbit%exctype)=='HF') then
-      PSindex=HARTREE_FOCK;Orthoindex=-13
-   endif
-
-   if (PSindex==BLOECHLPS.and.Orthoindex==VANDERBILTORTHO) stop &
-&    'Vanderbilt orthogonalization not compatible with Bloechls projector scheme !'
+  !Pseudization and orthogonalization parameters (from input dataset)
+   pdeg=input_dataset%pseudo_polynom2_pdeg
+   qcut=input_dataset%pseudo_polynom2_qcut
+   IF (input_dataset%projector_type==PROJECTOR_TYPE_BLOECHL) Projectorindex=BLOECHL  
+   IF (input_dataset%projector_type==PROJECTOR_TYPE_VANDERBILT) Projectorindex=VANDERBILT  
+   IF (input_dataset%projector_type==PROJECTOR_TYPE_MODRRKJ) Projectorindex=MODRRKJ  
+   IF (input_dataset%projector_type==PROJECTOR_TYPE_CUSTOM) Projectorindex=CUSTOM  
+   IF (input_dataset%projector_type==PROJECTOR_TYPE_HF) Projectorindex=HFPROJ
+   IF (input_dataset%pseudo_type==PSEUDO_TYPE_BLOECHL) PSindex=BLOECHLPS
+   IF (input_dataset%pseudo_type==PSEUDO_TYPE_POLYNOM) PSindex=POLYNOM
+   IF (input_dataset%pseudo_type==PSEUDO_TYPE_POLYNOM2) PSindex=POLYNOM2
+   IF (input_dataset%pseudo_type==PSEUDO_TYPE_RRKJ) PSindex=RRKJ
+   IF (input_dataset%pseudo_type==PSEUDO_TYPE_HF) PSindex=HARTREE_FOCK
+   IF (input_dataset%ortho_type==ORTHO_TYPE_GRAMSCHMIDT) Orthoindex=GRAMSCHMIDTORTHO
+   IF (input_dataset%ortho_type==ORTHO_TYPE_VANDERBILT) Orthoindex=VANDERBILTORTHO
+   IF (input_dataset%ortho_type==ORTHO_TYPE_SVD) Orthoindex=SVDORTHO
+   IF (input_dataset%ortho_type==ORTHO_TYPE_HF) Orthoindex=-13
 
    write(PAW%Proj_description,'("Projector type:")')
-
    if (PSindex==BLOECHLPS) then
     write(PAW%Proj_description,'(a," Bloechl")') trim(PAW%Proj_description)
    else if (Projectorindex==MODRRKJ) then
@@ -253,20 +169,15 @@ CONTAINS
 
    write(6,*) PAW%Proj_description
 
+  !Shape function parameters (from input dataset)
    gaussianshapefunction=.false.;besselshapefunction=.false.
-   i=0;i=INDEX(inputfileline,'GAUSSIAN')
-   if (i>0) then
-      gaussianshapefunction=.true.
-      gaussparam=gausstol
-      read(unit=inputfileline(i+8:80),fmt=*,err=222,end=222,iostat=i) gaussparam
-222   continue
-      CALL sethat(Grid,PAW,gaussparam=gaussparam)    ! Gaussian shape function
-      write(PAW%Comp_description,&
-&      '("Gaussian compensation charge shape with gausstol = ",1p,1e12.4)')&
-&         gaussparam
-   else
-    i=0;i=INDEX(inputfileline,'BESSELSHAPE')
-    if (i>0) then
+   if (input_dataset%shapefunc_type==SHAPEFUNC_TYPE_GAUSSIAN) then
+     gaussianshapefunction=.true.
+     gaussparam=input_dataset%shapefunc_gaussian_param
+     CALL sethat(Grid,PAW,gaussparam=gaussparam)    ! Gaussian shape function
+     write(PAW%Comp_description,&
+&      '("Gaussian compensation charge shape with gausstol = ",1p,1e12.4)') gaussparam
+   else if (input_dataset%shapefunc_type==SHAPEFUNC_TYPE_BESSEL) then
      besselshapefunction=.true.
      CALL sethat(Grid,PAW,besselopt=i)               ! Bessel shape function
      if (PAW%irc_shap/=PAW%irc) then
@@ -276,7 +187,7 @@ CONTAINS
       write(PAW%Comp_description,&
 &      '("Bessel compensation charge shape zeroed at rc")')
      endif
-    else
+   else
      CALL sethat(Grid,PAW)                          ! sinc^2 shape function
      if (PAW%irc_shap/=PAW%irc) then
       write(PAW%Comp_description,&
@@ -285,110 +196,91 @@ CONTAINS
       write(PAW%Comp_description,&
 &      '("Sinc^2 compensation charge shape zeroed at rc")')
      endif
-    endif
    endif
 
-   ! optional input
-    i=0;i=INDEX(inputfileline,'CORETOL')
-    if (i>0) then
-      read(unit=inputfileline(i+7:80),fmt=*) x
-      PAW%coretol=MAX(x,0.d0)
-      write(6,*) 'Resetting coretol to ', PAW%coretol
-    endif
+   !Core tolerance for HF (from input dataset)
+   PAW%coretol=MAX(input_dataset%hf_coretol,0.d0)
+   if (Projectorindex==HFPROJ) write(6,*) 'Resetting coretol to ', PAW%coretol
 
+   !Vlocal parameters (from input dataset)
+   pdeg=input_dataset%pseudo_polynom2_pdeg
+   qcut=input_dataset%pseudo_polynom2_qcut
+   IF (input_dataset%vloc_type==VLOC_TYPE_MTROULLIER) Vlocalindex=MTROULLIER
+   IF (input_dataset%vloc_type==VLOC_TYPE_ULTRASOFT) Vlocalindex=ULTRASOFT
+   IF (input_dataset%vloc_type==VLOC_TYPE_BESSEL) Vlocalindex=BESSEL
+   IF (input_dataset%vloc_type==VLOC_TYPE_SETVLOC) Vlocalindex=SETVLOC
+   IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) Vlocalindex=KERKER_E
+   IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_POLY) Vlocalindex=KERKER_P
 
-   WRITE(6,*) 'To generate the local pseudopotential, this code can use:'
-   WRITE(6,*) '  1- a Troullier-Martins scheme for specified l value and energy'
-   WRITE(6,*) '  2- a non norm-conserving pseudopotential scheme for specified l value and energy'
-   WRITE(6,*) '  3- a simple pseudization scheme using a single spherical Bessel function'
-   WRITE(6,*) '  4- Vloc ==  VlocCoef*Shapefunc'
-   WRITE(6,*) 'For choice 1, enter (high) l value and energy e'
-   WRITE(6,*) 'For choice 2, enter (high) l value, energy e and "ultrasoft"'
-   WRITE(6,*) 'For choice 3, enter "bessel"'
-   WRITE(6,*) 'For choice 4, enter "setvloc x y" - x is VlocCoef y is VlocRad'
-   READ(5,'(a)') inputfileline
-   WRITE(ifinput,'(a)') TRIM(inputfileline)
-   call Uppercase(inputfileline)
-   Vlocalindex=MTROULLIER
-   If (TRIM(Orbit%exctype)=='HF') then
-          !Vlocalindex=SETVLOC; Projectorindex=HARTREE_FOCK
-           Projectorindex=HARTREE_FOCK
+   if (Vlocalindex==MTROULLIER) then
+     l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+     WRITE(PAW%Vloc_description,&
+&      '("Vloc: Norm-conserving Troullier-Martins with l= ",i1,";e= ",1p,1e12.4)')l,e
    endif
-   i=0;i=INDEX(inputfileline,'BESSEL')
-   if (i>0) then
-    Vlocalindex=BESSEL
-    WRITE(PAW%Vloc_description,&
+   if (Vlocalindex==ULTRASOFT) then
+     l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+     WRITE(PAW%Vloc_description,&
+&      '("Vloc: Non norm-conserving form with l= ",i1,";e= ",1p,1e12.4)')l,e
+   endif
+   if (Vlocalindex==BESSEL) then
+     WRITE(PAW%Vloc_description,&
 &        '("Vloc: truncated form - Vps(r)=A.sin(qr)/r for r<rc")')
    endif
-   i=0;i=INDEX(inputfileline,'SETVLOC')
-   if (i>0) then
-    Vlocalindex=SETVLOC
-    read(unit=inputfileline(i+8:80),fmt=*) x,y
-    if (x<1.d3.and.x>-1.d3) PAW%VlocCoef=x
-    if (y>0.d0.and.y<PAW%rc) PAW%VlocRad=y
+   if (Vlocalindex==SETVLOC) then
+     PAW%VlocCoef=input_dataset%vloc_setvloc_coef
+     i=FindGridIndex(Grid,input_dataset%vloc_setvloc_rad)
+     PAW%VlocRad=Grid%r(i)
+     WRITE(PAW%Vloc_description, &
+&      '("Vloc == VlocCoef*shapfunc , VlocCoef,Rad  = ",1p,2e15.7)') PAW%VlocCoef,PAW%VlocRad
+     PAW%vloc= 0.d0;y=PAW%VlocRad
+     PAW%vloc(1)=PAW%VlocCoef
+     do i=2,Grid%n
+       if (Grid%r(i)<PAW%VlocRad) then
+         PAW%vloc(i)=PAW%VlocCoef*(SIN(pi*Grid%r(i)/y)/(pi*Grid%r(i)/y))**2
+       endif
+     enddo
    endif
-   i=0;i=INDEX(inputfileline,'ULTRASOFT')
-   if (i>0) then
-     Vlocalindex=ULTRASOFT
-   endif
-   i=0;i=INDEX(inputfileline,'MTROULLIER')
-   if (i>0) then
-     Vlocalindex=MTROULLIER
-   endif
-   If (Vlocalindex==MTROULLIER.or.Vlocalindex==ULTRASOFT) then
-       READ(inputfileline,*) l,e
-       if (l<0.or.l>10) stop 'Error while reading Vloc parameters'
+   if (Vlocalindex==KERKER_E.or.Vlocalindex==KERKER_P) then
+     l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+     if (Vlocalindex==KERKER_E) PAW%Vloc_description="Norm-conserving Exp Vloc"
+     if (Vlocalindex==KERKER_P) PAW%Vloc_description="Norm-conserving Poly Vloc"
+     WRITE(PAW%Vloc_description,'(a,"; l = ",i1,"; powers = ",4i3,"; e = ",1p,e12.3)')&
+&       trim(PAW%Vloc_description),l,input_dataset%vloc_kerker_power(1:4),e
    ENDIF
-   If (Vlocalindex==ULTRASOFT) &
-&    WRITE(PAW%Vloc_description,&
-&        '("Vloc: Non norm-conserving form with l= ",i1,";e= ",1p,1e12.4)')l,e
-   If (Vlocalindex==MTROULLIER) &
-&    WRITE(PAW%Vloc_description,&
-& '("Vloc: Norm-conserving Troullier-Martins with l= ",i1,";e= ",1p,1e12.4)')l,e
-   If (Vlocalindex==SETVLOC) then
-       WRITE(PAW%Vloc_description, &
-&      '("Vloc == VlocCoef*shapfunc , VlocCoef,Rad  = ",1p,2e15.7)')&
-&            PAW%VlocCoef,PAW%VlocRad
-       PAW%vloc= 0.d0;y=PAW%VlocRad
-       PAW%vloc(1)=PAW%VlocCoef
-       do i=2,Grid%n
-          if (Grid%r(i)<PAW%VlocRad) then
-             PAW%vloc(i)=PAW%VlocCoef*(SIN(pi*Grid%r(i)/y)/(pi*Grid%r(i)/y))**2
-          endif
-       enddo
-   Endif
+
    WRITE(6,*) PAW%Vloc_description
 
-   IF (Vlocalindex==MTROULLIER.and.(TRIM(Orbit%exctype)/='HF')) &
-&              CALL troullier(Grid,Pot,PAW,l,e)
-   IF (Vlocalindex==MTROULLIER.and.(TRIM(Orbit%exctype)=='HF')) then
-               CALL make_hf_basis_only(Grid,Pot,PAW,ifinput)
-               CALL troullier_HF(Grid,Pot,PAW,l,e)
+   IF (Vlocalindex==MTROULLIER.and.Projectorindex/=HFPROJ) &
+&    CALL troullier(Grid,Pot,PAW,l,e)
+   IF (Vlocalindex==MTROULLIER.and.Projectorindex==HFPROJ) then
+     CALL make_hf_basis_only(Grid,Pot,PAW)
+     CALL troullier_HF(Grid,Pot,PAW,l,e)
    ENDIF
    IF (Vlocalindex==ULTRASOFT) CALL nonncps(Grid,Pot,PAW,l,e)
    IF (Vlocalindex==BESSEL) CALL besselps(Grid,Pot,PAW)
+   IF (Vlocalindex==KERKER_E.or.Vlocalindex==KERKER_P) CALL kerker(Grid,Pot,PAW)
   !! Note: if SETVLOC only HF or VANDERBILT schemes work
    IF (Projectorindex==BLOECHL) THEN
-    CALL makebasis_bloechl(Grid,Pot,ifinput,0)
+     CALL makebasis_bloechl(Grid,Pot,0)
    ELSE IF (Projectorindex==CUSTOM.AND.PSindex==BLOECHLPS) THEN
-    CALL makebasis_bloechl(Grid,Pot,ifinput,1)
+     CALL makebasis_bloechl(Grid,Pot,1)
    ELSE IF (Projectorindex==VANDERBILT.OR.Projectorindex==CUSTOM) THEN
      if (Vlocalindex==SETVLOC) then
-        Call makebasis_V_setvloc(Grid,Pot,PAW,ifinput)
+        Call makebasis_V_setvloc(Grid,Pot,PAW)
      else
-        CALL makebasis_custom(Grid,Pot,ifinput,PSindex,Orthoindex,pdeg,qcut)
+        CALL makebasis_custom(Grid,Pot,PSindex,Orthoindex,pdeg,qcut)
      endif
-   ELSE IF (Projectorindex==HARTREE_FOCK) THEN
-    CALL make_hf_tp_only(Grid,Pot,PAW,ifinput)
+   ELSE IF (Projectorindex==HFPROJ) THEN
+     CALL make_hf_tp_only(Grid,Pot,PAW)
    ELSE IF (Projectorindex==MODRRKJ) THEN
-    CALL makebasis_modrrkj(Grid,Pot,Orthoindex,ifinput,success)
+     CALL makebasis_modrrkj(Grid,Pot,Orthoindex,success)
    ENDIF
 
-      WRITE(ifen,*) TRIM(PAW%Vloc_description)
-      WRITE(ifen,*) TRIM(PAW%Proj_description)
-      WRITE(ifen,*) TRIM(PAW%Comp_description)
+   WRITE(ifen,*) TRIM(PAW%Vloc_description)
+   WRITE(ifen,*) TRIM(PAW%Proj_description)
+   WRITE(ifen,*) TRIM(PAW%Comp_description)
 
-    CALL StoreTOCCWFN(PAW)
+   CALL StoreTOCCWFN(PAW)
 
  END SUBROUTINE SetPAWOptions2
 
@@ -558,43 +450,11 @@ CONTAINS
     REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:)
     REAL(8), POINTER :: r(:),rv(:)
 
-    DO
-       WRITE(6,*) 'Input "EXPF" or "POLY"  pseudowave form'
-       READ(5,*) vtype
-       IF (TRIM(vtype)=="EXPF".OR.TRIM(vtype)=="expf") THEN
-          wavetype=EXPF
-          EXIT
-       ELSE IF (TRIM(vtype)=="POLY".OR.TRIM(vtype)=="poly") THEN
-          wavetype=POLY
-          EXIT
-       ENDIF
-    ENDDO
-
-    DO
-       WRITE(6,*) 'Input angular momentum l and energy e to set VNC '
-       READ(5,*) l,e
-       IF (l >= 0 .AND. l < 10) EXIT
-    ENDDO
-
-    m=0
-    DO
-       WRITE(6,*) 'Input the 4 powers for the polynomial f(r)'
-       READ(5,*) m(1),m(2),m(3),m(4)
-       IF (m(1)>0.AND.m(2)>0.AND.m(3)>0.AND.m(4)>0) EXIT
-    ENDDO
-
-    IF (wavetype==EXPF) THEN
-       WRITE(PAW%Vloc_description,&
-&           '("Norm-conserving Exp Vloc; l = ",i1,"; powers = ",4i3,"; e = ",1p,e12.3)')&
-&           l, m(1),m(2),m(3),m(4),e
-       WRITE(6,*) PAW%Vloc_description
-    ENDIF
-    IF (wavetype==POLY) THEN
-       WRITE(PAW%Vloc_description,&
-&           '("Norm-conserving Poly Vloc; l = ",i1,"; powers = ",4i3,"; e = ",1p,e12.3)')&
-&           l, m(1),m(2),m(3),m(4),e
-       WRITE(6,*) PAW%Vloc_description
-    ENDIF
+    !Read data from input dataset
+    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) wavetype=EXPF
+    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_POLY) wavetype=POLY
+    l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+    m(1:4)=input_dataset%vloc_kerker_power(1:4)
 
     n=Grid%n
     n=Grid%n
@@ -1227,20 +1087,17 @@ CONTAINS
 
     END SUBROUTINE selfhatpot
 
-  SUBROUTINE setbasis(Grid,Pot,Orbit,ifinput)
+  SUBROUTINE setbasis(Grid,Pot,Orbit)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
     TYPE(OrbitInfo), INTENT(INOUT) :: Orbit
-    INTEGER, INTENT(IN) :: ifinput
 
 
     INTEGER :: n,irc,nbase,l,lmax,mxbase,lng,currentnode
-    INTEGER :: i,j,k,io,ok,nbl,nr,nodes,ib,loop,niter,iter
+    INTEGER :: i,j,k,io,ok,nbl,nr,nodes,ib,loop,niter,iter,ibasis_add
     REAL(8) :: h,rc,q00,energy,rat,delta,thisconv,qeff,tq,range
     REAL(8) :: ecoul,etxc,eexc
-    CHARACTER(1) :: answer
     REAL(8), POINTER  :: r(:)
-    CHARACTER(132) :: inputline
 
     n=Grid%n
     h=Grid%h
@@ -1288,7 +1145,7 @@ CONTAINS
     WRITE(6,*) '  basis functions:'
     WRITE(6,*)' No.   n     l         energy         occ   '
 
-    nbase=0
+    nbase=0 ; ibasis_add=1
     DO l=0,lmax
        currentnode=-1
        nbl=0
@@ -1318,55 +1175,46 @@ CONTAINS
             ENDIF
           ENDIF
        ENDDO
+
        generalizedloop: DO
-          WRITE(6,*) 'For l = ',l,' there are currently ',nbl,&
-&             'basis functions'
-          WRITE(6,*) 'enter y to add additional functions or n to ' &
-&              ,'go to next l'
-          READ(5,'(a)') inputline
-          WRITE(ifinput,'(a)') TRIM(inputline)
-          READ(inputline,*) answer
-          IF (answer.NE.'y') EXIT generalizedloop
-          WRITE(6,*) 'enter energy for generalized function'
-          READ(5,'(a)') inputline
-          WRITE(ifinput,'(a)') TRIM(inputline)
-          READ(inputline,*) energy
-          IF(energy.LT.0.d0) THEN
-             WRITE(6,*) 'energy is negative',energy,' -- WARNING WARNING !!!'
-          ENDIF
-          nbase=nbase+1
-          IF (nbase > mxbase ) THEN
-             WRITE(6,*) 'Error in  setbasis -- too many functions ', nbase,mxbase
-             STOP
-          ENDIF
-          PAW%l(nbase)=l
-          PAW%np(nbase)=999
-          PAW%nodes(nbase)=currentnode+1
-          currentnode=PAW%nodes(nbase)
-          write (6,*) 'l,nbase,node',l,nbase,currentnode
-          PAW%eig(nbase)=energy
-          PAW%occ(nbase)=0.d0
-          PAW%phi(1:n,nbase)=0.d0
-          if (scalarrelativistic) then
-!             CALL unboundsr(Grid,Pot,nr,l,energy,PAW%phi(:,nbase),nodes)
-!DEBUG FJ
-             CALL unboundsr(Grid,Pot,n,l,energy,PAW%phi(:,nbase),nodes)
-          elseif ( Orbit%exctype=='HF') then
-             CALL HFunocc(Grid,Orbit,l,energy,Pot%rv,Pot%v0,Pot%v0p, &
-&                   PAW%phi(:,nbase),PAW%rng(nbase))
-          else
-             CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,&
-&                nr,l,energy,PAW%phi(:,nbase),nodes)
-          endif
-          rat=MAX(ABS(PAW%phi(irc,nbase)),ABS(PAW%phi(irc+1,nbase)))
-          rat=DSIGN(rat,PAW%phi(irc,nbase))
-          PAW%phi(1:n,nbase)=PAW%phi(1:n,nbase)/rat
-          !IF(Orbit%exctype=='HF') PAW%lmbd(:,nbase)=PAW%lmbd(:,nbase)/rat
-          WRITE(6,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
-&              PAW%eig(nbase),PAW%occ(nbase)
-          nbl=nbl+1
+         IF (ibasis_add>input_dataset%nbasis_add) EXIT generalizedloop
+         IF (input_dataset%basis_add_l(ibasis_add)/=l) EXIT generalizedloop
+         energy=input_dataset%basis_add_energy(ibasis_add)
+         IF (energy<0.d0) &
+&            WRITE(6,*) 'energy is negative',energy,' -- WARNING WARNING !!!'
+         nbase=nbase+1
+         IF (nbase > mxbase ) THEN
+           WRITE(6,*) 'Error in  setbasis -- too many functions ', nbase,mxbase
+           STOP
+         ENDIF
+         PAW%l(nbase)=l
+         PAW%np(nbase)=999
+         PAW%nodes(nbase)=currentnode+1
+         currentnode=PAW%nodes(nbase)
+         write (6,*) 'l,nbase,node',l,nbase,currentnode
+         PAW%eig(nbase)=energy
+         PAW%occ(nbase)=0.d0
+         PAW%phi(1:n,nbase)=0.d0
+         if (scalarrelativistic) then
+            CALL unboundsr(Grid,Pot,n,l,energy,PAW%phi(:,nbase),nodes)
+         elseif ( Orbit%exctype=='HF') then
+            CALL HFunocc(Grid,Orbit,l,energy,Pot%rv,Pot%v0,Pot%v0p, &
+&                    PAW%phi(:,nbase),PAW%rng(nbase))
+         else
+            CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,&
+&                 nr,l,energy,PAW%phi(:,nbase),nodes)
+         endif
+         rat=MAX(ABS(PAW%phi(irc,nbase)),ABS(PAW%phi(irc+1,nbase)))
+         rat=DSIGN(rat,PAW%phi(irc,nbase))
+         PAW%phi(1:n,nbase)=PAW%phi(1:n,nbase)/rat
+         !IF(Orbit%exctype=='HF') PAW%lmbd(:,nbase)=PAW%lmbd(:,nbase)/rat
+         WRITE(6,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
+&               PAW%eig(nbase),PAW%occ(nbase)
+         nbl=nbl+1
+         ibasis_add=ibasis_add+1
        ENDDO generalizedloop
-       !
+
+
     ENDDO   ! end lmax loop
 
     WRITE(6,*) 'completed phi basis with ',nbase,' functions '
@@ -1380,10 +1228,10 @@ CONTAINS
   !     At the end of this subroutine, the basis functions and projectors are
   !     orthogonalized with a Gram-Schmidt like scheme
   !**************************************************************************
-  SUBROUTINE makebasis_bloechl(Grid,Pot,ifinput,option)
+  SUBROUTINE makebasis_bloechl(Grid,Pot,option)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: POT
-    INTEGER,INTENT(IN) :: ifinput,option
+    INTEGER,INTENT(IN) :: option
 
     INTEGER :: n,irc,nr
     INTEGER :: i,j,k,io,ok,lmax
@@ -1411,7 +1259,7 @@ CONTAINS
     PS%rv=PAW%rveff
     call zeropot(Grid,PS%rv,PS%v0,PS%v0p)
     !write(6,*) 'VNC  v0 ', PS%v0,PS%v0p,PS%rv(5)
-    CALL formprojectors(Grid,Pot,PS,ifinput,option)
+    CALL formprojectors(Grid,Pot,PS,option)
 
     DEALLOCATE(tmp,VNC,PS%rv)
     do io=1,PAW%nbase
@@ -1436,10 +1284,10 @@ CONTAINS
   !        - Vanderbilt generation method (PHYS REV B 41,7892 (1990))  [optorth=0]
   !   OR   - Gram-Schmidt like sheme                                   [optorth=1]
   !**************************************************************************
-  SUBROUTINE makebasis_custom(Grid,Pot,ifinput,optps,optorth,pdeg,qcut)
+  SUBROUTINE makebasis_custom(Grid,Pot,optps,optorth,pdeg,qcut)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
-    INTEGER, INTENT(IN) :: ifinput,optps,optorth,pdeg
+    INTEGER, INTENT(IN) :: optps,optorth,pdeg
     REAL(8), INTENT(IN) :: qcut
 
     INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
@@ -1448,7 +1296,6 @@ CONTAINS
     INTEGER, ALLOCATABLE :: omap(:)
     REAL(8), ALLOCATABLE :: VNC(:),Ci(:),aa(:,:),ai(:,:)
     REAL(8), POINTER  :: r(:)
-    CHARACTER(132) :: inputline
 
     if (optps<1.or.optps>3) stop 'bug: error calling makebasis_custom routine'
     if (optorth<0.or.optorth>1) stop 'bug: error calling makebasis_custom routine'
@@ -1469,21 +1316,14 @@ CONTAINS
     VNC(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,VNC)
 
-    write(6,*) 'For each of the following basis functions enter rc'
-
   ! Loop on basis elements
     do io=1,nbase
        l=PAW%l(io)
 
-     ! Read matching radius
-       write(6,'(3i5,1p,e15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io)
-       READ(5,'(a)') inputline
-       WRITE(ifinput,'(a)') TRIM(inputline)
-       read(inputline,*) rc
-       thisrc=FindGridIndex(Grid,rc)
+     ! Read matching radius (from input dataset)
+       thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc);PAW%rcio(io)=rc
-       write(6,*) 'rc for this wfn', rc
        if (thisrc<3.or.thisrc>irc.or. &
 &          (optps==1.and.thisrc>n-3).or. &
 &          (optps==2.and.thisrc>n-6)) then
@@ -1648,10 +1488,10 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! makebasis_modrrkj
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE makebasis_modrrkj(Grid,Pot,Orthoindex,ifinput,success)
+  SUBROUTINE makebasis_modrrkj(Grid,Pot,Orthoindex,success)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
-    INTEGER, INTENT(IN) :: Orthoindex,ifinput
+    INTEGER, INTENT(IN) :: Orthoindex
 
     INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
     INTEGER :: icount,jcount,istart,ifinish,ibase,jbase,lprev
@@ -1664,7 +1504,6 @@ CONTAINS
     REAL(8), ALLOCATABLE :: U(:,:),VT(:,:),WORK(:),S(:),X(:,:)
     INTEGER :: LWORK
     REAL(8), POINTER  :: r(:)
-    CHARACTER(132) :: inputline
     LOGICAL :: success
 
     success=.false.
@@ -1679,7 +1518,7 @@ CONTAINS
 
   !  Input matching radii for each basis function
 
-      call readmatchradius(Grid,ifinput,rcindex,rcval)
+      call readmatchradius(Grid,rcindex,rcval)
 
 
   ! Set screened local pseudopotential
@@ -1982,47 +1821,29 @@ CONTAINS
   Deallocate(VNC,kv,jl,f,Ci,rcindex,rcval)
   END SUBROUTINE makebasis_modrrkj
 
-  SUBROUTINE readmatchradius(Grid,ifinput,rcindex,rcval)
+  SUBROUTINE readmatchradius(Grid,rcindex,rcval)
       TYPE(GridInfo), INTENT(IN) :: Grid
-      INTEGER, INTENT(IN) :: ifinput
       INTEGER, INTENT(INOUT) :: rcindex(:)
       REAL(8), INTENT(INOUT) :: rcval(:)
 
-      CHARACTER(132) :: inputline
-      INTEGER :: io,nbase, n,irc,l,np,lmax,lprev,thisrc
+      INTEGER :: io,nbase,n,irc,lmax,thisrc
       REAL(8) :: rc
 
     nbase=PAW%nbase
     irc=PAW%irc  
 
-    write(6,*) 'For each of the following basis functions enter rc'  
-
   ! Loop on basis elements
-    lprev=-1;np=0;rcindex=0;rcval=0
+    rcindex=0;rcval=0
     do io=1,nbase
 
-       l=PAW%l(io)
-       if (l==lprev) then
-          np=np+1
-       else
-          np=1
-          lprev=l
-       endif
-
-      ! Read matching radius
-      write(6,'(3i5,1p,e15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io)
-      READ(5,'(a)') inputline
-      WRITE(ifinput,'(a)') TRIM(inputline)
-      read(inputline,*) rc
-      write(6,*) 'reading rc = ', rc
-      thisrc=FindGridIndex(Grid,rc)
+      ! Read matching radius (from input dataset)
+      thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
       thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
       rc=Grid%r(thisrc)
-       write(6,*) 'rc for this wfn', rc
-       if (thisrc<3.or.thisrc>irc) then
-          write(6,*) 'rc out of range', thisrc,n,irc
-          stop
-       endif
+      if (thisrc<3.or.thisrc>irc) then
+        write(6,*) 'rc out of range', thisrc,n,irc
+        stop
+      endif
       rcindex(io)=thisrc;rcval(io)=rc
       write(6,'(" For io = ", i5," rc = ", i5,f10.5)') io,rcindex(io),rcval(io)
 
@@ -2036,11 +1857,10 @@ CONTAINS
   !           for the case the vloc==0 (KS only; not HF)
   !           PAW%core and PAW%tcore already loaded
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   SUBROUTINE makebasis_V_setvloc(Grid,Pot,PAW,ifinput)
+   SUBROUTINE makebasis_V_setvloc(Grid,Pot,PAW)
       Type(GridInfo), INTENT(IN) :: Grid
       Type(PotentialInfo), INTENT(IN) :: Pot
       Type(PseudoInfo), INTENT(INOUT) :: PAW
-      INTEGER, INTENT(IN) :: ifinput
 
       INTEGER ::  i,j,k,l,n,ib,jb,io,jo,nbase,irc,np,thisrc,lmax,ni
       INTEGER :: icount
@@ -2049,7 +1869,6 @@ CONTAINS
       REAL(8), POINTER :: r(:)
       REAL(8), ALLOCATABLE :: Ci(:),dum(:),tdum(:),hat(:),aa(:,:),ai(:,:)
       REAL(8), ALLOCATABLE :: dpdr(:),pdr(:)
-      CHARACTER(132) :: inputline
       REAL(8), PARAMETER :: threshold=1.d-6
 
       if (TRIM(PAW%exctype)=='HF'.or.TRIM(PAW%exctype)=='EXX') then
@@ -2065,20 +1884,13 @@ CONTAINS
       allocate(Ci(np),dum(n),tdum(n),hat(n))
       PAW%rveff=PAW%vloc*Grid%r
 
-      write(6,*) 'For each of the following basis functions enter rc'
-
   ! Loop on basis elements
       do ib=1,nbase
          l=PAW%l(ib)
-     ! Read matching radius
-         write(6,'(3i5,1p,e15.7)') ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
-         READ(5,'(a)') inputline
-         WRITE(ifinput,'(a)') TRIM(inputline)
-         read(inputline,*) rc
-         thisrc=FindGridIndex(Grid,rc)
+     ! Read matching radius (from input dataset)
+         thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(ib))
          thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
          rc=r(thisrc);PAW%rcio(io)=rc
-         write(6,*) 'rc for this wfn', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then
             write(6,*) 'rc out of range', thisrc,n,irc
             stop
@@ -2208,16 +2020,15 @@ CONTAINS
     !  tp == 0 for r>r(iiirc)
     !  functions defined to be identically zero for r>r(iiirc))
     !*************************************************************************
-    SUBROUTINE formprojectors(Grid,Pot,PS,ifinput,option)
+    SUBROUTINE formprojectors(Grid,Pot,PS,option)
       TYPE(GridInfo),  INTENT(IN) :: Grid
       TYPE(PotentialInfo), INTENT(IN) :: Pot,PS
-      INTEGER,INTENT(IN) :: ifinput,option
+      INTEGER,INTENT(IN) :: option
 
       INTEGER :: nbase,lmax,l,io,irc,wantednodes,nb,n,icount
       INTEGER ::  istart,ifinish,ibase,jbase
       REAL(8) :: h,xx,yy,choice,rc
       INTEGER,allocatable :: irc_io(:)
-      CHARACTER(132) :: inputline
 
       n=Grid%n
       h=Grid%h
@@ -2228,17 +2039,12 @@ CONTAINS
       !   form projector functions for each l
       !
 
+      !Read rc from input dataset
       if (option==1) then
        allocate(irc_io(nbase))
-       write(6,*) 'For each of the following basis functions enter rc'
        do io=1,nbase
-        write(6,'(3i5,1p,e15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io)
-        READ(5,'(a)') inputline
-        WRITE(ifinput,'(a)') TRIM(inputline)
-        read(inputline,*) rc
-        irc_io(io)=FindGridIndex(Grid,rc)
+        irc_io(io)=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
         rc=Grid%r(irc_io(io))
-        write(6,*) 'rc for this wfn', rc
         if(irc_io(io)>PAW%irc) then
          write(6,*) 'rc out of range', irc_io(io),n,PAW%irc
          stop
@@ -3518,24 +3324,35 @@ CONTAINS
      Type(GridInfo), INTENT(IN) :: Grid
      Type(PseudoInfo), INTENT(INOUT) :: PAW
 
-     INTEGER :: i,j,k,l,n,nvorbit,nbase, io,ib,jo,jb,ip,nfix
+     INTEGER :: i,j,k,l,n,nvorbit,nbase,io,ib,jo,jb,ip,nfix
      INTEGER :: loop
      INTEGER :: mxloop=1000
      REAL(8) :: err0=1.d-7,mix=0.5d0
      TYPE(OrbitInfo), POINTER :: AEO,PSO
-     INTEGER :: firsttime=0
+     INTEGER :: firsttime=0,norbit_mod,np(5)
      REAL(8) :: xocc,err
      LOGICAL :: success
      CHARACTER(4) :: stuff
      INTEGER, ALLOCATABLE :: tmap(:)
+     INTEGER, ALLOCATABLE :: orbit_mod_l(:),orbit_mod_n(:),orbit_mod_k(:)
+     REAL(8), ALLOCATABLE :: orbit_mod_occ(:)
 
      AEO=>PAW%OCCWFN;     PSO=>PAW%TOCCWFN
      WRITE(6,*) 'Current occupancies:'
-     WRITE(6,*) ' n l   occupancy        energy    '
+     IF (.NOT.diracrelativistic) THEN
+       WRITE(6,*) ' n l   occupancy        energy    '
+     ELSE
+       WRITE(6,*) ' n l kap   occupancy        energy    '
+     ENDIF
      DO io=1,PSO%norbit
          IF (.NOT.PSO%iscore(io)) THEN
-             WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+             IF (.NOT.diracrelativistic) THEN
+               WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                   PSO%l(io),PSO%occ(io), PSO%eig(io)
+             ELSE
+               WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                   PSO%l(io),PSO%kappa(io),PSO%occ(io), PSO%eig(io)
+             ENDIF
              if (firsttime==0) then
                 ib=PAW%valencemap(io)
                 write(6,*) 'Setting pseudo orbital ', io,ib
@@ -3545,88 +3362,119 @@ CONTAINS
      ENDDO
      firsttime=firsttime+1
 
-     WRITE(6,*) 'enter np  l   occ    for all revisions'
-     WRITE(6,*) ' enter 0 0 0 to end'
+     !Read modified occupations from standard input
+     np(1)=AEO%nps;np(2)=AEO%npp;np(3)=AEO%npd;np(4)=AEO%npf;np(5)=AEO%npg
+     CALL input_dataset_read_occ(norbit_mod,orbit_mod_l,orbit_mod_n,orbit_mod_k,&
+&                                orbit_mod_occ,np,diracrelativistic)
 
-         DO
-            READ(5,*) ip,l,xocc
-            IF (ip.LE.0) EXIT
-            nfix=-100
-            DO io=1,PSO%norbit
-               IF (ip==PSO%np(io).AND.l==PSO%l(io)) THEN
-                  IF (PSO%iscore(io)) THEN
-                      write(6,*) 'Core orbitals cannot be changed',ip,l,xocc
-                      stop
-                  endif
-                  nfix=io
-                  EXIT
-               ENDIF
-            ENDDO
-            IF (nfix.LE.0) THEN
-               WRITE(6,*) 'error in occupations -- ip,l,xocc', &
-&                   ip,l,xocc,nfix
-               STOP
-            ENDIF
-            PSO%occ(nfix)=xocc
-            AEO%occ(nfix)=xocc
-         ENDDO
+     DO jo=1,norbit_mod
+       nfix=-100
+       DO io=1,PSO%norbit
+          IF (orbit_mod_n(jo)==PSO%np(io).AND.orbit_mod_l(jo)==PSO%l(io).AND.&
+&             ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==PSO%kappa(io))) THEN
+             IF (PSO%iscore(io)) THEN
+                 write(6,*) 'Core orbitals cannot be changed',&
+                 &  orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo)
+                 stop
+             endif
+             nfix=io
+             EXIT
+          ENDIF
+       ENDDO
+       IF (nfix.LE.0) THEN
+          WRITE(6,*) 'error in occupations -- ip,l,xocc', &
+&             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix
+          STOP
+       ENDIF
+       PSO%occ(nfix)=orbit_mod_occ(jo)
+       AEO%occ(nfix)=orbit_mod_occ(jo)
+     ENDDO
+     DEALLOCATE(orbit_mod_l)
+     DEALLOCATE(orbit_mod_n)
+     DEALLOCATE(orbit_mod_k)
+     DEALLOCATE(orbit_mod_occ)
 
-         WRITE(6,*) 'New configuration:'
-         DO io=1,PSO%norbit
-            If (.NOT.PSO%iscore(io)) then
-               WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
-&                PSO%l(io),PSO%occ(io)
-            Endif
-         Enddo
+     WRITE(6,*) 'New configuration:'
+     DO io=1,PSO%norbit
+        If (.NOT.PSO%iscore(io)) then
+           IF (.NOT.diracrelativistic) THEN
+             WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                  PSO%l(io),PSO%occ(io)
+           ELSE
+             WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                  PSO%l(io),PSO%kappa(io),PSO%occ(io)
+           END IF
+        Endif
+     Enddo
 
-         success=.FALSE.
-         do loop=1,mxloop
-            if (TRIM(PSO%exctype)=='HF') then
-               call PAWIter_HF(Grid,PAW,mix*0.01,err0,err,success)
-            else
-               call PAWIter_LDA(Grid,PAW,mix,err0,err,success)
-            endif
-            write(6,*)  '--Results for Iter -- ', loop
-            write(6,*)  '  n   l   occupancy          energy    '
-            do io=1,PSO%norbit
-               If (.NOT.PSO%iscore(io)) then
-                  WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
-&                    PSO%l(io),PSO%occ(io),PSO%eig(io)
-               endif
-            enddo
-            IF (success) then
-               WRITE(6,*) ' PS wfn iteration converged ', loop
-               write(6,*)  '--Results for Iter -- ', loop
-               write(6,*)  '  n   l   occupancy          energy    '
-               do io=1,PSO%norbit
-                  If (.NOT.PSO%iscore(io)) then
-                     WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
-&                       PSO%l(io),PSO%occ(io),PSO%eig(io)
-                  endif
-               enddo
-               exit
-            ENDIF
-         enddo
+     success=.FALSE.
+     do loop=1,mxloop
+        if (TRIM(PSO%exctype)=='HF') then
+           call PAWIter_HF(Grid,PAW,mix*0.01,err0,err,success)
+        else
+           call PAWIter_LDA(Grid,PAW,mix,err0,err,success)
+        endif
+        write(6,*)  '--Results for Iter -- ', loop
+        IF (.NOT.diracrelativistic) THEN
+          write(6,*)  '  n   l   occupancy          energy    '
+          do io=1,PSO%norbit
+             If (.NOT.PSO%iscore(io)) then
+                WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                      PSO%l(io),PSO%occ(io),PSO%eig(io)
+             endif
+          enddo
+        ELSE
+          write(6,*)  '  n   l kap   occupancy          energy    '
+          do io=1,PSO%norbit
+             If (.NOT.PSO%iscore(io)) then
+                WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                      PSO%l(io),PSO%kappa(io),PSO%occ(io),PSO%eig(io)
+             endif
+          enddo
+        END IF
+        IF (success) then
+           WRITE(6,*) ' PS wfn iteration converged ', loop
+           write(6,*)  '--Results for Iter -- ', loop
+           IF (.NOT.diracrelativistic) THEN
+             write(6,*)  '  n   l   occupancy          energy    '
+             do io=1,PSO%norbit
+                If (.NOT.PSO%iscore(io)) then
+                   WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                         PSO%l(io),PSO%occ(io),PSO%eig(io)
+                endif
+             enddo
+           ELSE
+             write(6,*)  '  n   l kap   occupancy          energy    '
+             do io=1,PSO%norbit
+                If (.NOT.PSO%iscore(io)) then
+                   WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+&                         PSO%l(io),PSO%kappa(io),PSO%occ(io),PSO%eig(io)
+                endif
+             enddo
+           ENDIF
+           exit
+        ENDIF
+     enddo
 
-         Call mkname(firsttime,stuff)
-         allocate(tmap(PSO%norbit))
-         ip=0; tmap=0
-         do io=1,PSO%norbit
-            if (.not.PSO%iscore(io)) then
-               ip=ip+1
-               tmap(ip)=io
-               call PStoAE(Grid,PAW,Grid%n,PSO%l(io),PSO%wfn(:,io),&
+     Call mkname(firsttime,stuff)
+     allocate(tmap(PSO%norbit))
+     ip=0; tmap=0
+     do io=1,PSO%norbit
+        if (.not.PSO%iscore(io)) then
+           ip=ip+1
+           tmap(ip)=io
+           call PStoAE(Grid,PAW,Grid%n,PSO%l(io),PSO%wfn(:,io),&
 &                 PAW%OCCWFN%wfn(:,io))
-            endif
-          enddo
-          OPEN(unit=1001,file='PAWwfn.'//TRIM(stuff),form='formatted')
-          do i=1,Grid%n
-             write(1001,'(1p,60e15.7)') Grid%r(i),(PSO%wfn(i,tmap(k)),&
+        endif
+      enddo
+      OPEN(unit=1001,file='PAWwfn.'//TRIM(stuff),form='formatted')
+      do i=1,Grid%n
+         write(1001,'(1p,60e15.7)') Grid%r(i),(PSO%wfn(i,tmap(k)),&
 &                   PAW%OCCWFN%wfn(i,tmap(k)),k=1,ip)
-          enddo
-          CLOSE(1001)
+      enddo
+      CLOSE(1001)
 
-         deallocate(tmap)
+     deallocate(tmap)
 
    END SUBROUTINE SCFPAW
 
@@ -3876,13 +3724,14 @@ CONTAINS
      Type(PseudoInfo), INTENT(INOUT) :: PAW
 
      INTEGER :: ndata,i,j,k,l,nrcs,ircs,ictrc,iprev
-     INTEGER :: ifinput=8,ifen=9
+     INTEGER :: ifen=9
      CHARACTER(4) ::fdata
      CHARACTER(132) :: inputline,keyword
      REAL(8), allocatable ::  logderiverror(:,:)
      REAL(8) :: thisrc
      REAL(8) :: EBEGIN=-10, EEND=10       ! default logderiv range (Ry)
      LOGICAL :: success
+     TYPE(input_dataset_t) :: backup_dataset
 
      Type rcresults
          INTEGER :: beginindex, endindex
@@ -3912,9 +3761,9 @@ CONTAINS
  111      continue            
         endif
                
-    allocate(rcsummary(nrcs))
-    allocate(logderiverror(6,ndata))         ! 6 represents the max l+1
-    logderiverror=9.d20
+     allocate(rcsummary(nrcs))
+     allocate(logderiverror(6,ndata))         ! 6 represents the max l+1
+     logderiverror=9.d20
 
      write(6,*) 'Begin explore runs'
      OPEN(20,file='EXPLORERESULTS',form='formatted')
@@ -3922,21 +3771,29 @@ CONTAINS
      write(20,'("#dataset","    rc       ",6(2x,i3,10x))') (l,l=0,PAW%lmax+1)
      write(21,'(" Logderiv errors based on energy range", 2f12.2)') &
 &        EBEGIN, EEND
+
+!    Save input dataset
+     CALL input_dataset_copy(input_dataset,backup_dataset)
+
      ircs=0; thisrc=-1
      do i=1,ndata
         write(6,*) '===================== #',i,'=================='
         call mkname(i,fdata)
-        OPEN(ifinput,file='EXPLOREIN.'//TRIM(fdata),form='formatted')
         OPEN(ifen, file='EXPLOREout.'//TRIM(fdata), form='formatted')
 
-        CALL SetPAWOptions1(ifinput,ifen,Grid)
+
+        !Read new basis parameters
+        CALL input_dataset_read(echofile='EXPLOREIN.'//TRIM(fdata),&
+&            read_global_data=.false.,read_ae_data=.false.,read_basis_data=.true.)
+
+        CALL SetPAWOptions1(ifen,Grid)
         Call InitPAW(PAW,Grid,FCOrbit)
-        CALL setbasis(Grid,FCPot,FCOrbit,ifinput)
+        CALL setbasis(Grid,FCPot,FCOrbit)
         Call setcoretail(Grid,FC%coreden)
         Call setttau(Grid,FC%coretau)
         If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
         If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
-        Call SetPAWOptions2(ifinput,ifen,Grid,FCOrbit,FCPot,success)
+        Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,success)
         Call Report_PseudobasisRP(Grid,PAW,ifen,fdata)
         if (success) then
            Call Set_PAW_MatrixElements(Grid,PAW,ifen)
@@ -3945,7 +3802,7 @@ CONTAINS
         endif
         write(20,'(i5,2x,f12.5,1p,6e15.7)')&
 &             i,PAW%rc,(logderiverror(l+1,i),l=0,PAW%lmax+1)
-        close(ifinput); close(ifen)
+        close(ifen)
         Call DestroyPAW(PAW)
         if (abs(PAW%rc-thisrc)>1.d-10 ) then
            ircs=ircs+1      
@@ -3959,24 +3816,28 @@ CONTAINS
         endif        
            write(6,*) 'test ', i,ircs, rcsummary(ircs)%beginindex,&
 &             rcsummary(ircs)%endindex          
-     enddo
-    
-   Write(6,*) 'Results for minimum logderiverror'
-   Write(21,*) 'Results for minimum logderiverror'
-   Do ircs=1,nrcs
-      write(6,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
-      write(21,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
-      j=rcsummary(ircs)%beginindex
-      k=rcsummary(ircs)%endindex
-      Do l=0,PAW%lmax+1
-         i=MINLOC(logderiverror(l+1,j:k),1)+j-1
-         Write(6,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
-         Write(21,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
-      enddo  
-   enddo   
 
-   CLOSE(20); CLOSE(21)
-   Deallocate(logderiverror,rcsummary)
+     enddo
+
+!    Restore input dataset
+     CALL input_dataset_copy(backup_dataset,input_dataset)
+    
+     Write(6,*) 'Results for minimum logderiverror'
+     Write(21,*) 'Results for minimum logderiverror'
+     Do ircs=1,nrcs
+        write(6,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
+        write(21,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
+        j=rcsummary(ircs)%beginindex
+        k=rcsummary(ircs)%endindex
+        Do l=0,PAW%lmax+1
+           i=MINLOC(logderiverror(l+1,j:k),1)+j-1
+           Write(6,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
+           Write(21,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
+        enddo  
+     enddo   
+
+     CLOSE(20); CLOSE(21)
+     Deallocate(logderiverror,rcsummary)
 
  END SUBROUTINE exploreparms
 

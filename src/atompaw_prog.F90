@@ -34,8 +34,8 @@ PROGRAM atompaw
   CHARACTER(120) :: inputfile,outputfile,token
   LOGICAL :: lotsofoutput=.false.    ! can be changed eventually
   LOGICAL :: saveaeatom=.false.,loadaeatom=.false.
-  LOGICAL :: OK
-  INTEGER :: ifinput=10,ifen=11
+  LOGICAL :: OK,scfpaw_done
+  INTEGER :: ifen=11
 
 ! First write out details on AtomPAW
   WRITE(6,*) atp_package,' v',atp_version
@@ -67,39 +67,47 @@ PROGRAM atompaw
   endif
   write(6,*)
 
-  exploremode=.false.
+! Read input file
+  if (.not.loadaeatom) then
+    call input_dataset_read(echofile='dummy')
+  else
+    call input_dataset_read(echofile='tmp')
+    OK=compare_files('tmp','dummy',line_count=3+input_dataset%norbit_mod+input_dataset%norbit)
+    if (.not.OK) stop 'Program terminated!'
+    CALL copy_file('tmp','dummy')
+  endif
 
-  OPEN(ifinput,file='dummy',form='formatted')
+  exploremode=.false.
 
   CALL Init_GlobalConstants()
 
   If (loadaeatom) then
-     Call Load_AEatom(TRIM(inputfile),&
-        Grid,AEOrbit,AEpot,AESCF,FCOrbit,FCpot,FCSCF,FC,ifinput)
+     CALL Load_AEatom(TRIM(inputfile),&
+          Grid,AEOrbit,AEpot,AESCF,FCOrbit,FCpot,FCSCF,FC)
      OPEN (ifen, file=TRIM(AEPot%sym), form='formatted')
      CALL Report_Atomres('AE',Grid,AEOrbit,AEPot,AESCF,ifen)
      CALL Report_Atomres('SC',Grid,FCOrbit,FCPot,FCSCF,ifen)
   else
-     CALL SCFatom_Init(ifinput)
+     CALL SCFatom_Init()
      CALL SCFatom('AE',lotsofoutput)
      OPEN (ifen, file=TRIM(AEPot%sym), form='formatted')
      CALL Report_Atomres('AE',Grid,AEOrbit,AEPot,AESCF,ifen)
-     CALL SCFatom('SC',lotsofoutput,ifinput)
+     CALL SCFatom('SC',lotsofoutput)
      CALL Report_Atomres('SC',Grid,FCOrbit,FCPot,FCSCF,ifen)
      if (saveaeatom) then
         Call Dump_AEatom(TRIM(outputfile),&
-          Grid,AEOrbit,AEpot,AESCF,FCOrbit,FCpot,FCSCF,FC)
+             Grid,AEOrbit,AEpot,AESCF,FCOrbit,FCpot,FCSCF,FC)
      endif
   endif
 
-  CALL SetPAWOptions1(ifinput,ifen,Grid)
+  CALL SetPAWOptions1(ifen,Grid)
   CALL InitPAW(PAW,Grid,FCOrbit)
-  CALL setbasis(Grid,FCPot,FCOrbit,ifinput)
+  CALL setbasis(Grid,FCPot,FCOrbit)
   Call setcoretail(Grid,FC%coreden)
   Call setttau(Grid,FC%coretau)
   If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
   If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
-  Call SetPAWOptions2(ifinput,ifen,Grid,FCOrbit,FCPot,OK)
+  Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,OK)
   If (.not.OK) stop 'Stopping due to options failure'
   Call Report_Pseudobasis(Grid,PAW,ifen)
 
@@ -114,9 +122,9 @@ PROGRAM atompaw
   CALL Report_pseudo_energies(PAW,6)
   CALL Report_pseudo_energies(PAW,ifen)
 
-  CLOSE(ifinput)
-  CLOSE(ifen)
+   CLOSE(ifen)
 
+  scfpaw_done=.false.
   Do
    WRITE(6,*) 'Enter 0 or END to end program'
    WRITE(6,*) 'Enter 1 or SCFPAW to run SCFPAW'
@@ -134,23 +142,35 @@ PROGRAM atompaw
      exit
    else if (checkline2(token,"1","SCFPAW")) then
      CALL SCFPAW(Grid,PAW)
-   else if (checkline2(token,"2","ABINITOUT")) then
-     CALL Atompaw2Abinit(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput)
-   else if (checkline2(token,"3","PWSCFOUT")) then
-     CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit,ifinput)
-   else if (checkline2(token,"4","XMLOUT")) then
-     CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid,ifinput) 
-   else if (checkline2(token,"5","PWPAWOUT")) then
-     CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
-   else if (checkline2(token,"6","SOCORROOUT")) then
-     CALL WRITE_SOCORROATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
-   else if (checkline2(token,"10","EXPLORE")) then
-     CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)
+     scfpaw_done=.true.
    else
-     write(6,*) token; call flush_unit(6)
-     STOP 'Option not recognized -- pgm terminating'
+     if (scfpaw_done) then
+       WRITE(6,'(2a)') trim(token),&
+ &       ' cannot be executed after SCFPAW -- pgm terminating!'
+       EXIT
+     else
+       if (checkline2(token,"2","ABINITOUT")) then
+         CALL Atompaw2Abinit(FCOrbit,FCPot,FCSCF,PAW,FC,Grid)
+       else if (checkline2(token,"3","PWSCFOUT")) then
+         CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit)
+       else if (checkline2(token,"4","XMLOUT")) then
+         CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid)
+       else if (checkline2(token,"5","PWPAWOUT")) then
+         CALL WRITE_ATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
+       else if (checkline2(token,"6","SOCORROOUT")) then
+         CALL WRITE_SOCORROATOMDATA(Grid,FCPot,FCOrbit,FC,PAW)
+       else if (checkline2(token,"10","EXPLORE")) then
+         CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)
+       else
+         WRITE(6,'(3a)') 'Option not recognized ',&
+ &             trim(token),' -- pgm terminating!'
+         CALL flush_unit(6)
+         EXIT
+       endif
+     endif
    endif
-  Enddo
+
+ Enddo
 
 ! Free Memory
   Call DestroyGrid(Grid)
@@ -162,5 +182,6 @@ PROGRAM atompaw
   Call DestroyFC(FC)
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (have_libxc) call libxc_end_func()
+  Call input_dataset_free()
 
 END PROGRAM atompaw

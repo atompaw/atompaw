@@ -23,6 +23,7 @@ MODULE hf_pseudo
   USE paw_sub
   USE pseudodata
   USE pseudo_sub
+  USE input_dataset_mod
 
   IMPLICIT NONE
 
@@ -34,11 +35,10 @@ CONTAINS
   !           only one option programmed here
   ! This version does not calculate tp because local pseudopotential is not
   !     yet known
-  SUBROUTINE make_hf_basis_only(Grid,Pot,PAW,ifinput)
+  SUBROUTINE make_hf_basis_only(Grid,Pot,PAW)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
-    INTEGER, INTENT(IN) :: ifinput
 
     INTEGER ::  i,j,k,l,n,ib,jb,io,jo,norbit,nbase,irc,np,thisrc,lmax,ni
     INTEGER :: icount,ioo,joo,lng
@@ -59,17 +59,12 @@ CONTAINS
     np=5
     ALLOCATE(Ci(np),arg(n),dum(n),tdum(n),hat(n))
 
-    WRITE(6,*) 'For each of the following basis functions enter rc'
-
     ! Loop on basis elements
     DO ib=1,nbase
        l=PAW%l(ib)
        lng=min(n,PAW%rng(ib))
-       ! Read matching radius
-       WRITE(6,'(3i5,1p,1e15.7)') ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
-       READ(5,'(a)') inputline
-       WRITE(ifinput,'(a)') TRIM(inputline)
-       READ(inputline,*) rc
+       !Read matching radius from input dataset
+       rc=input_dataset%basis_func_rc(ib)
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc)
@@ -149,11 +144,10 @@ CONTAINS
   END SUBROUTINE make_hf_basis_only
 
   !Calculate tp for hf case;  assume tphi, Kop and vreff known
-  SUBROUTINE make_hf_tp_only(Grid,Pot,PAW,ifinput)
+  SUBROUTINE make_hf_tp_only(Grid,Pot,PAW)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
     TYPE(PseudoInfo), INTENT(INOUT) :: PAW
-    INTEGER, INTENT(IN) :: ifinput
 
     INTEGER ::  i,j,k,l,n,ib,jb,io,jo,norbit,nbase,irc,np,thisrc,lmax,ni
     INTEGER :: icount,ioo,joo,lng

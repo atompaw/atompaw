@@ -80,11 +80,12 @@ clean-local:
 abinitinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
 	gridmod.$(LTOBJEXT) excor.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
 	interpolation_mod.$(LTOBJEXT) pkginfo.$(LTOBJEXT) \
-	libxc_mod.$(LTOBJEXT)  tools_mod.$(LTOBJEXT)
+	libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT)
 
 aeatom.$(LTOBJEXT): atomdata.$(LTOBJEXT) excor.$(LTOBJEXT) exx_mod.$(LTOBJEXT) \
 	general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	input_dataset_mod.$(LTOBJEXT)
 
 anderson_driver.$(LTOBJEXT): globalmath.$(LTOBJEXT)
 
@@ -144,9 +145,10 @@ hf_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 
 hf_pseudo.$(LTOBJEXT): atomdata.$(LTOBJEXT) hf_mod.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	input_dataset_mod.$(LTOBJEXT)
 
-input_dataset_mod.$(LTOBJEXT):
+input_dataset_mod.$(LTOBJEXT): tools_mod.$(LTOBJEXT)
 
 interpolation_mod.$(LTOBJEXT):
 
@@ -168,7 +170,7 @@ pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEX
 	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
 	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
 	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT)
 
 pseudo_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT)
@@ -177,7 +179,7 @@ pseudodata.$(LTOBJEXT): gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 
 pwscfinterface.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	excor.$(LTOBJEXT) gridmod.$(LTOBJEXT) interpolation_mod.$(LTOBJEXT) \
-	pseudo.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pseudo.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT)
 
 radialdirac.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 
@@ -189,4 +191,4 @@ search_sort.$(LTOBJEXT):
 
 xmlinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
 	gridmod.$(LTOBJEXT) excor.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	pkginfo.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pkginfo.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT)

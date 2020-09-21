@@ -5,7 +5,7 @@
 !!  This module contains routines used to convert PAW atomic dataset into a XML file
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2013 ATOMPAW group (NHolzwarth, MTorrent, FJollet)
+!! Copyright (C) 2013-2020 ATOMPAW group (NHolzwarth, MTorrent, FJollet)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt.
@@ -32,6 +32,7 @@ Module XMLInterface
  use interpolation_mod
  use pkginfo
  use libxc_mod
+ use input_dataset_mod
 
  implicit none
 
@@ -82,19 +83,10 @@ Module XMLInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2xmlver='3.1.0', verdate='oct. 2019'
+ character*10 :: atompaw2xmlver='3.1.1', verdate='oct. 2020'
 
 !Default unit for XML file(s)
  integer, parameter :: unit_xml=22,unit_xml_core=23,unit_ldam12=24
-
-!Options
- logical :: usexcnhat_def=.false.
-
-!Real Space Optimization (default parameters)
- logical  :: userso_def=.false.
- real(dp) :: ecut_rso_def=10._dp
- real(dp) :: gfact_rso_def=two
- real(dp) :: werror_rso_def=0.0001_dp
 
  real(dp),parameter :: rmax_vloc=10._dp !We decide to cut at r=10 u.a because of numeric noise...
 
@@ -157,9 +149,8 @@ Module XMLInterface
 !! rdinputxml,build_mesh_data,opt_proj_rso,xmloutput,xmlprtcore
 !!=================================================================
 
- subroutine Atompaw2XML(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput)
+ subroutine Atompaw2XML(AEOrbit,AEPot,AESCF,PAW,FC,Grid)
 
- integer,intent(in) :: ifinput
  type(OrbitInfo), intent(in)     :: AEOrbit
  type(PotentialInfo), intent(in) :: AEPot
  type (SCFInfo),  intent(in)     :: AESCF
@@ -171,11 +162,12 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: id,vlocopt,prtcorewf,nsplgrid
+ integer :: id,vlocopt,nsplgrid
  type(mesh_data_type) :: mesh_data
  type(pawrso_type) :: pawrso
+ logical :: prtcorewf
  character*(fnlen) :: author,file_xml,file_xml_core,xcname
- character*(5000) :: input_string
+ character*(10000) :: input_string
  real(dp),allocatable :: tproj(:,:)
 
 !------------------------------------------------------------------
@@ -189,7 +181,7 @@ Module XMLInterface
  write(std_out,'(a)')       '==   into a XML file...                                  =='
  write(std_out,'(a)')       '========================================================'
 
- call read_inputstring(ifinput,input_string)
+ call read_inputstring(input_string)
 
 !------------------------------------------------------------------
 !---- Read choices from input file
@@ -255,7 +247,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Write core wave functions in XML format
 
- if (prtcorewf==1) then
+ if (prtcorewf) then
    file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.corewf.xml'
    call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
  &                 input_string,author)
@@ -304,102 +296,81 @@ Module XMLInterface
 
  subroutine rdinputxml(vlocopt,prtcorewf,pawrso,author,nsplgrid,input_string)
 
- integer,intent(out) :: vlocopt,prtcorewf,nsplgrid
- type(pawrso_type),intent(out) :: pawrso
- character(len=*),intent(out) :: author
+ integer,intent(out)            :: vlocopt,nsplgrid
+ logical,intent(out)            :: prtcorewf
+ type(pawrso_type),intent(out)  :: pawrso
+ character(len=*),intent(out)   :: author
  character(len=*),intent(inout) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_author,i_prtcorewf,i_splgrid,i_usexcnhat,i_rsoptim,iend,ok,nn
- character*(fnlen) :: readline,readline_u,inputline,inputword
+ integer :: i_author,len_author
+ logical :: usexcnhat
+ character(200) :: xmlstr
 
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
- read(std_in,'(a)',advance='no',iostat=ok) readline
-
- readline_u=readline
- call Uppercase(readline_u)
-
- i_usexcnhat=index(readline_u,'USEXCNHAT')
- i_prtcorewf=index(readline_u,'PRTCOREWF')
- i_rsoptim  =index(readline_u,'RSOPTIM')
- i_author   =index(readline_u,'AUTHOR')
- i_splgrid  =index(readline_u,'WITHSPLGRID')
-
-
-!Option for use of NHAT in XC
- if (i_usexcnhat>0) then
-  vlocopt=1
- else
-  if (     usexcnhat_def) vlocopt=1
-  if (.not.usexcnhat_def) vlocopt=2
- end if
- if (vlocopt==1) &
-&  write(std_out,'(a,2x,a)') ch10,'Zero potential and Blochl local ionic potential will be output in XML file'
- if (vlocopt/=1) &
-&  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
+!Read XML options from standard input
+ CALL input_dataset_read_xml(xml_string=xmlstr)
 
 !Option for the PRinTing of CORE Wave Functions
- prtcorewf=merge(0,1,i_prtcorewf<=0)
+ prtcorewf=input_dataset%xml_prtcorewf
+ if (prtcorewf) then
+  write(std_out,'(a,2x,a)') ch10,'Printing of core wave functions file'
+ else
+  write(std_out,'(a,2x,a)') ch10,'No printing of core wave functions file'
+ end if
+
+!Option for use of NHAT in XC
+ usexcnhat=input_dataset%xml_usexcnhat
+ if (usexcnhat) then
+  vlocopt=1
+  write(std_out,'(a,2x,a)') ch10,'Use of compensation charge in XC terms'
+  write(std_out,'(a,2x,a)') ch10,'Zero potential and Blochl local ionic potential will be output in XML file'
+ else
+  vlocopt=2
+  write(std_out,'(a,2x,a)') ch10,'No use of compensation charge in XC terms'
+  write(std_out,'(a,2x,a)') ch10,'Zero potential and Kresse local ionic potential will be output in XML file'
+ end if
 
 !Option for use of REAL SPACE OPTIMIZATION
- pawrso%userso=userso_def
- pawrso%ecut=ecut_rso_def
- pawrso%gfact=gfact_rso_def
- pawrso%werror=werror_rso_def
- if (i_rsoptim>0) then
-  pawrso%userso=.true.
-  iend=128
-  if (i_usexcnhat>i_rsoptim.and.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  inputline=""
-  if (iend>i_rsoptim+7) inputline=trim(readline(i_rsoptim+7:iend))
-  if (inputline/="") then
-   call extractword(1,inputline,inputword);inputword=trim(inputword)
-   if (inputword/="") then
-    read(inputword,*) pawrso%ecut
-    call extractword(2,inputline,inputword);inputword=trim(inputword)
-    if (inputword/="") then
-     read(inputword,*) pawrso%gfact
-     call extractword(3,inputline,inputword);inputword=trim(inputword)
-     if (inputword/="") read(inputword,*) pawrso%werror
-    end if
-   end if
-  end if
- end if
+ pawrso%userso=input_dataset%xml_userso
+ pawrso%ecut=input_dataset%xml_rso_ecut
+ pawrso%gfact=input_dataset%xml_rso_gfact
+ pawrso%werror=input_dataset%xml_rso_werror
  if (pawrso%userso) then
-  write(std_out,'(a,2x,a,f4.1,a,f6.2,a,g8.2,a)') ch10,&
-    'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) [',&
-    pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
+  write(std_out,'(a,2x,a,f6.2,a,f6.2,a,g8.2,a)') ch10,&
+&   'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) [',&
+&   pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
  else
   write(std_out,'(a,2x,a)') ch10,'No Real Space Optimization of projectors'
  end if
 
- if(i_author>0) then
-   inputline=trim(readline(i_author+6:))
-   read(unit=inputline,fmt=*) author
-   author=trim(author) ; nn=len(trim(author))
-   write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
-&   "XMLOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
+!Option for spline on a reduced log. grid
+ nsplgrid=-1;if (input_dataset%xml_usespl) nsplgrid=input_dataset%xml_spl_meshsz
+ if (nsplgrid>0) then
+  write(std_out,'(a,2x,a,i5,a)') ch10,&
+&   'Spline on a reduced log grid with ',nsplgrid, ' points'
  else
-   author=""
-   write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
-&   "XMLOUT",char(10),trim(readline)
+  write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
  end if
 
- nsplgrid=-1
- if(i_splgrid>0) then
-   iend=128
-   inputline=""
-   if (iend>i_splgrid+11) inputline=trim(readline(i_splgrid+11:iend))
-   if (inputline/="") then
-     call extractword(1,inputline,inputword);inputword=trim(inputword)
-     if (inputword/="") read(inputword,*) nsplgrid
-   end if
+!Author to be mentioned in Abinit file
+ author=trim(input_dataset%xml_author)
+
+!Update input string (without author name)
+ i_author=index(xmlstr,'AUTHOR')
+ if(i_author>0) then
+  len_author=len(trim(author))
+  write(unit=input_string,fmt='(6a)') trim(input_string),char(10),"XMLOUT",&
+&   char(10),xmlstr(1:i_author-1),trim(xmlstr(i_author+len_author+10:))
+ else
+  write(unit=input_string,fmt='(5a)') trim(input_string),char(10),"XMLOUT",&
+&   char(10),trim(xmlstr)
  end if
 
  end subroutine rdinputxml
@@ -1479,9 +1450,6 @@ Module XMLInterface
 !! Read the file echoing the atompaw input file
 !! and transfer it into a character string
 !!
-!! INPUTS
-!!  ifinput= unit number of the file to read
-!!
 !! OUTPUT
 !!  input_string=character string containing the file
 !!
@@ -1489,34 +1457,33 @@ Module XMLInterface
 !  xml2abinit
 !!=================================================================
 
- subroutine read_inputstring(ifinput,input_string)
+ subroutine read_inputstring(input_string)
 
- integer,intent(in) :: ifinput
  character(len=*) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: OK
+ integer :: OK,input_unit
  character(len=132) :: inputline
 
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
- open(ifinput,file='dummy',form='formatted')
- read(ifinput,'(a)',iostat=OK,end=10) inputline
+ open(input_unit,file='dummy',form='formatted')
+ read(input_unit,'(a)',iostat=OK,end=10) inputline
  if (OK/=0) return
  input_string=trim(inputline)
  do
-   read(ifinput,'(a)',iostat=OK,end=10) inputline
+   read(input_unit,'(a)',iostat=OK,end=10) inputline
    if (OK/=0) exit
    write(unit=input_string,fmt='(3a)') trim(input_string),char(10),trim(inputline)
  enddo
  return
 10 continue
- close(ifinput)
+ close(input_unit)
 
  end subroutine read_inputstring
 

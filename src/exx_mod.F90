@@ -415,16 +415,11 @@ CONTAINS
     DEALLOCATE(arg,starg)
   END SUBROUTINE EXXOCC_SCF
 
-  SUBROUTINE EXX_Input_Settings(inputline)
-    CHARACTER(128), INTENT(IN) :: inputline
-
-    INTEGER :: i
-    HSZ%Fixed_Zero=.FALSE.
-    i=INDEX(inputline,'FIXED_ZERO')
-    IF (i>0) THEN
-       HSZ%Fixed_Zero=.TRUE.
-       READ(unit=inputline(i+10:128),fmt=*) HSZ%zero_index
-    ENDIF
+  SUBROUTINE EXX_Input_Settings(fixed_zero,fixed_zero_index)
+    LOGICAL :: fixed_zero
+    INTEGER :: fixed_zero_index
+    HSZ%Fixed_Zero=fixed_zero
+    HSZ%zero_index=fixed_zero_index
   END SUBROUTINE EXX_Input_Settings
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -112,7 +112,7 @@ CONTAINS
        Psi(:,j)=Psi(:,j)/SQRT(x)
     ENDDO
 
-                                                                                    DEALLOCATE(vec,f,dum,e)
+    DEALLOCATE(vec,f,dum,e)
     CALL endBoundNumerov
 
     If (.not.success) then

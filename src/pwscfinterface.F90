@@ -16,31 +16,30 @@ Module PWscfInterface
   USE interpolation_mod
   USE pseudo
   USE libxc_mod
+  use input_dataset_mod
 
   Implicit none
 
   CONTAINS
 
-  SUBROUTINE Atompaw2PWscf(Grid,Pot,FC,PAW,Orbit,ifinput)
+  SUBROUTINE Atompaw2PWscf(Grid,Pot,FC,PAW,Orbit)
      Type(GridInfo), INTENT(IN) :: Grid
      Type(PotentialInfo), INTENT(IN) :: Pot
      Type(FCInfo), INTENT(IN) :: FC
      Type(PseudoInfo), INTENT(IN) :: PAW
      Type (OrbitInfo), INTENT(IN) :: Orbit
-     INTEGER, INTENT(IN) :: ifinput
 
      INTEGER :: i,j,k,l,n,m,io,jo,llmin,llmax,number_of_wfc,nn,ok, ncore
      CHARACTER(132) :: inputfileline,stuff
      CHARACTER(4) :: s1,s2,s3,s4
      CHARACTER(1), parameter :: label(4) = 'SDPF'
      REAL(8) :: x,y,z,q
-     REAL(8) :: upfdx=0.005d0,upfxmin=-9.d0,upfzmesh=1.d0 ! defaults
-     REAL(8) :: upfrange=15.d0       !default
-     INTEGER :: upfmesh,upfirc
+     REAL(8) :: upfdx,upfxmin,upfzmesh,upfrange
+     INTEGER :: upfmesh,upfirc,ifinput=11
      REAL(8), POINTER :: vps(:)
      REAL(8), ALLOCATABLE :: dum(:),arg(:),rvion(:),rtvion(:),dij0(:,:)
      REAL(8), ALLOCATABLE :: upfr(:),upff(:)
-     CHARACTER(256) :: inputline
+     CHARACTER(200) :: upf_line
      CHARACTER(50) :: UPFlabel,tmplabel
      LOGICAL :: testing
 
@@ -53,23 +52,24 @@ Module PWscfInterface
        write(6,*)  ' UPF file not created '
        return
      endif      
+
      ALLOCATE(dum(Grid%n),arg(Grid%n),rvion(Grid%n),rtvion(Grid%n),&
 &            dij0(PAW%nbase,PAW%nbase))
    
-    testing=.false.
-    if (TRIM(exctype)=='LDA-PW')  then
-           UPFlabel='SLA PW NOGX NOGC'    
-           tmplabel=TRIM(exctype)
-           testing=.true.
-    elseif (TRIM(exctype)=='GGA-PBE')  then
-           UPFlabel='SLA PW PBX PBC'
-           tmplabel=TRIM(exctype)
-           testing=.true.
-    elseif (TRIM(exctype)=='GGA-PBESOL')  then
-           UPFlabel='SLA PW PSX PSC'    
-           tmplabel=TRIM(exctype)
-           testing=.true.
-    elseif (.not.testing.and.have_libxc) then
+     testing=.false.
+     if (TRIM(exctype)=='LDA-PW')  then
+            UPFlabel='SLA PW NOGX NOGC'
+            tmplabel=TRIM(exctype)
+            testing=.true.
+     elseif (TRIM(exctype)=='GGA-PBE')  then
+            UPFlabel='SLA PW PBX PBC'
+            tmplabel=TRIM(exctype)
+            testing=.true.
+     elseif (TRIM(exctype)=='GGA-PBESOL')  then
+            UPFlabel='SLA PW PSX PSC'
+            tmplabel=TRIM(exctype)
+            testing=.true.
+     elseif (.not.testing.and.have_libxc) then
            call libxc2UPF(exctype,UPFlabel,tmplabel,testing)
            if (.not.testing) then
               write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
@@ -89,61 +89,37 @@ Module PWscfInterface
            return
      end if
 
-  ! set up grid
-     read(5,'(a)',advance='no',iostat=ok) inputline
-     if (ok<=0) then
-        write(6,'(a)') inputline
-        call Uppercase(inputline)
-        i=0;i=INDEX(inputline,'UPFDX')+INDEX(inputline,'UPFXMIN')+&
-&              INDEX(inputline,'UPFZMESH')+INDEX(inputline,'UPFRANGE')
-        if (i>0) then
-           k=0;k=INDEX(inputline,'UPFDX')
-             if (k>0) then
-                read(inputline(k+5:256),*) upfdx
-                write(6,*) 'upfdx reset ', upfdx
-             endif
-           k=0;k=INDEX(inputline,'UPFXMIN')
-             if (k>0) then
-                read(inputline(k+7:256),*) upfxmin
-                write(6,*) 'upfxmin reset ', upfxmin
-             endif
-           k=0;k=INDEX(inputline,'UPFZMESH')
-             if (k>0) then
-                read(inputline(k+8:256),*) upfzmesh
-                write(6,*) 'upfzmesh reset ', upfzmesh
-             endif
-           k=0;k=INDEX(inputline,'UPFRANGE')
-             if (k>0) then
-                read(inputline(k+8:256),*) upfrange
-                write(6,*) 'upfrange reset ', upfrange
-             endif
-         endif
-    endif
+     !Read UPF options from standard input
+     call input_dataset_read_upf(upf_string=upf_line)
+     upfdx=input_dataset%upf_grid_dx
+     upfxmin=input_dataset%upf_grid_xmin
+     upfzmesh=input_dataset%upf_grid_zmesh
+     upfrange=input_dataset%upf_grid_range
 
-         !upfmesh=1+(LOG(upfzmesh*Grid%r(Grid%n))-upfxmin)/upfdx
-         upfmesh=1+(LOG(upfzmesh*upfrange)-upfxmin)/upfdx
+     !upfmesh=1+(LOG(upfzmesh*Grid%r(Grid%n))-upfxmin)/upfdx
+     upfmesh=1+(LOG(upfzmesh*upfrange)-upfxmin)/upfdx
 
-         write(6,*) 'UPF mesh size = ', upfmesh
-         write(6,*) 'UPF xmin = ', upfxmin
-         write(6,*) 'UPF zmesh = ', upfzmesh
-         write(6,*) 'UPF zmesh = ', upfrange
+     write(6,*) 'UPF mesh size = ', upfmesh
+     write(6,*) 'UPF xmin = ', upfxmin
+     write(6,*) 'UPF zmesh = ', upfzmesh
+     write(6,*) 'UPF range = ', upfrange
 
-         ALLOCATE(upfr(upfmesh),upff(upfmesh))
+     ALLOCATE(upfr(upfmesh),upff(upfmesh))
 
-         upfr=0;upff=0
-         do i=1,upfmesh
-            upfr(i)=EXP(upfxmin+upfdx*(i-1))/upfzmesh
-         enddo
+     upfr=0;upff=0
+     do i=1,upfmesh
+        upfr(i)=EXP(upfxmin+upfdx*(i-1))/upfzmesh
+     enddo
 
-         upfirc=upfmesh
-         do i=1,upfmesh
-            if (upfr(i)>Grid%r(PAW%irc)) then
-               upfirc=i+1
-               exit
-            endif
-         enddo
+     upfirc=upfmesh
+     do i=1,upfmesh
+        if (upfr(i)>Grid%r(PAW%irc)) then
+           upfirc=i+1
+           exit
+        endif
+     enddo
 
-         write(6,*) 'UPF irc = ',   upfirc
+     write(6,*) 'UPF irc = ',   upfirc
 
      vps=>PAW%abinitvloc       ! could have flag for using PAW%abinitnohat
      rtvion=vps*Grid%r
@@ -180,6 +156,9 @@ Module PWscfInterface
            if (i/=0) exit
            write(1001,'("           ",a)') TRIM(inputfileline)
       enddo
+      write(1001,'(a)') "           PWSCFOUT"
+      write(1001,'(2a)') "           ",TRIM(upf_line)
+      write(1001,'(a)') "           END"
       close(ifinput)
 
       WRITE(1001,'("  </PP_INFO>")')

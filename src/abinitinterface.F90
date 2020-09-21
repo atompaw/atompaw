@@ -6,7 +6,7 @@
 !!  into a suitable formatted file for ABINIT code
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2010 ABINIT group (MT)
+!! Copyright (C) 2002-2020 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,6 +36,7 @@ Module ABINITInterface
  use interpolation_mod
  use pkginfo
  use libxc_mod
+ use input_dataset_mod
 
  implicit none
 
@@ -86,25 +87,10 @@ Module ABINITInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2abinitver='3.4.2', abinitver='6.1.0+', verdate='oct. 2019'
+ character*10 :: atompaw2abinitver='3.4.3', abinitver='6.1.0+', verdate='oct. 2020'
 
 !Default name for Abinit file
  integer, parameter :: unit_abinit=22
-
-!Options
- logical :: usexcnhat_def=.false.
- logical :: prtcorewf_def=.false.
-
-!Reduced logarithmic grid (default parameters)
- logical  :: uselog_def=.false.
- integer  :: loggrd_size_def=350
- real(dp) :: loggrd_step_def=0.035_dp
-
-!Real Space Optimization (default parameters)
- logical  :: userso_def=.false.
- real(dp) :: ecut_rso_def=10._dp
- real(dp) :: gfact_rso_def=two
- real(dp) :: werror_rso_def=0.0001_dp
 
 !!=================================================================
 !! STRUCTURED DATATYPES
@@ -252,7 +238,7 @@ Module ABINITInterface
 !! opt_proj,rdinputabinit,rdpawps1,rdpawps2,wrpawps,wrcorewf
 !!=================================================================
 
- subroutine Atompaw2Abinit(AEOrbit,AEPot,AESCF,PAW,FC,Grid,ifinput)
+ subroutine Atompaw2Abinit(AEOrbit,AEPot,AESCF,PAW,FC,Grid)
 
  type(OrbitInfo), intent(in)     :: AEOrbit
  type(PotentialInfo), intent(in) :: AEPot
@@ -260,7 +246,6 @@ Module ABINITInterface
  type(Pseudoinfo), intent(in)    ::  PAW
  type(FCInfo), intent(in)        :: FC
  type(GridInfo), intent(in)      :: Grid
- integer, intent(in)             :: ifinput
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -275,7 +260,7 @@ Module ABINITInterface
  integer :: id
  logical :: prtcorewf
  character*(fnlen) :: author,file_abinit,xcname
- character*(5000) :: input_string
+ character*(10000) :: input_string
 
 !------------------------------------------------------------------
 !---- Executable code
@@ -292,7 +277,7 @@ Module ABINITInterface
  write(std_out,'(a)')       '==   "ABINIT" can be found at:  http://www.abinit.org =='
  write(std_out,'(a)')       '========================================================'
 
- call read_inputstring(ifinput,input_string)
+ call read_inputstring(input_string)
 
 !------------------------------------------------------------------
 !---- Load PAW dataset header into ABINIT datastructure (sizes of arrays)
@@ -607,7 +592,7 @@ Module ABINITInterface
 !! rdinputabinit
 !!
 !! FUNCTION
-!! Read the input file in order to get ABINIT dataset options
+!! Read the input file in order to get ABINIT options
 !!
 !! INPUTS
 !!
@@ -632,8 +617,6 @@ Module ABINITInterface
 !! PARENTS
 !! atompaw2abinit
 !!
-!! CHILDREN
-!! extractword,uppercase
 !!=================================================================
 
  subroutine rdinputabinit(pshead,pawrso,loggrd,prtcorewf,author,input_string)
@@ -649,29 +632,19 @@ Module ABINITInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_author,i_usexcnhat,i_prtcorewf,i_logspline,i_rsoptim,iend,ok,nn
- character*(fnlen) :: readline,readline_u,inputline,inputword
+ integer :: i_author,len_author
+ logical :: usexcnhat
+ character(200) :: abinitstr
 
-!------------------------------------------------------------------
+ !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
- read(std_in,'(a)',advance='no',iostat=ok) readline
- readline_u=readline
- call Uppercase(readline_u)
+!Read ABINIT options from standard input
+ CALL input_dataset_read_abinit(abinit_string=abinitstr)
 
- i_usexcnhat=index(readline_u,'USEXCNHAT')
- i_prtcorewf=index(readline_u,'PRTCOREWF')
- i_logspline=index(readline_u,'LOGSPLINE')
- i_rsoptim  =index(readline_u,'RSOPTIM')
- i_author   =index(readline_u,'AUTHOR')
-
-!Option for core WF printing
- if (i_prtcorewf>0) then
-  prtcorewf=.true.
- else
-  prtcorewf=prtcorewf_def
- end if
+!Option for the PRinTing of CORE Wave Functions
+ prtcorewf=input_dataset%abinit_prtcorewf
  if (prtcorewf) then
   write(std_out,'(a,2x,a)') ch10,'Printing of core wave functions file'
  else
@@ -679,45 +652,20 @@ Module ABINITInterface
  end if
 
 !Option for use of NHAT in XC
- if (i_usexcnhat>0) then
+ usexcnhat=input_dataset%abinit_usexcnhat
+ if (usexcnhat) then
   pshead%vlocopt=1
+  write(std_out,'(a,2x,a)') ch10,'Use of compensation charge in XC terms'
  else
-  if (     usexcnhat_def) pshead%vlocopt=1
-  if (.not.usexcnhat_def) pshead%vlocopt=2
+  pshead%vlocopt=2
+  write(std_out,'(a,2x,a)') ch10,'No use of compensation charge in XC terms'
  end if
-!To be activated later:
-!if (i_vbare>0) pshead%vlocopt=0
- if (pshead%vlocopt==1) &
-&  write(std_out,'(a,2x,a)') ch10,'Use of compensation charge in XC terms'
- if (pshead%vlocopt/=1) &
-&  write(std_out,'(a,2x,a)') ch10,'No use of compensation charge in XC terms'
 
 !Option for use of REAL SPACE OPTIMIZATION
- pawrso%userso=userso_def
- pawrso%ecut=ecut_rso_def
- pawrso%gfact=gfact_rso_def
- pawrso%werror=werror_rso_def
- if (i_rsoptim>0) then
-  pawrso%userso=.true.
-  iend=128
-  if (i_usexcnhat>i_rsoptim.and.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  if (i_prtcorewf>i_rsoptim.and.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  if (i_logspline>i_rsoptim.and.i_logspline-1<iend) iend=i_logspline-1
-  inputline=""
-  if (iend>i_rsoptim+7) inputline=trim(readline(i_rsoptim+7:iend))
-  if (inputline/="") then
-   call extractword(1,inputline,inputword);inputword=trim(inputword)
-   if (inputword/="") then
-    read(inputword,*) pawrso%ecut
-    call extractword(2,inputline,inputword);inputword=trim(inputword)
-    if (inputword/="") then
-     read(inputword,*) pawrso%gfact
-     call extractword(3,inputline,inputword);inputword=trim(inputword)
-     if (inputword/="") read(inputword,*) pawrso%werror
-    end if
-   end if
-  end if
- end if
+ pawrso%userso=input_dataset%abinit_userso
+ pawrso%ecut=input_dataset%abinit_rso_ecut
+ pawrso%gfact=input_dataset%abinit_rso_gfact
+ pawrso%werror=input_dataset%abinit_rso_werror
  if (pawrso%userso) then
   write(std_out,'(a,2x,a,f6.2,a,f6.2,a,g8.2,a)') ch10,&
 &   'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) [',&
@@ -727,44 +675,29 @@ Module ABINITInterface
  end if
 
 !Option for spline on a reduced log. grid
- loggrd%uselog=uselog_def
- loggrd%meshsz=loggrd_size_def
- loggrd%log_step=loggrd_step_def
- if (i_logspline>0) then
-  loggrd%uselog=.true.
-  iend=128
-  if (i_usexcnhat>i_logspline.and.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  if (i_prtcorewf>i_logspline.and.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  if (i_rsoptim  >i_logspline.and.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-  inputline=""
-  if (iend>i_logspline+9) inputline=trim(readline(i_logspline+9:iend))
-  if (inputline/="") then
-   call extractword(1,inputline,inputword);inputword=trim(inputword)
-   if (inputword/="") then
-    read(inputword,*) loggrd%meshsz
-    call extractword(2,inputline,inputword);inputword=trim(inputword)
-    if (inputword/="") read(inputword,*) loggrd%log_step
-   end if
-  end if
- end if
+ loggrd%uselog=input_dataset%abinit_uselog
+ loggrd%meshsz=input_dataset%abinit_log_meshsz
+ loggrd%log_step=input_dataset%abinit_log_step
  if (loggrd%uselog) then
   write(std_out,'(a,2x,a,i3,a,f7.3,a)') ch10,&
 &   'Logarithmic grid: Number of pts, logarithmic step [',&
-&   loggrd_size_def,', ',loggrd_step_def,']'
+&   loggrd%meshsz,', ',loggrd%log_step,']'
  else
   write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
  end if
 
+!Author to be mentioned in Abinit file
+ author=trim(input_dataset%abinit_author)
+
+!Update input string (without author name)
+ i_author=index(abinitstr,'AUTHOR')
  if(i_author>0) then
-   inputline=trim(readline(i_author+6:))
-   read(unit=inputline,fmt=*) author
-   author=trim(author) ; nn=len(trim(author))
-   write(unit=input_string,fmt='(6a)') trim(input_string),char(10),&
-&   "ABINITOUT",char(10),readline(1:i_author-1),trim(readline(i_author+nn+10:))
+  len_author=len(trim(author))
+  write(unit=input_string,fmt='(6a)') trim(input_string),char(10),"ABINITOUT",&
+&   char(10),abinitstr(1:i_author-1),trim(abinitstr(i_author+len_author+10:))
  else
-   author=""
-   write(unit=input_string,fmt='(5a)') trim(input_string),char(10),&
-&   "ABINITOUT",char(10),trim(readline)
+  write(unit=input_string,fmt='(5a)') trim(input_string),char(10),"ABINITOUT",&
+&   char(10),trim(abinitstr)
  end if
 
  end subroutine rdinputabinit
@@ -2474,9 +2407,6 @@ end subroutine calc_shapef
 !! Read the file echoing the atompaw input file
 !! and transfer it into a character string
 !!
-!! INPUTS
-!!  ifinput= unit number of the file to read
-!!
 !! OUTPUT
 !!  input_string=character string containing the file
 !!
@@ -2484,34 +2414,33 @@ end subroutine calc_shapef
 !  xml2abinit
 !!=================================================================
 
- subroutine read_inputstring(ifinput,input_string)
+ subroutine read_inputstring(input_string)
 
- integer,intent(in) :: ifinput
  character(len=*) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: OK
+ integer :: OK,input_unit
  character(len=132) :: inputline
 
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
 
- open(ifinput,file='dummy',form='formatted')
- read(ifinput,'(a)',iostat=OK,end=10) inputline
+ open(input_unit,file='dummy',form='formatted')
+ read(input_unit,'(a)',iostat=OK,end=10) inputline
  if (OK/=0) return
  input_string=trim(inputline)
  do
-   read(ifinput,'(a)',iostat=OK,end=10) inputline
+   read(input_unit,'(a)',iostat=OK,end=10) inputline
    if (OK/=0) exit
    write(unit=input_string,fmt='(3a)') trim(input_string),char(10),trim(inputline)
  enddo
  return
 10 continue
- close(ifinput)
+ close(input_unit)
 
  end subroutine read_inputstring
 

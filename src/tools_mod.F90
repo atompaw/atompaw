@@ -222,6 +222,19 @@ End Subroutine
 end subroutine flush_unit
 
 !******************************************************************************
+!  unit_isatty - wrapper for the Fortran extension isatty function
+!  Available only if the compiler implements this intrinsic procedure.
+!******************************************************************************
+  LOGICAL FUNCTION unit_isatty(unit)
+     integer,intent(in) :: unit
+#if defined HAVE_FC_ISATTY
+     unit_isatty=isatty(unit)
+#else
+     unit_isatty=.true.
+#endif    
+end function unit_isatty
+
+!******************************************************************************
 !  copy_file - copy a text file into another
 !  infile:  input file name
 !  outfile: output file name

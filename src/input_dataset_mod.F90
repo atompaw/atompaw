@@ -230,6 +230,9 @@ CONTAINS
    input_unit=5
  END IF
 
+!Check if we read a TTY or a FILE
+ has_to_ask=unit_isatty(input_unit)
+
 !Do we echo input file content?
  has_to_echo=PRESENT(echofile)
  IF (has_to_echo) THEN

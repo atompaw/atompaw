@@ -619,6 +619,35 @@ AC_DEFUN([_ATP_CHECK_FC_FLUSH_],[
 ]) # _ATP_CHECK_FC_FLUSH_
 
 
+# _ATP_CHECK_FC_ISATTY()
+# ----------------------
+#
+# Checks whether the Fortran compiler supports the isatty() function.
+#
+AC_DEFUN([_ATP_CHECK_FC_ISATTY],[
+  dnl Init
+  fc_has_isatty="no"
+
+  AC_MSG_CHECKING([whether the Fortran compiler accepts isatty()])
+
+  dnl Try to compile a program calling isatty()
+  AC_LANG_PUSH([Fortran])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+    [[
+            logical :: success
+            success=isatty(1)
+    ]])], [fc_has_isatty="yes"])
+  AC_LANG_POP()
+
+  if test "${fc_has_isatty}" = "yes"; then
+    AC_DEFINE([HAVE_FC_ISATTY],1,
+      [Define to 1 if your Fortran compiler supports isatty().])
+  fi
+
+  AC_MSG_RESULT(${fc_has_isatty})
+]) # _ATP_CHECK_FC_ISATTY
+
+
 # ATP_PROG_FC()
 # -------------
 #
@@ -718,4 +747,5 @@ AC_DEFUN([ATP_FC_FEATURES],[
   dnl Explore compiler peculiarities
   _ATP_CHECK_FC_FLUSH
   _ATP_CHECK_FC_FLUSH_
+  _ATP_CHECK_FC_ISATTY
 ]) # ATP_FC_FEATURES

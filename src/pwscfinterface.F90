@@ -90,6 +90,7 @@ Module PWscfInterface
      end if
 
      !Read UPF options from standard input
+     WRITE(6,*)
      call input_dataset_read_upf(upf_string=upf_line)
      upfdx=input_dataset%upf_grid_dx
      upfxmin=input_dataset%upf_grid_xmin

@@ -1324,6 +1324,8 @@ CONTAINS
        thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc);PAW%rcio(io)=rc
+       WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
+       WRITE(6,'(a,f10.7)') '  >>> rc =', rc
        if (thisrc<3.or.thisrc>irc.or. &
 &          (optps==1.and.thisrc>n-3).or. &
 &          (optps==2.and.thisrc>n-6)) then
@@ -1840,6 +1842,8 @@ CONTAINS
       thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
       thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
       rc=Grid%r(thisrc)
+      WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
+      WRITE(6,'(a,f10.7)') '  >>> rc =', rc
       if (thisrc<3.or.thisrc>irc) then
         write(6,*) 'rc out of range', thisrc,n,irc
         stop
@@ -1891,6 +1895,8 @@ CONTAINS
          thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(ib))
          thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
          rc=r(thisrc);PAW%rcio(io)=rc
+         WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
+         WRITE(6,'(a,f10.7)') '  >>> rc =', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then
             write(6,*) 'rc out of range', thisrc,n,irc
             stop

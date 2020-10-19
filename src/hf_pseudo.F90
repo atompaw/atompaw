@@ -68,7 +68,8 @@ CONTAINS
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc)
-       WRITE(6,*) 'rc for this wfn', rc
+       WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
+       WRITE(6,'(a,f10.7)') '  >>> rc =', rc
        IF (thisrc<3.OR.thisrc>irc.OR.thisrc>lng-3) THEN
           WRITE(6,*) 'rc out of range', thisrc,lng,irc
           STOP

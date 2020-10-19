@@ -737,7 +737,7 @@ END IF
    dataset%projector_type=PROJECTOR_TYPE_HF
    dataset%pseudo_type=PSEUDO_TYPE_HF
    dataset%ortho_type=ORTHO_TYPE_HF
-   WRITE(6,*) 'You are using HF XC type; pseudo and orthogonalization line will be ignored!'
+   WRITE(6,'(3x,a)') '>> You are using HF XC type: pseudo and orthogonalization line will be ignored!'
  END IF
 
  IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR.dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K)&

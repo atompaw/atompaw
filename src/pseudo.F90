@@ -3790,7 +3790,8 @@ CONTAINS
 
         !Read new basis parameters
         CALL input_dataset_read(echofile='EXPLOREIN.'//TRIM(fdata),&
-&            read_global_data=.false.,read_ae_data=.false.,read_basis_data=.true.)
+&            read_global_data=.false.,read_elec_data=.false.,&
+&            read_coreval_data=.false.,read_basis_data=.true.)
 
         CALL SetPAWOptions1(ifen,Grid)
         Call InitPAW(PAW,Grid,FCOrbit)

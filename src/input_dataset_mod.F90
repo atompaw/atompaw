@@ -182,7 +182,8 @@ CONTAINS
 !!  [inputfile]= name of input file to be read
 !!  [echofile]= name of a file to echo input file content
 !!  [read_global_data]= if TRUE, read global data (atom, XC, grid, ...) - Default TRUE
-!!  [read_ae_data]= if TRUE, read AE data (electronic config, ...) - Default TRUE
+!!  [read_elec_data]= if TRUE, read electronic configuration (orbital & occupations) - Default TRUE
+!!  [read_coreval_data]= if TRUE, read electronic config (core and valence) - Default TRUE
 !!  [read_basis_data]= if TRUE, read basis data (radii, pseudo scheme, ...) - Default TRUE
 !!
 !! OUTPUT
@@ -192,11 +193,12 @@ CONTAINS
 !!
 !!=================================================================
  SUBROUTINE input_dataset_read(input_dt,inputfile,echofile,&
-&                 read_global_data,read_ae_data,read_basis_data)
+&           read_global_data,read_elec_data,read_coreval_data,read_basis_data)
 
 !---- Arguments
  CHARACTER*(*),INTENT(IN),OPTIONAL :: inputfile,echofile
- LOGICAL,INTENT(IN),OPTIONAL :: read_global_data,read_ae_data,read_basis_data
+ LOGICAL,INTENT(IN),OPTIONAL :: read_global_data,read_elec_data,&
+&                               read_coreval_data,read_basis_data
  TYPE(input_dataset_t),INTENT(INOUT),OPTIONAL,TARGET :: input_dt
  
 !---- Local variables
@@ -204,7 +206,8 @@ CONTAINS
  INTEGER :: input_unit
  INTEGER :: ii,io,ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,norb,nbl,nn
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
- LOGICAL :: has_to_echo,read_global_data_,read_ae_data_,read_basis_data_
+ LOGICAL :: has_to_echo
+ LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
  CHARACTER(200) :: inputline,inputword
  CHARACTER(128) :: exchangecorrelationandgridline
  CHARACTER(1) :: CHR
@@ -241,11 +244,12 @@ CONTAINS
  
 !Select which components have to be read
  read_global_data_=.true.;if (PRESENT(read_global_data)) read_global_data_=read_global_data
- read_ae_data_=.true.;if (PRESENT(read_ae_data)) read_ae_data_=read_ae_data
+ read_elec_data_=.true.;if (PRESENT(read_elec_data)) read_elec_data_=read_elec_data
+ read_coreval_data_=.true.;if (PRESENT(read_coreval_data)) read_coreval_data_=read_coreval_data
  read_basis_data_=.true.;if (PRESENT(read_basis_data)) read_basis_data_=read_basis_data
 
 !Print a title
- IF (read_global_data_.OR.read_ae_data_.OR.read_basis_data_) THEN
+ IF (read_global_data_.OR.read_elec_data_.OR.read_coreval_data_.OR.read_basis_data_) THEN
    IF (has_to_ask) THEN
      WRITE(6,'(/,1x,a)') "===== READING OF INPUT DATA ====="
    ELSE
@@ -448,9 +452,9 @@ END IF
 
 
 !------------------------------------------------------------------
-!End reading of global data. Start reading of AE data
+!End reading of global data. Start reading of electronic configuration data
  ENDIF
- IF (read_ae_data_) THEN
+ IF (read_elec_data_) THEN
 
 
 !------------------------------------------------------------------
@@ -474,7 +478,7 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,5(1x,i0))') "Max. quantum numbers (s,p,d,f,g) : ",dataset%np(1:5)
+   WRITE(6,'(3x,a,5(1x,i0))') "Max. quantum numbers (s,p,d,f,g): ",dataset%np(1:5)
    WRITE(6,'(3x,a,i0)') "Total number of orbitals: ",dataset%norbit
  END IF
 
@@ -482,6 +486,12 @@ END IF
 &                   dataset%orbit_mod_n,dataset%orbit_mod_k,dataset%orbit_mod_occ,&
 &                   dataset%np,dataset%diracrelativistic,&
 &                   inputfile_unit=input_unit,echofile_unit=ecunit)
+
+
+!------------------------------------------------------------------
+!End reading of electronic data. Start reading of core/valence data
+ ENDIF
+ IF (read_coreval_data_) THEN
 
 
 !------------------------------------------------------------------
@@ -967,7 +977,7 @@ END IF
  ENDIF
 
 !Final message
- IF (read_global_data_.OR.read_ae_data_.OR.read_basis_data_) THEN
+ IF (read_global_data_.OR.read_elec_data_.OR.read_coreval_data_.OR.read_basis_data_) THEN
    IF (has_to_ask) THEN
      WRITE(6,'(1x,a)') "===== END READING OF INPUT DATA ====="
    ELSE

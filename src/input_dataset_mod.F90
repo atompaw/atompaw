@@ -42,12 +42,12 @@ MODULE input_dataset_mod
    REAL(8) :: gridrange             ! Range of the radial grid
    REAL(8) :: gridmatch             ! A matching radius in the radial grid
    INTEGER :: gridpoints            ! Number of points of the radial grid
-   INTEGER ::  nlogderiv            ! Number of points for the logarithmic derivative calculation
-   REAL(8) ::  minlogderiv          ! Minimum energy value for the logarithmic derivative calculation
-   REAL(8) ::  maxlogderiv          ! Maximum energy value for the logarithmic derivative calculation
+   INTEGER :: nlogderiv             ! Number of points for the logarithmic derivative calculation
+   REAL(8) :: minlogderiv           ! Minimum energy value for the logarithmic derivative calculation
+   REAL(8) :: maxlogderiv           ! Maximum energy value for the logarithmic derivative calculation
    LOGICAL :: BDsolve               ! Flag activating the Block-Davidson solver
-   LOGICAL :: Fixed_zero            ! Flag activating the "fixed zero" exact exchange potential calculation
-   INTEGER :: Fixed_zero_index      ! Option for "fixed zero" calculation in the exact exchange potential
+   LOGICAL :: fixed_zero            ! Flag activating the "fixed zero" exact exchange potential calculation
+   INTEGER :: fixed_zero_index      ! Option for "fixed zero" calculation in the exact exchange potential
    CHARACTER(132) :: exctype        ! Exchange-correlation type (string)
    INTEGER :: np(5)                 ! Electronic configuration: number of s,p,d,f,g shells
    INTEGER :: norbit                ! Electronic configuration: number of orbitals
@@ -99,7 +99,12 @@ MODULE input_dataset_mod
    LOGICAL :: xml_userso            ! XML option: TRUE if REAL Space Optimization is required
    REAL(8) :: xml_rso_ecut          ! XML option: Real Space Optimization parameter - plane wave cutoff
    REAL(8) :: xml_rso_gfact         ! XML option: Real Space Optimization parameter - Gamma/Gmax ratio
-   REAL(8) :: xml_rso_werror        ! XML option: RReal Space Optimization parameter: max. error
+   REAL(8) :: xml_rso_werror        ! XML option: Real Space Optimization parameter: max. error
+   LOGICAL :: xml_uselda12          ! XML option: TRUE if LDA-1/2 potential calculation is required
+   INTEGER :: xml_lda12_orb_l       ! XML option: LDA-1/2 parameter - l quantum number of the ionized orbital
+   INTEGER :: xml_lda12_orb_n       ! XML option: LDA-1/2 parameter - n quantum number of the ionized orbital
+   REAL(8) :: xml_lda12_ion         ! XML option: LDA-1/2 parameter - amount of charge removed from the ionized orbital
+   REAL(8) :: xml_lda12_rcut        ! XML option: LDA-1/2 parameter - cut-off radius (in bohr)
    REAL(8) :: upf_grid_xmin         ! UPF option: minimum radius given by the grid
    REAL(8) :: upf_grid_zmesh        ! UPF option: inverse of the rdial step of the grid
    REAL(8) :: upf_grid_dx           ! UPF option: logarithmic step of the grid
@@ -139,13 +144,18 @@ MODULE input_dataset_mod
  !Default values
  LOGICAL,PARAMETER,PRIVATE :: PRTCOREWF_DEF      =.false.
  LOGICAL,PARAMETER,PRIVATE :: USEXCNHAT_DEF      =.false.
- LOGICAL,PARAMETER,PRIVATE :: USELOG_DEF        =.false.
- LOGICAL,PARAMETER,PRIVATE :: USERSO_DEF        =.false.
- INTEGER,PARAMETER,PRIVATE :: LOGGRD_SIZE_DEF   =350
+ LOGICAL,PARAMETER,PRIVATE :: USELOG_DEF         =.false.
+ LOGICAL,PARAMETER,PRIVATE :: USERSO_DEF         =.false.
+ LOGICAL,PARAMETER,PRIVATE :: USELDA12_DEF       =.false.
+ INTEGER,PARAMETER,PRIVATE :: LOGGRD_SIZE_DEF    =350
  REAL(8),PARAMETER,PRIVATE :: LOGGRD_STEP_DEF    =0.035d0
  REAL(8),PARAMETER,PRIVATE :: RSO_ECUT_DEF       =10.0d0
  REAL(8),PARAMETER,PRIVATE :: RSO_GFACT_DEF      =2.d0
  REAL(8),PARAMETER,PRIVATE :: RSO_WERROR_DEF     =0.0001d0
+ INTEGER,PARAMETER,PRIVATE :: LDA12_ORB_L_DEF    =-1
+ INTEGER,PARAMETER,PRIVATE :: LDA12_ORB_N_DEF    =-1
+ REAL(8),PARAMETER,PRIVATE :: LDA12_ION_DEF      =0.d0
+ REAL(8),PARAMETER,PRIVATE :: LDA12_RCUT_DEF     =0.d0
  REAL(8),PARAMETER,PRIVATE :: UPF_DX_DEF         =0.005d0
  REAL(8),PARAMETER,PRIVATE :: UPF_XMIN_DEF       =-9.d0
  REAL(8),PARAMETER,PRIVATE :: UPF_ZMESH_DEF      =1.d0
@@ -1050,6 +1060,8 @@ END IF
  dataset%shapefunc_type           = UNKNOWN_TYPE
  dataset%abinit_log_meshsz        = 0
  dataset%xml_spl_meshsz           = 0
+ dataset%xml_lda12_orb_l          = -1
+ dataset%xml_lda12_orb_n          = -1
  dataset%vloc_kerker_power(1:4)   = 0
 
 !Logicals
@@ -1068,6 +1080,7 @@ END IF
  dataset%xml_prtcorewf            = .false.
  dataset%xml_usespl               = .false.
  dataset%xml_userso               = .false.
+ dataset%xml_uselda12             = .false.
 
 !Reals
  dataset%gridrange                = 0.d0
@@ -1091,6 +1104,8 @@ END IF
  dataset%xml_rso_ecut             = 0.d0
  dataset%xml_rso_gfact            = 0.d0
  dataset%xml_rso_werror           = 0.d0
+ dataset%xml_lda12_ion            = 0.d0
+ dataset%xml_lda12_rcut           = 0.d0
  dataset%upf_grid_xmin            = 0.d0
  dataset%upf_grid_zmesh           = 0.d0
  dataset%upf_grid_dx              = 0.d0
@@ -1163,6 +1178,8 @@ END IF
  output_dt%vloc_l                  =input_dt%vloc_l
  output_dt%abinit_log_meshsz       =input_dt%abinit_log_meshsz
  output_dt%xml_spl_meshsz          =input_dt%xml_spl_meshsz
+ output_dt%xml_lda12_orb_l         =input_dt%xml_lda12_orb_l
+ output_dt%xml_lda12_orb_n         =input_dt%xml_lda12_orb_n
  output_dt%vloc_kerker_power(1:4)  =input_dt%vloc_kerker_power(1:4)
 
 !Logicals
@@ -1181,6 +1198,7 @@ END IF
  output_dt%xml_prtcorewf           =input_dt%xml_prtcorewf
  output_dt%xml_usespl              =input_dt%xml_usespl
  output_dt%xml_userso              =input_dt%xml_userso
+ output_dt%xml_uselda12            =input_dt%xml_uselda12
 
 !Reals
  output_dt%gridrange               =input_dt%gridrange
@@ -1204,6 +1222,8 @@ END IF
  output_dt%xml_rso_ecut            =input_dt%xml_rso_ecut
  output_dt%xml_rso_gfact           =input_dt%xml_rso_gfact
  output_dt%xml_rso_werror          =input_dt%xml_rso_werror
+ output_dt%xml_lda12_ion           =input_dt%xml_lda12_ion
+ output_dt%xml_lda12_rcut          =input_dt%xml_lda12_rcut
  output_dt%upf_grid_xmin           =input_dt%upf_grid_xmin
  output_dt%upf_grid_zmesh          =input_dt%upf_grid_zmesh
  output_dt%upf_grid_dx             =input_dt%upf_grid_dx
@@ -1478,23 +1498,24 @@ END IF
  dataset%abinit_rso_gfact=RSO_GFACT_DEF
  dataset%abinit_rso_werror=RSO_WERROR_DEF
  IF (dataset%abinit_userso) THEN
-  iend=200
-  IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
-  inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
-  IF (inputstring/="") THEN
-   CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-   IF (inputword/="") THEN
-    READ(inputword,*) dataset%abinit_rso_ecut
-    CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-    IF (inputword/="") then
-     READ(inputword,*) dataset%abinit_rso_gfact
-     CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
-     if (inputword/="") READ(inputword,*) dataset%abinit_rso_werror
-    END IF
+   iend=200
+   IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_author   >i_rsoptim.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
+   IF (inputstring/="") THEN
+     CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
+     IF (inputword/="") THEN
+       READ(inputword,*) dataset%abinit_rso_ecut
+       CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
+       IF (inputword/="") THEN
+         READ(inputword,*) dataset%abinit_rso_gfact
+         CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
+         IF (inputword/="") READ(inputword,*) dataset%abinit_rso_werror
+       END IF
+     END IF
    END IF
-  END IF
  END IF
 
 !Options for related to the transfer to a reduced logarihmic grid
@@ -1502,25 +1523,31 @@ END IF
  dataset%abinit_log_meshsz=LOGGRD_SIZE_DEF
  dataset%abinit_log_step=LOGGRD_STEP_DEF
  IF (dataset%abinit_uselog) THEN
-  iend=200
-  IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-  inputstring="";IF (iend>i_logspline+9) inputstring=TRIM(inputline(i_logspline+9:iend))
-  IF (inputstring/="") THEN
-   CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-   IF (inputword/="") THEN
-    READ(inputword,*) dataset%abinit_log_meshsz
-    CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-    IF (inputword/="") READ(inputword,*) dataset%abinit_log_step
-    END IF
+   iend=200
+   IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   IF (i_author   >i_logspline.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring="";IF (iend>i_logspline+9) inputstring=TRIM(inputline(i_logspline+9:iend))
+   IF (inputstring/="") THEN
+     CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
+     IF (inputword/="") THEN
+       READ(inputword,*) dataset%abinit_log_meshsz
+       CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
+       IF (inputword/="") READ(inputword,*) dataset%abinit_log_step
+     END IF
    END IF
-  END IF
+ END IF
 
 !Author to be mentioned in the ABINIT file
  dataset%abinit_author=TRIM(AUTHOR_DEF)
- IF(i_author>0) then
-   inputstring=TRIM(inputline(i_author+6:))
+ IF (i_author>0) then
+   iend=200
+   IF (i_usexcnhat>i_author.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_author.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_author.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_rsoptim  >i_author.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   inputstring=TRIM(inputline(i_author+6:iend))
    READ(unit=inputstring,fmt=*) dataset%abinit_author
    dataset%abinit_author=TRIM(dataset%abinit_author)
  END IF
@@ -1573,6 +1600,11 @@ END IF
 !!    %xml_rso_ecut=Real Space Optimization parameter: plane wave cutoff = 1/2 Gmax**2
 !!    %xml_rso_gfact=Real Space Optimization parameter: Gamma/Gmax ratio
 !!    %xml_rso_werror=Real Space Optimization parameter: max. error W_l allowed
+!!    %xml_uselda12= TRUE if LDA-1/2 potential calculation is required
+!!    %xml_lda12_orb_l=LDA-1/2 parameter: l quantum number of the orbital to be ionized
+!!    %xml_lda12_orb_n=LDA-1/2 parameter: n quantum number of the orbital to be ionized
+!!    %xml_lda12_ion=LDA-1/2 parameter: amount of charge to be removed from the ionized orbital
+!!    %xml_lda12_rcut=LDA-1/2 parameter: cut-off radius (in bohr)
 !!  [xml_string]= character string containing the ABINIT options line from input file
 !!
 !!=================================================================
@@ -1585,7 +1617,7 @@ END IF
 
 !---- Local variables
  INTEGER :: input_unit,echo_unit
- INTEGER :: i_author,i_usexcnhat,i_prtcorewf,i_logspline,i_rsoptim,iend
+ INTEGER :: i_author,i_usexcnhat,i_prtcorewf,i_logspline,i_rsoptim,i_lda12,iend
  LOGICAL :: has_to_echo
  CHARACTER(200) :: inputline,inputstring,inputword
  TYPE(input_dataset_t),POINTER :: dataset
@@ -1615,6 +1647,7 @@ END IF
  i_prtcorewf=INDEX(inputline,'PRTCOREWF')
  i_logspline=INDEX(inputline,'WITHSPLGRID')
  i_rsoptim  =INDEX(inputline,'RSOPTIM')
+ i_lda12    =INDEX(inputline,'LDA12')
  i_author   =INDEX(inputline,'AUTHOR')
 
 !Option for core WF printing
@@ -1632,43 +1665,85 @@ END IF
  dataset%xml_rso_gfact=RSO_GFACT_DEF
  dataset%xml_rso_werror=RSO_WERROR_DEF
  IF (dataset%xml_userso) THEN
-  iend=200
-  IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
-  inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
-  IF (inputstring/="") THEN
-   CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-   IF (inputword/="") THEN
-    READ(inputword,*) dataset%xml_rso_ecut
-    CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-    IF (inputword/="") then
-     READ(inputword,*) dataset%xml_rso_gfact
-     CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
-     if (inputword/="") READ(inputword,*) dataset%xml_rso_werror
-    END IF
+   iend=200
+   IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_lda12    >i_rsoptim.AND.i_lda12    -1<iend) iend=i_lda12    -1
+   IF (i_author   >i_rsoptim.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
+   IF (inputstring/="") THEN
+     CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
+     IF (inputword/="") THEN
+       READ(inputword,*) dataset%xml_rso_ecut
+       CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
+       IF (inputword/="") THEN
+         READ(inputword,*) dataset%xml_rso_gfact
+         CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
+         IF (inputword/="") READ(inputword,*) dataset%xml_rso_werror
+       END IF
+     END IF
    END IF
-  END IF
+ END IF
+
+!Options related to the use of LDA-1/2 technique
+ dataset%xml_uselda12=MERGE(.true.,USELDA12_DEF,i_lda12>0)
+ dataset%xml_lda12_orb_l=LDA12_ORB_L_DEF
+ dataset%xml_lda12_orb_n=LDA12_ORB_N_DEF
+ dataset%xml_lda12_ion=LDA12_ION_DEF
+ dataset%xml_lda12_rcut=LDA12_RCUT_DEF
+ IF (dataset%xml_uselda12) THEN
+   iend=200
+   IF (i_usexcnhat>i_lda12.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_lda12.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_lda12.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_rsoptim  >i_lda12.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   IF (i_author   >i_lda12.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring="";IF (iend>i_lda12+5) inputstring=TRIM(inputline(i_lda12+5:iend))
+   IF (inputstring/="") THEN
+     CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
+     IF (inputword/="") THEN
+       READ(inputword,*) dataset%xml_lda12_orb_n
+       CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
+       IF (inputword/="") THEN
+         READ(inputword,*) dataset%xml_lda12_orb_l
+         CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
+         IF (inputword/="") THEN
+           READ(inputword,*) dataset%xml_lda12_ion
+           CALL extractword(4,inputstring,inputword);inputword=TRIM(inputword)
+           IF (inputword/="") READ(inputword,*) dataset%xml_lda12_rcut
+         END IF
+       END IF
+     END IF
+   END IF
  END IF
 
 !Options for related to the transfer to a reduced logarihmic grid
  dataset%xml_usespl=MERGE(.true.,USELOG_DEF,i_logspline>0)
  dataset%xml_spl_meshsz=LOGGRD_SIZE_DEF
  IF (dataset%xml_usespl) THEN
-  iend=200
-  IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-  IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-  IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-  inputstring="";IF (iend>i_logspline+11) inputstring=TRIM(inputline(i_logspline+11:iend))
-  IF (inputstring/="") THEN
-   CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-   IF (inputword/="") READ(inputword,*) dataset%xml_spl_meshsz
+   iend=200
+   IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   IF (i_lda12    >i_logspline.AND.i_lda12    -1<iend) iend=i_lda12    -1
+   IF (i_author   >i_logspline.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring="";IF (iend>i_logspline+11) inputstring=TRIM(inputline(i_logspline+11:iend))
+   IF (inputstring/="") THEN
+     CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
+     IF (inputword/="") READ(inputword,*) dataset%xml_spl_meshsz
    END IF
-  END IF
+ END IF
 
 !Author to be mentioned in the ABINIT file
  dataset%xml_author=TRIM(AUTHOR_DEF)
- IF(i_author>0) then
+ IF (i_author>0) then
+   iend=200
+   IF (i_usexcnhat>i_author.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_author.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_author.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_rsoptim  >i_author.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   IF (i_lda12    >i_author.AND.i_lda12    -1<iend) iend=i_lda12    -1
    inputstring=TRIM(inputline(i_author+6:))
    READ(unit=inputstring,fmt=*) dataset%xml_author
    dataset%xml_author=TRIM(dataset%xml_author)
@@ -1688,6 +1763,13 @@ END IF
      WRITE(6,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%xml_rso_ecut
      WRITE(6,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%xml_rso_gfact
      WRITE(6,'(7x,a,i5)') '- RSO maximum error     =',dataset%xml_rso_werror
+   END IF
+   WRITE(6,'(3x,2a)') 'XML option : output of LDA-1/2 pot.    =',MERGE("YES"," NO",dataset%xml_uselda12)
+   IF (dataset%xml_uselda12) THEN
+     WRITE(6,'(7x,a,i2)') '- LDA-1/2 ionized orbital n =',dataset%xml_lda12_orb_n
+     WRITE(6,'(7x,a,i2)') '- LDA-1/2 ionized orbital l =',dataset%xml_lda12_orb_l
+     WRITE(6,'(7x,a,f5.2)') '- LDA-1/2 ionization        =',dataset%xml_lda12_ion
+     WRITE(6,'(7x,a,f7.4)') '- LDA-1/2 cutoff radius (au)=',dataset%xml_lda12_rcut
    END IF
  END IF
 
@@ -1715,7 +1797,7 @@ END IF
 !!    %upf_grid_zmesh= inverse of the radial step of the grid
 !!    %upf_grid_dx= logarithmic step of the grid
 !!    %upf_grid_range= range of the grid
-!!  [xml_string]= character string containing the ABINIT options line from input file
+!!  [upf_string]= character string containing the ABINIT options line from input file
 !!
 !!=================================================================
  SUBROUTINE input_dataset_read_upf(input_dt,inputfile_unit,echofile_unit,upf_string)

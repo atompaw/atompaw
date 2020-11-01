@@ -17,17 +17,26 @@ MODULE atomdata
   TYPE OrbitInfo
      CHARACTER(132) :: exctype
      INTEGER :: nps, npp, npd ,npf, npg, norbit
-     INTEGER, POINTER :: np(:),l(:),kappa(:)
-     REAL(8), POINTER :: eig(:),occ(:),wfn(:,:),lwfn(:,:)
-     REAL(8), POINTER :: otau(:,:)    ! kinetic energy density for orbital
-     REAL(8), POINTER :: lqp(:,:)     ! only used for HF
-     REAL(8), POINTER :: X(:,:)       ! identical to HF%SumY(:,:)
-     LOGICAL , POINTER :: iscore(:)
-     REAL(8),POINTER :: den(:),tau(:) ! accumulated over states
+     INTEGER, POINTER :: np(:) => null()
+     INTEGER, POINTER :: l(:) => null()
+     INTEGER, POINTER :: kappa(:) => null()
+     REAL(8), POINTER :: eig(:) => null()
+     REAL(8), POINTER :: occ(:) => null()
+     REAL(8), POINTER :: wfn(:,:) => null()
+     REAL(8), POINTER :: lwfn(:,:) => null()
+     REAL(8), POINTER :: otau(:,:) => null() ! kinetic energy density for orbital
+     REAL(8), POINTER :: lqp(:,:) => null()  ! only used for HF
+     REAL(8), POINTER :: X(:,:) => null()    ! identical to HF%SumY(:,:)
+     LOGICAL, POINTER :: iscore(:) => null()
+     REAL(8),POINTER :: den(:) => null() ! accumulated over states
+     REAL(8),POINTER :: tau(:) => null() ! accumulated over states
   END TYPE OrbitInfo
 
   TYPE FCinfo
-     REAL(8), POINTER :: coreden(:),valeden(:),coretau(:),valetau(:)
+     REAL(8), POINTER :: coreden(:) => null()
+     REAL(8), POINTER :: valeden(:) => null()
+     REAL(8), POINTER :: coretau(:) => null()
+     REAL(8), POINTER :: valetau(:) => null()
      REAL(8) :: zvale,zcore
   END TYPE FCinfo
 
@@ -38,13 +47,16 @@ MODULE atomdata
      REAL(8) :: q,v0,v0p  !  q is total electron charge
      !  v0,v0p are potential value and deriv at r=0
      REAL(8) :: Nv0,Nv0p    !  finite nucleus value and deriv at 0
-     REAL(8) , POINTER :: rv(:),rvn(:),rvh(:),rvx(:)
+     REAL(8), POINTER :: rv(:)  => null()
+     REAL(8), POINTER :: rvn(:) => null()
+     REAL(8), POINTER :: rvh(:) => null()
+     REAL(8), POINTER :: rvx(:) => null()
      !  rv(n) is  veff * r
      !  rvh is hartree potential for den
      !  rvn is nuclear potential
      !  rvx is exchange-correlation potential
      LOGICAL :: needvtau
-     REAL(8) , POINTER :: vtau(:) !for meta-gga
+     REAL(8), POINTER :: vtau(:) => null() !for meta-gga
      INTEGER :: finitenucleusmodel
      ! Based on models 2, 3, 4, 5 discussed by Dirk Anrae ,
      !   Physics Reports 336 (2000) 413-525
@@ -84,6 +96,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: n,norbit
     CHARACTER(*),INTENT(IN) :: exctype
     INTEGER :: ok
+    CALL DestroyOrbit(Orbit)
     Orbit%norbit=norbit;Orbit%exctype=TRIM(exctype)
     Orbit%nps=0;Orbit%npp=0;Orbit%npd=0;Orbit%npf=0;Orbit%npg=0
     ALLOCATE(Orbit%np(norbit),Orbit%l(norbit),Orbit%eig(norbit),&
@@ -169,6 +182,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: n
     TYPE (FCInfo), INTENT(INOUT) :: FC
     INTEGER :: ok
+    CALL DestroyFC(FC)
     FC%zvale=0.d0;FC%zcore=0.d0
     ALLOCATE(FC%coreden(n),FC%valeden(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of coreden, valeden,...'
@@ -186,10 +200,28 @@ CONTAINS
     IF (ASSOCIATED(FC%coretau)) DEALLOCATE(FC%coretau)
   END SUBROUTINE DestroyFC
 
+!!!!!!!!!!!!!!!!!!!!!!!!!
+!  CopyFC(source,copy)
+!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE CopyFC(SFC,CFC)
+    TYPE(FCInfo),INTENT(IN) :: SFC
+    TYPE(FCInfo),INTENT(INOUT) :: CFC
+    INTEGER :: n
+    n=SIZE(SFC%coreden,1)
+    CALL InitFC(CFC,n)
+    CFC%zvale=SFC%zvale
+    CFC%zcore=SFC%zcore
+    CFC%coreden(1:n)=SFC%coreden(1:n)
+    CFC%valeden(1:n)=SFC%valeden(1:n)
+    CFC%coretau(1:n)=SFC%coretau(1:n)
+    CFC%valetau(1:n)=SFC%valetau(1:n)
+  END SUBROUTINE CopyFC
+
   SUBROUTINE InitPot(Pot,n)
     INTEGER, INTENT(IN) :: n
     TYPE (PotentialInfo), INTENT(INOUT) :: Pot
     INTEGER :: ok
+    CALL DestroyPot(Pot)
 !   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0
     ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),Pot%vtau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
@@ -209,11 +241,12 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !  CopyPot(source,copy)
 !!!!!!!!!!!!!!!!!!!!!!!!!
-
   SUBROUTINE CopyPot(SPot,CPot)
     TYPE(PotentialInfo),INTENT(IN) :: SPot
     TYPE(PotentialInfo),INTENT(INOUT) :: CPot
     INTEGER :: n
+    n=SIZE(SPot%rv,1)
+    CALL InitPot(CPot,n)
     CPot%nz=SPot%nz
     CPot%zz=SPot%zz
     CPot%sym=SPot%sym
@@ -223,8 +256,6 @@ CONTAINS
     CPot%finitenucleusmodel=SPot%finitenucleusmodel
     CPot%Nv0=SPot%Nv0
     CPot%Nv0p=SPot%Nv0p
-    n=SIZE(SPot%rv,1)
-    ALLOCATE(CPot%rv(n),CPot%rvn(n),CPot%rvh(n),CPot%rvx(n),CPot%vtau(n))
     CPot%rv(1:n)=SPot%rv(1:n)
     CPot%rvn(1:n)=SPot%rvn(1:n)
     CPot%rvh(1:n)=SPot%rvh(1:n)
@@ -245,10 +276,10 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!
 !  CopySCF(source,copy)
 !!!!!!!!!!!!!!!!!!!!!!!!!
-
   SUBROUTINE CopySCF(SSCF,CSCF)
     TYPE(SCFInfo),INTENT(IN)::SSCF
     TYPE(SCFInfo),INTENT(INOUT)::CSCF
+    CALL InitSCF(CSCF)
     CSCF%iter=SSCF%iter
     CSCF%delta=SSCF%delta
     CSCF%eone=SSCF%eone

@@ -384,10 +384,11 @@ CONTAINS
 !!  SCFatom                               !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  SUBROUTINE SCFatom(scftype,lotsofoutput)
+  SUBROUTINE SCFatom(scftype,lotsofoutput,skip_reading)
     IMPLICIT NONE
     CHARACTER(2),INTENT(IN)::scftype
-    LOGICAL, INTENT(IN) :: lotsofoutput
+    LOGICAL,INTENT(IN) :: lotsofoutput
+    LOGICAL,INTENT(IN),OPTIONAL :: skip_reading
     TYPE(SCFInfo) :: SCFPP
 
     !  program to perform self-consistency loop
@@ -409,7 +410,11 @@ CONTAINS
        PotPtr=>AEPot
        OrbitPtr=>AEOrbit
        SCFPtr=>AESCF
-       CALL NC_Init(OrbitPtr,PotPtr)
+       IF (PRESENT(skip_reading)) THEN
+         CALL NC_Init(OrbitPtr,PotPtr,skip_reading=skip_reading)
+       ELSE
+         CALL NC_Init(OrbitPtr,PotPtr)
+       ENDIF
        CALL Potential_Init(OrbitPtr,PotPtr)
 
     ELSEIF(scftype=='SC') THEN
@@ -558,43 +563,50 @@ CONTAINS
   END SUBROUTINE Orbit_Init
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE NC_Init(Orbit,Pot)
+  SUBROUTINE NC_Init(Orbit,Pot,skip_reading)
     TYPE(PotentialInfo),INTENT(INOUT) :: Pot
     TYPE(OrbitInfo),INTENT(INOUT) :: Orbit
+    LOGICAL,INTENT(IN),OPTIONAL :: skip_reading
     INTEGER  :: i,io,jo,ir,ip,l,nfix,j,norbit_mod,np(5)
+    LOGICAL :: read_new_occ
     REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac
     REAL(8),allocatable :: dpdr(:),pbr(:)
     INTEGER, ALLOCATABLE :: orbit_mod_l(:),orbit_mod_n(:),orbit_mod_k(:)
     REAL(8), ALLOCATABLE :: orbit_mod_occ(:)
 
+    read_new_occ=.true.;if (present(skip_reading)) read_new_occ=.not.skip_reading
+    
     !----------New Configuration--AE calculation--------------
        ! readin revision and normalize the density
 
-       !Read modified occupations from standard input
-       np(1)=Orbit%nps;np(2)=Orbit%npp;np(3)=Orbit%npd;np(4)=Orbit%npf;np(5)=Orbit%npg
-       CALL input_dataset_read_occ(norbit_mod,orbit_mod_l,orbit_mod_n,orbit_mod_k,&
-&                                  orbit_mod_occ,np,diracrelativistic)
+       IF (read_new_occ) THEN
+  
+         !Read modified occupations from standard input
+         np(1)=Orbit%nps;np(2)=Orbit%npp;np(3)=Orbit%npd;np(4)=Orbit%npf;np(5)=Orbit%npg
+         CALL input_dataset_read_occ(norbit_mod,orbit_mod_l,orbit_mod_n,orbit_mod_k,&
+  &                                  orbit_mod_occ,np,diracrelativistic)
 
-       DO jo=1,norbit_mod
-         nfix=-100
-         DO io=1,Orbit%norbit
-           IF (orbit_mod_n(jo)==Orbit%np(io).AND.orbit_mod_l(jo)==Orbit%l(io).AND.&
-&              ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==Orbit%kappa(io))) THEN
-             nfix=io
-             EXIT
+         DO jo=1,norbit_mod
+           nfix=-100
+           DO io=1,Orbit%norbit
+             IF (orbit_mod_n(jo)==Orbit%np(io).AND.orbit_mod_l(jo)==Orbit%l(io).AND.&
+  &              ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==Orbit%kappa(io))) THEN
+               nfix=io
+               EXIT
+             ENDIF
+           ENDDO
+           IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
+             WRITE(6,*) 'error in occupations -- ip,l,xocc',&
+              orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
+             STOP
            ENDIF
+           Orbit%occ(nfix)=orbit_mod_occ(jo)
          ENDDO
-         IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
-           WRITE(6,*) 'error in occupations -- ip,l,xocc',&
-            orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
-           STOP
-         ENDIF
-         Orbit%occ(nfix)=orbit_mod_occ(jo)
-       ENDDO
-       DEALLOCATE(orbit_mod_l)
-       DEALLOCATE(orbit_mod_n)
-       DEALLOCATE(orbit_mod_k)
-       DEALLOCATE(orbit_mod_occ)
+         DEALLOCATE(orbit_mod_l)
+         DEALLOCATE(orbit_mod_n)
+         DEALLOCATE(orbit_mod_k)
+         DEALLOCATE(orbit_mod_occ)
+       ENDIF
 
        electrons=0.d0
        WRITE(6,*) ' Corrected occupations are: '

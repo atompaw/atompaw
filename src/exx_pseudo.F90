@@ -14,7 +14,7 @@
 
 Module exx_pseudo
 
-   USE Tools
+   USE io_tools
    USE anderson_driver
    USE atomdata
    USE exx_mod

@@ -14,7 +14,7 @@
 
 MODULE pseudo_sub
 
-  USE Tools
+  USE io_tools
   USE globalmath
   USE gridmod
   USE pseudodata

@@ -20,7 +20,7 @@
 
 MODULE pseudo
 
-  USE Tools
+  USE io_tools
   USE GlobalMath
   USE atomdata
   USE aeatom

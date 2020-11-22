@@ -10,7 +10,7 @@
 
 MODULE  atompaw_report
 
-  USE Tools
+  USE io_tools
   USE atomdata
   USE fock
   USE globalmath

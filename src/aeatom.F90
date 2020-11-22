@@ -12,7 +12,7 @@
 
 MODULE AEatom
 
-  USE Tools
+  USE io_tools
   USE atomdata
   USE excor
   USE exx_mod

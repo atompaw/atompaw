@@ -21,7 +21,7 @@
 
 MODULE gridmod
 
-  USE Tools
+  USE io_tools
   USE globalmath
 
   IMPLICIT NONE

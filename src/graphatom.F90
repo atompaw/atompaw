@@ -9,7 +9,7 @@
 
 PROGRAM graphatom
 
-  USE Tools
+  USE io_tools
   USE GlobalMath
   USE aeatom
   USE atomdata

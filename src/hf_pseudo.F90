@@ -14,7 +14,7 @@
 
 MODULE hf_pseudo
 
-  USE Tools
+  USE io_tools
   USE atomdata
   USE hf_mod
   USE fock

@@ -12,6 +12,7 @@
 
 MODULE Numerov_mod
 
+  USE io_tools
   USE gridmod
   USE blockdavidson_mod
 

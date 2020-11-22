@@ -73,8 +73,6 @@ CONTAINS
     END INTERFACE
 
     success=.false.
-    !WRITE(6,*) 'In BlockDavidson ', nvec,dup
-    !CALL flush_unit(6)
     CALL InitBlockDavidson(nvec,vec,dup)
     delta=1.d10; f=0; eig=0;   ns=SIZE(A,1)
     v1=conv1;v2=conv2;v3=conv3;v4=conv4

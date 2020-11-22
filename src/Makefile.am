@@ -18,6 +18,7 @@
 # Common source files
 atp_srcs = \
   libxc_tools.c \
+  io_tools.F90 \
   tools_mod.F90 \
   general_mod.F90 \
   globalmath.F90 \
@@ -85,7 +86,7 @@ abinitinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
 aeatom.$(LTOBJEXT): atomdata.$(LTOBJEXT) excor.$(LTOBJEXT) exx_mod.$(LTOBJEXT) \
 	general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	input_dataset_mod.$(LTOBJEXT)
+	input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 anderson_driver.$(LTOBJEXT): globalmath.$(LTOBJEXT)
 
@@ -99,27 +100,29 @@ atompaw_lib.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 atompaw_prog.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) atompaw_report.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
 	abinitinterface.$(LTOBJEXT) pwscfinterface.$(LTOBJEXT) xmlinterface.$(LTOBJEXT) \
-	pkginfo.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pkginfo.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 atompaw_report.$(LTOBJEXT): atomdata.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	pseudodata.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 blockdavidson_mod.$(LTOBJEXT): globalmath.$(LTOBJEXT) search_sort.$(LTOBJEXT) \
 	 tools_mod.$(LTOBJEXT)
 
 excor.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	libxc_mod.$(LTOBJEXT)
+	libxc_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 exx_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	exxdata.$(LTOBJEXT) fock.$(LTOBJEXT) general_mod.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) hf_mod.$(LTOBJEXT) \
-	report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 exx_pseudo.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	exx_mod.$(LTOBJEXT) fock.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
 	gridmod.$(LTOBJEXT) pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) \
-	tools_mod.$(LTOBJEXT)
+	tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 exxdata.$(LTOBJEXT):
 
@@ -132,21 +135,23 @@ general_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) numerov_mod.$(LTOBJEXT) \
 globalmath.$(LTOBJEXT):
 
 graphatom.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	atomdata.$(LTOBJEXT) graphatom_report.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	atomdata.$(LTOBJEXT) graphatom_report.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 graphatom_report.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
 
-gridmod.$(LTOBJEXT): globalmath.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+gridmod.$(LTOBJEXT): globalmath.$(LTOBJEXT) tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 hf_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	fock.$(LTOBJEXT) general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 hf_pseudo.$(LTOBJEXT): atomdata.$(LTOBJEXT) hf_mod.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) pseudo_sub.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	input_dataset_mod.$(LTOBJEXT)
+	input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 input_dataset_mod.$(LTOBJEXT): tools_mod.$(LTOBJEXT)
 
@@ -154,13 +159,16 @@ interpolation_mod.$(LTOBJEXT):
 
 ldagga_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) anderson_driver.$(LTOBJEXT) \
 	excor.$(LTOBJEXT) general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
-	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
-libxc_mod.$(LTOBJEXT): libxc_tools.$(LTOBJEXT) globalmath.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
+libxc_mod.$(LTOBJEXT): libxc_tools.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
+	tools_mod.$(LTOBJEXT)
 
 libxc_mod.$(LTOBJEXT):
 
-numerov_mod.$(LTOBJEXT): gridmod.$(LTOBJEXT) blockdavidson_mod.$(LTOBJEXT)
+numerov_mod.$(LTOBJEXT): gridmod.$(LTOBJEXT) blockdavidson_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 paw_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT)
 
@@ -169,11 +177,12 @@ pkginfo.$(LTOBJEXT):
 pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
 	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
-	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialsr.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT)
+	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) radialsr.$(LTOBJEXT) \
+	tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 pseudo_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT)
+	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 pseudodata.$(LTOBJEXT): gridmod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 

@@ -9,7 +9,7 @@
 
 MODULE ldagga_mod
 
-  USE Tools
+  USE io_tools
   USE atomdata
   USE anderson_driver
   USE general_mod

@@ -339,7 +339,6 @@ CONTAINS
        AC%CurIter=i
        CALL  Esub(w,E,residue,err,OK,.TRUE.)
        AC%res=err
-       !write(6,*)' In ANDERSONMIX ', AC%CurIter,AC%res; call flush_unit(6)
        if (err<AC%toosmall) THEN
              If(AC%writelots)&
 &             WRITE(6,&

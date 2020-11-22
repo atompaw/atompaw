@@ -18,7 +18,7 @@
 
 MODULE exx_mod
 
-  USE Tools
+  USE io_tools
   USE anderson_driver
   USE atomdata
   USE exxdata

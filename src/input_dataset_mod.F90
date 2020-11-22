@@ -12,6 +12,7 @@
 
 MODULE input_dataset_mod
 
+ USE io_tools
  USE tools
 
  IMPLICIT NONE

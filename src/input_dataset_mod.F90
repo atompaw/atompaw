@@ -262,9 +262,9 @@ CONTAINS
 !Print a title
  IF (read_global_data_.OR.read_elec_data_.OR.read_coreval_data_.OR.read_basis_data_) THEN
    IF (has_to_ask) THEN
-     WRITE(6,'(/,1x,a)') "===== READING OF INPUT DATA ====="
+     WRITE(STD_OUT,'(/,1x,a)') "===== READING OF INPUT DATA ====="
    ELSE
-     WRITE(6,'(/,3x,a)') "===== READING OF INPUT FILE ====="
+     WRITE(STD_OUT,'(/,3x,a)') "===== READING OF INPUT FILE ====="
    END IF
  END IF
  
@@ -277,7 +277,7 @@ CONTAINS
 !=== 1st line: read atomic symbol, atomic number
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter atomic symbol and atomic number'
+   WRITE(STD_OUT,*) 'Enter atomic symbol and atomic number'
  END IF
 
  READ(input_unit,'(a)') inputline
@@ -287,8 +287,8 @@ CONTAINS
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,a2)') "Atomic symbol : ",dataset%atomic_symbol
-   WRITE(6,'(3x,a,i0)') "Atomic charge : ",dataset%atomic_charge
+   WRITE(STD_OUT,'(3x,a,a2)') "Atomic symbol : ",dataset%atomic_symbol
+   WRITE(STD_OUT,'(3x,a,i0)') "Atomic charge : ",dataset%atomic_charge
  END IF
 
 !------------------------------------------------------------------
@@ -296,23 +296,23 @@ CONTAINS
 !              logderiv data, HF data, Block-Davidson keyword 
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter exchange-correlation type, among the following:'
-   WRITE(6,*) '    * LDA-PW (default), GGA-PBE, GGA-PBESOL'
-   WRITE(6,*) '    * LibXC keyword beginning with XC_'
-   WRITE(6,*) '    * EXX, EXXOCC, EXXKLI, EXXCS'
-   WRITE(6,*) '    * HF, HFV'
-   WRITE(6,*) ' further optionally (space) "nonrelativistic/scalarrelativistic/diracrelativistic" keyword'
-   WRITE(6,*) ' further optionally (space) "point-nucleus/finite-nucleus" keyword'
-   WRITE(6,*) ' further optionally (space) "loggrid/lineargrid" keyword if appropriate'
-   WRITE(6,*) '   Note: "loggridv4" puts more points near origin'
-   WRITE(6,*) ' further optionally n (number of grid points)'
-   WRITE(6,*) '                       r_max (max. grid radius)'
-   WRITE(6,*) '                       r_match (exact value of r(n))'
-   WRITE(6,*) ' further optionally (space) "logderivrange" keyword'
-   WRITE(6,*) '  further optionally emin (minimum energy for log. deriv. plot)'
-   WRITE(6,*) '                     emax (maximum energy for log. deriv. plot)'
-   WRITE(6,*) '                     ne   (#  of energies for log. deriv. plot)'
-   WRITE(6,*) ' and optionally "BDsolve" keyword for Block-Davidson solver'
+   WRITE(STD_OUT,*) 'Enter exchange-correlation type, among the following:'
+   WRITE(STD_OUT,*) '    * LDA-PW (default), GGA-PBE, GGA-PBESOL'
+   WRITE(STD_OUT,*) '    * LibXC keyword beginning with XC_'
+   WRITE(STD_OUT,*) '    * EXX, EXXOCC, EXXKLI, EXXCS'
+   WRITE(STD_OUT,*) '    * HF, HFV'
+   WRITE(STD_OUT,*) ' further optionally (space) "nonrelativistic/scalarrelativistic/diracrelativistic" keyword'
+   WRITE(STD_OUT,*) ' further optionally (space) "point-nucleus/finite-nucleus" keyword'
+   WRITE(STD_OUT,*) ' further optionally (space) "loggrid/lineargrid" keyword if appropriate'
+   WRITE(STD_OUT,*) '   Note: "loggridv4" puts more points near origin'
+   WRITE(STD_OUT,*) ' further optionally n (number of grid points)'
+   WRITE(STD_OUT,*) '                       r_max (max. grid radius)'
+   WRITE(STD_OUT,*) '                       r_match (exact value of r(n))'
+   WRITE(STD_OUT,*) ' further optionally (space) "logderivrange" keyword'
+   WRITE(STD_OUT,*) '  further optionally emin (minimum energy for log. deriv. plot)'
+   WRITE(STD_OUT,*) '                     emax (maximum energy for log. deriv. plot)'
+   WRITE(STD_OUT,*) '                     ne   (#  of energies for log. deriv. plot)'
+   WRITE(STD_OUT,*) ' and optionally "BDsolve" keyword for Block-Davidson solver'
  END IF
 
 !Read full line
@@ -436,28 +436,28 @@ CONTAINS
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,2a)')     "Scalar-relativistic calculation : ",MERGE("YES"," NO",dataset%scalarrelativistic)
-   WRITE(6,'(3x,2a)')     "Dirac-relativistic calculation  : ",MERGE("YES"," NO",dataset%diracrelativistic)
-   WRITE(6,'(3x,2a)')     "Finite-nucleus calculation      : ",MERGE("YES"," NO",dataset%finitenucleus)
+   WRITE(STD_OUT,'(3x,2a)')     "Scalar-relativistic calculation : ",MERGE("YES"," NO",dataset%scalarrelativistic)
+   WRITE(STD_OUT,'(3x,2a)')     "Dirac-relativistic calculation  : ",MERGE("YES"," NO",dataset%diracrelativistic)
+   WRITE(STD_OUT,'(3x,2a)')     "Finite-nucleus calculation      : ",MERGE("YES"," NO",dataset%finitenucleus)
    IF (dataset%finitenucleus) THEN
-     WRITE(6,'(3x,a,i0)') "    - Finite-nucleus model      : ",dataset%finitenucleusmodel
+     WRITE(STD_OUT,'(3x,a,i0)') "    - Finite-nucleus model      : ",dataset%finitenucleusmodel
    END IF
-   WRITE(6,'(3x,2a)')     "Block-Davidson calculation      : ",MERGE("YES"," NO",dataset%BDsolve)
-   WRITE(6,'(3x,2a)')     "Grid type                       : ",TRIM(dataset%gridkey)
-   WRITE(6,'(3x,a,i0)')   "Grid size                       : ",dataset%gridpoints
-   WRITE(6,'(3x,a,f7.3)') "Grid maximum value              : ",dataset%gridrange
-   WRITE(6,'(3x,a,f7.3)') "Grid imposed value              : ",dataset%gridmatch
-   WRITE(6,'(3x,a,i0)')   "Log. derivative, number of pts  : ",dataset%nlogderiv
-   WRITE(6,'(3x,a,f7.3)') "Log. derivative, min. energy    : ",dataset%minlogderiv
-   WRITE(6,'(3x,a,f7.3)') "Log. derivative, max. energy    : ",dataset%maxlogderiv
-   WRITE(6,'(3x,2a)')     "Hartree-Fock, post-processing   : ",MERGE("YES"," NO",dataset%HFpostprocess)
-   WRITE(6,'(3x,2a)')     "Hartree-Fock, localized core ex.: ",MERGE("YES"," NO",dataset%localizedcoreexchange)
-   WRITE(6,'(3x,2a)')     "Hartree-Fock, fixed zero        : ",MERGE("YES"," NO",dataset%fixed_zero)
+   WRITE(STD_OUT,'(3x,2a)')     "Block-Davidson calculation      : ",MERGE("YES"," NO",dataset%BDsolve)
+   WRITE(STD_OUT,'(3x,2a)')     "Grid type                       : ",TRIM(dataset%gridkey)
+   WRITE(STD_OUT,'(3x,a,i0)')   "Grid size                       : ",dataset%gridpoints
+   WRITE(STD_OUT,'(3x,a,f7.3)') "Grid maximum value              : ",dataset%gridrange
+   WRITE(STD_OUT,'(3x,a,f7.3)') "Grid imposed value              : ",dataset%gridmatch
+   WRITE(STD_OUT,'(3x,a,i0)')   "Log. derivative, number of pts  : ",dataset%nlogderiv
+   WRITE(STD_OUT,'(3x,a,f7.3)') "Log. derivative, min. energy    : ",dataset%minlogderiv
+   WRITE(STD_OUT,'(3x,a,f7.3)') "Log. derivative, max. energy    : ",dataset%maxlogderiv
+   WRITE(STD_OUT,'(3x,2a)')     "Hartree-Fock, post-processing   : ",MERGE("YES"," NO",dataset%HFpostprocess)
+   WRITE(STD_OUT,'(3x,2a)')     "Hartree-Fock, localized core ex.: ",MERGE("YES"," NO",dataset%localizedcoreexchange)
+   WRITE(STD_OUT,'(3x,2a)')     "Hartree-Fock, fixed zero        : ",MERGE("YES"," NO",dataset%fixed_zero)
    IF (dataset%fixed_zero) THEN
-     WRITE(6,'(3x,a,i0)') "    - HF fixed zero index       : ",dataset%fixed_zero_index
+     WRITE(STD_OUT,'(3x,a,i0)') "    - HF fixed zero index       : ",dataset%fixed_zero_index
    END IF
    IF (dataset%BDsolve.and.dataset%gridkey=='LINEAR') THEN
-     WRITE(6,'(/,3x,a)') "WARNING: BlockDavidson solver works very slowly with linear grid!"
+     WRITE(STD_OUT,'(/,3x,a)') "WARNING: BlockDavidson solver works very slowly with linear grid!"
    END IF
 END IF
 
@@ -472,7 +472,7 @@ END IF
 !=== 3rd line and following: electronic configuration of atom
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter maximum principal quantum numbers for s,p,d,f,g'
+   WRITE(STD_OUT,*) 'Enter maximum principal quantum numbers for s,p,d,f,g'
  END IF
 
  READ(input_unit,'(a)') inputline
@@ -489,8 +489,8 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,5(1x,i0))') "Max. quantum numbers (s,p,d,f,g): ",dataset%np(1:5)
-   WRITE(6,'(3x,a,i0)') "Total number of orbitals: ",dataset%norbit
+   WRITE(STD_OUT,'(3x,a,5(1x,i0))') "Max. quantum numbers (s,p,d,f,g): ",dataset%np(1:5)
+   WRITE(STD_OUT,'(3x,a,i0)') "Total number of orbitals: ",dataset%norbit
  END IF
 
  CALL input_dataset_read_occ(dataset%norbit_mod,dataset%orbit_mod_l,&
@@ -509,7 +509,7 @@ END IF
 !=== Core and valence states
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'For each state enter c for core or v for valence'
+   WRITE(STD_OUT,*) 'For each state enter c for core or v for valence'
  END IF
 
  IF (ALLOCATED(dataset%orbit_iscore)) DEALLOCATE(dataset%orbit_iscore)
@@ -523,7 +523,7 @@ END IF
        IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
        EXIT
      ELSE
-       WRITE(6,*) ' >> Please input c or v!'
+       WRITE(STD_OUT,*) ' >> Please input c or v!'
      END IF
    END DO
    dataset%orbit_iscore(io)=(CHR=='c'.OR.CHR=='C')
@@ -531,15 +531,15 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)') "Core and valence orbitals:"
-   WRITE(6,'(7x,a)') "n l : type"
+   WRITE(STD_OUT,'(3x,a)') "Core and valence orbitals:"
+   WRITE(STD_OUT,'(7x,a)') "n l : type"
    io=0
    DO ll=0,4
      nn=dataset%np(ll+1)
      IF (nn>0) THEN
        DO ii=1+ll,nn
          io=io+1
-         WRITE(6,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
+         WRITE(STD_OUT,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
 &          MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
        END DO
      END IF
@@ -557,17 +557,17 @@ END IF
 !=== Maximum L for basis functions
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter maximum L for basis and projector functions'
+   WRITE(STD_OUT,*) 'Enter maximum L for basis and projector functions'
  END IF
 
- READ(5,'(a)') inputline
+ READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
 
  READ(inputline,*) dataset%lmax
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,i0)') "Basis, maximum L : ",dataset%lmax
+   WRITE(STD_OUT,'(3x,a,i0)') "Basis, maximum L : ",dataset%lmax
  END IF
 
 
@@ -575,16 +575,16 @@ END IF
 !=== Cut-off radii
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter rc [and possibly: rc_shape, rc_vloc, rc_core]'
+   WRITE(STD_OUT,*) 'Enter rc [and possibly: rc_shape, rc_vloc, rc_core]'
  END IF
 
- READ(5,'(a)') inputline
+ READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
 
  CALL extractword(1,inputline,inputword);inputword=trim(inputword)
  IF (inputword/="") READ(inputword,*) dataset%rc
  IF (dataset%rc<=1.d-12) THEN
-   WRITE(6,*) 'input_dataset: error -- rc too small ',dataset%rc,'!'
+   WRITE(STD_OUT,*) 'input_dataset: error -- rc too small ',dataset%rc,'!'
    STOP
  END IF
 
@@ -602,31 +602,31 @@ END IF
      IF (inputword/="") THEN
        READ(inputword,*) dataset%rc_core
      ELSE
-       WRITE(6,*) 'input_dataset: error -- rc(core) is missing!'
+       WRITE(STD_OUT,*) 'input_dataset: error -- rc(core) is missing!'
        STOP
      END IF
    ELSE
-     WRITE(6,*) 'input_dataset: error -- rc(Vloc) is missing!'
+     WRITE(STD_OUT,*) 'input_dataset: error -- rc(Vloc) is missing!'
      STOP
    END IF
    IF (dataset%rc_shap<=1.d-12.OR.dataset%rc_vloc<=1.d-12.OR.&
 &      dataset%rc_core<=1.d-12) THEN
-     WRITE(6,*) 'input_dataset: error -- one rc is too small!'
+     WRITE(STD_OUT,*) 'input_dataset: error -- one rc is too small!'
      STOP
    END IF
    IF (dataset%rc_shap>dataset%rc.OR.dataset%rc_vloc>dataset%rc.OR.&
 &      dataset%rc_core>dataset%rc) THEN
-     WRITE(6,*) 'input_dataset: error -- rc_shape, rc_vloc and rc_core must be <rc!'
+     WRITE(STD_OUT,*) 'input_dataset: error -- rc_shape, rc_vloc and rc_core must be <rc!'
      STOP
    END IF
  ENDIF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,f7.4)') "Augmentation region radius : ",dataset%rc
-   WRITE(6,'(3x,a,f7.4)') "Core dens. matching radius : ",dataset%rc_core
-   WRITE(6,'(3x,a,f7.4)') "Local pot. matching radius : ",dataset%rc_vloc
-   WRITE(6,'(3x,a,f7.4)') "Compens. shape func radius : ",dataset%rc_shap
+   WRITE(STD_OUT,'(3x,a,f7.4)') "Augmentation region radius : ",dataset%rc
+   WRITE(STD_OUT,'(3x,a,f7.4)') "Core dens. matching radius : ",dataset%rc_core
+   WRITE(STD_OUT,'(3x,a,f7.4)') "Local pot. matching radius : ",dataset%rc_vloc
+   WRITE(STD_OUT,'(3x,a,f7.4)') "Compens. shape func radius : ",dataset%rc_shap
  END IF
 
 
@@ -642,18 +642,18 @@ END IF
    END IF
    DO
      IF (has_to_ask) THEN
-       WRITE(6,*) 'For l = ',ll,' there are currently ',nbl,' basis functions'
-       WRITE(6,*) 'Enter y to add additional functions or n to go to next l'
+       WRITE(STD_OUT,*) 'For l = ',ll,' there are currently ',nbl,' basis functions'
+       WRITE(STD_OUT,*) 'Enter y to add additional functions or n to go to next l'
      END IF
-     READ(5,'(a)') inputline
+     READ(STD_IN,'(a)') inputline
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
      READ(inputline,*) CHR
      IF (CHR/='y'.AND.CHR/='Y') EXIT
      dataset%nbasis_add=dataset%nbasis_add+1
      if (dataset%nbasis_add>nbasis_add_max) STOP 'Too many additional basis functions!'
      basis_add_l(dataset%nbasis_add)=ll
-     IF (has_to_ask) WRITE(6,*) 'Enter energy for generalized function'
-     READ(5,'(a)') inputline
+     IF (has_to_ask) WRITE(STD_OUT,*) 'Enter energy for generalized function'
+     READ(STD_IN,'(a)') inputline
      READ(inputline,*) basis_add_energy(dataset%nbasis_add)
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
    END DO
@@ -672,13 +672,13 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a,i0)') "Initial number of basis functions    : ",dataset%nbasis-dataset%nbasis_add
-   WRITE(6,'(3x,a,i0)') "Number of additional basis functions : ",dataset%nbasis_add
-   WRITE(6,'(3x,a,i0)') "Total number of basis functions      : ",dataset%nbasis
-   WRITE(6,'(3x,a)') "Additional basis functions:"
-   WRITE(6,'(7x,a)') "l : energy"
+   WRITE(STD_OUT,'(3x,a,i0)') "Initial number of basis functions    : ",dataset%nbasis-dataset%nbasis_add
+   WRITE(STD_OUT,'(3x,a,i0)') "Number of additional basis functions : ",dataset%nbasis_add
+   WRITE(STD_OUT,'(3x,a,i0)') "Total number of basis functions      : ",dataset%nbasis
+   WRITE(STD_OUT,'(3x,a)') "Additional basis functions:"
+   WRITE(STD_OUT,'(7x,a)') "l : energy"
    DO io=1,dataset%nbasis_add
-     WRITE(6,'(7x,i1,a,f7.4)') dataset%basis_add_l(io)," : " ,dataset%basis_add_energy(io)
+     WRITE(STD_OUT,'(7x,i1,a,f7.4)') dataset%basis_add_l(io)," : " ,dataset%basis_add_energy(io)
    END DO
  END IF
 
@@ -687,19 +687,19 @@ END IF
 !=== Projectors, compensation charge shape function, core tolerance
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'Enter "Bloechl", "Vanderbilt", "modrrkj" or "custom" keywords',&
+   WRITE(STD_OUT,*) 'Enter "Bloechl", "Vanderbilt", "modrrkj" or "custom" keywords',&
 &             ' for projector generation method.'
-   WRITE(6,*) ' In case of "custom" choice, enter additional (optional) keywords:'
-   WRITE(6,*) ' - For partial waves pseudization scheme:'
-   WRITE(6,*) '     "bloechlps", "polynom", "polynom2 p qcut" or "RRKJ"'
-   WRITE(6,*) ' - For orthogonalization scheme:'
-   WRITE(6,*) '     "gramschmidtortho" or "vanderbiltortho" or "svdortho"'
-   WRITE(6,*) ' - Sinc^2 shape is set by default,'
-   WRITE(6,*) '   Gaussian shape can be specified by adding "Gaussian" keyword and tol,'
-   WRITE(6,*) '   Bessel shape can be specified by adding "Besselshape" keyword'
+   WRITE(STD_OUT,*) ' In case of "custom" choice, enter additional (optional) keywords:'
+   WRITE(STD_OUT,*) ' - For partial waves pseudization scheme:'
+   WRITE(STD_OUT,*) '     "bloechlps", "polynom", "polynom2 p qcut" or "RRKJ"'
+   WRITE(STD_OUT,*) ' - For orthogonalization scheme:'
+   WRITE(STD_OUT,*) '     "gramschmidtortho" or "vanderbiltortho" or "svdortho"'
+   WRITE(STD_OUT,*) ' - Sinc^2 shape is set by default,'
+   WRITE(STD_OUT,*) '   Gaussian shape can be specified by adding "Gaussian" keyword and tol,'
+   WRITE(STD_OUT,*) '   Bessel shape can be specified by adding "Besselshape" keyword'
  END IF
 
- READ(5,'(a)') inputline
+ READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
 
  CALL Uppercase(inputline)
@@ -758,7 +758,7 @@ END IF
    dataset%projector_type=PROJECTOR_TYPE_HF
    dataset%pseudo_type=PSEUDO_TYPE_HF
    dataset%ortho_type=ORTHO_TYPE_HF
-   WRITE(6,'(3x,a)') '>> You are using HF XC type: pseudo and orthogonalization line will be ignored!'
+   WRITE(STD_OUT,'(3x,a)') '>> You are using HF XC type: pseudo and orthogonalization line will be ignored!'
  END IF
 
  IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR.dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K)&
@@ -784,45 +784,45 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)') "Projectors description:"
+   WRITE(STD_OUT,'(3x,a)') "Projectors description:"
    IF (dataset%projector_type==PROJECTOR_TYPE_BLOECHL) &
-&    WRITE(6,'(7x,a)') "Type              : BLOECHL"
+&    WRITE(STD_OUT,'(7x,a)') "Type              : BLOECHL"
    IF (dataset%projector_type==PROJECTOR_TYPE_VANDERBILT) &
-&    WRITE(6,'(7x,a)') "Type              : VANDERBILT"
+&    WRITE(STD_OUT,'(7x,a)') "Type              : VANDERBILT"
    IF (dataset%projector_type==PROJECTOR_TYPE_MODRRKJ) &
-&    WRITE(6,'(7x,a)') "Type              : MODRRKJ"
+&    WRITE(STD_OUT,'(7x,a)') "Type              : MODRRKJ"
    IF (dataset%projector_type==PROJECTOR_TYPE_CUSTOM) &
-&    WRITE(6,'(7x,a)') "Type              : CUSTOM"
+&    WRITE(STD_OUT,'(7x,a)') "Type              : CUSTOM"
    IF (dataset%projector_type==PROJECTOR_TYPE_HF) &
-&    WRITE(6,'(7x,a)') "Type : HARTREE-FOCK"
+&    WRITE(STD_OUT,'(7x,a)') "Type : HARTREE-FOCK"
    IF (dataset%projector_type/=PROJECTOR_TYPE_HF) THEN
      IF (dataset%pseudo_type==PSEUDO_TYPE_BLOECHL) &
-&      WRITE(6,'(7x,a)') "Pseudization      : BLOECHL"
+&      WRITE(STD_OUT,'(7x,a)') "Pseudization      : BLOECHL"
      IF (dataset%pseudo_type==PSEUDO_TYPE_POLYNOM) &
-&      WRITE(6,'(7x,a)') "Pseudization      : POLYNOM"
+&      WRITE(STD_OUT,'(7x,a)') "Pseudization      : POLYNOM"
      IF (dataset%pseudo_type==PSEUDO_TYPE_RRKJ) &
-&      WRITE(6,'(7x,a)') "Pseudization      : RRKJ"
+&      WRITE(STD_OUT,'(7x,a)') "Pseudization      : RRKJ"
      IF (dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
-&      WRITE(6,'(7x,a)') "Pseudization      : BLOECHL KERKER"
+&      WRITE(STD_OUT,'(7x,a)') "Pseudization      : BLOECHL KERKER"
      IF (dataset%pseudo_type==PSEUDO_TYPE_POLYNOM2) &
-&      WRITE(6,'(7x,a,i0,a,es9.3)') "Pseudization      : POLYNOM2, pdeg=", &
+&      WRITE(STD_OUT,'(7x,a,i0,a,es9.3)') "Pseudization      : POLYNOM2, pdeg=", &
 &       dataset%pseudo_polynom2_pdeg,", qcut=",dataset%pseudo_polynom2_qcut
      IF (dataset%ortho_type==ORTHO_TYPE_GRAMSCHMIDT) &
-&      WRITE(6,'(7x,a)') "Orthogonalisation : GRAM-SCHMIDT"
+&      WRITE(STD_OUT,'(7x,a)') "Orthogonalisation : GRAM-SCHMIDT"
      IF (dataset%ortho_type==ORTHO_TYPE_VANDERBILT) &
-&      WRITE(6,'(7x,a)') "Orthogonalisation : VANDERBILT"
+&      WRITE(STD_OUT,'(7x,a)') "Orthogonalisation : VANDERBILT"
      IF (dataset%ortho_type==ORTHO_TYPE_SVD) &
-&      WRITE(6,'(7x,a)') "Orthogonalisation : SVD"
+&      WRITE(STD_OUT,'(7x,a)') "Orthogonalisation : SVD"
    END IF
    IF (dataset%shapefunc_type==SHAPEFUNC_TYPE_GAUSSIAN) &
-&    WRITE(6,'(3x,a,es9.3)') "Compensation charge shape function : GAUSSIAN, tol=",&
+&    WRITE(STD_OUT,'(3x,a,es9.3)') "Compensation charge shape function : GAUSSIAN, tol=",&
 &    dataset%shapefunc_gaussian_param
    IF (dataset%shapefunc_type==SHAPEFUNC_TYPE_SINC) &
-&    WRITE(6,'(3x,a)') "Compensation charge shape function : SINC2"
+&    WRITE(STD_OUT,'(3x,a)') "Compensation charge shape function : SINC2"
    IF (dataset%shapefunc_type==SHAPEFUNC_TYPE_BESSEL) &
-&    WRITE(6,'(3x,a)') "Compensation charge shape function : BESSEL"
+&    WRITE(STD_OUT,'(3x,a)') "Compensation charge shape function : BESSEL"
    IF (INDEX(inputline,'CORETOL')>0) &
-&    WRITE(6,'(3x,a,es9.3)') "Core tolerance for Hartree-Fock : ",dataset%hf_coretol
+&    WRITE(STD_OUT,'(3x,a,es9.3)') "Core tolerance for Hartree-Fock : ",dataset%hf_coretol
  END IF
 
 
@@ -830,18 +830,18 @@ END IF
 !=== Local pseudopotential
 
  IF (has_to_ask) THEN
-   WRITE(6,*) 'To generate the local pseudopotential, this code can use:'
-   WRITE(6,*) '  1- a Troullier-Martins scheme for specified l value and energy'
-   WRITE(6,*) '  2- a non norm-conserving pseudopotential scheme for specified l value and energy'
-   WRITE(6,*) '  3- a simple pseudization scheme using a single spherical Bessel function'
-   WRITE(6,*) '  4- Vloc ==  VlocCoef*Shapefunc'
-   WRITE(6,*) 'For choice 1, enter (high) l value and energy e'
-   WRITE(6,*) 'For choice 2, enter (high) l value, energy e and "ultrasoft"'
-   WRITE(6,*) 'For choice 3, enter "bessel"'
-   WRITE(6,*) 'For choice 4, enter "setvloc x y" - x is VlocCoef y is VlocRad'
+   WRITE(STD_OUT,*) 'To generate the local pseudopotential, this code can use:'
+   WRITE(STD_OUT,*) '  1- a Troullier-Martins scheme for specified l value and energy'
+   WRITE(STD_OUT,*) '  2- a non norm-conserving pseudopotential scheme for specified l value and energy'
+   WRITE(STD_OUT,*) '  3- a simple pseudization scheme using a single spherical Bessel function'
+   WRITE(STD_OUT,*) '  4- Vloc ==  VlocCoef*Shapefunc'
+   WRITE(STD_OUT,*) 'For choice 1, enter (high) l value and energy e'
+   WRITE(STD_OUT,*) 'For choice 2, enter (high) l value, energy e and "ultrasoft"'
+   WRITE(STD_OUT,*) 'For choice 3, enter "bessel"'
+   WRITE(STD_OUT,*) 'For choice 4, enter "setvloc x y" - x is VlocCoef y is VlocRad'
  END IF
 
- READ(5,'(a)') inputline
+ READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
 
  call Uppercase(inputline)
@@ -891,21 +891,21 @@ END IF
 !Print read data
  IF (has_to_print) THEN
    IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER) &
-&    WRITE(6,'(7x,a,i0,a,f7.4)') "Local pseudopotential type : MTROULLIER, l=",&
+&    WRITE(STD_OUT,'(7x,a,i0,a,f7.4)') "Local pseudopotential type : MTROULLIER, l=",&
 &          dataset%vloc_l,", energy=",dataset%vloc_ene
    IF (dataset%vloc_type==VLOC_TYPE_ULTRASOFT) &
-&    WRITE(6,'(7x,a,i0,a,f7.4)') "Local pseudopotential type : ULTRASOFT, l=",&
+&    WRITE(STD_OUT,'(7x,a,i0,a,f7.4)') "Local pseudopotential type : ULTRASOFT, l=",&
 &          dataset%vloc_l,", energy=",dataset%vloc_ene
    IF (dataset%vloc_type==VLOC_TYPE_BESSEL) &
-&    WRITE(6,'(7x,a)') "Local pseudopotential type : BESSEL"
+&    WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : BESSEL"
    IF (dataset%vloc_type==VLOC_TYPE_SETVLOC) &
-&    WRITE(6,'(7x,a,es9.4,a,es9.4)') "Local pseudopotential type : SETVLOC, coef=",&
+&    WRITE(STD_OUT,'(7x,a,es9.4,a,es9.4)') "Local pseudopotential type : SETVLOC, coef=",&
 &          dataset%vloc_setvloc_coef,", rad=",dataset%vloc_setvloc_rad
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) &
-&    WRITE(6,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER EXPF, powers=",&
+&    WRITE(STD_OUT,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER EXPF, powers=",&
 &          dataset%vloc_kerker_power(1:4)
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_POLY) &
-&    WRITE(6,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER POLY, powers=",&
+&    WRITE(STD_OUT,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER POLY, powers=",&
 &          dataset%vloc_kerker_power(1:4)
  END IF
 
@@ -922,7 +922,7 @@ END IF
    IF (ALLOCATED(dataset%basis_func_rc)) DEALLOCATE(dataset%basis_func_rc)
    ALLOCATE(dataset%basis_func_rc(dataset%nbasis))
 
-    IF (has_to_ask) WRITE(6,*) 'For each of the following basis functions enter rc'
+    IF (has_to_ask) WRITE(STD_OUT,*) 'For each of the following basis functions enter rc'
 
    norb=0 ; nstart=0
    DO ll=0,dataset%lmax
@@ -932,8 +932,8 @@ END IF
      DO io=nstart+1,nstart+nbl
        IF (.NOT.dataset%orbit_iscore(io)) THEN
          norb=norb+1;nn=nn+1
-          IF (has_to_ask) WRITE(6,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',nn,ll
-         READ(5,'(a)') inputline
+          IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',nn,ll
+         READ(STD_IN,'(a)') inputline
          IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
          READ(inputline,*) dataset%basis_func_rc(norb)
        END IF
@@ -941,8 +941,8 @@ END IF
      DO io=1,dataset%nbasis_add
        IF (dataset%basis_add_l(io)==ll) THEN
          norb=norb+1
-          IF (has_to_ask) WRITE(6,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',999,ll
-         READ(5,'(a)') inputline
+          IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',999,ll
+         READ(STD_IN,'(a)') inputline
          IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
          READ(inputline,*) dataset%basis_func_rc(norb)
        END IF
@@ -955,8 +955,8 @@ END IF
 
 !  Print read data
    IF (has_to_print) THEN
-     WRITE(6,'(3x,a)') "Matching radius for basis functions:"
-     WRITE(6,'(7x,a)') " # - n l : radius"
+     WRITE(STD_OUT,'(3x,a)') "Matching radius for basis functions:"
+     WRITE(STD_OUT,'(7x,a)') " # - n l : radius"
      norb=0 ; nstart=0
      DO ll=0,dataset%lmax
        nn=0
@@ -964,13 +964,13 @@ END IF
        DO io=nstart+1,nstart+nbl
          IF (.NOT.dataset%orbit_iscore(io)) THEN
            norb=norb+1;nn=nn+1
-           WRITE(6,'(7x,i2,a,i1,1x,i1,a,f7.4)') norb," - ",nn,ll," : ",dataset%basis_func_rc(norb)
+           WRITE(STD_OUT,'(7x,i2,a,i1,1x,i1,a,f7.4)') norb," - ",nn,ll," : ",dataset%basis_func_rc(norb)
          END IF
        END DO
        DO io=1,dataset%nbasis_add
          IF (dataset%basis_add_l(io)==ll) THEN
            norb=norb+1;nn=nn+1
-           WRITE(6,'(7x,i2,a,i1,a,f7.4)') norb," - . ",ll," : ",dataset%basis_func_rc(norb)
+           WRITE(STD_OUT,'(7x,i2,a,i1,a,f7.4)') norb," - . ",ll," : ",dataset%basis_func_rc(norb)
          END IF
        END DO
        nstart=nstart+nbl
@@ -990,12 +990,12 @@ END IF
 !Final message
  IF (read_global_data_.OR.read_elec_data_.OR.read_coreval_data_.OR.read_basis_data_) THEN
    IF (has_to_ask) THEN
-     WRITE(6,'(1x,a)') "===== END READING OF INPUT DATA ====="
+     WRITE(STD_OUT,'(1x,a)') "===== END READING OF INPUT DATA ====="
    ELSE
-     WRITE(6,'(3x,a)') "===== END READING OF INPUT FILE ====="
+     WRITE(STD_OUT,'(3x,a)') "===== END READING OF INPUT FILE ====="
    END IF
  END IF
- WRITE(6,'(2/)')
+ WRITE(STD_OUT,'(2/)')
 
 
 !------------------------------------------------------------------
@@ -1327,11 +1327,11 @@ END IF
 
  IF (has_to_ask) THEN
    IF (.NOT.diracrel) THEN
-     WRITE(6,*)'Enter np l occ for all occupations for all revisions'
-     WRITE(6,*)'Enter 0 0 0 to end'
+     WRITE(STD_OUT,*)'Enter np l occ for all occupations for all revisions'
+     WRITE(STD_OUT,*)'Enter 0 0 0 to end'
    ELSE
-     WRITE(6,*)'Enter np l kappa occ for all occupations for all revisions'
-     WRITE(6,*)'Enter 0 0 0 0 to end'
+     WRITE(STD_OUT,*)'Enter np l kappa occ for all occupations for all revisions'
+     WRITE(STD_OUT,*)'Enter 0 0 0 0 to end'
    END IF
  END IF
 
@@ -1345,7 +1345,7 @@ END IF
    IF (xocc<0.d0.OR.&
 &    ((.NOT.diracrel).AND.(xocc>2.d0*(2*ll+1))).OR.&
 &    ((     diracrel).AND.(xocc>2.d0*ABS(kk)))) THEN
-     WRITE(6,*) 'input_dataset: error in occupations -- ip,l,kap,xocc: ',nn,ll,kk,xocc,'!'
+     WRITE(STD_OUT,*) 'input_dataset: error in occupations -- ip,l,kap,xocc: ',nn,ll,kk,xocc,'!'
      STOP
    END IF
    norbit_mod=norbit_mod+1
@@ -1371,9 +1371,9 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)') "Occupations of orbitals:"
+   WRITE(STD_OUT,'(3x,a)') "Occupations of orbitals:"
    IF (.NOT.diracrel) THEN
-     WRITE(6,'(7x,a)') "n l :  occ"
+     WRITE(STD_OUT,'(7x,a)') "n l :  occ"
      DO ll=0,4
        IF (np(ll+1)>0) THEN
          DO ii=1+ll,np(ll+1)
@@ -1383,13 +1383,13 @@ END IF
                nn=io ; EXIT
              END IF
            END DO
-           IF (nn<=0) WRITE(6,'(7x,i1,1x,i1,a,f4.1)') ii,ll," : ",real(2*(2*ll+1))
-           IF (nn >0) WRITE(6,'(7x,i1,1x,i1,a,f4.1)') ii,ll," : ",orbit_mod_occ(nn)
+           IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,a,f4.1)') ii,ll," : ",real(2*(2*ll+1))
+           IF (nn >0) WRITE(STD_OUT,'(7x,i1,1x,i1,a,f4.1)') ii,ll," : ",orbit_mod_occ(nn)
          END DO
        END IF
      END DO
    ELSE
-     WRITE(6,'(7x,a)') "n l kappa :  occ"
+     WRITE(STD_OUT,'(7x,a)') "n l kappa :  occ"
      DO ll=0,4
        IF (np(ll+1)>0) THEN
          DO nk=1,nkappa(ll+1)
@@ -1401,8 +1401,8 @@ END IF
                  nn=io ; EXIT
                END IF
              END DO
-             IF (nn<=0) WRITE(6,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",real(2*(2*ll+1)/nkappa(ll+1))
-             IF (nn >0) WRITE(6,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",orbit_mod_occ(nn)
+             IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",real(2*(2*ll+1)/nkappa(ll+1))
+             IF (nn >0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",orbit_mod_occ(nn)
            END DO
          END DO
        END IF
@@ -1555,19 +1555,19 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)')  'Options for ABINIT file:'
-   WRITE(6,'(3x,2a)') 'ABINIT option : use of compensation in XC =',MERGE("YES"," NO",dataset%abinit_usexcnhat)
-   WRITE(6,'(3x,2a)') 'ABINIT option : output of core wave funcs =',MERGE("YES"," NO",dataset%abinit_prtcorewf)
-   WRITE(6,'(3x,2a)') 'ABINIT option : transfer to a log grid    =',MERGE("YES"," NO",dataset%abinit_uselog)
+   WRITE(STD_OUT,'(3x,a)')  'Options for ABINIT file:'
+   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : use of compensation in XC =',MERGE("YES"," NO",dataset%abinit_usexcnhat)
+   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : output of core wave funcs =',MERGE("YES"," NO",dataset%abinit_prtcorewf)
+   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : transfer to a log grid    =',MERGE("YES"," NO",dataset%abinit_uselog)
    IF (dataset%abinit_uselog) THEN
-     WRITE(6,'(7x,a,i5)') '- mesh size of the log grid =',dataset%abinit_log_meshsz
-     WRITE(6,'(7x,a,i5)') '- step of the log grid      =',dataset%abinit_log_step
+     WRITE(STD_OUT,'(7x,a,i5)') '- mesh size of the log grid =',dataset%abinit_log_meshsz
+     WRITE(STD_OUT,'(7x,a,i5)') '- step of the log grid      =',dataset%abinit_log_step
    END IF
-   WRITE(6,'(3x,2a)') 'ABINIT option : Real Space Optimization   =',MERGE("YES"," NO",dataset%abinit_userso)
+   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : Real Space Optimization   =',MERGE("YES"," NO",dataset%abinit_userso)
    IF (dataset%abinit_userso) THEN
-     WRITE(6,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%abinit_rso_ecut
-     WRITE(6,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%abinit_rso_gfact
-     WRITE(6,'(7x,a,i5)') '- RSO maximum error     =',dataset%abinit_rso_werror
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%abinit_rso_ecut
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%abinit_rso_gfact
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO maximum error     =',dataset%abinit_rso_werror
    END IF
  END IF
 
@@ -1752,25 +1752,25 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)')  'Options for XML file:'
-   WRITE(6,'(3x,2a)') 'XML option : use of compensation in XC =',MERGE("YES"," NO",dataset%xml_usexcnhat)
-   WRITE(6,'(3x,2a)') 'XML option : output of core wave funcs =',MERGE("YES"," NO",dataset%xml_prtcorewf)
-   WRITE(6,'(3x,2a)') 'XML option : spline to a log grid      =',MERGE("YES"," NO",dataset%xml_usespl)
+   WRITE(STD_OUT,'(3x,a)')  'Options for XML file:'
+   WRITE(STD_OUT,'(3x,2a)') 'XML option : use of compensation in XC =',MERGE("YES"," NO",dataset%xml_usexcnhat)
+   WRITE(STD_OUT,'(3x,2a)') 'XML option : output of core wave funcs =',MERGE("YES"," NO",dataset%xml_prtcorewf)
+   WRITE(STD_OUT,'(3x,2a)') 'XML option : spline to a log grid      =',MERGE("YES"," NO",dataset%xml_usespl)
    IF (dataset%xml_usespl) THEN
-     WRITE(6,'(7x,a,i5)') '- mesh size of the log grid =',dataset%xml_spl_meshsz
+     WRITE(STD_OUT,'(7x,a,i5)') '- mesh size of the log grid =',dataset%xml_spl_meshsz
    END IF
-   WRITE(6,'(3x,2a)') 'XML option : Real Space Optimization   =',MERGE("YES"," NO",dataset%xml_userso)
+   WRITE(STD_OUT,'(3x,2a)') 'XML option : Real Space Optimization   =',MERGE("YES"," NO",dataset%xml_userso)
    IF (dataset%xml_userso) THEN
-     WRITE(6,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%xml_rso_ecut
-     WRITE(6,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%xml_rso_gfact
-     WRITE(6,'(7x,a,i5)') '- RSO maximum error     =',dataset%xml_rso_werror
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%xml_rso_ecut
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%xml_rso_gfact
+     WRITE(STD_OUT,'(7x,a,i5)') '- RSO maximum error     =',dataset%xml_rso_werror
    END IF
-   WRITE(6,'(3x,2a)') 'XML option : output of LDA-1/2 pot.    =',MERGE("YES"," NO",dataset%xml_uselda12)
+   WRITE(STD_OUT,'(3x,2a)') 'XML option : output of LDA-1/2 pot.    =',MERGE("YES"," NO",dataset%xml_uselda12)
    IF (dataset%xml_uselda12) THEN
-     WRITE(6,'(7x,a,i2)') '- LDA-1/2 ionized orbital n =',dataset%xml_lda12_orb_n
-     WRITE(6,'(7x,a,i2)') '- LDA-1/2 ionized orbital l =',dataset%xml_lda12_orb_l
-     WRITE(6,'(7x,a,f5.2)') '- LDA-1/2 ionization        =',dataset%xml_lda12_ion
-     WRITE(6,'(7x,a,f7.4)') '- LDA-1/2 cutoff radius (au)=',dataset%xml_lda12_rcut
+     WRITE(STD_OUT,'(7x,a,i2)') '- LDA-1/2 ionized orbital n =',dataset%xml_lda12_orb_n
+     WRITE(STD_OUT,'(7x,a,i2)') '- LDA-1/2 ionized orbital l =',dataset%xml_lda12_orb_l
+     WRITE(STD_OUT,'(7x,a,f5.2)') '- LDA-1/2 ionization        =',dataset%xml_lda12_ion
+     WRITE(STD_OUT,'(7x,a,f7.4)') '- LDA-1/2 cutoff radius (au)=',dataset%xml_lda12_rcut
    END IF
  END IF
 
@@ -1867,11 +1867,11 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(6,'(3x,a)')       'Options for UPF file:'
-   WRITE(6,'(3x,a,es9.3)') 'UPF grid option : logarithmic step (upfdx)      =',dataset%upf_grid_dx
-   WRITE(6,'(3x,a,es9.3)') 'UPF grid option : minimum radius (upfxmin)      =',dataset%upf_grid_xmin
-   WRITE(6,'(3x,a,es9.3)') 'UPF grid option : inv. of radial step (upfzmesh)=',dataset%upf_grid_zmesh
-   WRITE(6,'(3x,a,es9.3)') 'UPF grid option : grid range (upf_gridrange)    =',dataset%upf_grid_range
+   WRITE(STD_OUT,'(3x,a)')       'Options for UPF file:'
+   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : logarithmic step (upfdx)      =',dataset%upf_grid_dx
+   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : minimum radius (upfxmin)      =',dataset%upf_grid_xmin
+   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : inv. of radial step (upfzmesh)=',dataset%upf_grid_zmesh
+   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : grid range (upf_gridrange)    =',dataset%upf_grid_range
  END IF
 
  END SUBROUTINE input_dataset_read_upf

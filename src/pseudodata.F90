@@ -81,8 +81,8 @@ MODULE pseudodata
       ENDDO
       mxbase=nbase+5*max(1,PAW%lmax) !Estimate excess
       PAW%nbase=nbase
-      WRITE(6,*) 'Found ', nbase,' valence basis functions '
-      WRITE(6,*) 'Allocating for ', mxbase, ' total basis functions'
+      WRITE(STD_OUT,*) 'Found ', nbase,' valence basis functions '
+      WRITE(STD_OUT,*) 'Allocating for ', mxbase, ' total basis functions'
       ALLOCATE(PAW%projshape(n),PAW%hatden(n),PAW%hatpot(n),&
 &        PAW%hatshape(n),PAW%vloc(n),PAW%rveff(n),PAW%abinitvloc(n),&
 &        PAW%abinitnohat(n),PAW%AErefrv(n),PAW%rvx(n),PAW%trvx(n),&

@@ -168,7 +168,7 @@ CONTAINS
        REAL(8) :: x
 
        if (val<1.d-8) then
-          write(6,*) 'error in bessandneumfunc   -- argument should  be > 0',val
+          write(std_out,*) 'error in bessandneumfunc   -- argument should  be > 0',val
           stop
        endif
 
@@ -185,12 +185,12 @@ CONTAINS
           jlp=3*SIN(val)*(1-2.d0/val**2)/val-COS(val)*(1-6.d0/val**2)
           nlp=-3*COS(val)*(1-2.d0/val**2)/val-SIN(val)*(1-6.d0/val**2)
        else
-          write(6,*) 'Error in bessandneumfunc ;  '&
+          write(std_out,*) 'Error in bessandneumfunc ;  '&
 &             ,'Only l<=2 has been programmed so far '
           stop
        endif
 
-       write(6,*) 'Check Bessel Wronskian : ',l,jl*nlp-nl*jlp
+       write(std_out,*) 'Check Bessel Wronskian : ',l,jl*nlp-nl*jlp
 
     END SUBROUTINE bessandneumfunc
   !**********************************************************************
@@ -228,7 +228,7 @@ CONTAINS
 
     d = 1.d0
     if (kk>min(la,ra,lb)) then
-       write(6,*) 'Dimension error in linsol ', la,ra,lb,kk
+       write(std_out,*) 'Dimension error in linsol ', la,ra,lb,kk
        stop
     endif
     kkm=kk-1
@@ -283,8 +283,8 @@ CONTAINS
           b(n)=b(n)/a(n,n)
        ENDDO
     ENDIF
-    !write(6,*) 'determinant from linsol ' , d
-    IF(ABS(d).LT.1.d-10) WRITE(6,*) '**warning from linsol --',&
+    !write(std_out,*) 'determinant from linsol ' , d
+    IF(ABS(d).LT.1.d-10) WRITE(STD_OUT,*) '**warning from linsol --',&
 &        'determinant too small --',d
     If (present(det)) det=d
   END SUBROUTINE linsol
@@ -298,12 +298,12 @@ CONTAINS
     INTEGER :: kkm,i,j,k,l,ipo,n,kmo
 
     if (kk>min(la,ra)) then
-       write(6,*) 'Dimension error in minverse ', la,ra,kk
+       write(std_out,*) 'Dimension error in minverse ', la,ra,kk
        stop
     endif
     ALLOCATE(ai(kk,kk),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error in minverse',i,kk
+       WRITE(STD_OUT,*) 'Allocation error in minverse',i,kk
        STOP
     ENDIF
 
@@ -378,7 +378,7 @@ CONTAINS
     enddo
     DEALLOCATE(ai)
 
-    IF(ABS(d).LT.1.d-10) WRITE(6,*) '**warning from linsol --',&
+    IF(ABS(d).LT.1.d-10) WRITE(STD_OUT,*) '**warning from linsol --',&
 &        'determinant too small --',d
   END SUBROUTINE minverse
 
@@ -421,7 +421,7 @@ CONTAINS
        ENDDO
     ENDIF
     hwfn=r*pref*EXP(-0.5d0*rho)*sum
-    !     write(6,*) 'r,hwfn=',r,hwfn
+    !     write(std_out,*) 'r,hwfn=',r,hwfn
   END FUNCTION hwfn
 
   !*****************************************************************
@@ -473,7 +473,7 @@ end subroutine dirachwfn
     REAL(8) :: num,den,fac,bb
 
     if (n>0) then
-      write(6,*) 'Error in kummer function -- n>0',n
+      write(std_out,*) 'Error in kummer function -- n>0',n
       stop
     endif      
     kummer=1.d0
@@ -537,7 +537,7 @@ end subroutine dirachwfn
 
     ALLOCATE(a(n),b(n),stat=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'Thomas: allocation error ', i,n
+       WRITE(STD_OUT,*) 'Thomas: allocation error ', i,n
        STOP
     ENDIF
 
@@ -570,7 +570,7 @@ end subroutine dirachwfn
 
     INTEGER :: i
     IF (n.LT.1) THEN
-       WRITE(6,*) '***error in thomas -- n = ',n
+       WRITE(STD_OUT,*) '***error in thomas -- n = ',n
        STOP
     ELSE IF (n.EQ.1) THEN
        d(1)=d(1)/b(1)
@@ -1161,7 +1161,7 @@ end subroutine dirachwfn
 
     ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
+       WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
     ENDIF
 
@@ -1174,7 +1174,7 @@ end subroutine dirachwfn
     tol=tol*S(1)
     X=0
     DO i=1,n
-       write(6,*) 'Solver, tol ',i,S(i),tol
+       write(std_out,*) 'Solver, tol ',i,S(i),tol
        IF (S(i)>tol) THEN
           xx=DOT_PRODUCT(U(1:n,i),B(1:n))/S(i)
           X(1:n)=X(1:n)+xx*(VT(i,1:n))
@@ -1203,7 +1203,7 @@ end subroutine dirachwfn
     REAL(8), PARAMETER :: one=1,zero=0
 
     If (many<1.or.many>n) then
-       Write(6,*) 'Error in SOlveAXeqBM -- n, many ', n, many
+       Write(STD_OUT,*) 'Error in SOlveAXeqBM -- n, many ', n, many
        stop
     endif
     IF (n == 1) THEN
@@ -1214,7 +1214,7 @@ end subroutine dirachwfn
 
     ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
+       WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
     ENDIF
 
@@ -1226,11 +1226,11 @@ end subroutine dirachwfn
     X=0
     DO i=1,n
        if (i<=many) then
-         write(6,*) 'Used SV  ',i,S(i)
+         write(std_out,*) 'Used SV  ',i,S(i)
           xx=DOT_PRODUCT(U(1:n,i),B(1:n))/S(i)
           X(1:n)=X(1:n)+xx*(VT(i,1:n))
        else
-         write(6,*) 'UnUsed SV  ',i,S(i)
+         write(std_out,*) 'UnUsed SV  ',i,S(i)
        ENDIF
     ENDDO
 
@@ -1263,7 +1263,7 @@ end subroutine dirachwfn
 
     ALLOCATE(C(n,n),X(n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'SolveAXeqB: allocation ', n,Lwork,i
+       WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
        STOP
     ENDIF
 
@@ -1302,11 +1302,11 @@ end subroutine dirachwfn
 
     s=0.d0;  u=0.d0;  vt=0.d0
     call  dgesdd('A',m,n,MN,m,s,u,m,vt,n,work,LWORK,IWORK,ok)
-    write(6,*) 'dgesdd completed with info = ', ok
+    write(std_out,*) 'dgesdd completed with info = ', ok
     !CALL DGESVD('A','A',m,n,MN,m,S,U,m,VT,n,WORK,LWORK,i)
     RINVMN=0
     do i=1,kk
-       write(6,*) 'i s = ', i,s(i)
+       write(std_out,*) 'i s = ', i,s(i)
        if (s(i)>tol) then
        do j=1,n
           do k=1,m
@@ -1328,7 +1328,7 @@ end subroutine dirachwfn
      INTEGER :: i
 
      if (n<0.or.n>1000) then
-        write(6,*) 'ERROR in ASSOCIATEDLAGUERRE -- n = ', n,x
+        write(std_out,*) 'ERROR in ASSOCIATEDLAGUERRE -- n = ', n,x
         stop
      endif
      fac=sqrt(float((n+1)*(n+2)))/2; acc=1

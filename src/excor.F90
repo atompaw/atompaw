@@ -61,7 +61,7 @@ CONTAINS
     integer :: id(2)=(/0,0/)
     !  choose form of exchange-correlation potential
     CALL Uppercase(exctype)
-    WRITE(6,*) exctype; call flush_unit(6)
+    WRITE(STD_OUT,*) exctype; call flush_unit(std_out)
 
     SELECT CASE(TRIM(exctype))
     CASE default
@@ -69,32 +69,32 @@ CONTAINS
         call libxc_getid_fromInput(exctype,id)
         call libxc_init_func(id,1)
         itype = LIBXC
-        WRITE(6,*) 'Using Libxc -- ', TRIM(exctype) ; call flush_unit(6)
+        WRITE(STD_OUT,*) 'Using Libxc -- ', TRIM(exctype) ; call flush_unit(std_out)
       ELSE
-        WRITE(6,*) 'ERROR: cannot understand Exchange-Correlation functional from input file!'
-        WRITE(6,*) '       possible issue: atompaw not compiled with libXC.'
+        WRITE(STD_OUT,*) 'ERROR: cannot understand Exchange-Correlation functional from input file!'
+        WRITE(STD_OUT,*) '       possible issue: atompaw not compiled with libXC.'
         stop
         !itype = LDA_PW
         !exctype='LDA-PW'
-        !WRITE(6,*) 'Perdew-Wang correlation'
+        !WRITE(STD_OUT,*) 'Perdew-Wang correlation'
       END IF
     CASE('LDA-PW')
        itype = LDA_PW
-       WRITE(6,*) 'Perdew-Wang correlation'
+       WRITE(STD_OUT,*) 'Perdew-Wang correlation'
     CASE('GGA-PBE')
        itype = GGA_PBE
-       WRITE(6,*) 'Perdew-Burke-Ernzerhof GGA'
+       WRITE(STD_OUT,*) 'Perdew-Burke-Ernzerhof GGA'
        mu=muorig
        beta=betorig
        betabygamm=beta/gamm
     CASE('GGA-PBESOL')
        itype = GGA_PBESOL
-       WRITE(6,*) 'Perdew-Burke-Ernzerhof modified (PBEsol) GGA'
+       WRITE(STD_OUT,*) 'Perdew-Burke-Ernzerhof modified (PBEsol) GGA'
        mu=musol
        beta=betsol
        betabygamm=beta/gamm
     END SELECT
-    WRITE(6,*)
+    WRITE(STD_OUT,*)
 
   END SUBROUTINE initexch
 
@@ -159,7 +159,7 @@ CONTAINS
     vxc = (4.d0/3.d0)*ex+ec-(decdrs*rs)/3.d0
 
     IF ((ABS(exc).GT.1.d65).OR.(ABS(vxc).GT.1.d65)) THEN
-       WRITE(6,*) 'Problem in PW',n,rs,ec
+       WRITE(STD_OUT,*) 'Problem in PW',n,rs,ec
     ENDIF
 
     exc=2*exc; vxc=2*vxc      ! change to Rydberg units
@@ -236,7 +236,7 @@ CONTAINS
 
     IF ((ABS(fxc).GT.1.d65).OR.(ABS(dfxcdn).GT.1.d65).OR.&
 &             (ABS(dfxcdgbg).GT.1.d65)) THEN
-       WRITE(6,*) 'Problem in PBE',n,g,rs,s,t,ec,A,H
+       WRITE(STD_OUT,*) 'Problem in PBE',n,g,rs,s,t,ec,A,H
     ENDIF
 
 
@@ -310,7 +310,7 @@ CONTAINS
     ALLOCATE(gradient(Npts),gradmag(Npts),gxc(Npts),dgxcdr(Npts), &
 &        fxc(Npts),stat=i)
     IF (i /=0) THEN
-       WRITE(6,*) 'error in radialexcpbe allocation ', Npts,i
+       WRITE(STD_OUT,*) 'error in radialexcpbe allocation ', Npts,i
        STOP
     ENDIF
 
@@ -497,11 +497,11 @@ CONTAINS
     INTEGER :: i,n,i1,i2
     REAL(8) :: r,r2,rho,exc,vxc
 
-    !write(6,*) 'In exch ', itype   ; call flush_unit(6)
+    !write(std_out,*) 'In exch ', itype   ; call flush_unit(std_out)
     n=Grid%n
     IF (PRESENT(fin)) n=fin
     fpi=4*pi
-    !write(6,*) 'In exch ', n   ; call flush_unit(6)
+    !write(std_out,*) 'In exch ', n   ; call flush_unit(std_out)
     rvxc=0;etxc=0;eexc=0
     if (PRESENT(v0)) v0=0
     if (PRESENT(v0p)) v0p=0
@@ -522,7 +522,7 @@ CONTAINS
           CALL radialexcpbe(Grid,tmpd,eexc,tmpv)
        ENDIF
 
-       !WRITE(6,*) 'eexc',eexc
+       !WRITE(STD_OUT,*) 'eexc',eexc
 
        IF (PRESENT(v0).AND.PRESENT(v0p)) THEN
           CALL derivative(Grid,tmpv,tmpd,1,15)
@@ -540,7 +540,7 @@ CONTAINS
        DEALLOCATE(tmpd,tmpv)
 
     ELSE IF (itype==LDA_PW) then !!! ! Perdew-Wang LDA !!!!
-       !     write(6,*) 'LDA -- '; call flush_unit(6)
+       !     write(std_out,*) 'LDA -- '; call flush_unit(std_out)
        ALLOCATE(tmpd(n),tmpv(n),dum(n))
        tmpd=0;tmpv=0;rvxc=0;dum=0
        DO i=2,n
@@ -593,8 +593,8 @@ CONTAINS
            if (isnan(exci(i))) exci(i)=0.d0
         enddo   
        elseif (libxc_ismgga()) then
-        write(6,*) '  atompaw not yet available for mgga -- stop '
-        call flush_unit(6)
+        write(std_out,*) '  atompaw not yet available for mgga -- stop '
+        call flush_unit(std_out)
         stop       
         if(PRESENT(needvtau)) needvtau=.true.       
         allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
@@ -635,7 +635,7 @@ CONTAINS
           deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
         endif
        else
-           write(6,*) 'unknown libxc family -- need to work harder '
+           write(std_out,*) 'unknown libxc family -- need to work harder '
            stop        
        end if
        rvxc=0.d0
@@ -648,7 +648,7 @@ CONTAINS
        endif
        tmpv(1:n)=tmpv(1:n)*den(1:n)
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
-       WRITE(6,*) 'etxc,eexc = ',etxc,eexc;call flush_unit(6)
+       WRITE(STD_OUT,*) 'etxc,eexc = ',etxc,eexc;call flush_unit(std_out)
        open(1001,file='expot',form='formatted')
        do i=1,n
           write(1001,'(1p,20e15.7)')Grid%r(i),rvxc(i),den(i),exci(i)
@@ -656,11 +656,11 @@ CONTAINS
        deallocate(tmpd,tmpv,exci,tmpt)
     else
 
-       WRITE(6,*) 'Warning (EXCOR): ', itype,' no results returned !'
+       WRITE(STD_OUT,*) 'Warning (EXCOR): ', itype,' no results returned !'
        STOP
     END if
 
-    !write(6,*) 'Exiting exch '; call flush_unit(6)
+    !write(std_out,*) 'Exiting exch '; call flush_unit(std_out)
   END SUBROUTINE exch
 
 END MODULE excor

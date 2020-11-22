@@ -124,14 +124,14 @@ CONTAINS
 
     SELECT CASE(Grid%type)
     CASE default
-       WRITE(6,*) 'Error in integrator -- grid ', Grid%type
+       WRITE(STD_OUT,*) 'Error in integrator -- grid ', Grid%type
        STOP
     CASE(lineargrid)
        integrator=overint(n,Grid%h,arg(i1:i2))
     CASE(loggrid)
        ALLOCATE(dum(i1:i2),stat=i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Error in integrator -- allocation ', Grid%n,i
+          WRITE(STD_OUT,*) 'Error in integrator -- allocation ', Grid%n,i
           STOP
        ENDIF
        dum(i1:i2)=arg(i1:i2)*Grid%drdu(i1:i2)
@@ -213,7 +213,7 @@ CONTAINS
 
     ALLOCATE(dum(i1:i2),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in overlap allocation ', n,i
+       WRITE(STD_OUT,*) 'Error in overlap allocation ', n,i
        STOP
     ENDIF
     dum(1:n)=f1(i1:i2)*f2(i1:i2)
@@ -280,7 +280,7 @@ CONTAINS
        IF (begin>=1.AND.bend<= Grid%n) THEN
           i1=begin;i2=bend;n=i2-i1+1
        ELSE
-          WRITE(6,*) 'Error in derivative', begin,bend,Grid%n
+          WRITE(STD_OUT,*) 'Error in derivative', begin,bend,Grid%n
           STOP
        ENDIF
     ENDIF
@@ -288,18 +288,18 @@ CONTAINS
 
     SELECT CASE(Grid%type)
     CASE default
-       WRITE(6,*) 'Error in derivative -- grid ', Grid%type
+       WRITE(STD_OUT,*) 'Error in derivative -- grid ', Grid%type
        STOP
     CASE(lineargrid)
        CALL nderiv(Grid%h,f(i1:i2),dfdr(i1:i2),n,i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Error in derivative -nderiv problem', i
+          WRITE(STD_OUT,*) 'Error in derivative -nderiv problem', i
           STOP
        ENDIF
     CASE(loggrid)
        CALL nderiv(Grid%h,f(i1:i2),dfdr(i1:i2),n,i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Error in derivative -nderiv problem', i
+          WRITE(STD_OUT,*) 'Error in derivative -nderiv problem', i
           STOP
        ENDIF
        dfdr(i1:i2)=dfdr(i1:i2)/Grid%drdu(i1:i2)
@@ -325,11 +325,11 @@ CONTAINS
        IF (begin>=1.AND.bend<= Grid%n) THEN
           i1=begin;i2=bend;n=i2-i1+1
           IF (n<3) THEN
-             WRITE(6,*) 'Error in simplederiv -- n too small',n,i1,i2
+             WRITE(STD_OUT,*) 'Error in simplederiv -- n too small',n,i1,i2
              STOP
           ENDIF
        ELSE
-          WRITE(6,*) 'Error in simplederive', begin,bend,Grid%n
+          WRITE(STD_OUT,*) 'Error in simplederive', begin,bend,Grid%n
           STOP
        ENDIF
     ENDIF
@@ -361,7 +361,7 @@ CONTAINS
     IF (PRESENT(fin)) n=fin
     ALLOCATE(dum1(n),dum2(n),stat=ok)
     IF (ok /= 0) THEN
-       WRITE(6,*) 'Error in laplace allocation',n
+       WRITE(STD_OUT,*) 'Error in laplace allocation',n
        STOP
     ENDIF
     lfac=l*(l+1)
@@ -402,11 +402,11 @@ CONTAINS
 
     rv=0.d0
     q=integrator(Grid,den)
-    write(6,*) 'In poisson q = ', q; call flush_unit(6)
+    write(std_out,*) 'In poisson q = ', q; call flush_unit(std_out)
 
     ALLOCATE(a(n),b(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in allocating arrays in poisson',i,n
+       WRITE(STD_OUT,*) 'Error in allocating arrays in poisson',i,n
        STOP
     ENDIF
 
@@ -455,7 +455,7 @@ CONTAINS
     ENDDO
     a(1)=0
     ecoul=0.5d0*integrator(Grid,a)
-    !WRITE(6,*) ' from poisson: ecoul = ',ecoul
+    !WRITE(STD_OUT,*) ' from poisson: ecoul = ',ecoul
 
     IF (PRESENT(v00)) THEN
        a=0
@@ -494,7 +494,7 @@ CONTAINS
 
     ALLOCATE(aa(n),bb(n),cc(n),dd(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in allocating arrays in poisson',i,n
+       WRITE(STD_OUT,*) 'Error in allocating arrays in poisson',i,n
        STOP
     ENDIF
 
@@ -566,14 +566,14 @@ CONTAINS
 
     ALLOCATE(a(irc),b(irc),c(irc),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in allocating arrays in apoisson ',i,irc
+       WRITE(STD_OUT,*) 'Error in allocating arrays in apoisson ',i,irc
        STOP
     ENDIF
 
     b=den(1:irc)*(Grid%r(1:irc))**L
     q=integrator(Grid,b,1,irc)/(2*l+1)
     h=Grid%h
-!    WRITE(6,*) 'check l multipole',l,q
+!    WRITE(STD_OUT,*) 'check l multipole',l,q
     IF (Grid%type==lineargrid) THEN
        a=0;b=0; c=0; rv=0
        DO i=2,irc
@@ -679,7 +679,7 @@ CONTAINS
 
     ALLOCATE(a(many),b(many),p(many),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error forward_numerov ', many,i
+       WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
        STOP
     ENDIF
 
@@ -744,12 +744,12 @@ CONTAINS
     INTEGER :: i,j,k,n
 
     IF (istart>many) THEN
-       WRITE(6,*) 'shifted_forward_numerov:  error istart many',istart,many
+       WRITE(STD_OUT,*) 'shifted_forward_numerov:  error istart many',istart,many
        STOP
     ENDIF
     ALLOCATE(a(many),b(many),p(many),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error forward_numerov ', many,i
+       WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
        STOP
     ENDIF
 
@@ -814,7 +814,7 @@ CONTAINS
 
     ALLOCATE(a(many),b(many),c(many),p(many),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error forward_numerov ', many,i
+       WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
        STOP
     ENDIF
 
@@ -823,7 +823,7 @@ CONTAINS
     a=0
     a(2:8)=proj(2:8)/(Grid%r(2:8)**(l+1))
     CALL extrapolate(Grid,a)
-    !write(6,'("extrapolate ",1p,9e15.7)') a(1:8)
+    !write(std_out,'("extrapolate ",1p,9e15.7)') a(1:8)
     wfn=0
     wfn(2)=-a(1)*(Grid%r(2)**(l+3))/(4*l+6.d0)
 
@@ -884,7 +884,7 @@ CONTAINS
 
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error inhomo_bound_numerov ', mn,i
+       WRITE(STD_OUT,*) 'Allocation error inhomo_bound_numerov ', mn,i
        STOP
     ENDIF
 
@@ -1064,16 +1064,16 @@ CONTAINS
     ENDDO
 
     CALL  dgesdd('A',nn,nn,MN,nn,s,u,nn,vt,nn,work,LWORK,IWORK,ok)
-    !WRITE(6,*) 'dgesdd completed for MN with info = ', ok
+    !WRITE(STD_OUT,*) 'dgesdd completed for MN with info = ', ok
 
     sol=0; scale=tol
     DO i=1,nn
-          !WRITE(6,*) 'i s = ', i,s(i)
+          !WRITE(STD_OUT,*) 'i s = ', i,s(i)
        IF (s(i)>scale) THEN
           xx=Dot_Product(c(2:nr),u(:,i))/s(i)
           sol(2:nr)=sol(2:nr)+xx*vt(i,:)
        ELSE
-          WRITE(6,*) 'i s = ', i,s(i)
+          WRITE(STD_OUT,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
 
@@ -1113,7 +1113,7 @@ CONTAINS
 &        MN(nn,nn),work(LWORK),IWORK(8*nn) )
 
     If (nr>n-1) then
-       write(6,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
+       write(std_out,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
        stop
     endif
 
@@ -1161,16 +1161,16 @@ CONTAINS
     ENDDO
 
     CALL  dgesdd('A',nn,nn,MN,nn,s,u,nn,vt,nn,work,LWORK,IWORK,ok)
-    !WRITE(6,*) 'dgesdd completed for MN with info = ', ok
+    !WRITE(STD_OUT,*) 'dgesdd completed for MN with info = ', ok
 
     sol(1:nr)=0; scale=tol
     DO i=1,nn
        IF (s(i)>scale) THEN
           xx=Dot_Product(c(2:nr),u(:,i))/s(i)
           sol(2:nr)=sol(2:nr)+xx*vt(i,:)
-          !WRITE(6,*) 'i s = ', i,s(i)
+          !WRITE(STD_OUT,*) 'i s = ', i,s(i)
        ELSE
-          WRITE(6,*) 'i s = ', i,s(i)
+          WRITE(STD_OUT,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
 
@@ -1211,7 +1211,7 @@ CONTAINS
 &        MN(nn,nn),work(LWORK),IWORK(8*nn) )
 
     If (nr>n-1) then
-       write(6,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
+       write(std_out,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
        stop
     endif
 
@@ -1261,7 +1261,7 @@ CONTAINS
     ENDDO
 
     CALL  dgesdd('A',nn,nn,MN,nn,s,u,nn,vt,nn,work,LWORK,IWORK,ok)
-    !WRITE(6,*) 'dgesdd completed for MN with info = ', ok
+    !WRITE(STD_OUT,*) 'dgesdd completed for MN with info = ', ok
 
     sol(1:nr,:)=0; scale=tol
     DO i=1,nn
@@ -1269,10 +1269,10 @@ CONTAINS
          do j=1,mult
           xx=Dot_Product(c(2:nr,j),u(:,i))/s(i)
           sol(2:nr,j)=sol(2:nr,j)+xx*vt(i,:)
-          !WRITE(6,*) 'i s = ', i,s(i)
+          !WRITE(STD_OUT,*) 'i s = ', i,s(i)
          enddo
        ELSE
-          WRITE(6,*) 'i s = ', i,s(i)
+          WRITE(STD_OUT,*) 'i s = ', i,s(i)
        ENDIF
     ENDDO
 
@@ -1296,7 +1296,7 @@ CONTAINS
 
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error inhomo_bound_numerov ', mn,i
+       WRITE(STD_OUT,*) 'Allocation error inhomo_bound_numerov ', mn,i
        STOP
     ENDIF
 
@@ -1370,7 +1370,7 @@ CONTAINS
     n=Grid%n
     ALLOCATE(a(n),b(n),p(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error backward_numerov ', n,i
+       WRITE(STD_OUT,*) 'Allocation error backward_numerov ', n,i
        STOP
     ENDIF
 
@@ -1448,24 +1448,24 @@ CONTAINS
     REAL(8) :: scale
 
     mesh=SIZE(yy(2,:))
-    !write (6,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
+    !write(std_out,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
     IF (SIZE(zz(2,2,:))/=mesh) THEN
-       WRITE(6,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
+       WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
        STOP
     ENDIF
     isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
     IF ( isgn .EQ. + 1 ) THEN
        IF ( jj1 .LE. 5 .OR. jj2 .GT. mesh ) THEN
-          WRITE(6,10) isgn,jj1,jj2,mesh
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
           CALL EXIT(1)
        ENDIF
     ELSEIF ( isgn .EQ. - 1 ) THEN
        IF ( jj1 .GE. ( mesh - 4 ) .OR. jj2 .LT. 1 ) THEN
-          WRITE(6,10) isgn,jj1,jj2,mesh
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
           CALL EXIT(1)
        ENDIF
     ELSE
-       WRITE(6,10) isgn,jj1,jj2,mesh
+       WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
     ENDIF
 
 10  FORMAT(' ***error in subroutine difsol',/,&
@@ -1556,7 +1556,7 @@ CONTAINS
     n=Grid%n
     ALLOCATE(a(n),b(n),p(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error backward_numerov ', n,i
+       WRITE(STD_OUT,*) 'Allocation error backward_numerov ', n,i
        STOP
     ENDIF
 
@@ -1650,7 +1650,7 @@ CONTAINS
     n=Grid%n
     if (present(last)) n=last
     if (ABS(wfn1(n)*wfn2(n))> 1.d-8) then
-       write(6,*) 'WARNING in kinetic_ij ',ABS(wfn1(n)*wfn2(n))
+       write(std_out,*) 'WARNING in kinetic_ij ',ABS(wfn1(n)*wfn2(n))
     endif
     ALLOCATE(dfdr1(n),arg1(n),dfdr2(n),arg2(n),stat=i)
 
@@ -1798,7 +1798,7 @@ CONTAINS
     else if (index>=5.and.index==n)   THEN
        secondderiv=(22*f(n-4)-112*f(n-3)+228*f(n-2)-208*f(n-1)+70*f(n))/(24*h*h)
     else
-       WRITE(6,*) 'Error in secondderiv', index, SIZE(f)
+       WRITE(STD_OUT,*) 'Error in secondderiv', index, SIZE(f)
        STOP
     ENDIF
 
@@ -1829,7 +1829,7 @@ CONTAINS
     else if (index>=5.and.index==n)   THEN
        firstderiv=(3*f(n-4)-16*f(n-3)+36*f(n-2)-48*f(n-1)+25*f(n))/(12*h)
     else
-       WRITE(6,*) 'Error in firstderiv', index, SIZE(f)
+       WRITE(STD_OUT,*) 'Error in firstderiv', index, SIZE(f)
        STOP
     ENDIF
   END FUNCTION firstderiv
@@ -1955,7 +1955,7 @@ CONTAINS
        endif
      enddo
      if (.not.success) then
-       write(6,*) 'Warning in findh -- dh > eps ', dh,h0
+       write(std_out,*) 'Warning in findh -- dh > eps ', dh,h0
      endif
      hval=h0
      r0=hval/Z
@@ -2016,7 +2016,7 @@ CONTAINS
     ENDDO
 
     IF (.NOT.success) THEN
-       WRITE(6,*) 'Warning in findh -- dh > eps ', dh,h0
+       WRITE(STD_OUT,*) 'Warning in findh -- dh > eps ', dh,h0
     ENDIF
     hval=h0; r0=h0/zz
 
@@ -2048,10 +2048,10 @@ CONTAINS
        Grid%ishift=5
        IF (r0*(EXP(h*(n-1))-1)<range-1.d-5) n=n+1
        Grid%n=n
-       if (do_print) WRITE(6,*) 'InitGrid: -- logarithmic ',n, h,range,r0
+       if (do_print) WRITE(STD_OUT,*) 'InitGrid: -- logarithmic ',n, h,range,r0
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Allocation error in initgrid ', n,i
+          WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
           STOP
        ENDIF
        DO i=1,n
@@ -2070,10 +2070,10 @@ CONTAINS
        Grid%ishift=25
        IF (h*(n-1)<range-1.d-5) n=n+1
        Grid%n=n
-       if (do_print) WRITE(6,*) 'InitGrid: -- linear  ', n,h,range
+       if (do_print) WRITE(STD_OUT,*) 'InitGrid: -- linear  ', n,h,range
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Allocation error in initgrid ', n,i
+          WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
           STOP
        ENDIF
        DO i=1,n
@@ -2121,7 +2121,7 @@ CONTAINS
     n=Grid%n
     ALLOCATE(v(n), stat=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'Allocation error in ClassicalTurningPoint ', i,n
+       WRITE(STD_OUT,*) 'Allocation error in ClassicalTurningPoint ', i,n
        STOP
     ENDIF
 
@@ -2135,7 +2135,7 @@ CONTAINS
     turningpoint=i
     turningpoint=MIN(turningpoint,FindGridIndex(Grid,10.0d0))
 
-    !write(6,*) 'Found turning point at ', turningpoint, Grid%r(turningpoint)
+    !write(std_out,*) 'Found turning point at ', turningpoint, Grid%r(turningpoint)
 
     DEALLOCATE(v)
 
@@ -2185,7 +2185,7 @@ CONTAINS
        f=f/SQRT(norm)
        wfn(:,many+1)=f
     ELSE
-       write(6,*) '!!!! warning in Gram Schmidt !!!!!!', norm,many
+       write(std_out,*) '!!!! warning in Gram Schmidt !!!!!!', norm,many
        stop
     ENDIF
 
@@ -2206,7 +2206,7 @@ CONTAINS
       diff=machine_precision*1000
       n=Grid%n
       if (many.gt.n.or.many.lt.6) then
-            write(6,*) 'Error in Milne == n>many',n,many
+            write(std_out,*) 'Error in Milne == n>many',n,many
             stop
       endif
 
@@ -2220,16 +2220,16 @@ CONTAINS
       C(2:many)=-x(2:many)/(Grid%r(2:many)**(l+1))
       CALL extrapolate(Grid,C)
       c2=(C(1)+ve(1)-energy + 2*float(ZZ**2)/(l+1))/(4*l+6)
-      write(6,*) 'coeff', c0,c1,c2
+      write(std_out,*) 'coeff', c0,c1,c2
       do i=1,6
         y(i)=c0+Grid%r(i)*(c1+Grid%r(i)*c2)
         yp(i)=c1+2*c2*Grid%r(i)
         z(i)=yp(i)
         zp(i)=2*c2
-        write(6,'("init",1p,5e16.7)') Grid%r(i),y(i),yp(i),z(i),zp(i)
+        write(std_out,'("init",1p,5e16.7)') Grid%r(i),y(i),yp(i),z(i),zp(i)
       enddo
 
-      write(6,*) 'Starting iterations with h = ', Grid%h
+      write(std_out,*) 'Starting iterations with h = ', Grid%h
       If(Grid%type==loggrid) then
         zp(1:6)= Grid%drdu(1:6)*(yp(1:6)+Grid%drdu(1:6)*2*c2)
         yp(1:6)= Grid%drdu(1:6)*yp(1:6)
@@ -2265,8 +2265,8 @@ CONTAINS
             yp(i+1)=z(i+1)
             zp(i+1)=C(i+1)-A(i+1)*z(i+1)-B(i+1)*y(i+1)
         Enddo
-        !Write(6,*) 'Completed PC ', i,last
-        If (last==maxit) write(6,*) 'Warning from Pred-Corr',i,err
+        !Write(STD_OUT,*) 'Completed PC ', i,last
+        If (last==maxit) write(std_out,*) 'Warning from Pred-Corr',i,err
     Enddo
     Do i=1,many
        wfn(i)=(Grid%r(i)**(l+1))*y(i)
@@ -2299,17 +2299,17 @@ CONTAINS
 
     ALLOCATE(a(many),b(many),c(many),p(many),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error midrange_numerov ', many,i
+       WRITE(STD_OUT,*) 'Allocation error midrange_numerov ', many,i
        STOP
     ENDIF
 
      !Note   values of a,b,c for i<istart are not used
 
      if (istart<3) then
-         write(6,*) 'Error in midrange_numerov -- istart < 3 ', istart
+         write(std_out,*) 'Error in midrange_numerov -- istart < 3 ', istart
          stop
      elseif (istart>many-1) then
-         write(6,*) 'Error in midrange_numerov -- istart > many ', istart
+         write(std_out,*) 'Error in midrange_numerov -- istart > many ', istart
          stop
      endif
 

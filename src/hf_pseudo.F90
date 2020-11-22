@@ -50,7 +50,7 @@ CONTAINS
     REAL(8), PARAMETER :: threshold=1.d-8
     LOGICAL :: last
 
-    write(6,*) 'Entering make_hf_basis '; call flush_unit(6)
+    write(std_out,*) 'Entering make_hf_basis '; call flush_unit(std_out)
     n=Grid%n
     r=>Grid%r
     irc=PAW%irc
@@ -68,10 +68,10 @@ CONTAINS
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc)
-       WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
-       WRITE(6,'(a,f10.7)') '  >>> rc =', rc
+       WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
+       WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
        IF (thisrc<3.OR.thisrc>irc.OR.thisrc>lng-3) THEN
-          WRITE(6,*) 'rc out of range', thisrc,lng,irc
+          WRITE(STD_OUT,*) 'rc out of range', thisrc,lng,irc
           STOP
        ENDIF
        CALL pspolyn(PAW%phi(:,ib),Ci,r,l,np,thisrc,lng)
@@ -113,10 +113,10 @@ CONTAINS
           ib=PAW%valencemap(io)
           PAW%TOCCWFN%wfn(:,io)=PAW%tphi(:,ib)
           !PAW%OCCWFN%wfn(:,io)=PAW%phi(:,ib)    !already set in setbasis
-          write(6,*) 'io = ', io,ib
+          write(std_out,*) 'io = ', io,ib
        ELSE    ! presumably a core state
           PAW%TOCCWFN%wfn(:,io)=0
-          write(6,*) 'io =  core ', io
+          write(std_out,*) 'io =  core ', io
           !!! comment out code for extended core states
           !If (PAW%TOCCWFN%iscore(io)) then
           !   last=.true. ; l=PAW%TOCCWFN%l(io)
@@ -135,7 +135,7 @@ CONTAINS
           !      ENDIF
           !   endif
           !else
-          !    write(6,*) 'Something wrong -- should be core state ',&
+          !    write(std_out,*) 'Something wrong -- should be core state ',&
           !&      io,PAW%TOCCWFN%l(io),PAW%TOCCWFN%eig(io),PAW%TOCCWFN%occ(io)
           !    stop
           !endif
@@ -160,7 +160,7 @@ CONTAINS
     REAL(8), PARAMETER :: threshold=1.d-8
     LOGICAL :: last
 
-    write(6,*) 'Entering make_hf_tp '; call flush_unit(6)
+    write(std_out,*) 'Entering make_hf_tp '; call flush_unit(std_out)
     n=Grid%n
     r=>Grid%r
     irc=PAW%irc
@@ -221,7 +221,7 @@ CONTAINS
        arg(2:n)=arg(2:n)+Pot%rv(2:n)*PAW%phi(2:n,ib)/r(2:n)+hat(2:n)/r(2:n)
        if (PAW%eig(ib)>0.d0) then
           if (PAW%occ(ib)> 0.001d0) then
-            write(6,*) 'Problem with basis ib', &
+            write(std_out,*) 'Problem with basis ib', &
 &           ib,PAW%l(ib),PAW%eig(ib),PAW%occ(ib)
             stop
           endif
@@ -239,7 +239,7 @@ CONTAINS
 &                    PAW%OCCWFN%lqp(joo,ioo)*PAW%TOCCWFN%wfn(1:lng,joo)
               arg(:)=arg(:)-&
 &                    PAW%OCCWFN%lqp(joo,ioo)*PAW%OCCWFN%wfn(:,joo)
-              write(6,*) 'ioo,joo,lam', ioo,joo,PAW%OCCWFN%lqp(joo,ioo)
+              write(std_out,*) 'ioo,joo,lam', ioo,joo,PAW%OCCWFN%lqp(joo,ioo)
              ENDIF
           Enddo
        endif
@@ -264,7 +264,7 @@ CONTAINS
        DO ib=1,nbase
           IF (PAW%l(ib)==l) icount=icount+1
        ENDDO
-       WRITE(6,*) 'For l = ', l,icount,' basis functions'
+       WRITE(STD_OUT,*) 'For l = ', l,icount,' basis functions'
        ALLOCATE(aa(icount,icount),ai(icount,icount),omap(icount))
        aa=0;icount=0;lng=n
        DO ib=1,nbase
@@ -279,7 +279,7 @@ CONTAINS
           DO j=1,icount
              jb=omap(j)
              aa(i,j)=overlap(Grid,PAW%otphi(:,ib),PAW%tp(:,jb),1,lng)
-             write(6,*) 'Overlap', ib,jb,aa(i,j)
+             write(std_out,*) 'Overlap', ib,jb,aa(i,j)
           ENDDO
        ENDDO
        ai=aa;CALL minverse(ai,icount,icount,icount)
@@ -413,17 +413,17 @@ END SUBROUTINE Smoothfunc
     REAL(8) :: small=1.d-9
 
     CoreOverlap=0.d0 ; x=0.d0
-    write(6,*) 'In CoreOverlap ',l,ic
+    write(std_out,*) 'In CoreOverlap ',l,ic
     if(PAW%TOCCWFN%iscore(ic).and.PAW%TOCCWFN%l(ic)==l) then
           x=overlap(Grid,wfn,PAW%TOCCWFN%wfn(:,ic))
-          write(6,*) 'In CoreOverlap ', x
+          write(std_out,*) 'In CoreOverlap ', x
           DO ib=1,PAW%nbase
              IF (PAW%l(ib)==l.AND.ABS(PAW%mLic(ib,ic,1))>small) THEN
                 x=x+overlap(Grid,wfn,PAW%otp(:,ib))*PAW%mLic(ib,ic,1)
-                write(6,*) 'In CoreOverlap ', ib,x
+                write(std_out,*) 'In CoreOverlap ', ib,x
              ENDIF
           ENDDO
-          WRITE(6,*) 'overlap with core ', l,ic,x
+          WRITE(STD_OUT,*) 'overlap with core ', l,ic,x
      ENDIF
      CoreOverlap=x
 
@@ -445,7 +445,7 @@ END SUBROUTINE Smoothfunc
     x=HFgenoverlap(Grid,PAW,l,wfn1,wfn2)
     y=HFgenoverlap(Grid,PAW,l,wfn2,wfn2)
 
-    WRITE(6,*) 'overlap ', x,y
+    WRITE(STD_OUT,*) 'overlap ', x,y
     wfn1(:)=wfn1(:)-(x/y)*wfn2(:)
 
   END SUBROUTINE HFgenOrthog
@@ -467,7 +467,7 @@ END SUBROUTINE Smoothfunc
     n=Grid%n; h=Grid%h; nbase=PAW%nbase;
     ALLOCATE(a(nbase),b(nbase),stat=ib)
     IF (ib/=0) THEN
-       WRITE(6,*) 'Error in HFgenoverlap allocation', nbase,ib
+       WRITE(STD_OUT,*) 'Error in HFgenoverlap allocation', nbase,ib
        STOP
     ENDIF
 
@@ -504,13 +504,13 @@ END SUBROUTINE Smoothfunc
     ml=0; zero=.TRUE.
 
     IF (PAW%OCCWFN%iscore(io)) THEN
-       WRITE(6,*) 'In GetMoment -- io must not be core state !'
+       WRITE(STD_OUT,*) 'In GetMoment -- io must not be core state !'
        STOP
     ENDIF
 
     li=PAW%OCCWFN%l(io)
     lj=PAW%OCCWFN%l(jo)
-    !write(6,*) 'In GetMoment ', li,lj,ll
+    !write(std_out,*) 'In GetMoment ', li,lj,ll
     IF (ll<ABS(li-lj).OR.ll>(li+lj)) THEN
        RETURN
     ENDIF
@@ -537,7 +537,7 @@ END SUBROUTINE Smoothfunc
 
     !allocate(arg(Grid%n))
     !arg=ml*(Grid%r**ll)
-    !write(6,*) 'GetMoment',io,jo,ll,integrator(Grid,arg)
+    !write(std_out,*) 'GetMoment',io,jo,ll,integrator(Grid,arg)
     !deallocate(arg)
   END SUBROUTINE GetMoment
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -591,7 +591,7 @@ END SUBROUTINE Smoothfunc
                 wgt=wgt*(2*ll+1)   ! because of apoisson convention
                 CALL GetMoment(Grid,PAW,io,jo,ll,o,arg,iszero)
                 IF (iszero) THEN
-                   WRITE(6,*) 'Zero moment ', io,jo,li,lj,ll
+                   WRITE(STD_OUT,*) 'Zero moment ', io,jo,li,lj,ll
                    STOP
                 ENDIF
                 arg=arg+wfp
@@ -699,7 +699,7 @@ END SUBROUTINE Smoothfunc
 
     Xcv=0.d0
     IF (PAW%OCCWFN%iscore(io).OR..NOT.PAW%OCCWFN%iscore(ic)) THEN
-       WRITE(6,*) 'Calc_Xc assumes io is valence and ic core ', ic
+       WRITE(STD_OUT,*) 'Calc_Xc assumes io is valence and ic core ', ic
        STOP
     ENDIF
 
@@ -725,7 +725,7 @@ END SUBROUTINE Smoothfunc
                 wgt=wgt*(2*ll+1)   ! because of apoisson convention
                 CALL GetMoment(Grid,PAW,io,jo,ll,o,arg,iszero)
                 IF (iszero) THEN
-                   WRITE(6,*) 'zero moment', io,jo,li,lj,ll
+                   WRITE(STD_OUT,*) 'zero moment', io,jo,li,lj,ll
                    STOP
                 ENDIF
                 arg=arg+wfp
@@ -843,13 +843,13 @@ END SUBROUTINE Smoothfunc
                 IF (PSO%l(jo)==PSO%l(io).AND..NOT.PSO%iscore(jo)) THEN
                    CALL HFgenOrthog(Grid,PAW,PSO%l(io),&
 &                       PSO%wfn(:,io),PSO%wfn(:,jo))
-                   WRITE(6,*) 'orthog', io,jo
+                   WRITE(STD_OUT,*) 'orthog', io,jo
                 ENDIF
              ENDDO
           ENDIF
           x=HFgenoverlap(Grid,PAW,PSO%l(io),PSO%wfn(:,io),PSO%wfn(:,io))
           PSO%wfn(:,io)=PSO%wfn(:,io)/SQRT(x)
-          WRITE(6,*) 'normalize ', io, x
+          WRITE(STD_OUT,*) 'normalize ', io, x
           nocc=nocc+1
           tmap(nocc)=io
        ENDIF
@@ -865,7 +865,7 @@ END SUBROUTINE Smoothfunc
              else
                 x=HFgenoverlap(Grid,PAW,PSO%l(io),PSO%wfn(:,jo),PSO%wfn(:,io))
              endif
-            write(6,*) 'overlap ',io,jo,x
+            write(std_out,*) 'overlap ',io,jo,x
          endif
        enddo
     enddo
@@ -877,7 +877,7 @@ END SUBROUTINE Smoothfunc
        DO ib=1,PAW%nbase
           IF (l==PAW%l(ib)) THEN
              o(io,ib)=overlap(Grid,PSO%wfn(:,io),PAW%otp(:,ib))
-             WRITE(6,'("<p|psi> ", 2i5,1p,1e15.7)') io,ib,o(io,ib)
+             WRITE(STD_OUT,'("<p|psi> ", 2i5,1p,1e15.7)') io,ib,o(io,ib)
           ENDIF
        ENDDO
     ENDDO
@@ -894,7 +894,7 @@ END SUBROUTINE Smoothfunc
           IF(PSO%l(jo)==l) THEN
              CALL kinetic_ij(Grid,PSO%wfn(:,io),PSO%wfn(:,jo),l,y)
              PSO%lqp(jo,io)=y
-             !WRITE(6,*) 'Kinetic ',jo,io,y
+             !WRITE(STD_OUT,*) 'Kinetic ',jo,io,y
              IF (io==jo) THEN
                 PAW%tkin= PAW%tkin + occ*y
                 !PSO%eig(io)=y
@@ -916,10 +916,10 @@ END SUBROUTINE Smoothfunc
     ! now have kinetic part of lqv and valence pseudodensity
     arg=0; arg(2:n)=(aden(2:n)*PAW%hatpot(2:n))/Grid%r(2:n)
     v0term=integrator(Grid,arg)
-    WRITE(6,*) 'v0term, aden', v0term,integrator(Grid,aden)
+    WRITE(STD_OUT,*) 'v0term, aden', v0term,integrator(Grid,aden)
 
     CALL poisson(Grid,q,aden,rhs,x)
-    WRITE(6,*) 'PAW poisson ', q,x
+    WRITE(STD_OUT,*) 'PAW poisson ', q,x
     PAW%tvale=x
     arg=0; arg(2:n)=PAW%rtVf(2:n)/Grid%r(2:n)
     PAW%tion=overlap(Grid,arg,PAW%tden)
@@ -932,7 +932,7 @@ END SUBROUTINE Smoothfunc
        DO jo=1,PSO%norbit
           IF (PSO%l(jo)==l) THEN
              x=overlap(Grid,PSO%wfn(:,jo),arg)
-             !WRITE(6,*) ' potential term ',jo,io, x
+             !WRITE(STD_OUT,*) ' potential term ',jo,io, x
              PSO%lqp(jo,io)= PSO%lqp(jo,io)+x
           ENDIF
        ENDDO
@@ -956,7 +956,7 @@ END SUBROUTINE Smoothfunc
              ENDDO
              PAW%dij(ib,jb)=PAW%dij(ib,jb)+x
              PAW%Ea=PAW%Ea + 0.5d0*PAW%wij(ib,jb)*x
-             write(6,'(" Dij chk again ", 3I5,1p,1e20.13)')ib,jb,PAW%l(ib),&
+             write(std_out,'(" Dij chk again ", 3I5,1p,1e20.13)')ib,jb,PAW%l(ib),&
 &               PAW%dij(ib,jb)
           ENDIF
        ENDDO
@@ -967,7 +967,7 @@ END SUBROUTINE Smoothfunc
        io=tmap(i); li=PSO%l(io)
        DO j=1,nocc
           jo=tmap(j); lj=PSO%l(jo)
-          !WRITE(6,*) 'lqv before dij ', jo,io,PSO%lqp(jo,io)
+          !WRITE(STD_OUT,*) 'lqv before dij ', jo,io,PSO%lqp(jo,io)
           DO ib=1,PAW%nbase
              IF (PAW%l(ib)==li) THEN
                 DO jb=1,PAW%nbase
@@ -978,7 +978,7 @@ END SUBROUTINE Smoothfunc
                 ENDDO
              ENDIF
           ENDDO
-          !WRITE(6,*) 'lqv after dij ', jo,io,PSO%lqp(jo,io)
+          !WRITE(STD_OUT,*) 'lqv after dij ', jo,io,PSO%lqp(jo,io)
        ENDDO
     ENDDO
 
@@ -998,7 +998,7 @@ END SUBROUTINE Smoothfunc
                    jo=tmap(j); lj=PSO%l(jo)
                    IF (lj==PAW%l(jb)) THEN
                       PSO%lqp(io,jo)=PSO%lqp(io,jo)+x*o(jo,jb)
-                      !WRITE(6,*) 'Update lqv ', io,jo,jb,PSO%lqp(io,jo)
+                      !WRITE(STD_OUT,*) 'Update lqv ', io,jo,jb,PSO%lqp(io,jo)
                    ENDIF
                 ENDDO
              ENDIF
@@ -1011,8 +1011,8 @@ END SUBROUTINE Smoothfunc
     DO i=1,nocc
        io=tmap(i);l=PSO%l(io)
        CALL Calc_tXv(Grid,PAW,io,o,Xv(:,io),Xiv(:,io),x,y)
-       WRITE(6,*) 'Xiv ',io, (Xiv(ib,io),ib=1,PAW%nbase)
-       !WRITE(6,*) 'x y', x,y
+       WRITE(STD_OUT,*) 'Xiv ',io, (Xiv(ib,io),ib=1,PAW%nbase)
+       !WRITE(STD_OUT,*) 'x y', x,y
        PAW%txc=PAW%txc+PSO%occ(io)*x
        PAW%Ea=PAW%Ea+PSO%occ(io)*y
        arg=0;   arg(2:n)=Xv(2:n,io)/Grid%r(2:n)
@@ -1020,35 +1020,35 @@ END SUBROUTINE Smoothfunc
           IF (PSO%l(jo)==l) THEN
              x=overlap(Grid,PSO%wfn(:,jo),arg)
              PSO%lqp(jo,io)=PSO%lqp(jo,io)+x
-             !WRITE(6,*) 'Smooth exchange ' , jo,io,x
+             !WRITE(STD_OUT,*) 'Smooth exchange ' , jo,io,x
              IF (PSO%iscore(jo)) THEN
                 CALL Calc_Xc(Grid,PAW,io,jo,o,x)
                 PSO%lqp(jo,io)=PSO%lqp(jo,io)+x
-                !WRITE(6,*) 'One center exchange',x
+                !WRITE(STD_OUT,*) 'One center exchange',x
              ELSE
                 x=0
                 DO ib=1,PAW%nbase
                    IF(PAW%l(ib)==l) x=x+o(jo,ib)*Xiv(ib,io)
                 ENDDO
-                !WRITE(6,*) 'One center exchange',x
+                !WRITE(STD_OUT,*) 'One center exchange',x
                 PSO%lqp(jo,io)=PSO%lqp(jo,io)+x
              ENDIF
-             WRITE(6,'("lqp jo,io ", 2i5,1p,1e15.7)') jo,io, PSO%lqp(jo,io)
+             WRITE(STD_OUT,'("lqp jo,io ", 2i5,1p,1e15.7)') jo,io, PSO%lqp(jo,io)
           ENDIF
        ENDDO
        PSO%eig(io)=PSO%lqp(io,io)
     ENDDO
      !do i=1,Grid%n
-     !    write(601,'(1P15e15.7)') Grid%r(i),(Xv(i,tmap(k)),k=1,nocc)
+     !    write(std_out01,'(1P15e15.7)') Grid%r(i),(Xv(i,tmap(k)),k=1,nocc)
      !enddo
 
     PAW%Etotal=PAW%tkin+PAW%tion+PAW%tvale+PAW%txc+PAW%Ea
-    WRITE(6,*) '*******Total energy*********', PAW%Etotal
-    WRITE(6,*) 'PAW%tkin                    ',PAW%tkin
-    WRITE(6,*) 'PAW%tion                    ',PAW%tion
-    WRITE(6,*) 'PAW%tvale                   ',PAW%tvale
-    WRITE(6,*) 'PAW%txc                     ',PAW%txc
-    WRITE(6,*) 'PAW%Ea                      ',PAW%Ea
+    WRITE(STD_OUT,*) '*******Total energy*********', PAW%Etotal
+    WRITE(STD_OUT,*) 'PAW%tkin                    ',PAW%tkin
+    WRITE(STD_OUT,*) 'PAW%tion                    ',PAW%tion
+    WRITE(STD_OUT,*) 'PAW%tvale                   ',PAW%tvale
+    WRITE(STD_OUT,*) 'PAW%txc                     ',PAW%txc
+    WRITE(STD_OUT,*) 'PAW%Ea                      ',PAW%Ea
 
     ! Solve inhomogeneous diffeq. and store result in tmpOrbit
     err=0;
@@ -1096,7 +1096,7 @@ END SUBROUTINE Smoothfunc
     ENDDO
 
     !stop
-    WRITE(6,*) 'PAWIter ', fcount,err
+    WRITE(STD_OUT,*) 'PAWIter ', fcount,err
     call mkname(fcount,stuff)
      open(1001, file='hfpswfn.'//stuff,form='formatted')
        do i=1,Grid%n
@@ -1108,7 +1108,7 @@ END SUBROUTINE Smoothfunc
     ! update wfn if tolerance not satisfied
     IF (err>err0) THEN
        val=(1.d0-mix)
-       WRITE(6,*) 'mixing wfns ', val
+       WRITE(STD_OUT,*) 'mixing wfns ', val
        DO k=1,nocc
           io=tmap(k)
           PSO%wfn(:,io)=val*PSO%wfn(:,io)+mix*tmpOrbit%wfn(:,io)
@@ -1149,20 +1149,20 @@ END SUBROUTINE Smoothfunc
     norbit=PAW%TOCCwfn%norbit
     n=Grid%n
 
-    write(6,*) 'In Calc_tXp ', n,norbit; call flush_unit(6)
+    write(std_out,*) 'In Calc_tXp ', n,norbit; call flush_unit(std_out)
     ll=MAXVAL(PAW%TOCCWFN%l(:)); ll=li+ll
 
     ALLOCATE(wfp(n),vl(n),dum(n),arg(n),f(n),hat(n,ll+1))
     r=>Grid%r
 
-    write(6,*) 'After alloc ',n;call flush_unit(6)
+    write(std_out,*) 'After alloc ',n;call flush_unit(std_out)
     tres(:)=0.d0;
     occ=1.d0
 
     DO l=0,ll
        CALL hatL(Grid,PAW,l,hat(:,l+1))
        f=hat(:,l+1)*(Grid%r(:)**l)
-       write(6,*) 'test hat l', l,integrator(Grid,f)
+       write(std_out,*) 'test hat l', l,integrator(Grid,f)
     ENDDO
 
     Open(33,file='hattest',form='formatted')
@@ -1176,7 +1176,7 @@ END SUBROUTINE Smoothfunc
     r=>Grid%r
 
     DO jo=1,norbit
-       write(6,*) 'jo : ', jo; call flush_unit(6)
+       write(std_out,*) 'jo : ', jo; call flush_unit(std_out)
        occj=PAW%OCCwfn%occ(jo); vl=0.d0
        IF (occj>threshold) THEN
           lj=PAW%OCCwfn%l(jo)
@@ -1190,8 +1190,8 @@ END SUBROUTINE Smoothfunc
              IF (wgt>threshold) THEN
                 wgt=wgt*(2*ll+1)   ! because of apoisson convention
                 f(1:last)=arg(1:last)*(r(1:last)**ll)
-                x=integrator(Grid,f,1,last); write(6,*) 'moment',ll,x;
-                call flush_unit(6)
+                x=integrator(Grid,f,1,last); write(std_out,*) 'moment',ll,x;
+                call flush_unit(std_out)
                 f(1:last)=wfp(1:last)+x*hat(1:last,ll+1)
                 CALL apoisson(Grid,ll,last,f,dum)
                 vl(1:last)=vl(1:last)- &
@@ -1202,7 +1202,7 @@ END SUBROUTINE Smoothfunc
        ENDIF
     ENDDO   !jo
 
-    write(6,*) 'Finished tXP '; call flush_unit(6)
+    write(std_out,*) 'Finished tXP '; call flush_unit(std_out)
 
     DEALLOCATE(wfp,vl,dum,arg,f,hat)
   END SUBROUTINE Calc_tXp
@@ -1240,20 +1240,20 @@ END SUBROUTINE Smoothfunc
     r=>Grid%r
     rv=>Pot%rv
     nr=min(PAW%irc_vloc+10,n)
-    write(6,*) 'nr = ', nr , n, PAW%irc_vloc
+    write(std_out,*) 'nr = ', nr , n, PAW%irc_vloc
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
-    write(6,*) ' Check rc', irc,rc,Grid%r(irc)
+    write(std_out,*) ' Check rc', irc,rc,Grid%r(irc)
 
     ALLOCATE(VNC(n),wfn(n),twfn(n),p(n),dum(n),XX(n),tX(n),&
 &                 rvx(n),trvx(n),stat=ok)
     IF (ok /=0) THEN
-       WRITE(6,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
+       WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
        STOP
     ENDIF
 
-    !write(6,*) ' Troullier ', n,nr,irc
-    !call flush_unit(6)
+    !write(std_out,*) ' Troullier ', n,nr,irc
+    !call flush_unit(std_out)
     !if (scalarrelativistic) then
     !   CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
     !else
@@ -1263,7 +1263,7 @@ END SUBROUTINE Smoothfunc
     If (PAW%exctype=='HF') then
         CALL HFunocc(Grid,PAW%OCCWFN,l,e,Pot%rv,Pot%v0,Pot%v0p,wfn,lng,XX)
     Else
-       Write(6,*) 'Error -- this version of Troulliers is for HF only'
+       Write(STD_OUT,*) 'Error -- this version of Troulliers is for HF only'
        stop
     endif
 
@@ -1286,7 +1286,7 @@ END SUBROUTINE Smoothfunc
 &        -rc*Gsecondderiv(Grid,irc,VNC)))+&
 &        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
 
-    WRITE(6,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
+    WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
 
     delta=1.d10
     iter=0
@@ -1312,11 +1312,11 @@ END SUBROUTINE Smoothfunc
        Coef0=(LOG(S/x))/2
 
        delta=ABS(Coef0-Coef0old)
-       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+       !WRITE(STD_OUT,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
     ENDDO
 
-    WRITE(6,*) '  VNC converged in ', iter,'  iterations'
-    WRITE(6,*) '  Coefficients  -- ', Coef0,Coef(1:6)
+    WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+    WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
     !
     ! Now  calculate VNC
     OPEN(88,file='NC',form='formatted')
@@ -1335,10 +1335,10 @@ END SUBROUTINE Smoothfunc
        ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
 &           x*(5040*Coef(5)+x*11880*Coef(6))))))
        IF (i==irc) THEN
-          WRITE(6,*) 'check  dp ', dpp,  B0/rc
-          WRITE(6,*) 'check ddp ', ddpp, C0/rc**2
-          WRITE(6,*) 'check dddp', dddpp, D/rc**3
-          WRITE(6,*) 'check ddddp', ddddpp, F/rc**4
+          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
+          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
+          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
+          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
        ENDIF
        VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
        twfn(i)=(r(i)**(l+1))*EXP(p(i))
@@ -1346,7 +1346,7 @@ END SUBROUTINE Smoothfunc
     ENDDO
     CLOSE(88)
     x=overlap(Grid,twfn(1:irc),twfn(1:irc),1,irc)
-    WRITE(6,*) 'check norm ',x,S; call flush_unit(6)
+    WRITE(STD_OUT,*) 'check norm ',x,S; call flush_unit(std_out)
 
     twfn(irc:lng)=wfn(irc:lng)
     call Calc_tXp(Grid,PAW,ni,l,wfn,twfn,tX,lng)

@@ -13,6 +13,8 @@
 
 Module interpolation_mod
 
+   Use io_tools
+
    Implicit none
 
    CONTAINS
@@ -28,7 +30,7 @@ Module interpolation_mod
 
      !  check if grid is within interpolation range
      if (rout(1)<rin(1).or.rout(nout)>rin(nin)) then
-      write(6,*) 'Grid error in interpfunc ',rin(1),rout(1),rin(nin),rout(nout)
+      write(std_out,*) 'Grid error in interpfunc ',rin(1),rout(1),rin(nin),rout(nout)
       stop
      endif
 

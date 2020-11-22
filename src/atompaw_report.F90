@@ -99,7 +99,7 @@ CONTAINS
       if(diracrelativistic) then
       WRITE(ifen,*) ' n   kappa  l   occupancy       energy'
        DO io=1,Orbit%norbit
-          write(6,*) 'io',io, Orbit%norbit; call flush_unit(6)
+          write(std_out,*) 'io',io, Orbit%norbit; call flush_unit(std_out)
           WRITE(ifen,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
 &               Orbit%np(io),Orbit%kappa(io),Orbit%l(io),&
 &               Orbit%occ(io),Orbit%eig(io)
@@ -107,7 +107,7 @@ CONTAINS
       else        
       WRITE(ifen,*) ' n  l     occupancy       energy'
        DO io=1,Orbit%norbit
-          write(6,*) 'io',io, Orbit%norbit; call flush_unit(6)
+          write(std_out,*) 'io',io, Orbit%norbit; call flush_unit(std_out)
           WRITE(ifen,'(i2,1x,i2,4x,1p,2e15.7)') &
                Orbit%np(io),Orbit%l(io),&
                Orbit%occ(io),Orbit%eig(io)
@@ -549,8 +549,8 @@ CONTAINS
 
   ! Core-valence exchange energies now generally provided for possible
   !    use in exact exchange and hybrid evaluations
-    Write(6,*) 'Core-valence exchange integrals provided'
-    Write(6,*) ' with the assumption that all core states confined 0 < r < rc'
+    Write(STD_OUT,*) 'Core-valence exchange integrals provided'
+    Write(STD_OUT,*) ' with the assumption that all core states confined 0 < r < rc'
 
     WRITE(ifatompaw,'("   XCOREVAL  ")')
       do ib=1,PAW%nbase
@@ -563,8 +563,8 @@ CONTAINS
 
 
     IF (PAW%OCCWFN%exctype=='HF'.or.PAW%OCCWFN%exctype=='EXXKLI') THEN
-       Write(6,*) 'For HF/KLI -- additional core information provided'
-       Write(6,*) 'Warning ... assume all core states confined 0 < r < rc'
+       Write(STD_OUT,*) 'For HF/KLI -- additional core information provided'
+       Write(STD_OUT,*) 'Warning ... assume all core states confined 0 < r < rc'
 
        icount=0
        do io=1,PAW%OCCWFN%norbit
@@ -611,7 +611,7 @@ CONTAINS
                          PAW%OCCWFN%wfn(:,jo),PAW%OCCWFN%wfn(:,io), &
                          PAW%OCCWFN%wfn(:,jo),term)
                       f(i)=f(i)+accum*term
-                      write(6,*) 'core-core CondonShortley', i,accum,term
+                      write(std_out,*) 'core-core CondonShortley', i,accum,term
                    enddo
                    endif
                 enddo
@@ -652,7 +652,7 @@ CONTAINS
 !                              PAW%ophi(:,ib),PAW%OCCWFN%wfn(:,io), &
 !                              PAW%ophi(:,ic),term)
 !                              f(i)=f(i)+2*accum*term !EXXwgt returns 1/2*3J
-!                              write(6,*) 'core-val CondonShortley',&
+!                              write(std_out,*) 'core-val CondonShortley',&
 !                                    i,li,lj,l,2*accum,term
 !                         enddo
 !                        WRITE(ifatompaw,'(3i10,1p,1e25.17)') i, ib,ic,f(i)
@@ -819,7 +819,7 @@ CONTAINS
 
 !! optional l-dependent shape functions
     if (besselshapefunction) then
-       write(6,*) 'Socorro does not yet support l-dependent shape func'
+       write(std_out,*) 'Socorro does not yet support l-dependent shape func'
        stop
 !      li=MAXVAL(PAW%TOCCWFN%l(:)); li=MAX(li,PAW%lmax); li=2*li
 !      WRITE(ifatompaw,'("    SHAPE_L",i4,"  # for  l= 0 .. lmax")') li
@@ -957,7 +957,7 @@ CONTAINS
     ALLOCATE(shartree(lcount),sshartree(icount,icount,2*PAW%lmax+2),&
 &        wf(n),twf(n),rh(n),rth(n),dum(n),dum1(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'Error in hartree allocation', icount,lcount,PAW%irc,ok
+       WRITE(STD_OUT,*) 'Error in hartree allocation', icount,lcount,PAW%irc,ok
        STOP
     ENDIF
     !
@@ -1030,7 +1030,7 @@ CONTAINS
                       shartree(lcount)=                      &
 &                          0.5d0*(sshartree(icount,jcount,ll+1) + &
 &                          sshartree(jcount,icount,ll+1))
-                       write(6,*) ll,lcount,shartree(lcount); call flush_unit(6)
+                       write(std_out,*) ll,lcount,shartree(lcount); call flush_unit(std_out)
                    ENDIF
                 ENDDO
              ENDDO

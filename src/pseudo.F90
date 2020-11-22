@@ -86,12 +86,12 @@ CONTAINS
   irc=PAW%irc;rc=PAW%rc
 
   if (irc>n-Grid%ishift) stop 'error -- rc is too big !'
-  WRITE(6,*) ' adjusted rc ',rc, Grid%r(irc)
-  WRITE(6,*) ' irc,rc = ',irc,rc
+  WRITE(STD_OUT,*) ' adjusted rc ',rc, Grid%r(irc)
+  WRITE(STD_OUT,*) ' irc,rc = ',irc,rc
   if (multi_rc) then
-   WRITE(6,*) ' adjusted rc_shape ',PAW%rc_shap
-   WRITE(6,*) ' adjusted rc_vloc  ',PAW%rc_vloc
-   WRITE(6,*) ' adjusted rc_core  ',PAW%rc_core
+   WRITE(STD_OUT,*) ' adjusted rc_shape ',PAW%rc_shap
+   WRITE(STD_OUT,*) ' adjusted rc_vloc  ',PAW%rc_vloc
+   WRITE(STD_OUT,*) ' adjusted rc_core  ',PAW%rc_core
   endif
   WRITE(ifen,*) ' paw parameters: '
   WRITE(ifen,*) '      lmax = ',PAW%lmax
@@ -167,7 +167,7 @@ CONTAINS
 &         trim(PAW%Proj_description)
    end if
 
-   write(6,*) PAW%Proj_description
+   write(std_out,*) PAW%Proj_description
 
   !Shape function parameters (from input dataset)
    gaussianshapefunction=.false.;besselshapefunction=.false.
@@ -200,7 +200,7 @@ CONTAINS
 
    !Core tolerance for HF (from input dataset)
    PAW%coretol=MAX(input_dataset%hf_coretol,0.d0)
-   if (Projectorindex==HFPROJ) write(6,*) 'Resetting coretol to ', PAW%coretol
+   if (Projectorindex==HFPROJ) write(std_out,*) 'Resetting coretol to ', PAW%coretol
 
    !Vlocal parameters (from input dataset)
    pdeg=input_dataset%pseudo_polynom2_pdeg
@@ -248,7 +248,7 @@ CONTAINS
 &       trim(PAW%Vloc_description),l,input_dataset%vloc_kerker_power(1:4),e
    ENDIF
 
-   WRITE(6,*) PAW%Vloc_description
+   WRITE(STD_OUT,*) PAW%Vloc_description
 
    IF (Vlocalindex==MTROULLIER.and.Projectorindex/=HFPROJ) &
 &    CALL troullier(Grid,Pot,PAW,l,e)
@@ -333,12 +333,12 @@ CONTAINS
 
     ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),stat=ok)
     IF (ok /=0) THEN
-       WRITE(6,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
+       WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
        STOP
     ENDIF
 
-    !write(6,*) ' Troullier ', n,nr,irc
-    !call flush_unit(6)
+    !write(std_out,*) ' Troullier ', n,nr,irc
+    !call flush_unit(std_out)
     if (scalarrelativistic) then
        CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
     else
@@ -356,7 +356,7 @@ CONTAINS
 &        -rc*Gsecondderiv(Grid,irc,rv)))+&
 &        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
 
-    WRITE(6,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
+    WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
 
     delta=1.d10
     iter=0
@@ -382,11 +382,11 @@ CONTAINS
        Coef0=(LOG(S/x))/2
 
        delta=ABS(Coef0-Coef0old)
-       !WRITE(6,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+       !WRITE(STD_OUT,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
     ENDDO
 
-    WRITE(6,*) '  VNC converged in ', iter,'  iterations'
-    WRITE(6,*) '  Coefficients  -- ', Coef0,Coef(1:6)
+    WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+    WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
     !
     ! Now  calculate VNC
     OPEN(88,file='NC',form='formatted')
@@ -405,10 +405,10 @@ CONTAINS
        ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
 &           x*(5040*Coef(5)+x*11880*Coef(6))))))
        IF (i==irc) THEN
-          WRITE(6,*) 'check  dp ', dpp,  B0/rc
-          WRITE(6,*) 'check ddp ', ddpp, C0/rc**2
-          WRITE(6,*) 'check dddp', dddpp, D/rc**3
-          WRITE(6,*) 'check ddddp', ddddpp, F/rc**4
+          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
+          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
+          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
+          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
        ENDIF
        VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
        dum(i)=(r(i)**(l+1))*EXP(p(i))
@@ -416,7 +416,7 @@ CONTAINS
     ENDDO
     CLOSE(88)
     x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
-    WRITE(6,*) 'check norm ',x,S
+    WRITE(STD_OUT,*) 'check norm ',x,S
 
     VNC(irc:n)=rv(irc:n)/r(irc:n)
     PAW%rveff(1:n)=VNC(1:n)*r(1:n)
@@ -466,7 +466,7 @@ CONTAINS
     rc=PAW%rc_vloc
     ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),stat=ok)
     IF (ok /=0) THEN
-       WRITE(6,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
+       WRITE(STD_OUT,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
        STOP
     ENDIF
 
@@ -497,7 +497,7 @@ CONTAINS
     ENDIF
 
 
-    WRITE(6,*) 'In kerker -- matching parameters',S,A0,B,C,D
+    WRITE(STD_OUT,*) 'In kerker -- matching parameters',S,A0,B,C,D
 
     delta=1.d10
     iter=0
@@ -524,22 +524,22 @@ CONTAINS
           gam=(2*l+3)*integrator(Grid,dum(1:irc),1,irc)/(rc**(2*l+3))
           bet=(2*l+3)*(Coef(1)/(2*l+3+m(1))+Coef(2)/(2*l+3+m(2))+&
 &              Coef(3)/(2*l+3+m(3))+Coef(4)/(2*l+3+m(4)))
-          !WRITE(6,'("VNC: iter -- bet,gam = ",i5,1p,4e15.7)') iter,bet,gam
+          !WRITE(STD_OUT,'("VNC: iter -- bet,gam = ",i5,1p,4e15.7)') iter,bet,gam
           x=bet**2+gam
           Coef0old=Coef0
           IF (x<0.d0) THEN
-             WRITE(6,*) 'Warning in Kerker subroutine x = ',x
+             WRITE(STD_OUT,*) 'Warning in Kerker subroutine x = ',x
                Coef0=Coef0+0.1*A0
             ELSE
                Coef0=SQRT(x)-bet
             ENDIF
          ENDIF
          delta=ABS(Coef0-Coef0old)
-         !WRITE(6,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
+         !WRITE(STD_OUT,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
       ENDDO
 
-      WRITE(6,*) '  VNC converged in ', iter,'  iterations'
-      WRITE(6,*) '  Coefficients  -- ', Coef0,Coef(1:4)
+      WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+      WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:4)
       !
       ! Now  calculate VNC
       OPEN(88,file='NC',form='formatted')
@@ -560,9 +560,9 @@ CONTAINS
 &             m(3)*(m(3)-1)*(m(3)-2)*(x**(m(3)-3))*Coef(3)+&
 &             m(4)*(m(4)-1)*(m(4)-2)*(x**(m(4)-3))*Coef(4))/(rc**3)
          IF (i==irc) THEN
-            WRITE(6,*) 'check  dp ', dpp,  B/rc
-            WRITE(6,*) 'check ddp ', ddpp, C/rc**2
-            WRITE(6,*) 'check dddp', dddpp,  D/rc**3
+            WRITE(STD_OUT,*) 'check  dp ', dpp,  B/rc
+            WRITE(STD_OUT,*) 'check ddp ', ddpp, C/rc**2
+            WRITE(STD_OUT,*) 'check dddp', dddpp,  D/rc**3
          ENDIF
          IF (wavetype==EXPF) THEN
             VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
@@ -576,7 +576,7 @@ CONTAINS
       ENDDO
       CLOSE(88)
       x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
-      WRITE(6,*) 'check norm ',x,S
+      WRITE(STD_OUT,*) 'check norm ',x,S
 
       VNC(irc:n)=rv(irc:n)/r(irc:n)
       PAW%rveff(1:n)=VNC(1:n)*r(1:n)
@@ -664,8 +664,8 @@ CONTAINS
     amat(4,4)= 120.0d0*d(1)*rc**3+60.0d0*d(2)*rc**4+6.0d0*d(3)*rc**5
 
     CALL linsol(amat,b,4,4,4,4)
-    !write(6,*) 'Completed linsol with coefficients'
-    !write(6,'(1p,10e15.7)') (b(i),i=1,4)
+    !write(std_out,*) 'Completed linsol with coefficients'
+    !write(std_out,'(1p,10e15.7)') (b(i),i=1,4)
 
     PAW%rveff(1)=0.d0
     DO i=2,irc-1
@@ -705,12 +705,12 @@ CONTAINS
          DO io=1,Orbit%norbit
             IF((.NOT.Orbit%iscore(io)).AND.(Orbit%l(io)==l)) THEN
                energy=Orbit%eig(io)
-               WRITE(6,*) 'Check  for ghosts with  l', l,energy
+               WRITE(STD_OUT,*) 'Check  for ghosts with  l', l,energy
                CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,energy,wfn,nodes)
                !DO i=1,nr
                !   WRITE(l+17,'(1p,2e15.7)') Grid%r(i),wfn(i)
                !ENDDO
-               WRITE(6,*) '    Found # nodes = ', nodes
+               WRITE(STD_OUT,*) '    Found # nodes = ', nodes
                EXIT
             ENDIF
          ENDDO
@@ -773,12 +773,12 @@ CONTAINS
       !  normalize
       if (.not.besselshapefunction) then
        con=integrator(Grid,PAW%hatden,1,PAW%irc_shap)
-       WRITE(6,*) ' check hatden normalization', con
+       WRITE(STD_OUT,*) ' check hatden normalization', con
        PAW%hatden=PAW%hatden/con
       endif
 
       CALL poisson(Grid,con,PAW%hatden,PAW%hatpot,selfen)
-      WRITE(6,*) 'Self energy for L=0 hat density  ', selfen
+      WRITE(STD_OUT,*) 'Self energy for L=0 hat density  ', selfen
 
     END SUBROUTINE sethat
 
@@ -797,17 +797,17 @@ CONTAINS
 
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
-             write(6,*) 'coretailselfenergy: allocation error -- ', n,i
+             write(std_out,*) 'coretailselfenergy: allocation error -- ', n,i
              stop
           endif
 
       x=integrator(Grid,PAW%tcore)
-      write(6,*) 'tcore charge ' , x
+      write(std_out,*) 'tcore charge ' , x
       CALL poisson(Grid,x,PAW%tcore,d1,ctctse)
       d2(2:n)=PAW%hatden(2:n)*d1(2:n)/Grid%r(2:n)
       d2(1)=0
       cthatse=integrator(Grid,d2(1:irc),1,PAW%irc_shap)
-      write(6,*) 'ctctse,cthatse = ', ctctse,cthatse
+      write(std_out,*) 'ctctse,cthatse = ', ctctse,cthatse
 
       deallocate(d1,d2)
 
@@ -829,7 +829,7 @@ CONTAINS
 !
 !      allocate(d1(n),d2(n),stat=i)
 !          if (i /= 0) then
-!             write(6,*) 'setcoretail: allocation error -- ', n,i
+!             write(std_out,*) 'setcoretail: allocation error -- ', n,i
 !             stop
 !          endif
 !      CALL derivative(Grid,coreden,d1)
@@ -838,13 +838,13 @@ CONTAINS
 !      x=coreden(irc)
 !      y=d1(irc)*rc
 !      z=d2(irc)*(rc*rc)
-!      write(6,*) 'setcoretail: x,y,z = ', x,y,z
+!      write(std_out,*) 'setcoretail: x,y,z = ', x,y,z
 !
 !      u0=3*x - 9*y/8 + z/8
 !      u2=-3*x + 7*y/4 - z/4
 !      u4=x - 5*y/8 + z/8
 !
-!      write(6,*) 'setcoretail: u0,u2,u4 = ', u0,u2,u4
+!      write(std_out,*) 'setcoretail: u0,u2,u4 = ', u0,u2,u4
 !
 !      PAW%core=coreden
 !      PAW%tcore=coreden
@@ -864,7 +864,7 @@ CONTAINS
 !             exit
 !           endif
 !        enddo
-!     write(6,*) 'coretailpoints = ',coretailpoints
+!     write(std_out,*) 'coretailpoints = ',coretailpoints
 !     PAW%coretailpoints=coretailpoints
 !
 !      deallocate(d1,d2)
@@ -894,7 +894,7 @@ CONTAINS
 
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
-             write(6,*) 'smoothcore: allocation error -- ', n,i
+             write(std_out,*) 'smoothcore: allocation error -- ', n,i
              stop
           endif
       CALL derivative(Grid,orig,d1)
@@ -903,13 +903,13 @@ CONTAINS
       x=orig(irc)
       y=d1(irc)*rc
       z=d2(irc)*(rc*rc)
-      write(6,*) 'smoothcore: x,y,z = ', x,y,z
+      write(std_out,*) 'smoothcore: x,y,z = ', x,y,z
 
       u0=3*x - 9*y/8 + z/8
       u2=-3*x + 7*y/4 - z/4
       u4=x - 5*y/8 + z/8
 
-      write(6,*) 'smoothcore: u0,u2,u4 = ', u0,u2,u4
+      write(std_out,*) 'smoothcore: u0,u2,u4 = ', u0,u2,u4
 
       smooth=orig
       do i=1,irc
@@ -947,7 +947,7 @@ CONTAINS
              exit
            endif
         enddo
-     write(6,*) 'coretailpoints = ',coretailpoints
+     write(std_out,*) 'coretailpoints = ',coretailpoints
      PAW%coretailpoints=coretailpoints
 
     END SUBROUTINE setcoretail
@@ -957,11 +957,11 @@ CONTAINS
       REAL(8), INTENT(IN) :: coretau(:)
       REAL(8) :: sqr4pi
 
-      write(6,*) 'in setttau '
+      write(std_out,*) 'in setttau '
       CALL smoothcore(Grid,coretau,PAW%tcoretau) 
 
       PAW%coretau=coretau
-      write(6,*) 'completed setttau'
+      write(std_out,*) 'completed setttau'
 
       sqr4pi=sqrt(4*pi)*1.d-10
       PAW%itau=max(PAW%coretailpoints,1)
@@ -992,7 +992,7 @@ CONTAINS
      !   write(444,'(1p,10e15.7)') Grid%r(i),PAW%tcore(i)
      !enddo
      Do io=1,PAW%TOCCWFN%norbit
-        write(6,*) 'fixtcore', io,PAW%valencemap(io),PAW%TOCCWFN%iscore(io)
+        write(std_out,*) 'fixtcore', io,PAW%valencemap(io),PAW%TOCCWFN%iscore(io)
         IF(PAW%valencemap(io)<0) THEN     ! core state
           PAW%TOCCWFN%wfn(:,io)=0
           If (PAW%TOCCWFN%iscore(io)) then
@@ -1009,11 +1009,11 @@ CONTAINS
 &                      >PAW%coretol) THEN
                    CALL Smoothfunc(Grid%r,l,np,irc,n,PAW%OCCWFN%wfn(:,io), &
 &                          PAW%TOCCWFN%wfn(:,io))
-                write(6,*) 'last',io
+                write(std_out,*) 'last',io
                 ENDIF
              endif
           else
-              write(6,*) 'Something wrong -- should be core state ',&
+              write(std_out,*) 'Something wrong -- should be core state ',&
 &                io,PAW%TOCCWFN%l(io),PAW%TOCCWFN%eig(io),PAW%TOCCWFN%occ(io)
               stop
           endif
@@ -1052,7 +1052,7 @@ CONTAINS
 
       ALLOCATE(den(n),a(n),stat=i)
       IF (i/=0) THEN
-         WRITE(6,*) 'Error in selfhatpot allocation',irc,i
+         WRITE(STD_OUT,*) 'Error in selfhatpot allocation',irc,i
          STOP
       ENDIF
 
@@ -1139,11 +1139,11 @@ CONTAINS
              exit
           endif
        enddo
-       write(6,*) 'range ', k,range; call flush_unit(6)
+       write(std_out,*) 'range ', k,range; call flush_unit(std_out)
     ENDIF
 
-    WRITE(6,*) '  basis functions:'
-    WRITE(6,*)' No.   n     l         energy         occ   '
+    WRITE(STD_OUT,*) '  basis functions:'
+    WRITE(STD_OUT,*)' No.   n     l         energy         occ   '
 
     nbase=0 ; ibasis_add=1
     DO l=0,lmax
@@ -1158,7 +1158,7 @@ CONTAINS
              PAW%np(nbase)=Orbit%np(io)
              PAW%l(nbase)=l
              PAW%nodes(nbase)=PAW%np(nbase)-l-1
-             write (6,*) 'l,nbase,node',l,nbase,currentnode
+             write(std_out,*) 'l,nbase,node',l,nbase,currentnode
              PAW%eig(nbase)=Orbit%eig(io)
              PAW%occ(nbase)=Orbit%occ(io)
              PAW%phi(:,nbase)=Orbit%wfn(:,io)
@@ -1166,12 +1166,12 @@ CONTAINS
              IF(Orbit%exctype=='HF') then
                PAW%eig(nbase)=HF%lmbd(io,io)
                PAW%lmbd(:,nbase)=HF%lmbd(:,io)
-               write(6,*) 'lmbd for nbase ', nbase
-               write(6,'(1p,20e15.7)') PAW%lmbd(1:Orbit%norbit,nbase)
+               write(std_out,*) 'lmbd for nbase ', nbase
+               write(std_out,'(1p,20e15.7)') PAW%lmbd(1:Orbit%norbit,nbase)
                PAW%lmbd(io,nbase)=0.d0         !  to avoid double counting
              endif
-             WRITE(6,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
-&                 PAW%eig(nbase),PAW%occ(nbase); call flush_unit(6)
+             WRITE(STD_OUT,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
+&                 PAW%eig(nbase),PAW%occ(nbase); call flush_unit(std_out)
             ENDIF
           ENDIF
        ENDDO
@@ -1181,17 +1181,17 @@ CONTAINS
          IF (input_dataset%basis_add_l(ibasis_add)/=l) EXIT generalizedloop
          energy=input_dataset%basis_add_energy(ibasis_add)
          IF (energy<0.d0) &
-&            WRITE(6,*) 'energy is negative',energy,' -- WARNING WARNING !!!'
+&            WRITE(STD_OUT,*) 'energy is negative',energy,' -- WARNING WARNING !!!'
          nbase=nbase+1
          IF (nbase > mxbase ) THEN
-           WRITE(6,*) 'Error in  setbasis -- too many functions ', nbase,mxbase
+           WRITE(STD_OUT,*) 'Error in  setbasis -- too many functions ', nbase,mxbase
            STOP
          ENDIF
          PAW%l(nbase)=l
          PAW%np(nbase)=999
          PAW%nodes(nbase)=currentnode+1
          currentnode=PAW%nodes(nbase)
-         write (6,*) 'l,nbase,node',l,nbase,currentnode
+         write(std_out,*) 'l,nbase,node',l,nbase,currentnode
          PAW%eig(nbase)=energy
          PAW%occ(nbase)=0.d0
          PAW%phi(1:n,nbase)=0.d0
@@ -1208,7 +1208,7 @@ CONTAINS
          rat=DSIGN(rat,PAW%phi(irc,nbase))
          PAW%phi(1:n,nbase)=PAW%phi(1:n,nbase)/rat
          !IF(Orbit%exctype=='HF') PAW%lmbd(:,nbase)=PAW%lmbd(:,nbase)/rat
-         WRITE(6,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
+         WRITE(STD_OUT,'(3i6,1p,2e15.6)') nbase,PAW%np(nbase),l,             &
 &               PAW%eig(nbase),PAW%occ(nbase)
          nbl=nbl+1
          ibasis_add=ibasis_add+1
@@ -1217,7 +1217,7 @@ CONTAINS
 
     ENDDO   ! end lmax loop
 
-    WRITE(6,*) 'completed phi basis with ',nbase,' functions '
+    WRITE(STD_OUT,*) 'completed phi basis with ',nbase,' functions '
     PAW%nbase=nbase     ! reset nbase
 
   END SUBROUTINE setbasis
@@ -1251,14 +1251,14 @@ CONTAINS
 
     ALLOCATE(tmp(n),VNC(n),PS%rv(n),stat=ok)
     IF (ok /= 0 ) THEN
-       WRITE(6,*) 'Error in allocating  denout in makebasis ',n,ok
+       WRITE(STD_OUT,*) 'Error in allocating  denout in makebasis ',n,ok
        STOP
     ENDIF
 
     ! find basis functions
     PS%rv=PAW%rveff
     call zeropot(Grid,PS%rv,PS%v0,PS%v0p)
-    !write(6,*) 'VNC  v0 ', PS%v0,PS%v0p,PS%rv(5)
+    !write(std_out,*) 'VNC  v0 ', PS%v0,PS%v0p,PS%rv(5)
     CALL formprojectors(Grid,Pot,PS,option)
 
     DEALLOCATE(tmp,VNC,PS%rv)
@@ -1324,12 +1324,12 @@ CONTAINS
        thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
        rc=r(thisrc);PAW%rcio(io)=rc
-       WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
-       WRITE(6,'(a,f10.7)') '  >>> rc =', rc
+       WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
+       WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
        if (thisrc<3.or.thisrc>irc.or. &
 &          (optps==1.and.thisrc>n-3).or. &
 &          (optps==2.and.thisrc>n-6)) then
-          write(6,*) 'rc out of range', thisrc,n,irc
+          write(std_out,*) 'rc out of range', thisrc,n,irc
           stop
        endif
 
@@ -1407,7 +1407,7 @@ CONTAINS
        do io=1,nbase
         if (PAW%l(io)==l) icount=icount+1
        enddo
-       write(6,*) 'For l = ', l,icount,' basis functions'
+       write(std_out,*) 'For l = ', l,icount,' basis functions'
        if (icount==0) cycle
        allocate(aa(icount,icount),ai(icount,icount),omap(icount))
        aa=0;icount=0
@@ -1556,11 +1556,11 @@ CONTAINS
       endif
      ! Find logderiv
        logderiv=Gfirstderiv(Grid,thisrc,PAW%phi(:,io))/PAW%phi(thisrc,io)
-       write(6,*) 'logderiv ', io, l, logderiv
+       write(std_out,*) 'logderiv ', io, l, logderiv
 
      !  Find   bessel function zeros
         call solvbes(kv,1.d0,0.d0,l,np)
-        write(6,*) 'Searching for solution ',kv(np)
+        write(std_out,*) 'Searching for solution ',kv(np)
         if (np==1) then
          root1=0.001d0; root2=kv(1)-0.001d0; xx=0.5d0*(root1+root2)
         else
@@ -1571,7 +1571,7 @@ CONTAINS
           call jbessel(g,gp,gpp,l,2,xx)
           yy=(logderiv-(1.d0/xx+gp/g))/(-1.d0/xx**2+gpp/g-(gp/g)**2)
           if (abs(yy)<1.d-6) then
-            write(6,*) 'exiting Bessel loop', icount,xx,yy
+            write(std_out,*) 'exiting Bessel loop', icount,xx,yy
             exit
           else
             if (xx+yy>root2) then
@@ -1582,24 +1582,24 @@ CONTAINS
                 xx=xx+yy
             endif
           endif
-          !write(6,*) 'iter Bessel', xx,yy
+          !write(std_out,*) 'iter Bessel', xx,yy
           icount=icount+1
           if (icount>1000) then
-            write(6,*) 'Giving up on Bessel root'
+            write(std_out,*) 'Giving up on Bessel root'
             return
           endif
         Enddo
 
         success=.true.
-        write(6,*) 'Found Bessel root at xx' , xx
+        write(std_out,*) 'Found Bessel root at xx' , xx
         dk=(pi/40)/rc             !  could be made adjustable
-        write(6,*) 'dk value for this case ', dk
+        write(std_out,*) 'dk value for this case ', dk
         kv=0
         kv(1)=xx/rc-dk*(match-1)/2
-        write(6,*) '#  kv      1', kv(1)
+        write(std_out,*) '#  kv      1', kv(1)
         Do i=2,match
           kv(i)=kv(i-1)+dk
-          write(6,*) '#  kv   ',   i, kv(i)
+          write(std_out,*) '#  kv   ',   i, kv(i)
         enddo
 
         Do i=1,match
@@ -1618,8 +1618,8 @@ CONTAINS
         enddo
 
         call SolveAXeqBM(match,aa,Ci,match-1)
-        write(6,*) 'Completed SolveAXeqB with coefficients'
-        write(6,'(1p,10e15.7)') (Ci(i),i=1,match)
+        write(std_out,*) 'Completed SolveAXeqB with coefficients'
+        write(std_out,'(1p,10e15.7)') (Ci(i),i=1,match)
 
      ! Compute pseudized partial wave and unnormalized projector
        PAW%tphi(:,io)=PAW%phi(:,io);
@@ -1648,14 +1648,14 @@ CONTAINS
  Selectcase(Orthoindex)
    Case default     ! Orthoindex=VANDERBILTORTHO
   !! Form orthogonalized projectors --   VANDERBILTORTHO
-     write(6,*) ' Vanderbilt ortho'
+     write(std_out,*) ' Vanderbilt ortho'
      do l=0,lmax
        icount=0
        do io=1,nbase
         if (PAW%l(io)==l) icount=icount+1
        enddo
        if (icount==0) cycle
-       write(6,*) 'For l = ', l,icount,' basis functions'
+       write(std_out,*) 'For l = ', l,icount,' basis functions'
        allocate(aa(icount,icount),ai(icount,icount),omap(icount))
        aa=0;icount=0
        do io=1,nbase
@@ -1688,12 +1688,12 @@ CONTAINS
          enddo
        enddo
 
-       write(6,*) 'Check  otp for l = ', l
+       write(std_out,*) 'Check  otp for l = ', l
        do i = 1, icount
           io=omap(i)
           do j = 1, icount
              jo=omap(j)
-             write(6,*) 'Overlap i j ', i,j, &
+             write(std_out,*) 'Overlap i j ', i,j, &
 &                    overlap(Grid,PAW%otphi(:,io),PAW%otp(:,jo),1,irc)
           enddo
        enddo
@@ -1701,7 +1701,7 @@ CONTAINS
     enddo
 
   Case(GRAMSCHMIDTORTHO) ! Form orthonormal projectors --  GRAM-SCHMIDT SCHEME
-     write(6,*) 'Gramschmidt ortho'
+     write(std_out,*) 'Gramschmidt ortho'
      DO l=0,lmax
         icount=0
         do io=1,nbase
@@ -1751,7 +1751,7 @@ CONTAINS
      ENDDO
 
   Case (SVDORTHO)    ! SVD construction
-     write(6,*) 'SVD ortho'
+     write(std_out,*) 'SVD ortho'
      DO l=0,lmax
         icount=0
         do io=1,nbase
@@ -1783,8 +1783,8 @@ CONTAINS
         CALL DGESVD('A','A',icount,icount,ai,icount,S,&
 &          U,icount,VT,icount,WORK,LWORK,k)
 
-        write(6,*) 'For l = ', l , 'Completed SVD'
-        write(6,*) 'S = ', S(:)
+        write(std_out,*) 'For l = ', l , 'Completed SVD'
+        write(std_out,*) 'S = ', S(:)
 
         Do i=1,icount
            io=omap(i)
@@ -1809,7 +1809,7 @@ CONTAINS
             io=omap(i)
             do j=1,icount
                jo=omap(j)
-               write (6,*) 'Overlap ', i,j, &
+               write(std_out,*) 'Overlap ', i,j, &
 &                 overlap(Grid,PAW%otphi(:,io),PAW%otp(:,jo),1,irc)
             enddo
          enddo
@@ -1842,14 +1842,14 @@ CONTAINS
       thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
       thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
       rc=Grid%r(thisrc)
-      WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
-      WRITE(6,'(a,f10.7)') '  >>> rc =', rc
+      WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
+      WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
       if (thisrc<3.or.thisrc>irc) then
-        write(6,*) 'rc out of range', thisrc,n,irc
+        write(std_out,*) 'rc out of range', thisrc,n,irc
         stop
       endif
       rcindex(io)=thisrc;rcval(io)=rc
-      write(6,'(" For io = ", i5," rc = ", i5,f10.5)') io,rcindex(io),rcval(io)
+      write(std_out,'(" For io = ", i5," rc = ", i5,f10.5)') io,rcindex(io),rcval(io)
 
    ENDDO
   END SUBROUTINE      
@@ -1876,7 +1876,7 @@ CONTAINS
       REAL(8), PARAMETER :: threshold=1.d-6
 
       if (TRIM(PAW%exctype)=='HF'.or.TRIM(PAW%exctype)=='EXX') then
-         write(6,*) 'makebasis_V_setvloc is not designed for ', PAW%exctype
+         write(std_out,*) 'makebasis_V_setvloc is not designed for ', PAW%exctype
          stop
       endif
       n=Grid%n
@@ -1895,10 +1895,10 @@ CONTAINS
          thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(ib))
          thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
          rc=r(thisrc);PAW%rcio(io)=rc
-         WRITE(6,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
-         WRITE(6,'(a,f10.7)') '  >>> rc =', rc
+         WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
+         WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then
-            write(6,*) 'rc out of range', thisrc,n,irc
+            write(std_out,*) 'rc out of range', thisrc,n,irc
             stop
          endif
          call pspolyn(PAW%phi(:,ib),Ci,r,l,np,thisrc,n)
@@ -1946,11 +1946,11 @@ CONTAINS
    enddo
    dum=PAW%core+PAW%den-PAW%tcore-PAW%tden
    xx=-Pot%nz+integrator(Grid,dum)
-   write(6,*) 'Checking charge for pseudo scheme ', xx,integrator(Grid,tdum)
+   write(std_out,*) 'Checking charge for pseudo scheme ', xx,integrator(Grid,tdum)
    PAW%rveff=PAW%rveff+xx*PAW%hatpot
    tdum=PAW%tcore+PAW%tden
    call poisson(Grid,gp,tdum,dum,stuff)    ! Coulomb from tcore and tden
-   write(6,*) 'After Poisson ', gp,stuff
+   write(std_out,*) 'After Poisson ', gp,stuff
    PAW%rveff=PAW%rveff+dum
       CALL exch(Grid,tdum,hat,gp,stuff)
    PAW%rveff=PAW%rveff+hat
@@ -1977,7 +1977,7 @@ CONTAINS
           if (PAW%l(ib)==l) icount=icount+1
        enddo
        if (icount==0) cycle
-       write(6,*) 'For l = ', l,icount,' basis functions'
+       write(std_out,*) 'For l = ', l,icount,' basis functions'
        allocate(aa(icount,icount),ai(icount,icount),omap(icount))
        aa=0;icount=0
        do ib=1,nbase
@@ -2052,7 +2052,7 @@ CONTAINS
         irc_io(io)=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
         rc=Grid%r(irc_io(io))
         if(irc_io(io)>PAW%irc) then
-         write(6,*) 'rc out of range', irc_io(io),n,PAW%irc
+         write(std_out,*) 'rc out of range', irc_io(io),n,PAW%irc
          stop
         endif
        enddo
@@ -2067,7 +2067,7 @@ CONTAINS
                icount=icount+1
                wantednodes=icount-1
                ! form unorthonormalized projector functions tp
-               WRITE(6,*) '******* projector for l = ',l
+               WRITE(STD_OUT,*) '******* projector for l = ',l
                if (option==1) then
                 CALL  bsolv(Grid,PS,io,wantednodes,irc_io(io))
                else
@@ -2081,21 +2081,21 @@ CONTAINS
 &                       *PAW%phi(2:n,io)
             ENDIF
          ENDDO
-         !write(6,*) 'orthnormalization'
-         !write(6,*) 'start orthogonalization',istart,ifinish
+         !write(std_out,*) 'orthnormalization'
+         !write(std_out,*) 'start orthogonalization',istart,ifinish
          DO ibase=istart,ifinish
             DO jbase=istart,ibase
                IF (jbase.LT.ibase) THEN
                   xx=overlap(Grid,PAW%otp(:,jbase),PAW%otphi(:,ibase),1,irc)
                   yy=overlap(Grid,PAW%otphi(:,jbase),PAW%otp(:,ibase),1,irc)
-                  !write(6,*) 'before',jbase,ibase,xx,yy
+                  !write(std_out,*) 'before',jbase,ibase,xx,yy
                   PAW%ophi(1:n,ibase)=PAW%ophi(1:n,ibase)-PAW%ophi(1:n,jbase)*xx
                   PAW%Kop(1:n,ibase)=PAW%Kop(1:n,ibase)-PAW%Kop(1:n,jbase)*xx
                   PAW%otphi(1:n,ibase)=PAW%otphi(1:n,ibase)-PAW%otphi(1:n,jbase)*xx
                   PAW%otp(1:n,ibase)=PAW%otp(1:n,ibase)-PAW%otp(1:n,jbase)*yy
                ELSE IF (jbase.EQ.ibase) THEN
                   xx=overlap(Grid,PAW%otp(:,ibase),PAW%otphi(:,ibase),1,irc)
-                !write(6,*) 'before',jbase,ibase,xx
+                !write(std_out,*) 'before',jbase,ibase,xx
                   choice=1.d0/SQRT(ABS(xx))
                   PAW%otp(1:n,ibase)=PAW%otp(1:n,ibase)*DSIGN(choice,xx)
                   PAW%otphi(1:n,ibase)=PAW%otphi(1:n,ibase)*choice
@@ -2144,7 +2144,7 @@ CONTAINS
       endif
       ALLOCATE(fakerv(n),f(n),chi(n),tphi(n),tp(n),stat=ok)
       IF (ok /= 0) THEN
-         WRITE(6,*) 'Error in bsolv allocation ', n,ok
+         WRITE(STD_OUT,*) 'Error in bsolv allocation ', n,ok
          STOP
       ENDIF
       tphi=PAW%phi(:,io)
@@ -2168,7 +2168,7 @@ CONTAINS
        ENDDO
       endif
 
-      WRITE(6,*) 'in bsolv -- l, en, n',l,en,wantednodes
+      WRITE(STD_OUT,*) 'in bsolv -- l, en, n',l,en,wantednodes
 
       iter=0
 
@@ -2176,7 +2176,7 @@ CONTAINS
 
          iter=iter+1
 
-         WRITE(6,*) 'bsolv iter cp',iter,cp
+         WRITE(STD_OUT,*) 'bsolv iter cp',iter,cp
 
          fakerv=rv-cp*f*Grid%r
          call zeropot(Grid,fakerv,v0,v0p)
@@ -2188,7 +2188,7 @@ CONTAINS
 
          call forward_numerov(Grid,l,irc+5,en,fakerv,zeroval,chi,nodes)
 
-         WRITE(6,'("iter nodes cp cpmin cpmax",2i5,1p,3e15.7)')&
+         WRITE(STD_OUT,'("iter nodes cp cpmin cpmax",2i5,1p,3e15.7)')&
 &             iter,nodes,cp,cpmin,cpmax
          IF (nodes.EQ.wantednodes) THEN
             tderiv=(Gfirstderiv(Grid,irc,chi))/chi(irc) ! log derivative
@@ -2197,12 +2197,12 @@ CONTAINS
             chi(1:irc)=f(1:irc)*(tp(1:irc))**2
             xnorm=integrator(Grid,chi(1:irc),1,irc)
             del=(tderiv-deriv)/xnorm
-            WRITE(6,*) 'iter nodes del', iter,nodes,del
+            WRITE(STD_OUT,*) 'iter nodes del', iter,nodes,del
 
             IF (ABS(del).LT.small) EXIT
 
             IF (iter.GE.mxiter) THEN
-               WRITE(6,*)' terminating projector',iter
+               WRITE(STD_OUT,*)' terminating projector',iter
                STOP
             ENDIF
 
@@ -2226,7 +2226,7 @@ CONTAINS
       tp(1:irc)=f(1:irc)*tphi(1:irc)
       chi(1:irc)=tphi(1:irc)*tp(1:irc)
       xnorm=integrator(Grid,chi(1:irc),1,irc)
-      WRITE(6,*) 'normalization for projector l,n=',l,nodes,xnorm
+      WRITE(STD_OUT,*) 'normalization for projector l,n=',l,nodes,xnorm
       tp(1:irc)=tp(1:irc)/xnorm
       tp(irc+1:n)=0
 
@@ -2234,7 +2234,7 @@ CONTAINS
       PAW%tp(:,io)=tp
       PAW%ck(io)=cp
 
-      WRITE(6,*) 'completed bsolv',io,cp
+      WRITE(STD_OUT,*) 'completed bsolv',io,cp
 
       DEALLOCATE(fakerv,f,chi,tphi,tp)
     END SUBROUTINE bsolv
@@ -2256,7 +2256,7 @@ CONTAINS
       INTEGER :: i,ib,l,iq,n,irc
       CHARACTER(4) flnm
       !
-      WRITE(6,*) 'calculating Fourier transforms of tp*tphi products  ',&
+      WRITE(STD_OUT,*) 'calculating Fourier transforms of tp*tphi products  ',&
 &          'For bound states only '
 
       n=Grid%n
@@ -2265,7 +2265,7 @@ CONTAINS
       irc=PAW%irc
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
-         WRITE(6,*) 'Error in allocating space in ftprod',n,nq,i
+         WRITE(STD_OUT,*) 'Error in allocating space in ftprod',n,nq,i
          STOP
       ENDIF
 
@@ -2312,7 +2312,7 @@ CONTAINS
       INTEGER :: i,ib,l,iq,n,irc,ll
       CHARACTER(4) flnm
       !
-      WRITE(6,*) 'calculating Fourier transforms of hatpot for  each l '
+      WRITE(STD_OUT,*) 'calculating Fourier transforms of hatpot for  each l '
 
       n=Grid%n
       h=Grid%h
@@ -2320,7 +2320,7 @@ CONTAINS
       irc=PAW%irc
       ALLOCATE(q(nq),dum(n),dum1(n),dum2(n),dum3(n),arg(n),stat=i)
       IF (i/=0) THEN
-         WRITE(6,*) 'Error in allocating space in fthatpot',n,nq,i
+         WRITE(STD_OUT,*) 'Error in allocating space in fthatpot',n,nq,i
          STOP
       ENDIF
 
@@ -2372,7 +2372,7 @@ CONTAINS
       INTEGER :: i,ib,l,iq,n,irc
       CHARACTER(4) flnm
       !
-      WRITE(6,*) 'calculating Fourier transforms of tphi  ',&
+      WRITE(STD_OUT,*) 'calculating Fourier transforms of tphi  ',&
 &          'For bound states only '
 
       n=Grid%n
@@ -2380,7 +2380,7 @@ CONTAINS
       r=>Grid%r
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
-         WRITE(6,*) 'Error in allocating space in ftkin',n,nq,i
+         WRITE(STD_OUT,*) 'Error in allocating space in ftkin',n,nq,i
          STOP
       ENDIF
 
@@ -2427,7 +2427,7 @@ CONTAINS
       INTEGER :: i,ib,l,iq,n,irc
       CHARACTER(4) flnm
       !
-      WRITE(6,*) 'calculating Fourier transforms of vloc and tden'
+      WRITE(STD_OUT,*) 'calculating Fourier transforms of vloc and tden'
 
       n=Grid%n
       h=Grid%h
@@ -2435,7 +2435,7 @@ CONTAINS
       r=>Grid%r
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
-         WRITE(6,*) 'Error in allocating space in ftvloc',n,nq,i
+         WRITE(STD_OUT,*) 'Error in allocating space in ftvloc',n,nq,i
          STOP
       ENDIF
 
@@ -2499,10 +2499,10 @@ CONTAINS
       REAL(8), ALLOCATABLE :: y(:,:),b(:),a(:,:)
 
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc
-      !write(6,*) 'Entering unboundsep with l energy = ', l, energy
+      !write(std_out,*) 'Entering unboundsep with l energy = ', l, energy
 
       IF (nr<irc) THEN
-         WRITE(6,*) 'error in unboundsep -- nr < irc', nr,irc
+         WRITE(STD_OUT,*) 'error in unboundsep -- nr < irc', nr,irc
          STOP
       ENDIF
       !
@@ -2516,7 +2516,7 @@ CONTAINS
 
       ALLOCATE(y(nr,nbase),b(nbase),stat=ib)
       IF (ib/=0) THEN
-         WRITE(6,*) 'Error in unboundsep allocation',  nr,nbase,ib
+         WRITE(STD_OUT,*) 'Error in unboundsep allocation',  nr,nbase,ib
          STOP
       ENDIF
 
@@ -2532,7 +2532,7 @@ CONTAINS
       IF(lcount>0) THEN
          ALLOCATE(a(lcount,lcount),stat=ib)
          IF (ib/=0) THEN
-            WRITE(6,*) 'Error in unboundsep allocation',  lcount,ib
+            WRITE(STD_OUT,*) 'Error in unboundsep allocation',  lcount,ib
             STOP
          ENDIF
 
@@ -2589,7 +2589,7 @@ CONTAINS
       !
       scale=1.d0/sepnorm(Grid,PAW,nr,l,wfn)
       IF (scale.LE.0.d0) THEN
-         WRITE(6,*) 'warning -- negative norm for l=',l
+         WRITE(STD_OUT,*) 'warning -- negative norm for l=',l
          scale=-scale
          IF (scale.EQ.0.d0) scale=1.d0
       ENDIF
@@ -2639,10 +2639,10 @@ CONTAINS
       !
       ALLOCATE(p1(n),u(n),y(n,nbase),b(nbase),stat=ib)
       IF (ib/=0) THEN
-         WRITE(6,*) 'Error in boundsep allocation',  n,nbase,ib
+         WRITE(STD_OUT,*) 'Error in boundsep allocation',  n,nbase,ib
          STOP
       ENDIF
-      !WRITE(6,*) 'in boundsep with ', l,node,energy,emin,emax
+      !WRITE(STD_OUT,*) 'in boundsep with ', l,node,energy,emin,emax
       lcount=0
       DO ib=1,nbase
          IF (l==PAW%l(ib)) THEN
@@ -2653,7 +2653,7 @@ CONTAINS
       IF(lcount>0) THEN
          ALLOCATE(a(lcount,lcount),stat=ib)
          IF (ib/=0) THEN
-            WRITE(6,*) 'Error in boundsep allocation',  lcount,ib
+            WRITE(STD_OUT,*) 'Error in boundsep allocation',  lcount,ib
             STOP
          ENDIF
       ENDIF
@@ -2676,15 +2676,15 @@ CONTAINS
          p1(n)=1
          p1(n-1)=exp(-ppp*(Grid%r(n-1)-Grid%r(n)))
 
-         !write(6,*) 'before backward', n,p1(n-1),p1(n)
-         !write(6,*) 'before backward', x,ppp,exp(-ppp*(Grid%r(n-1)-Grid%r(n)))
-         !write(6,*) 'x,energy', x,energy,ABS(x-energy),SQRT(ABS(x-energy))
-         !call flush_unit(6)
+         !write(std_out,*) 'before backward', n,p1(n-1),p1(n)
+         !write(std_out,*) 'before backward', x,ppp,exp(-ppp*(Grid%r(n-1)-Grid%r(n)))
+         !write(std_out,*) 'x,energy', x,energy,ABS(x-energy),SQRT(ABS(x-energy))
+         !call flush_unit(std_out)
 
          CALL backward_numerov(Grid,l,match-5,energy,Pot%rv,p1)
          rin=Gfirstderiv(Grid,match,p1)/p1(match)
          mmatch=match+1
-         !WRITE(6,*) 'match, rin ' ,match,rin
+         !WRITE(STD_OUT,*) 'match, rin ' ,match,rin
          !
          !  perform outward integration until match point -- it is assumed
          !   that projector functions proj are zero for r>r(match)
@@ -2760,26 +2760,26 @@ CONTAINS
          ENDIF
 
          rout=Gfirstderiv(Grid,match,wfn)/wfn(match)
-         !WRITE(6,'("node,match,rin,rout",2i8,1p,2e15.7)') node1,match,rin,rout
+         !WRITE(STD_OUT,'("node,match,rin,rout",2i8,1p,2e15.7)') node1,match,rin,rout
          !   -- estimate correction
          node1=0
          wfn(:)=wfn(:)/wfn(match)
          DO j=3,match
                IF (wfn(j)*wfn(j-1).LT.0.d0) node1=node1+1
          ENDDO
-         !WRITE(6,*) 'actual number of nodes', node1
+         !WRITE(STD_OUT,*) 'actual number of nodes', node1
 
 !This test is obsolete: pseudo-WFs do not have to be orthogonal
 !          IF (node1<node) THEN
 !             ! too few nodes -- raise energy
 !             emin=MAX(energy+err,emin)
 !             energy=emax-(emax-energy)*ranx()
-!             !WRITE(6,*) 'too few nodes -- energy raised', energy,emin,emax
+!             !WRITE(STD_OUT,*) 'too few nodes -- energy raised', energy,emin,emax
 !          ELSEIF (node1>node) THEN
 !             ! too many nodes -- lower energy
 !             emax=MIN(energy-err,emax)
 !             energy=emin+(energy-emin)*ranx()
-!             !WRITE(6,*) 'too many nodes -- energy lowered', energy,emin,emax
+!             !WRITE(STD_OUT,*) 'too many nodes -- energy lowered', energy,emin,emax
 !             !do i=1,mmatch
 !             !write(200+iter,'(1p,7e15.7)')Grid%r(i),wfn(i)
 !             !enddo
@@ -2790,7 +2790,7 @@ CONTAINS
             !  normalization
             scale=1.d0/sepnorm(Grid,PAW,n,l,wfn)
             dele=(rout-rin)*scale
-            !WRITE(6,*) 'dele,scale',dele,scale
+            !WRITE(STD_OUT,*) 'dele,scale',dele,scale
             scale=SQRT(scale)
             wfn=scale*wfn
 
@@ -2805,18 +2805,18 @@ CONTAINS
             ENDIF
             IF (ABS(dele).LE.convre) EXIT
             energy=energy+dele
-            !WRITE(6,*) 'next energy' , energy,dele
+            !WRITE(STD_OUT,*) 'next energy' , energy,dele
             ! if energy is out of range, pick random energy in correct range
             IF (emin-energy.GT.convre.OR.energy-emax.GT.convre) THEN
                energy=emin+(emax-emin)*ranx()+err
-            !   WRITE(6,*) 'energy out of range -- reranged --', energy
+            !   WRITE(STD_OUT,*) 'energy out of range -- reranged --', energy
             ENDIF
 !          ENDIF
          iter=iter+1
-         !WRITE(6,*) 'Energy for next iteration ', iter,energy
+         !WRITE(STD_OUT,*) 'Energy for next iteration ', iter,energy
          IF (iter.GT.niter) THEN
-            WRITE(6,*) 'no convergence in boundsep',l,dele,energy
-            WRITE(6,*) ' best guess of eig, dele = ',energy0,best
+            WRITE(STD_OUT,*) 'no convergence in boundsep',l,dele,energy
+            WRITE(STD_OUT,*) ' best guess of eig, dele = ',energy0,best
             STOP
          ENDIF
       ENDDO
@@ -2826,13 +2826,13 @@ CONTAINS
       CALL filter(n,wfn,1.d-11)
       scale=1.d0/sepnorm(Grid,PAW,n,l,wfn)
       IF (scale.LE.0.d0) THEN
-         WRITE(6,*) 'warning -- negative norm for l=',l
+         WRITE(STD_OUT,*) 'warning -- negative norm for l=',l
          scale=-scale
          IF (scale.EQ.0.d0) scale=1.d0
       ENDIF
       scale=DSIGN(SQRT(scale),wfn(n-2))
       wfn(1:n)=wfn(1:n)*scale
-      !WRITE(6,*) 'exiting boundsep with energy ', l,energy
+      !WRITE(STD_OUT,*) 'exiting boundsep with energy ', l,energy
       DEALLOCATE(a,b,y,u,p1)
     END SUBROUTINE boundsep
 
@@ -2855,7 +2855,7 @@ CONTAINS
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc
 
       IF (nr<irc) THEN
-         WRITE(6,*) 'error in PStoAE  -- nr < irc', nr,irc
+         WRITE(STD_OUT,*) 'error in PStoAE  -- nr < irc', nr,irc
          STOP
       ENDIF
 
@@ -2893,7 +2893,7 @@ CONTAINS
                CALL altdtij(Grid,PAW,ib,ic,PAW%dij(ib,ic))
                CALL avij(Grid,PAW,ib,ic,x)
                PAW%dij(ib,ic)=PAW%dij(ib,ic)+x
-             write(6,'(2i5, 1p,3e17.8)') ib,ic,PAW%oij(ib,ic),PAW%dij(ib,ic),x
+             write(std_out,'(2i5, 1p,3e17.8)') ib,ic,PAW%oij(ib,ic),PAW%dij(ib,ic),x
              Endif
          enddo
       enddo
@@ -2915,12 +2915,12 @@ CONTAINS
       DEALLOCATE(wij)
 
       if (.not.Check_overlap_of_projectors(Grid,PAW,ifen)) then
-         write(6,*) "The overlap operator has at leat one negative eigenvalue!"
-         write(6,*) "It might be not positive definite..."
-         write(6,*) "Program is stopping."
-         write(6,*) "This probably means that your projectors are too similar"
-         write(6,*) "or that your PAW basis is incomplete."
-         write(6,*) "Advice: try to change your input parameters (f.i. : reference energies)."
+         write(std_out,*) "The overlap operator has at leat one negative eigenvalue!"
+         write(std_out,*) "It might be not positive definite..."
+         write(std_out,*) "Program is stopping."
+         write(std_out,*) "This probably means that your projectors are too similar"
+         write(std_out,*) "or that your PAW basis is incomplete."
+         write(std_out,*) "Advice: try to change your input parameters (f.i. : reference energies)."
          stop
       end if
 
@@ -2989,28 +2989,28 @@ CONTAINS
 
       allocate(eig(nbase),work(4*nbase))
       call DSYEV('N','U',nbase,ovlp,nbase,eig,work,4*nbase,info)
-      write(6,'(" Completed diagonalization of ovlp with info = ", i8)')info
+      write(std_out,'(" Completed diagonalization of ovlp with info = ", i8)')info
       write(ifen,'(" Completed diagonalization of ovlp with info = ", i8)')info
        if (info==0) then
-         write(6,*) " "
-         write(6,*) "Eigenvalues of overlap operator (in the basis of projectors):"
+         write(std_out,*) " "
+         write(std_out,*) "Eigenvalues of overlap operator (in the basis of projectors):"
          write(ifen,*) " "
          write(ifen,*) "Eigenvalues of overlap operator (in the basis of projectors):"
          do i=1,nbase
-            write(6,'( i5,5x,1p,1e17.8)') i,eig(i)
+            write(std_out,'( i5,5x,1p,1e17.8)') i,eig(i)
             write(ifen,'( i5,5x,1p,1e17.8)') i,eig(i)
             if (eig(i)<tol) Check_overlap_of_projectors=.false.
          enddo
         else
-          write(6,*) 'Stopping due to failure of ovlp diagonalization'
+          write(std_out,*) 'Stopping due to failure of ovlp diagonalization'
           write(ifen,*) 'Stopping due to failure of ovlp diagonalization'
           stop
        endif       
-      write(6,*) " "
+      write(std_out,*) " "
       write(ifen,*) " "
 
 !      do i=1,nbase
-!        write(6,*) i,wr(i)
+!        write(std_out,*) i,wr(i)
 !        if (wr(i)<tol) Check_overlap_of_projectors=.false.
 !      end do
 
@@ -3051,7 +3051,7 @@ CONTAINS
 
       ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),stat=ie)
       IF (ie/=0) THEN
-         WRITE(6,*) 'Error in logderiv allocation',n,ie
+         WRITE(STD_OUT,*) 'Error in logderiv allocation',n,ie
          STOP
       ENDIF
 
@@ -3061,7 +3061,7 @@ CONTAINS
       !
       !   calculate logderivatives at irc
       !
-      WRITE(6,*) 'calculating log derivatives at irc',Grid%r(irc)
+      WRITE(STD_OUT,*) 'calculating log derivatives at irc',Grid%r(irc)
       !
       de=(maxlogderiv-minlogderiv)/dble(nlogderiv-1)
       ke=1+anint((e0-minlogderiv)/de)
@@ -3162,7 +3162,7 @@ CONTAINS
       CALL FillHat(Grid,PAW)
 
       if (Vlocalindex == SETVLOC) then
-         write(6,*) 'Vloc == VlocCoef*shapefunc  '
+         write(std_out,*) 'Vloc == VlocCoef*shapefunc  '
          return
       endif
 
@@ -3206,13 +3206,13 @@ CONTAINS
 
       d=PAW%core-PAW%tcore
       q00=0.5d0*PAW%AErefrv(1)+integrator(Grid,d)
-      write(6,*) 'nucleus and core q00 ', q00
+      write(std_out,*) 'nucleus and core q00 ', q00
       do ib=1,nbase
          do ic=1,nbase
             q00=q00+PAW%wij(ib,ic)*PAW%oij(ib,ic)
          enddo
       enddo
-      write(6,*) 'Complete q00 ', q00
+      write(std_out,*) 'Complete q00 ', q00
 
       dv=dv+q00*PAW%hatpot
       If (TRIM(PAW%exctype)=='EXX') THEN
@@ -3220,7 +3220,7 @@ CONTAINS
         PAW%trvx=dvx
         dv=dv+dvx
       ELSEIf (TRIM(PAW%exctype)=='EXXKLI') THEN
-        write(6,*) 'before EXX_pseudo'; call flush_unit(6)
+        write(std_out,*) 'before EXX_pseudo'; call flush_unit(std_out)
         CALL EXXKLI_pseudoVx(Grid,PAW,dvx)
         PAW%trvx=dvx
         dv=dv+dvx
@@ -3239,7 +3239,7 @@ CONTAINS
          PAW%vloc(i)=(PAW%rveff(i)-dv(i))/r(i)
          IF (i>=irc) rat=rat+ABS(PAW%vloc(i))
       ENDDO
-      WRITE(6,*) 'Error in vloc -- ',rat
+      WRITE(STD_OUT,*) 'Error in vloc -- ',rat
       call extrapolate(Grid,PAW%vloc)
       PAW%vloc(irc:n)=0.d0
 
@@ -3256,7 +3256,7 @@ CONTAINS
 
       d=PAW%den-PAW%tden
       tq=integrator(Grid,d,1,irc)
-      write(6,*) ' abinit tq = ', tq
+      write(std_out,*) ' abinit tq = ', tq
 
 !     Compute VH(tDEN+hatDEN)
       d=PAW%tden+tq*PAW%hatden
@@ -3344,24 +3344,24 @@ CONTAINS
      REAL(8), ALLOCATABLE :: orbit_mod_occ(:)
 
      AEO=>PAW%OCCWFN;     PSO=>PAW%TOCCWFN
-     WRITE(6,*) 'Current occupancies:'
+     WRITE(STD_OUT,*) 'Current occupancies:'
      IF (.NOT.diracrelativistic) THEN
-       WRITE(6,*) ' n l   occupancy        energy    '
+       WRITE(STD_OUT,*) ' n l   occupancy        energy    '
      ELSE
-       WRITE(6,*) ' n l kap   occupancy        energy    '
+       WRITE(STD_OUT,*) ' n l kap   occupancy        energy    '
      ENDIF
      DO io=1,PSO%norbit
          IF (.NOT.PSO%iscore(io)) THEN
              IF (.NOT.diracrelativistic) THEN
-               WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+               WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                   PSO%l(io),PSO%occ(io), PSO%eig(io)
              ELSE
-               WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+               WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                   PSO%l(io),PSO%kappa(io),PSO%occ(io), PSO%eig(io)
              ENDIF
              if (firsttime==0) then
                 ib=PAW%valencemap(io)
-                write(6,*) 'Setting pseudo orbital ', io,ib
+                write(std_out,*) 'Setting pseudo orbital ', io,ib
                 PSO%wfn(:,io)=PAW%tphi(:,ib)
              endif
          ENDIF
@@ -3379,7 +3379,7 @@ CONTAINS
           IF (orbit_mod_n(jo)==PSO%np(io).AND.orbit_mod_l(jo)==PSO%l(io).AND.&
 &             ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==PSO%kappa(io))) THEN
              IF (PSO%iscore(io)) THEN
-                 write(6,*) 'Core orbitals cannot be changed',&
+                 write(std_out,*) 'Core orbitals cannot be changed',&
                  &  orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo)
                  stop
              endif
@@ -3388,7 +3388,7 @@ CONTAINS
           ENDIF
        ENDDO
        IF (nfix.LE.0) THEN
-          WRITE(6,*) 'error in occupations -- ip,l,xocc', &
+          WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc', &
 &             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix
           STOP
        ENDIF
@@ -3400,14 +3400,14 @@ CONTAINS
      DEALLOCATE(orbit_mod_k)
      DEALLOCATE(orbit_mod_occ)
 
-     WRITE(6,*) 'New configuration:'
+     WRITE(STD_OUT,*) 'New configuration:'
      DO io=1,PSO%norbit
         If (.NOT.PSO%iscore(io)) then
            IF (.NOT.diracrelativistic) THEN
-             WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+             WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                  PSO%l(io),PSO%occ(io)
            ELSE
-             WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+             WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                  PSO%l(io),PSO%kappa(io),PSO%occ(io)
            END IF
         Endif
@@ -3420,40 +3420,40 @@ CONTAINS
         else
            call PAWIter_LDA(Grid,PAW,mix,err0,err,success)
         endif
-        write(6,*)  '--Results for Iter -- ', loop
+        write(std_out,*)  '--Results for Iter -- ', loop
         IF (.NOT.diracrelativistic) THEN
-          write(6,*)  '  n   l   occupancy          energy    '
+          write(std_out,*)  '  n   l   occupancy          energy    '
           do io=1,PSO%norbit
              If (.NOT.PSO%iscore(io)) then
-                WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+                WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                      PSO%l(io),PSO%occ(io),PSO%eig(io)
              endif
           enddo
         ELSE
-          write(6,*)  '  n   l kap   occupancy          energy    '
+          write(std_out,*)  '  n   l kap   occupancy          energy    '
           do io=1,PSO%norbit
              If (.NOT.PSO%iscore(io)) then
-                WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+                WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                      PSO%l(io),PSO%kappa(io),PSO%occ(io),PSO%eig(io)
              endif
           enddo
         END IF
         IF (success) then
-           WRITE(6,*) ' PS wfn iteration converged ', loop
-           write(6,*)  '--Results for Iter -- ', loop
+           WRITE(STD_OUT,*) ' PS wfn iteration converged ', loop
+           write(std_out,*)  '--Results for Iter -- ', loop
            IF (.NOT.diracrelativistic) THEN
-             write(6,*)  '  n   l   occupancy          energy    '
+             write(std_out,*)  '  n   l   occupancy          energy    '
              do io=1,PSO%norbit
                 If (.NOT.PSO%iscore(io)) then
-                   WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
+                   WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                         PSO%l(io),PSO%occ(io),PSO%eig(io)
                 endif
              enddo
            ELSE
-             write(6,*)  '  n   l kap   occupancy          energy    '
+             write(std_out,*)  '  n   l kap   occupancy          energy    '
              do io=1,PSO%norbit
                 If (.NOT.PSO%iscore(io)) then
-                   WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
+                   WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') PSO%np(io),&
 &                         PSO%l(io),PSO%kappa(io),PSO%occ(io),PSO%eig(io)
                 endif
              enddo
@@ -3518,13 +3518,13 @@ CONTAINS
                if (PSO%l(jo)==PSO%l(io).and..not.PSO%iscore(jo)) then
                      call genOrthog(Grid,PAW,n,PSO%l(io),&
 &                        PSO%wfn(:,io),PSO%wfn(:,jo))
-                     write(6,*) 'orthog', io,jo
+                     write(std_out,*) 'orthog', io,jo
                endif
             enddo
          x=genoverlap(Grid,PAW,n,PSO%l(io),PSO%wfn(:,io),PSO%wfn(:,io))
          PSO%wfn(:,io)=PSO%wfn(:,io)/sqrt(x)
          CALL ADJUSTSIGN(PSO%wfn(:,io),3)
-         write(6,*) 'normalize ', io, x
+         write(std_out,*) 'normalize ', io, x
          nocc=nocc+1
          tmap(nocc)=io
          endif
@@ -3537,7 +3537,7 @@ CONTAINS
          do ib=1,PAW%nbase
             if (l==PAW%l(ib)) then
                o(io,ib)=overlap(Grid,PSO%wfn(:,io),PAW%otp(:,ib),1,irc)
-                write(6,'("<p|psi> ", 2i5,1p,e15.7)') io,ib,o(io,ib)
+                write(std_out,'("<p|psi> ", 2i5,1p,e15.7)') io,ib,o(io,ib)
             endif
          enddo
       enddo
@@ -3553,7 +3553,7 @@ CONTAINS
             call kinetic_ij(Grid,PSO%wfn(:,io),PSO%wfn(:,io),l,y)
             PAW%tkin= PAW%tkin + occ*y
             PSO%eig(io)=y
-            write(6,*) 'Kinetic ',io,y
+            write(std_out,*) 'Kinetic ',io,y
             do ib=1,PAW%nbase
                do jb=1,PAW%nbase
                   if (PAW%l(ib)==l.and.PAW%l(jb)==l) then
@@ -3567,10 +3567,10 @@ CONTAINS
         aden=PAW%tden+x*PAW%g(:,1)
         arg=0; arg(2:n)=(aden(2:n)*PAW%hatpot(2:n))/Grid%r(2:n)
         v0term=integrator(Grid,arg)
-        write(6,*) 'v0term, aden', v0term,integrator(Grid,aden)
+        write(std_out,*) 'v0term, aden', v0term,integrator(Grid,aden)
 
         call poisson(Grid,q,aden,rhs,x)
-        write(6,*) 'PAW poisson ', q,x
+        write(std_out,*) 'PAW poisson ', q,x
         PAW%tvale=x
         arg=0; arg(2:n)=PAW%rtVf(2:n)/Grid%r(2:n)
         PAW%tion=overlap(Grid,arg,PAW%tden)
@@ -3585,7 +3585,7 @@ CONTAINS
            arg=rv*(PSO%wfn(:,io)**2);
            arg(1)=0; arg(2:n)=arg(2:n)/Grid%r(2:n)
            x=integrator(Grid,arg)
-           write(6,*) ' potential term ',io, x
+           write(std_out,*) ' potential term ',io, x
            PSO%eig(io)=PSO%eig(io)+x
         enddo
 
@@ -3622,20 +3622,20 @@ CONTAINS
          enddo
       enddo
 
-      Write(6,*) 'Before EXC ', PAW%Ea
+      Write(STD_OUT,*) 'Before EXC ', PAW%Ea
       irc=PAW%irc
          call exch(Grid,arg,v1,x,y,fin=irc)
-      PAW%Ea=PAW%Ea+y  ; write(6,*) 'AE EXC ' ,y
+      PAW%Ea=PAW%Ea+y  ; write(std_out,*) 'AE EXC ' ,y
          call exch(Grid,rhs,v2,x,y,fin=irc)
-      PAW%Ea=PAW%Ea-y  ; write(6,*) 'PS EXC ' ,y
+      PAW%Ea=PAW%Ea-y  ; write(std_out,*) 'PS EXC ' ,y
 
       PAW%Etotal=PAW%tkin+PAW%tion+PAW%tvale+PAW%txc+PAW%Ea
-      Write(6,*) '*******Total energy*********', PAW%Etotal
-      Write(6,*) 'PAW%tkin                    ',PAW%tkin
-      Write(6,*) 'PAW%tion                    ',PAW%tion
-      Write(6,*) 'PAW%tvale                   ',PAW%tvale
-      Write(6,*) 'PAW%txc                     ',PAW%txc
-      Write(6,*) 'PAW%Ea                      ',PAW%Ea
+      Write(STD_OUT,*) '*******Total energy*********', PAW%Etotal
+      Write(STD_OUT,*) 'PAW%tkin                    ',PAW%tkin
+      Write(STD_OUT,*) 'PAW%tion                    ',PAW%tion
+      Write(STD_OUT,*) 'PAW%tvale                   ',PAW%tvale
+      Write(STD_OUT,*) 'PAW%txc                     ',PAW%txc
+      Write(STD_OUT,*) 'PAW%Ea                      ',PAW%Ea
 
       do ib=1,PAW%nbase
          do jb=1,PAW%nbase
@@ -3653,7 +3653,7 @@ CONTAINS
      ! complete estimate of PSO%eig(io)
      do k=1,nocc
         io=tmap(k); l=PSO%l(io)
-         write(6,*) 'Eig before dij ', PSO%eig(io)
+         write(std_out,*) 'Eig before dij ', PSO%eig(io)
            do ib=1,PAW%nbase
               do jb=1,PAW%nbase
                  if (PAW%l(ib)==l.and.PAW%l(jb)==l) then
@@ -3661,7 +3661,7 @@ CONTAINS
                  endif
               enddo
            enddo
-         write(6,*) 'Eig after dij ', PSO%eig(io)
+         write(std_out,*) 'Eig after dij ', PSO%eig(io)
       enddo
 
     ! Solve inhomogeneous diffeq. and store result in tmpOrbit
@@ -3689,12 +3689,12 @@ CONTAINS
           !enddo
     enddo
 
-    write(6,*) 'PAWIter ', fcount,err
+    write(std_out,*) 'PAWIter ', fcount,err
        ! update wfn if tolerance not satisfied
        IF (err>err0) THEN
           mix1=MAX(mix,mix/err)
           val=(1.d0-mix1)
-          WRITE(6,*) 'mixing wfns ', val
+          WRITE(STD_OUT,*) 'mixing wfns ', val
           DO k=1,nocc
              io=tmap(k)
                 PSO%wfn(:,io)=val*PSO%wfn(:,io)+mix1*tmpOrbit%wfn(:,io)
@@ -3747,15 +3747,15 @@ CONTAINS
      Type (rcresults), POINTER :: rcsummary(:)
 
      success=.true.
-     write(6,*) 'Input the number of PAW parameter sets in this run'
-     READ(5,'(a)') inputline
+     write(std_out,*) 'Input the number of PAW parameter sets in this run'
+     READ(STD_IN,'(a)') inputline
      read(inputline,*) ndata,nrcs
      if (ndata>9999) then
-          write(6,*) 'Error : ndata must be <= 9999', ndata
+          write(std_out,*) 'Error : ndata must be <= 9999', ndata
           stop
      endif        
      if (nrcs<1.or.nrcs>9999) then
-          write(6,*) 'Error : nrcs must be <= 9999 and >=1', nrcs
+          write(std_out,*) 'Error : nrcs must be <= 9999 and >=1', nrcs
           stop
      endif        
 
@@ -3771,7 +3771,7 @@ CONTAINS
      allocate(logderiverror(6,ndata))         ! 6 represents the max l+1
      logderiverror=9.d20
 
-     write(6,*) 'Begin explore runs'
+     write(std_out,*) 'Begin explore runs'
      OPEN(20,file='EXPLORERESULTS',form='formatted')
      OPEN(21,file='EXPLORESUMMARY',form='formatted')
      write(20,'("#dataset","    rc       ",6(2x,i3,10x))') (l,l=0,PAW%lmax+1)
@@ -3783,7 +3783,7 @@ CONTAINS
 
      ircs=0; thisrc=-1
      do i=1,ndata
-        write(6,*) '===================== #',i,'=================='
+        write(std_out,*) '===================== #',i,'=================='
         call mkname(i,fdata)
         OPEN(ifen, file='EXPLOREout.'//TRIM(fdata), form='formatted')
 
@@ -3821,7 +3821,7 @@ CONTAINS
            rcsummary(ircs)%rc=thisrc
            rcsummary(ircs)%endindex=i
         endif        
-           write(6,*) 'test ', i,ircs, rcsummary(ircs)%beginindex,&
+           write(std_out,*) 'test ', i,ircs, rcsummary(ircs)%beginindex,&
 &             rcsummary(ircs)%endindex          
 
      enddo
@@ -3829,16 +3829,16 @@ CONTAINS
 !    Restore input dataset
      CALL input_dataset_copy(backup_dataset,input_dataset)
     
-     Write(6,*) 'Results for minimum logderiverror'
+     Write(STD_OUT,*) 'Results for minimum logderiverror'
      Write(21,*) 'Results for minimum logderiverror'
      Do ircs=1,nrcs
-        write(6,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
+        write(std_out,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
         write(21,'( "=== Rc = ", f20.6, " ====")') rcsummary(ircs)%rc
         j=rcsummary(ircs)%beginindex
         k=rcsummary(ircs)%endindex
         Do l=0,PAW%lmax+1
            i=MINLOC(logderiverror(l+1,j:k),1)+j-1
-           Write(6,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
+           Write(STD_OUT,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
            Write(21,'(" l =", i5,2x, i6, 1pe15.7)') l,i,logderiverror(l+1,i)
         enddo  
      enddo   
@@ -3877,7 +3877,7 @@ CONTAINS
 
       ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),stat=ie)
       IF (ie/=0) THEN
-         WRITE(6,*) 'Error in logderiv allocation',n,ie
+         WRITE(STD_OUT,*) 'Error in logderiv allocation',n,ie
          STOP
       ENDIF
 
@@ -3887,10 +3887,10 @@ CONTAINS
       !
       !   calculate logderivatives at irc
       !
-      WRITE(6,*) 'calculating log derivatives at irc',Grid%r(irc)
+      WRITE(STD_OUT,*) 'calculating log derivatives at irc',Grid%r(irc)
       !
       mbase=nbase; irc=PAW%irc
-      write(6,*) 'Nodes counted to radius ', Grid%r(irc)
+      write(std_out,*) 'Nodes counted to radius ', Grid%r(irc)
       DO l=0,PAW%lmax+1
          OK=.true.
          If (l<=PAW%lmax) then
@@ -3899,7 +3899,7 @@ CONTAINS
                 nodes=countnodes(2,irc,PAW%ophi(:,ib))
                 if (nodes/=PAW%nodes(ib).and.PAW%eig(ib)>0) then
                    lderror(l+1)=9.d20 
-                   write(6,*) 'Warning node problems for case ', l,ib,&
+                   write(std_out,*) 'Warning node problems for case ', l,ib,&
 &                     nodes,PAW%nodes(ib) 
                    OK=.false.
                    exit Basislist

@@ -342,7 +342,7 @@ CONTAINS
        AC%res=err
        if (err<AC%toosmall) THEN
              If(AC%writelots)&
-&             WRITE(6,&
+&             WRITE(STD_OUT,&
 &         '("AndersonMix converged in ",i5," iterations with err = ",1p,1e15.7)')&
 &              i, err
           EXIT
@@ -356,20 +356,20 @@ CONTAINS
              !
              success=.TRUE.
              If(AC%writelots)&
-&              WRITE(6,&
+&              WRITE(STD_OUT,&
 &         '("AndersonMix converged in ",i5," iterations with err = ",1p,1e15.7)')&
 &              i, err
              EXIT
           ENDIF
        ENDIF
-       If(AC%writelots)WRITE(6,'("AndersonMixIter ",i7,2x,1p,2e20.12)') i,E,err
+       If(AC%writelots)WRITE(STD_OUT,'("AndersonMixIter ",i7,2x,1p,2e20.12)') i,E,err
        IF (.NOT.OK) THEN
           CALL Anderson_ResetMix(AC)
           IF (i>1) THEN
              w=tmp
              AC%NewMix=MAX(0.00001d0,AC%NewMix/2)
              IF (AC%NewMix<=0.00001d0) THEN
-                WRITE(6,*) 'Sorry -- this is not working '
+                WRITE(STD_OUT,*) 'Sorry -- this is not working '
                 STOP
              ENDIF
           ENDIF
@@ -378,7 +378,7 @@ CONTAINS
        ENDIF
        tmp=w
        CALL Anderson_Mix(AC,w,residue)
-       !WRITE(6,*) 'Returning from AM with ', i,OK,AC%NewMix
+       !WRITE(STD_OUT,*) 'Returning from AM with ', i,OK,AC%NewMix
     ENDDO
 
     DEALLOCATE(residue,tmp)

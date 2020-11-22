@@ -224,10 +224,10 @@ Module XMLInterface
  endif
  !!! test for positive  pseudo core + nhat 
    if (vlocopt==1.and..not.PAW%poscorenhat) then 
-     write(6,*) ' Detected negative values for pseudo core + nhat '
-     write(6,*)  '  which is incompatible with usexcnhat '
-     write(6,*)  ' Please try reducing rc_core '
-     write(6,*)  ' xml file not created '
+     write(std_out,*) ' Detected negative values for pseudo core + nhat '
+     write(std_out,*)  '  which is incompatible with usexcnhat '
+     write(std_out,*)  ' Please try reducing rc_core '
+     write(std_out,*)  ' xml file not created '
      return
    endif
  if (vlocopt==2) then
@@ -720,7 +720,7 @@ Module XMLInterface
    end if
  end do
  if (.not.found) then
-   write(6,'(/,2x,a)') 'Error in LDA-1/2 configuration: LDA-1/2 potential computation aborted!'
+   write(std_out,'(/,2x,a)') 'Error in LDA-1/2 configuration: LDA-1/2 potential computation aborted!'
  else
 
 !  Compute new AE atomic data
@@ -1204,11 +1204,11 @@ Module XMLInterface
    WRITE(unit_xml,'(3(1x,es23.16))') (proj_aux(ii,ib),ii=meshst_aux,meshsz_aux)
    WRITE(unit_xml,'("</projector_function>")')
    !do ic=1,PAW%nbase
-   !  write(6,*) "splined", ib,ic
+   !  write(std_out,*) "splined", ib,ic
    !  dum(meshst_aux:meshsz_aux)=tphi_aux(meshst_aux:meshsz_aux,ib)*proj_aux(meshst_aux:meshsz_aux,ic)*dudr(meshst_aux:meshsz_aux)
    !  dum(meshst_aux:meshsz_aux)=dum(meshst_aux:meshsz_aux)*rad_aux(meshst_aux:meshsz_aux)*rad_aux(meshst_aux:meshsz_aux)
    !  xx=overint(meshsz_aux-meshst_aux+1,logstp0,dum(meshst_aux:meshsz_aux),-1)
-   !  write(6,*) "ORTHO", ib,xx/logstp0
+   !  write(std_out,*) "ORTHO", ib,xx/logstp0
    !end do
  Enddo
 !-- Release memory

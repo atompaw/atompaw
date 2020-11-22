@@ -51,7 +51,7 @@ CONTAINS
    n=Grid%n
    allocate(ww(n),jj(n), stat=i)
    if (i/=0) then
-      write(6,*)  'Allocate_Dirac_relativistic: error in allocation ',i,n
+      write(std_out,*)  'Allocate_Dirac_relativistic: error in allocation ',i,n
       stop
    endif
 
@@ -106,7 +106,7 @@ CONTAINS
       B1=-(y*(2*(s+kappa)+energy-Pot%v0))/z
 
    else  ! version for finite nuclear size
-           write(6,*) 'Dirac case not yet programmed for finite nucleus'
+           write(std_out,*) 'Dirac case not yet programmed for finite nucleus'
            stop
    endif        
 
@@ -128,7 +128,7 @@ CONTAINS
 
     wfn=0; lwfn=0
 
-    !write(6,*) 'Entering wfnDinit with s =', kappa,s
+    !write(std_out,*) 'Entering wfnDinit with s =', kappa,s
     istart=6
     do i=1,istart
        rr=Grid%r(i+1)
@@ -137,7 +137,7 @@ CONTAINS
           lwfn(i+1)=(rr**s)*(B0+B1*rr)
 
        else   ! finite nucleus case
-               write(6,*) 'Dirac case not programmed for finite nucleus'
+               write(std_out,*) 'Dirac case not programmed for finite nucleus'
                STOP
        endif
 
@@ -157,7 +157,7 @@ CONTAINS
     INTEGER :: i,j,n
 
     if (energy>0.d0) then
-       write(6,*) 'Error in wfnDasym -- energy > 0', energy
+       write(std_out,*) 'Error in wfnDasym -- energy > 0', energy
        stop
     endif
 
@@ -203,7 +203,7 @@ CONTAINS
 
     n=Grid%n
     IF (nr > n) THEN
-       WRITE(6,*) 'Error in unboundD -- nr > n', nr,n
+       WRITE(STD_OUT,*) 'Error in unboundD -- nr > n', nr,n
        STOP
     ENDIF
 
@@ -211,7 +211,7 @@ CONTAINS
 
     allocate(zz(2,2,nr),yy(2,nr),stat=ierr)
        if (ierr/=0) then
-          write(6,*) ' allocation error in unboundD ', nr,ierr
+          write(std_out,*) ' allocation error in unboundD ', nr,ierr
           stop
        endif
 
@@ -298,14 +298,14 @@ CONTAINS
 
     ALLOCATE(p1(n),lp1(n),p2(n),lp2(n),dd(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) ' Error in boundD allocation ',i,n
+       WRITE(STD_OUT,*) ' Error in boundD allocation ',i,n
        STOP
     ENDIF
 
     success=.true.
     allocate(zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
-          write(6,*) ' allocation error in boundD ', n,i
+          write(std_out,*) ' allocation error in boundD ', n,i
           stop
        endif
 
@@ -319,7 +319,7 @@ CONTAINS
     IF (nz>0.001d0) convrez=convre*nz
     ierr=0
 
-    WRITE(6,*) 'z ,kappa, l = ',nz,kappa,l
+    WRITE(STD_OUT,*) 'z ,kappa, l = ',nz,kappa,l
     ! check how many roots expected by integration outward at
     !   energy = 0
     energy = 0
@@ -333,13 +333,13 @@ CONTAINS
     call getwfnfromcfdsolD(1,n,yy,p1,lp1)
     node=countnodes(2,n,p1)
 
-    WRITE(6,*) ' nodes at e=0  ', node
+    WRITE(STD_OUT,*) ' nodes at e=0  ', node
 
     mxroot=node+1
     ntroot=node
     IF (mxroot.LT.nroot) THEN
-       WRITE(6,*)'error in boundD - for l = ',l
-       WRITE(6,*) nroot,' states requested but only',mxroot,' possible'
+       WRITE(STD_OUT,*)'error in boundD - for l = ',l
+       WRITE(STD_OUT,*) nroot,' states requested but only',mxroot,' possible'
        DO ir=mxroot+1,nroot
           ierr=ierr+9*(10**(ir-1))
        ENDDO
@@ -358,10 +358,10 @@ CONTAINS
        IF (energy.LT.emin) energy=emin
        IF (energy.GT.emax) energy=emax
        ok=.FALSE.
-       !write(6,*) 'iter,iroot,energy',iter,iroot,energy
-       !write(6,*) 'emin,max',emin,emax
+       !write(std_out,*) 'iter,iroot,energy',iter,iroot,energy
+       !write(std_out,*) 'emin,max',emin,emax
        BigIter: DO iter=1,niter
-          !write(6,*) 'In iter with energy', iter,energy,niter,l,iroot
+          !write(std_out,*) 'In iter with energy', iter,energy,niter,l,iroot
           !  start inward integration
           !  start integration at n
           call Dzeroexpand(Grid,Pot,kappa,energy)
@@ -396,7 +396,7 @@ CONTAINS
           ELSEIF (node.GT.iroot-1) THEN
              IF (energy.LE.emin) THEN
                 ierr=ierr+9*(10**(iroot-1))
-                WRITE(6,*) 'boundD error -- emin too high',l,nz,emin,energy
+                WRITE(STD_OUT,*) 'boundD error -- emin too high',l,nz,emin,energy
                 do i=2,n
                    write(999,'(1p,4e15.7)') Grid%r(i),jj(i),ww(i),Pot%rv(i)
                 enddo
@@ -409,16 +409,16 @@ CONTAINS
              DO j=1,match
                 p1(j)=p1(j)/p1(match)
                 lp1(j)=ftr*lp1(j)/p1(match)
-                   !if (j>match-3)   write(6,*) 'j,p1',j,p1(j),lp1(j)
+                   !if (j>match-3)   write(std_out,*) 'j,p1',j,p1(j),lp1(j)
              ENDDO
              DO j=match,n
                 p1(j)=p2(j)/p2(match)
                 lp1(j)=ftr*lp2(j)/p2(match)
-                  !if (j<match+3)  write(6,*) 'j,p2',j,p1(j),lp1(j)
+                  !if (j<match+3)  write(std_out,*) 'j,p2',j,p1(j),lp1(j)
              ENDDO
              scale=overlap(Grid,p1,p1)+overlap(Grid,lp1,lp1)
              dele=(rout-rin)/scale
-                  !write(6,*) 'energy,dele,scale',energy,dele,scale
+                  !write(std_out,*) 'energy,dele,scale',energy,dele,scale
              x=ABS(dele)
              IF (x.LT.best) THEN
                 scale=1.d0/SQRT(scale)
@@ -429,11 +429,11 @@ CONTAINS
                 wfn(1:n,iroot)=p1(1:n)
                 lwfn(1:n,iroot)=lp1(1:n)
                 eig(iroot)=energy
-                !write(6,*) 'root',l,iroot,eig(iroot),emin,emax
+                !write(std_out,*) 'root',l,iroot,eig(iroot),emin,emax
                 best=x
              ENDIF
              IF (ABS(dele).LE.convrez) THEN
-                !write(6,*) 'iter with dele' , iter,dele
+                !write(std_out,*) 'iter with dele' , iter,dele
                 ok=.TRUE.
                 !  eigenvalue found
                 ierr=ierr+10**(iroot-1)
@@ -459,8 +459,8 @@ CONTAINS
        IF (.NOT.ok) THEN
           success=.false.     
           ierr=ierr+ifac*(10**(iroot-1))
-          WRITE(6,*) 'no convergence in boundD',iroot,l,dele,energy
-          WRITE(6,*) ' best guess of eig, dele = ',eig(iroot),best
+          WRITE(STD_OUT,*) 'no convergence in boundD',iroot,l,dele,energy
+          WRITE(STD_OUT,*) ' best guess of eig, dele = ',eig(iroot),best
           IF (iroot.LT.mxroot) THEN
              DO ir=iroot+1,mxroot
                 ierr=ierr+9*(10**(ir-1))
@@ -478,7 +478,7 @@ CONTAINS
     ENDDO !iroot
 
     DEALLOCATE(p1,lp1,p2,lp2,dd,yy,zz)
-             write(6,*) 'returning from boundD -- ierr=',ierr
+             write(std_out,*) 'returning from boundD -- ierr=',ierr
   END SUBROUTINE BoundD
 
   subroutine prepareforcfdsolD(Grid,i1,i2,n,kappa,wfn,lwfn,yy,zz)

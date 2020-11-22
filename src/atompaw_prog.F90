@@ -38,9 +38,9 @@ PROGRAM atompaw
   INTEGER :: ifen=11
 
 ! First write out details on AtomPAW
-  WRITE(6,*) atp_package,' v',atp_version
-  WRITE(6,*) 'Compiled for ',atp_target
-  WRITE(6,*)
+  WRITE(STD_OUT,*) atp_package,' v',atp_version
+  WRITE(STD_OUT,*) 'Compiled for ',atp_target
+  WRITE(STD_OUT,*)
 
   j=iargc()
   if (j>=1) then
@@ -51,21 +51,21 @@ PROGRAM atompaw
     else if (j==2.and.TRIM(token)=='SAVEAEATOM') then
       saveaeatom=.true.
       call GetArg(2,outputfile)
-      write(6,*) 'AEATOM results will be saved to file ',TRIM(outputfile)
+      write(std_out,*) 'AEATOM results will be saved to file ',TRIM(outputfile)
     else if (j==2.and.TRIM(token)=='LOADAEATOM') then
       loadaeatom=.true.
       call GetArg(2,inputfile)
-      write(6,*) 'AEATOM results will be loaded from file ',TRIM(inputfile)
+      write(std_out,*) 'AEATOM results will be loaded from file ',TRIM(inputfile)
       Inquire(file=TRIM(inputfile),exist=OK)
       If (.not.OK) stop 'Load file does not exist -- program will stop'
     else
-      write(6,*) 'Argument form not recognized: ', token
+      write(std_out,*) 'Argument form not recognized: ', token
       stop
     endif
   else
-    write(6,*) 'Input/output not saved/dumped in this run'
+    write(std_out,*) 'Input/output not saved/dumped in this run'
   endif
-  write(6,*)
+  write(std_out,*)
 
 ! Read input file
   if (.not.loadaeatom) then
@@ -126,16 +126,16 @@ PROGRAM atompaw
 
   scfpaw_done=.false.
   Do
-   WRITE(6,*) 'Enter 0 or END to end program'
-   WRITE(6,*) 'Enter 1 or SCFPAW to run SCFPAW'
-   WRITE(6,*) 'Enter 2 or ABINITOUT to run atompaw2abinit'
-   WRITE(6,*) 'Enter 3 or PWSCFOUT to run atompaw2pwscf'
-   WRITE(6,*) 'Enter 4 or XMLOUT  to run atompaw2xml'
-   WRITE(6,*) 'Enter 5 or PWPAWOUT  to run atompaw2pwpaw'
-   WRITE(6,*) 'Enter 6 or SOCORROOUT  to run atompaw2socorro'
-   WRITE(6,*) 'Enter 10 or EXPLORE to run exploreparms'
+   WRITE(STD_OUT,*) 'Enter 0 or END to end program'
+   WRITE(STD_OUT,*) 'Enter 1 or SCFPAW to run SCFPAW'
+   WRITE(STD_OUT,*) 'Enter 2 or ABINITOUT to run atompaw2abinit'
+   WRITE(STD_OUT,*) 'Enter 3 or PWSCFOUT to run atompaw2pwscf'
+   WRITE(STD_OUT,*) 'Enter 4 or XMLOUT  to run atompaw2xml'
+   WRITE(STD_OUT,*) 'Enter 5 or PWPAWOUT  to run atompaw2pwpaw'
+   WRITE(STD_OUT,*) 'Enter 6 or SOCORROOUT  to run atompaw2socorro'
+   WRITE(STD_OUT,*) 'Enter 10 or EXPLORE to run exploreparms'
 
-   READ(5,'(a)',iostat=i) token
+   READ(STD_IN,'(a)',iostat=i) token
    if (i/=0) exit
 
    if (checkline2(token,"0","END")) then
@@ -145,7 +145,7 @@ PROGRAM atompaw
      scfpaw_done=.true.
    else
      if (scfpaw_done) then
-       WRITE(6,'(2a)') trim(token),&
+       WRITE(STD_OUT,'(2a)') trim(token),&
  &       ' cannot be executed after SCFPAW -- pgm terminating!'
        EXIT
      else
@@ -162,9 +162,9 @@ PROGRAM atompaw
        else if (checkline2(token,"10","EXPLORE")) then
          CALL exploreparms(Grid,FCPot,FC,FCOrbit,PAW)
        else
-         WRITE(6,'(3a)') 'Option not recognized ',&
+         WRITE(STD_OUT,'(3a)') 'Option not recognized ',&
  &             trim(token),' -- pgm terminating!'
-         CALL flush_unit(6)
+         CALL flush_unit(std_out)
          EXIT
        endif
      endif

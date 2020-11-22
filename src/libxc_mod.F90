@@ -355,8 +355,8 @@ end interface
   end if
 
   if (id(ii)==-1) then
-   write(6,'(/,2x,a)') "Error in get_id_from_name:"
-   write(6,'(2x,3a)')  " Unknown X, C or XC functionnal (", &
+   write(std_out,'(/,2x,a)') "Error in get_id_from_name:"
+   write(std_out,'(2x,3a)')  " Unknown X, C or XC functionnal (", &
 &                     trim(xcstrg(ii)),") !"
    stop
   end if
@@ -581,10 +581,10 @@ end function libxc_getid_fromName
 !   if (xc_func%family/=XC_FAMILY_LDA.and. &
 !&      xc_func%family/=XC_FAMILY_GGA.and. &
 !&      xc_func%family/=XC_FAMILY_MGGA) then
-!     write(6,'(a,i4,a)') 'The LibXC functional family ',xc_func%family, &
+!     write(std_out,'(a,i4,a)') 'The LibXC functional family ',xc_func%family, &
 !&                        ' is currently unsupported by ATOMPAW!'
-!     write(6,'(a)') '(-1 means the family is unknown to the LibXC itself)'
-!     write(6,'(a)') 'Please consult the LibXC documentation.'
+!     write(std_out,'(a)') '(-1 means the family is unknown to the LibXC itself)'
+!     write(std_out,'(a)') 'Please consult the LibXC documentation.'
 !     stop
 !   end if
 
@@ -599,7 +599,7 @@ end function libxc_getid_fromName
    nspin_c=int(nsp,kind=C_INT)
    success_c=xc_func_init(xc_func%conf,func_id_c,nspin_c)
    if (success_c/=0) then
-     write(6,'(a)') 'Error in libXC functional initialization!'
+     write(std_out,'(a)') 'Error in libXC functional initialization!'
      stop
    end if
 
@@ -982,13 +982,13 @@ end function libxc_family_from_id
  needs_laplacian=libxc_needs_laplacian()
 
  if (is_gga.and.((.not.present(vxcgr).or.(.not.present(grho))))) then
-   write(6,'(/,2x,a)') "Bug in libxc_getvxc:"
-   write(6,'(2x,a)')   " GGA called without grho or vxcgr!"
+   write(std_out,'(/,2x,a)') "Bug in libxc_getvxc:"
+   write(std_out,'(2x,a)')   " GGA called without grho or vxcgr!"
    stop
  end if
  if(needs_laplacian.and.(.not.present(lrho))) then
-   write(6,'(/,2x,a)') "Error in libxc_getvxc:"
-    write(6,'(2x,a)')  " getvxc need Laplacian of density!"
+   write(std_out,'(/,2x,a)') "Error in libxc_getvxc:"
+    write(std_out,'(2x,a)')  " getvxc need Laplacian of density!"
     stop
  endif
 !Need to add more consistency tests
@@ -1126,7 +1126,7 @@ end function libxc_family_from_id
 &         exc_c(ii),vxc_c(ii),vsigma_c(ii),vlrho_c(ii),vtau_c(ii), &
 &         C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,&
 &         C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR,C_NULL_PTR)
-!     write(6,'(2i5,2x,1P,20e15.7)') ii,ipts,rhotmp(1),tautmp(1),&
+!     write(std_out,'(2i5,2x,1P,20e15.7)') ii,ipts,rhotmp(1),tautmp(1),&
 !&          lrhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1),&
 !&          vlrho(1),vtau(1)
     end if
@@ -1272,7 +1272,7 @@ end function libxc_family_from_id
 
  if (present(stop_if_error)) then
    if (stop_if_error.and.trim(msg)/="") then
-     write(6,'(a)') trim(msg) ; stop
+     write(std_out,'(a)') trim(msg) ; stop
    end if
  end if
 

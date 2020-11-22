@@ -73,7 +73,7 @@ CONTAINS
 &           HSZ%psivale(n,io),HSZ%psiref(n,io),HSZ%rVxref(n),HSZ%rVxvale(n),&
 &           HSZ%LMBDref(io,io),HSZ%LMBDcore(io,io),HSZ%LMBDvale(io,io),stat=ok)
        IF (ok /=0 ) THEN
-          WRITE(6,*) 'Error in allocate HSZdata ', io,n,ok
+          WRITE(STD_OUT,*) 'Error in allocate HSZdata ', io,n,ok
           STOP
        ENDIF
        HSZ%psi=0;HSZ%psicore=0;HSZ%psivale=0
@@ -101,8 +101,8 @@ CONTAINS
        SCFwk%iter=AC%CurIter
        SCFwk%delta=AC%res
        CALL FreeAnderson(AC)
-       WRITE(6,*) 'Finished first step ', en1 ,' success = ', success
-       WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
+       WRITE(STD_OUT,*) 'Finished first step ', en1 ,' success = ', success
+       WRITE(STD_OUT,*) 'Convergence', SCFwk%iter,SCFwk%delta
 
        firsttime=1
        !CALL Report_EXX_functions('FI')
@@ -116,14 +116,14 @@ CONTAINS
            CALL InitAnderson_dr(AC,6,5,n,0.005d0,1.d3,mxloop1,&
 &                 1.d-11,1.d-16,.TRUE.)
            CALL DoAndersonMix(AC,arg,en1,VXcoreSub,success)
-           WRITE(6,*) 'Finished setupfrozencore ',AC%CurIter,AC%res
+           WRITE(STD_OUT,*) 'Finished setupfrozencore ',AC%CurIter,AC%res
            CALL FreeAnderson(AC)
            do icount=1,nrestart/2
               call AdjustVcore(Gridwk,arg)
               CALL InitAnderson_dr(AC,6,5,n,0.005d0,1.d3,mxloop1,&
 &                 1.d-11,1.d-16,.TRUE.)
               CALL DoAndersonMix(AC,arg,en1,VXcoreSub,success)
-              WRITE(6,*) 'Finished setupfrozencore # ',icount ,AC%CurIter,AC%res
+              WRITE(STD_OUT,*) 'Finished setupfrozencore # ',icount ,AC%CurIter,AC%res
               CALL FreeAnderson(AC)
            enddo
            starg=arg; HSZ%rVxcore=arg
@@ -137,13 +137,13 @@ CONTAINS
            SCFwk%iter=AC%CurIter
            SCFwk%delta=AC%res
            CALL FreeAnderson(AC)
-           WRITE(6,*) 'Finished Anderson Mix FC', en1 ,' success = ', success
-           WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
+           WRITE(STD_OUT,*) 'Finished Anderson Mix FC', en1 ,' success = ', success
+           WRITE(STD_OUT,*) 'Convergence', SCFwk%iter,SCFwk%delta
            x=MAXVAL(ABS(starg(1:HSZ%corerange)-(HSZ%rVxref(1:HSZ%corerange)-&
 &                    arg(1:HSZ%corerange))))
-           write(6,*) 'frozencore and set core max diff ' , x
+           write(std_out,*) 'frozencore and set core max diff ' , x
            if (ABS(x)<0.001d0) then
-              write(6,*) 'Frozencore consistent with setcore '
+              write(std_out,*) 'Frozencore consistent with setcore '
               arg=HSZ%rVxref-arg
            else
               starg=HSZ%rVxref-arg; HSZ%rVxcore=starg
@@ -156,12 +156,12 @@ CONTAINS
                   SCFwk%iter=AC%CurIter
                   SCFwk%delta=AC%res
                   CALL FreeAnderson(AC)
-                  WRITE(6,*) 'Finished Anderson Mix ',&
+                  WRITE(STD_OUT,*) 'Finished Anderson Mix ',&
 &                    icount,en1 ,' success = ', success
-                  WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
+                  WRITE(STD_OUT,*) 'Convergence', SCFwk%iter,SCFwk%delta
                   x=MAXVAL(ABS(starg(1:HSZ%corerange)-&
 &                   (HSZ%rVxref(1:HSZ%corerange)-arg(1:HSZ%corerange))))
-                  write(6,*) 'frozencore and set core max diff ' , x
+                  write(std_out,*) 'frozencore and set core max diff ' , x
                   if (ABS(x)<0.001d0) exit
                   starg=HSZ%rVxref-arg
               ENDDO
@@ -181,14 +181,14 @@ CONTAINS
 
     arg=Potwk%rvx
     IF (frozencorecalculation.and..not.setupfrozencore) THEN
-       WRITE(6,*) 'Beginning FC'
+       WRITE(STD_OUT,*) 'Beginning FC'
        CALL Init_EXX_vx(Gridwk,Orbitwk,Potwk)
        arg=Potwk%rvx
     ELSE
-       WRITE(6,*) 'In  EXX_SCF starting second loop'; CALL flush_unit(6)
+       WRITE(STD_OUT,*) 'In  EXX_SCF starting second loop'; CALL flush_unit(std_out)
        CALL Init_EXX_vx(Gridwk,Orbitwk,Potwk)
        arg=Potwk%rvx
-       WRITE(6,*) 'In  EXX_SCF after Init_EXX_vx'
+       WRITE(STD_OUT,*) 'In  EXX_SCF after Init_EXX_vx'
        !CALL Report_EXX_functions('SE')
     ENDIF
     loop=mxloop1; errv=errv0;  zeroadjust=.FALSE.
@@ -198,8 +198,8 @@ CONTAINS
     SCFwk%iter=AC%CurIter
     SCFwk%delta=AC%res
     CALL FreeAnderson(AC)
-    WRITE(6,*) 'Finished Anderson Mix second', en1 ,' success = ', success
-    WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
+    WRITE(STD_OUT,*) 'Finished Anderson Mix second', en1 ,' success = ', success
+    WRITE(STD_OUT,*) 'Convergence', SCFwk%iter,SCFwk%delta
 
     DO icount=1,nrestart
        IF (frozencorecalculation) then
@@ -215,8 +215,8 @@ CONTAINS
        SCFwk%iter=AC%CurIter
        SCFwk%delta=AC%res
        CALL FreeAnderson(AC)
-       WRITE(6,*) 'Finished Anderson Mix ', icount,en1 ,' success = ', success
-       WRITE(6,*) 'Convergence', SCFwk%iter,SCFwk%delta
+       WRITE(STD_OUT,*) 'Finished Anderson Mix ', icount,en1 ,' success = ', success
+       WRITE(STD_OUT,*) 'Convergence', SCFwk%iter,SCFwk%delta
     ENDDO
        If (frozencorecalculation) then
            CALL Get_FCKinCoul(Gridwk,Potwk,Orbitwk,FCwk,SCFwk)
@@ -256,23 +256,23 @@ CONTAINS
     REAL(8) :: q
     REAL(8), PARAMETER :: threshold=1.d-8
 
-    WRITE(6,*) ' In Init_EXX_vx ' ; CALL flush_unit(6)
+    WRITE(STD_OUT,*) ' In Init_EXX_vx ' ; CALL flush_unit(std_out)
     ! determine Fock potential for outer most wavefunction
     CALL SetIndex(Orbit)
     outer=HSZ%zero_index
 
-    WRITE(6,*) 'zero_index ', outer ; CALL flush_unit(6)
+    WRITE(STD_OUT,*) 'zero_index ', outer ; CALL flush_unit(std_out)
     n=Grid%n
     rvx=>Pot%rvx
 
     ALLOCATE(dum(n), stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error in init_exx_vx ',i,n
+       WRITE(STD_OUT,*) 'Allocation error in init_exx_vx ',i,n
        STOP
     ENDIF
     CALL InitialVx(Grid,Orbit%wfn(:,outer),dum)
 
-    WRITE(6,*) ' After InitialVx ' ; CALL flush_unit(6)
+    WRITE(STD_OUT,*) ' After InitialVx ' ; CALL flush_unit(std_out)
 
     rvx=dum
 
@@ -293,7 +293,7 @@ CONTAINS
 
     dum=wfn(:)**2
     CALL poisson(Grid,q,dum,vl,ecoul,v00)
-    !WRITE(6,*) 'Completed Poisson ', q,ecoul,v00; CALL flush_unit(6)
+    !WRITE(STD_OUT,*) 'Completed Poisson ', q,ecoul,v00; CALL flush_unit(std_out)
     vl=-vl
 
     DEALLOCATE(dum)
@@ -327,11 +327,11 @@ CONTAINS
        IF (HSZ%lmax<Orbit%l(io))  HSZ%lmax=Orbit%l(io)
     ENDDO
 
-    !WRITE(6,*) 'Returning from SetIndex ', HSZ%zero_index,HSZ%lmax
+    !WRITE(STD_OUT,*) 'Returning from SetIndex ', HSZ%zero_index,HSZ%lmax
     IF (frozencorecalculation) THEN
        DO io=1,Orbit%norbit
           IF (Orbit%iscore(io).AND.outer==io) THEN
-             WRITE(6,*) 'Error in FC SetIndex -- core state ', io,outer
+             WRITE(STD_OUT,*) 'Error in FC SetIndex -- core state ', io,outer
              STOP
           ENDIF
        ENDDO
@@ -351,13 +351,13 @@ CONTAINS
     IF (HSZ%zero_index>0) THEN
        betaL=SQRT(ABS(Orbit%eig(HSZ%zero_index)))
     ELSE
-       WRITE(6,*) 'Error in Setfparms ', HSZ%zero_index
+       WRITE(STD_OUT,*) 'Error in Setfparms ', HSZ%zero_index
        STOP
     ENDIF
 
     HSZ%betaL=ABS(betaL)
 
-    WRITE(6,*) 'Returning from setfparams with ' , HSZ%betaL
+    WRITE(STD_OUT,*) 'Returning from setfparams with ' , HSZ%betaL
 
   END SUBROUTINE Setfparms
 
@@ -389,7 +389,7 @@ CONTAINS
     ALLOCATE(rvx0(n),rvx(n),f(n,many),arg(n),Coeff(many),m(many,many),&
 &        arg_cs(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in AdjustV allocation' ,n,i
+       WRITE(STD_OUT,*) 'Error in AdjustV allocation' ,n,i
        STOP
     ENDIF
 
@@ -400,7 +400,7 @@ CONTAINS
        psi=>HSZ%psi
        U=>HSZ%U
     endif
-    WRITE(6,*) 'In AdjustV '; CALL flush_unit(6)
+    WRITE(STD_OUT,*) 'In AdjustV '; CALL flush_unit(std_out)
     IF (.NOT.setupfrozencore) CALL Find_Hartree(w)
 
     rvx=0
@@ -416,11 +416,11 @@ CONTAINS
     !      EXIT
     !   ENDIF
     !ENDDO
-    !WRITE(6,*) 'AdjustV: ', j,Gridwk%r(j),HSZ%matchpoint,Gridwk%r(HSZ%matchpoint)
+    !WRITE(STD_OUT,*) 'AdjustV: ', j,Gridwk%r(j),HSZ%matchpoint,Gridwk%r(HSZ%matchpoint)
     !HSZ%matchpoint=MAX(j,HSZ%matchpoint)
     !IF (icase>1.AND.matchpt>HSZ%matchpoint) THEN
     !   point=matchpt+5
-    !   WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+    !   WRITE(STD_OUT,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
     !&       point,Gridwk%r(point)
     !ELSE
     !   beta=SQRT(ABS(Orbitwk%eig(last)))
@@ -428,10 +428,10 @@ CONTAINS
     !   i=HSZ%matchpoint
     !   j=FindGridindex(Gridwk,3.d0/beta)
     !   point=MINLOC(ABS(arg(i:j)),1)+i-1
-    !   WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+    !   WRITE(STD_OUT,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
     !&       point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
     !ENDIF
-    write(6,*) 'In adjustv before beta ',Orbitwk%eig(last); call flush_unit(6)
+    write(std_out,*) 'In adjustv before beta ',Orbitwk%eig(last); call flush_unit(std_out)
     f=0
     f(:,1)=Orbitwk%wfn(:,last)
     if (f(n,1)<0.d0) f(:,1)=-f(:,1)
@@ -440,7 +440,7 @@ CONTAINS
        if (f(i-1,1)<f(i,1)) exit
     enddo
     point=j
-    write(6,*) 'Simple AdjustV ', point,Gridwk%r(point) ; call flush_unit(6)
+    write(std_out,*) 'Simple AdjustV ', point,Gridwk%r(point) ; call flush_unit(std_out)
     f(1:j-1,1)=1.d0
     f(j:n,1)=f(j:n,1)/f(j,1)
     f(:,2)=1.d0-f(:,1)
@@ -466,12 +466,12 @@ CONTAINS
     arg(1)=0; arg(2:n)=arg(2:n)/Gridwk%r(2:n)
     val=integrator(Gridwk,arg)/integrator(Gridwk,f(:,3))
 
-    WRITE(6,*) 'AdjustV -- ', val
+    WRITE(STD_OUT,*) 'AdjustV -- ', val
 
     rvx=0
     rvx=(w(:)+val*Gridwk%r(:))*f(:,1)+rvx0(:)*(f(:,2))
 
-    write(6,*) 'AdjustV diff:',SUM(ABS(rvx-w))
+    write(std_out,*) 'AdjustV diff:',SUM(ABS(rvx-w))
 
     CALL mkname(counter,stuff)
     OPEN (unit=1001,file='adjust'//TRIM(stuff),form='formatted')
@@ -514,7 +514,7 @@ CONTAINS
     ALLOCATE(rvx0(n),rvx(n),f(n,many),arg(n),Coeff(many),m(many,many),&
 &        arg_cs(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in AdjustV allocation' ,n,i
+       WRITE(STD_OUT,*) 'Error in AdjustV allocation' ,n,i
        STOP
     ENDIF
 
@@ -525,7 +525,7 @@ CONTAINS
        psi=>HSZ%psi
        U=>HSZ%U
     endif
-    !WRITE(6,*) 'In AdjustV '; CALL flush_unit(6)
+    !WRITE(STD_OUT,*) 'In AdjustV '; CALL flush_unit(std_out)
     IF (.NOT.setupfrozencore) CALL Find_Hartree(w)
 
     rvx=0
@@ -541,11 +541,11 @@ CONTAINS
           EXIT
        ENDIF
     ENDDO
-    WRITE(6,*) 'AdjustV: ', j,Gridwk%r(j),HSZ%matchpoint,Gridwk%r(HSZ%matchpoint)
+    WRITE(STD_OUT,*) 'AdjustV: ', j,Gridwk%r(j),HSZ%matchpoint,Gridwk%r(HSZ%matchpoint)
     HSZ%matchpoint=MAX(j,HSZ%matchpoint)
     IF (icase>1.AND.matchpt>HSZ%matchpoint) THEN
        point=matchpt+5
-       WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+       WRITE(STD_OUT,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
 &           point,Gridwk%r(point)
     ELSE
        beta=SQRT(ABS(Orbitwk%eig(last)))
@@ -553,7 +553,7 @@ CONTAINS
        i=HSZ%matchpoint
        j=FindGridindex(Gridwk,3.d0/beta)
        point=MINLOC(ABS(arg(i:j)),1)+i-1
-       WRITE(6,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
+       WRITE(STD_OUT,'( "AdjustV point ",i5,1p,1e15.7,2x,i5,1p,1e15.7)')&
 &           point,Gridwk%r(point),i,Gridwk%r(i),j,Gridwk%r(j)
     ENDIF
     HSZ%matchpoint=point
@@ -609,7 +609,7 @@ CONTAINS
     ENDDO
 
     CALL SolveAXeqB(many,m,Coeff,1.d3)
-    WRITE(6,*) 'AdjustV -- ', Coeff
+    WRITE(STD_OUT,*) 'AdjustV -- ', Coeff
 
     rvx=0
     rvx(1:point)=w(1:point)+Coeff(1)*r(1:point)
@@ -618,7 +618,7 @@ CONTAINS
        rvx(point+1:n)=rvx(point+1:n)+Coeff(j)*f(point+1:n,j)
     ENDDO
 
-    !write(6,*) 'AdjustV diff:',SUM(ABS(rvx-w))
+    !write(std_out,*) 'AdjustV diff:',SUM(ABS(rvx-w))
 
     CALL mkname(counter,stuff)
     OPEN (unit=1001,file='adjust'//TRIM(stuff),form='formatted')
@@ -664,14 +664,14 @@ CONTAINS
     val=integrator(Grid,dum)
     dum=0; dum(2:n)=w(2:n)*(phi(2:n)**2)/r(2:n)
     x=integrator(Grid,dum)
-    write(6,*) 'AdjustVcore : ', val,x, val-x
+    write(std_out,*) 'AdjustVcore : ', val,x, val-x
     if (ABS(val-x) >smll) then
         rvx0=exp(-2*beta*r); dum=rvx0*(phi**2)
         fix=(val-x)/integrator(Grid,dum)
         w=w+fix*r*rvx0
         dum=0; dum(2:n)=w(2:n)*(phi(2:n)**2)/r(2:n)
         x=integrator(Grid,dum)
-        write(6,*) 'AdjustVcore -- fix: ', fix,val,x
+        write(std_out,*) 'AdjustVcore -- fix: ', fix,val,x
     endif
     DEALLOCATE(rvx0,rvx,dum,ux)
 
@@ -696,7 +696,7 @@ CONTAINS
 
     ALLOCATE(dum(Gridwk%n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in EXXsub allocation' ,Gridwk%n
+       WRITE(STD_OUT,*) 'Error in EXXsub allocation' ,Gridwk%n
        STOP
     ENDIF
 
@@ -711,7 +711,7 @@ CONTAINS
     !if FC core calc , restore core info backinto tmpOrbit
 
     IF(frozencorecalculation) THEN
-       WRITE(6,*) ' Frozencore calculation should not use this routine!'
+       WRITE(STD_OUT,*) ' Frozencore calculation should not use this routine!'
        STOP
        DO io = 1 , Orbitwk%norbit
           IF(Orbitwk%iscore(io)==.TRUE.) THEN
@@ -722,7 +722,7 @@ CONTAINS
     ENDIF
 
     IF (.NOT.success) THEN
-       WRITE(6,*) 'Bad luck in Sub'
+       WRITE(STD_OUT,*) 'Bad luck in Sub'
     ENDIF
 
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
@@ -734,7 +734,7 @@ CONTAINS
 
     IF(ColleSalvetti==.TRUE.) THEN
        CALL Get_Energy_CS(Gridwk,tmpOrbit,SCFwk%oepcs)
-       WRITE(6,*) 'Colle :', SCFwk%oepcs
+       WRITE(STD_OUT,*) 'Colle :', SCFwk%oepcs
        SCFwk%etot=SCFwk%etot+SCFwk%oepcs
     ENDIF
 
@@ -789,7 +789,7 @@ CONTAINS
     CALL SetMatchPoint(Grid,Orbit,last)
     m=HSZ%matchpoint
     j=m       ! grid point near last maximum
-    !write(6,*) 'ApproxVx: max ', m,Grid%r(m)
+    !write(std_out,*) 'ApproxVx: max ', m,Grid%r(m)
     DO i=1,n
        IF (i<j) THEN
           vl(i)=vl(i)/Orbit%wfn(j,last)
@@ -798,7 +798,7 @@ CONTAINS
        ELSE
           vl(i)=-2.d0
        ENDIF
-       !write(6,'(1p,15E15.7)') Grid%r(i),vl(i),Orbit%wfn(i,last)
+       !write(std_out,'(1p,15E15.7)') Grid%r(i),vl(i),Orbit%wfn(i,last)
     ENDDO
     j=m+1
     DO i=m+1,n
@@ -836,7 +836,7 @@ CONTAINS
     j=m       ! grid point near last maximum
 
     HSZ%matchpoint=m+1
-    WRITE(6,*) 'SetMatchPoint matchpoint ', m+1,Grid%r(HSZ%matchpoint)
+    WRITE(STD_OUT,*) 'SetMatchPoint matchpoint ', m+1,Grid%r(HSZ%matchpoint)
   END SUBROUTINE SetMatchPoint
 
   SUBROUTINE Find_Hartree(rvx)
@@ -853,7 +853,7 @@ CONTAINS
     Potwk%rvx=rvx
     CALL DoAndersonMix(A_H,arg,energy,Hsub,OK)
 
-    WRITE(6,*) ' Find_Hartree completed --  iter, delta = ',&
+    WRITE(STD_OUT,*) ' Find_Hartree completed --  iter, delta = ',&
 &        A_H%CurIter, A_H%res
 
     CALL FreeAnderson(A_H)
@@ -879,11 +879,11 @@ CONTAINS
 
     ALLOCATE(rv(Gridwk%n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in Hsub allocation' ,Gridwk%n,i
+       WRITE(STD_OUT,*) 'Error in Hsub allocation' ,Gridwk%n,i
        STOP
     ENDIF
 
-    WRITE(6,*) 'Starting Hartree '
+    WRITE(STD_OUT,*) 'Starting Hartree '
     CALL CopyOrbit(Orbitwk,tmpOrbit)
     CALL CopyPot(Potwk,tmpPot)
 
@@ -892,7 +892,7 @@ CONTAINS
 
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,rv,OK)
     IF (.NOT.OK) THEN
-       WRITE(6,*) 'Bad luck in Hsub'
+       WRITE(STD_OUT,*) 'Bad luck in Hsub'
        Potwk%rv=tmpPot%rv
        Potwk%rvh=tmpPot%rvh
        Potwk%rvx=tmpPot%rvx
@@ -972,7 +972,7 @@ CONTAINS
     HSZ%matchpoint=n
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in EXX3sub allocation' ,n,i
+       WRITE(STD_OUT,*) 'Error in EXX3sub allocation' ,n,i
        STOP
     ENDIF
 
@@ -980,7 +980,7 @@ CONTAINS
     dum=w
 
     IF (zeroadjust.AND.AC%CurIter>10) THEN
-       !  write(6,*) 'CALLING ADJUST V'; call flush_unit(6)
+       !  write(std_out,*) 'CALLING ADJUST V'; call flush_unit(std_out)
        !CALL AdjustV(Gridwk,w)
        CALL Find_Hartree(w)
     ELSE
@@ -1003,7 +1003,7 @@ CONTAINS
     SCFwk%etot=SCFwk%ekin+SCFwk%estatic+SCFwk%eexc
     IF(ColleSalvetti==.TRUE.) THEN
        CALL Get_Energy_CS(Gridwk,Orbitwk,SCFwk%oepcs)
-       WRITE(6,*) 'Colle :', SCFwk%oepcs
+       WRITE(STD_OUT,*) 'Colle :', SCFwk%oepcs
        SCFwk%etot=SCFwk%etot+SCFwk%oepcs
     ENDIF
 
@@ -1027,8 +1027,8 @@ CONTAINS
 
     IF (verboseoutput) CALL writestuff
 
-    WRITE(6,'("ASiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
-    WRITE(6,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
+    WRITE(STD_OUT,'("ASiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(STD_OUT,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
 
     !CALL mkname(fcount,stuff)
     !OPEN (unit=1001,file='junk'//TRIM(stuff),form='formatted')
@@ -1077,11 +1077,11 @@ CONTAINS
     ENDDO
 
     CALL  dgesdd('A',nn,nn,MN,nn,s,u,nn,vt,nn,work,LWORK,IWORK,ok)
-    WRITE(6,*) 'dgesdd completed for MN with info = ', ok ; call flush_unit(6)
+    WRITE(STD_OUT,*) 'dgesdd completed for MN with info = ', ok ; call flush_unit(std_out)
 
     MN=0; scale=s(1)*tol
     DO i=1,nn
-          WRITE(6,*) 'g3 res:  i s = ', i,s(i) ; call flush_unit(6)
+          WRITE(STD_OUT,*) 'g3 res:  i s = ', i,s(i) ; call flush_unit(std_out)
        IF (s(i)>scale) THEN
           DO j=1,nn
              DO k=1,nn
@@ -1089,7 +1089,7 @@ CONTAINS
              ENDDO
           ENDDO
        ELSE
-          WRITE(6,*) 'i s = ', i,s(i); call flush_unit(6)
+          WRITE(STD_OUT,*) 'i s = ', i,s(i); call flush_unit(std_out)
        ENDIF
     ENDDO
 
@@ -1136,7 +1136,7 @@ CONTAINS
     ENDDO
 
     IF (index==1.OR.index==n) THEN
-       WRITE(6,*) 'Strange result in GetRange', n,index,val,f(1),f(n)
+       WRITE(STD_OUT,*) 'Strange result in GetRange', n,index,val,f(1),f(n)
        STOP
     ENDIF
 
@@ -1170,13 +1170,13 @@ CONTAINS
     ncore=k;nn=rangeindex-1
 
     IF (ncore<1) THEN
-       WRITE(6,*) ' No core states found  -- Vxcore == 0'
+       WRITE(STD_OUT,*) ' No core states found  -- Vxcore == 0'
        RETURN
     ENDIF
 
-    WRITE(6,*) 'In Calc_Vxcore rangeindex = ', rangeindex,Grid%r(rangeindex)
+    WRITE(STD_OUT,*) 'In Calc_Vxcore rangeindex = ', rangeindex,Grid%r(rangeindex)
     rangeindex=n
-    WRITE(6,*) 'Reset rangeindex ', rangeindex
+    WRITE(STD_OUT,*) 'Reset rangeindex ', rangeindex
 
     ALLOCATE(coreshift(n), accumshift(n),g1(n,norbit),st(n,norbit),rhs(n),vl(n))
     ALLOCATE(MN(nn,nn),MNaccum(nn,nn))
@@ -1261,11 +1261,11 @@ CONTAINS
     ncore=k;HSZ%corerange=rangeindex
 
     IF (ncore<1) THEN
-       WRITE(6,*) ' No core states found  -- Vxcore == 0'
+       WRITE(STD_OUT,*) ' No core states found  -- Vxcore == 0'
        RETURN
     ENDIF
 
-    WRITE(6,*) 'In Calc_Vxcore rangeindex = ', rangeindex,Grid%r(rangeindex)
+    WRITE(STD_OUT,*) 'In Calc_Vxcore rangeindex = ', rangeindex,Grid%r(rangeindex)
 
     ALLOCATE(rhs(n),vl(n),tmp(n,norbit))
 
@@ -1324,7 +1324,7 @@ CONTAINS
 
        call AdjustVcore(Grid,rvcore)
 
-       write(6,*) 'Init_rvcore range, error ', Grid%r(rangeindex),accumocc
+       write(std_out,*) 'Init_rvcore range, error ', Grid%r(rangeindex),accumocc
    endif
     OPEN (unit=1001,file='exSetCore',form='formatted')
        DO i = 1,n
@@ -1408,7 +1408,7 @@ CONTAINS
       ENDIF
     ENDDO
 
-    write(6,*) 'Returning from Calc_dedv with Uzero = ', U(HSZ%zero_index)
+    write(std_out,*) 'Returning from Calc_dedv with Uzero = ', U(HSZ%zero_index)
 
     DEALLOCATE(vl,dum,rhs,shift,vs,rvx,st,ss)
 
@@ -1445,14 +1445,14 @@ CONTAINS
              HSZ%Ucore(io)=overlap(Grid,phi(:,io),rhs)
              HSZ%Uvale(io)=HSZ%Uref(io)-HSZ%Ucore(io)
              rhs=rhs-HSZ%Ucore(io)*phi(:,io)
-             write(6,*) 'Ucore ',io,HSZ%Ucore(io)
+             write(std_out,*) 'Ucore ',io,HSZ%Ucore(io)
              !DO jo=1,norbit
              !   IF (jo/=io) THEN
              !      IF (Orbit%l(jo)==Orbit%l(io)) THEN
              !         HSZ%LMBDcore(io,jo)=overlap(Grid,Orbit%wfn(:,jo),rhs)
              !         HSZ%LMBDvale(io,jo)=HSZ%LMBDref(io,jo)-HSZ%LMBDcore(io,jo)
              !         rhs=rhs-HSZ%LMBDcore(io,jo)*Orbit%wfn(:,jo)
-             !         write(6,*) 'LMBD ', io,jo,HSZ%LMBDcore(io,jo)
+             !         write(std_out,*) 'LMBD ', io,jo,HSZ%LMBDcore(io,jo)
              !      ENDIF
              !   ENDIF
              !ENDDO
@@ -1465,7 +1465,7 @@ CONTAINS
        ENDIF
     ENDDO
 
-    write(6,*) 'Returning from Calc_dedv_c with Uzero = ',&
+    write(std_out,*) 'Returning from Calc_dedv_c with Uzero = ',&
 &            HSZ%Ucore(HSZ%zero_index)
    deallocate(vl,dum,rhs)
   END SUBROUTINE Calc_dedv_c
@@ -1495,7 +1495,7 @@ CONTAINS
 
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in VXcoresub allocation' ,n,i
+       WRITE(STD_OUT,*) 'Error in VXcoresub allocation' ,n,i
        STOP
     ENDIF
 
@@ -1509,7 +1509,7 @@ CONTAINS
     k=HSZ%corerange
     err=DOT_PRODUCT(grad(1:k),grad(1:k))
 
-    WRITE(6,'("Coreiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(STD_OUT,'("Coreiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
     grad(k+1:n)=0    ! force core potential to be zero outside range
 
     !CALL mkname(fcount,stuff)
@@ -1551,7 +1551,7 @@ CONTAINS
     HSZ%matchpoint=n
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in VXvalesub allocation' ,n,i
+       WRITE(STD_OUT,*) 'Error in VXvalesub allocation' ,n,i
        STOP
     ENDIF
 
@@ -1559,7 +1559,7 @@ CONTAINS
     dum=w
 
     IF (zeroadjust.AND.AC%CurIter>10) THEN
-       !  write(6,*) 'CALLING ADJUST V'; call flush_unit(6)
+       !  write(std_out,*) 'CALLING ADJUST V'; call flush_unit(std_out)
        ! CALL AdjustV(Gridwk,w)
     ENDIF
 
@@ -1575,8 +1575,8 @@ CONTAINS
     k=HSZ%matchpoint
     err=DOT_PRODUCT(grad(1:k),grad(1:k))
 
-    WRITE(6,'("Valeiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
-    WRITE(6,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
+    WRITE(STD_OUT,'("Valeiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err,HSZ%grad2
+    WRITE(STD_OUT,*) 'zero_index', fcount,HSZ%zero_index,HSZ%U(HSZ%zero_index)
 
     !CALL mkname(fcount,stuff)
     !OPEN (unit=1001,file='junk'//TRIM(stuff),form='formatted')
@@ -1646,7 +1646,7 @@ CONTAINS
 
     rvx=Pot%rvx
     last=HSZ%zero_index
-    !write(6,*) 'last = ', last; call flush_unit(6)
+    !write(std_out,*) 'last = ', last; call flush_unit(std_out)
 
     ! main contributions
     ! Determine constant coefficients -- U, LMBA, X
@@ -1716,7 +1716,7 @@ CONTAINS
     !   check orthogonality   (should check for l values)
     !    do io=1,norbit
     !      do jo=1,norbit
-    !         write(6,'("Check Ortho ", 2i5,1p,1e15.7)') &
+    !         write(std_out,'("Check Ortho ", 2i5,1p,1e15.7)') &
     !&                io,jo,overlap(Grid,EigOrbitwk%wfn(:,jo),psi(:,io))
     !      enddo
     !   enddo
@@ -1746,7 +1746,7 @@ CONTAINS
       enddo
     endif
 
-    write(6,*) 'Returning from Calc_dedv with Uzero = ', U(HSZ%zero_index)
+    write(std_out,*) 'Returning from Calc_dedv with Uzero = ', U(HSZ%zero_index)
 
     DEALLOCATE(vl,dum,rhs,shift,vs,rvx,vl_cs)
     RETURN
@@ -1759,7 +1759,7 @@ CONTAINS
     !
     !CALL InitAnderson_dr(A_DEDV,6,5,n,0.005d0,1.d3,100,1.d-8,1.d-16,.FALSE.)
     !CALL DoAndersonMix(A_DEDV,vs,xx,vssub,OK)
-    !WRITE(6,*) 'Leaving dedv with ', A_DEDV%CurIter, A_DEDV%res,MAXVAL(ABS(vs))
+    !WRITE(STD_OUT,*) 'Leaving dedv with ', A_DEDV%CurIter, A_DEDV%res,MAXVAL(ABS(vs))
     !CALL FreeAnderson(A_DEDV)
     !
     !DEALLOCATE(vl,dum,rhs,shift,vs,rvx,vl_cs)
@@ -1848,11 +1848,11 @@ CONTAINS
     INTEGER, SAVE :: counter=0
     CHARACTER(4) :: stuff
 
-    WRITE(6,*)
-    WRITE(6,*) ' Summary of EXX orbitals '
-    WRITE(6,"(' n  l     occupancy            energy              U')")
+    WRITE(STD_OUT,*)
+    WRITE(STD_OUT,*) ' Summary of EXX orbitals '
+    WRITE(STD_OUT,"(' n  l     occupancy            energy              U')")
     DO io=1,Orbitwk%norbit
-       WRITE(6,'(i2,1x,i2,4x,1p,3e15.7)') &
+       WRITE(STD_OUT,'(i2,1x,i2,4x,1p,3e15.7)') &
 &           Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),HSZ%U(io)
     ENDDO
 
@@ -1932,22 +1932,22 @@ CONTAINS
        ENDDO
        nmap=j
 
-    WRITE(6,*)
-    WRITE(6,*) ' Summary of EXX valence orbitals for frozencore'
-    WRITE(6,"(' n  l     occupancy            energy              U           UC     UV')")
+    WRITE(STD_OUT,*)
+    WRITE(STD_OUT,*) ' Summary of EXX valence orbitals for frozencore'
+    WRITE(STD_OUT,"(' n  l     occupancy            energy              U           UC     UV')")
     DO jo=1,nmap
        io=mmap(jo)
-       WRITE(6,'(i2,1x,i2,4x,1p,5e15.7)') &
+       WRITE(STD_OUT,'(i2,1x,i2,4x,1p,5e15.7)') &
 &           Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io),&
 &                HSZ%Uref(io), HSZ%Ucore(io),HSZ%Uvale(io)
     ENDDO
-    !WRITE(6,*) '   Summary of LMBD values '
+    !WRITE(STD_OUT,*) '   Summary of LMBD values '
     !DO jo=1,nmap
     !   io=mmap(jo)
-    !   WRITE(6,*) ' io, l: ',io,Orbitwk%l(io)
+    !   WRITE(STD_OUT,*) ' io, l: ',io,Orbitwk%l(io)
     !        do j=1,Orbitwk%norbit
     !           if (j/=io.and.Orbitwk%l(io)==Orbitwk%l(j)) &
-    !&              WRITE(6,'(2i4,3x,1p,3e15.7)') j,Orbitwk%l(j),&
+    !&              WRITE(STD_OUT,'(2i4,3x,1p,3e15.7)') j,Orbitwk%l(j),&
     !&               HSZ%LMBDref(io,j),HSZ%LMBDcore(io,j),HSZ%LMBDvale(io,j)
     !        enddo
     !ENDDO
@@ -1999,15 +1999,15 @@ CONTAINS
 
     ALLOCATE(dum(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'allocation error in Get_Energy_EXX', i,n
+       WRITE(STD_OUT,*) 'allocation error in Get_Energy_EXX', i,n
        STOP
     ENDIF
 
     dum=0; dum(2:n)=HSZ%rvxcore(2:n)*FC%valeden(2:n)/r(2:n)
     FCeex=integrator(Grid,dum)
-    write(6,*) 'Frozencore core exchange contribution ', FCeex
+    write(std_out,*) 'Frozencore core exchange contribution ', FCeex
     call Get_Energy_EXX_VV(Grid,Orbit,x)
-    write(6,*) 'Frozencore valence exchange contribution ', x
+    write(std_out,*) 'Frozencore valence exchange contribution ', x
 
     SCF%valeexc=FCeex+x
     SCF%evale=SCF%valekin+SCF%valecoul+SCF%valeexc
@@ -2161,7 +2161,7 @@ CONTAINS
 
     csenergy = ECS
 
-    WRITE(6,*) 'ECS is already Calculated' ,ECS
+    WRITE(STD_OUT,*) 'ECS is already Calculated' ,ECS
 
     DEALLOCATE(RealWfn,RealDen,eta,xi,DerivRealWfn,DerivRealDen,&
 &        Deriv2RealDen,LaplaceRealDen,kernel,dum)
@@ -2196,8 +2196,8 @@ CONTAINS
 
     ! This subroutine was written by Xiao Xu in Aug. 2008;
     !   It is not quite working yet
-    WRITE(6,*) 'Colle Salvetti correlation function not yet quite working'
-    WRITE(6,*) 'Program will stop.'
+    WRITE(STD_OUT,*) 'Colle Salvetti correlation function not yet quite working'
+    WRITE(STD_OUT,*) 'Program will stop.'
     STOP
     a=0.04918d0
     a=a*2
@@ -2427,7 +2427,7 @@ CONTAINS
     ENDDO
 
     IF (nvale<=0) THEN
-       WRITE(6,*) ' No valence orbitals found -- returning from Calc_VXvale'
+       WRITE(STD_OUT,*) ' No valence orbitals found -- returning from Calc_VXvale'
        RETURN
     ELSE
        ALLOCATE(map(nvale),RR(n,nvale))
@@ -2472,12 +2472,12 @@ CONTAINS
        ENDIF
     ENDDO
 
-    WRITE(6,*) 'Most extended core state is ', x
+    WRITE(STD_OUT,*) 'Most extended core state is ', x
     x=18.42d0/(2*SQRT(x))
-    WRITE(6,*) 'Estimated core range is ', x
+    WRITE(STD_OUT,*) 'Estimated core range is ', x
 
     corematch=FindGridIndex(Gridwk,x)
-    WRITE(6,*) 'corematch = ', corematch
+    WRITE(STD_OUT,*) 'corematch = ', corematch
 
     k=corematch      !  note that r(2) maps to index 1
 
@@ -2491,7 +2491,7 @@ CONTAINS
 
        M=0; P=0
        CALL invert_numerov(Gridwk,l,k,energy,Potwk%rv,M,bp)
-       WRITE(6,*) 'bp = ',bp
+       WRITE(STD_OUT,*) 'bp = ',bp
        DO i=1,k-1
           DO j=2,k-2
              P(i,j)=10*M(i,j)+M(i,j-1)+M(i,j+1)
@@ -2504,7 +2504,7 @@ CONTAINS
        term2=Orbitwk%wfn(k+1,io)*&
 &           HSZ%rVXref(k+1)/Gridwk%r(k+1)
        term3=RR(k+1,ip)
-       WRITE(6,*) 'term1,term2,term3 = ', term1,term2,term3
+       WRITE(STD_OUT,*) 'term1,term2,term3 = ', term1,term2,term3
        DO i=1,k-1
           DO j=1,k-1
              LM(i,j)=LM(i,j)+x*Orbitwk%wfn(i+1,io)*Orbitwk%wfn(j+1,io)*P(i,j)
@@ -2546,7 +2546,7 @@ CONTAINS
 
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),aa(mn-1),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Allocation error inhomo_multi_numerov ', mn,i
+       WRITE(STD_OUT,*) 'Allocation error inhomo_multi_numerov ', mn,i
        STOP
     ENDIF
 

@@ -49,7 +49,7 @@ CONTAINS
    n=Grid%n
    allocate(ww(n),jj(n), stat=i)
    if (i/=0) then
-      write(6,*)  'Allocate_scalar_relativistic: error in allocation ',i,n
+      write(std_out,*)  'Allocate_scalar_relativistic: error in allocation ',i,n
       stop
    endif
 
@@ -88,8 +88,6 @@ CONTAINS
     n=Grid%n
     qq=-Pot%rv(n)/2
     if(qq<0.001d0) qq=0
-    !write(6,*) 'In Azeroexpand -- qq = ',qq
-    !call flush(6)
 
    nz=Pot%nz
     ww=0; jj=0;
@@ -112,7 +110,7 @@ CONTAINS
 &        (Pot%v0p/nz+(4*balpha2**2/(nz*nz))*term**2)*(gamma-1.d0)
       c1=-Tm10/Tm21
       c2=-(Tm11*C1+T00)/Tm22      
-      !write(6,*) 'Azeroexpand: ', gamma,c1,c2
+      !write(std_out,*) 'Azeroexpand: ', gamma,c1,c2
       MA=0; MB=0
 
    else  ! version for finite nuclear size
@@ -124,7 +122,7 @@ CONTAINS
        T00=(energy-Pot%v0)*term+l*((0.25d0*alpha2*Pot%v0p/term)**2)
        c1=-Tm10/Tm21
        c2=-(Tm11*C1+T00)/Tm22      
-       !write(6,*) 'Azeroexpand: ', gamma,c1,c2
+       !write(std_out,*) 'Azeroexpand: ', gamma,c1,c2
        MA=0; MB=0
    endif
 
@@ -177,7 +175,7 @@ CONTAINS
     INTEGER :: i,j,n
 
     if (energy>0.d0) then
-       write(6,*) 'Error in wfnsrasym -- energy > 0', energy
+       write(std_out,*) 'Error in wfnsrasym -- energy > 0', energy
        stop
     endif
 
@@ -189,8 +187,6 @@ CONTAINS
     x=sqrt(-m*energy)
     qx=qq     !  Possible net ionic charge
     qx=(qx/x)*(1.d0+0.5d0*energy/(inverse_fine_structure**2))
-    !write(6,*) ' in wfnsrasym with x = ',x, qx
-    !   call flush(6)
     iend=5
     do i=n-iend,n
        wfn(i)=exp(-x*(Grid%r(i)-Grid%r(n-iend)))
@@ -199,8 +195,6 @@ CONTAINS
                wfn(i)=wfn(i)*rr
        endif        
        lwfn(i)=-wfn(i)*(x*Grid%r(i)+(1.d0-qx))/jj(i)
-       !write(6,*) i,Grid%r(i),wfn(i),lwfn(i),jj(i)
-       !call flush(6)
     enddo
   end subroutine wfnsrasym
 
@@ -233,7 +227,7 @@ CONTAINS
 
     n=Grid%n
     IF (nr > n) THEN
-       WRITE(6,*) 'Error in unboundsr -- nr > n', nr,n
+       WRITE(STD_OUT,*) 'Error in unboundsr -- nr > n', nr,n
        STOP
     ENDIF
 
@@ -241,7 +235,7 @@ CONTAINS
 
     allocate(lwfn(nr),zz(2,2,nr),yy(2,nr),stat=ierr)
        if (ierr/=0) then
-          write(6,*) ' allocation error in unboundsr ', nr,ierr
+          write(std_out,*) ' allocation error in unboundsr ', nr,ierr
           stop
        endif
 
@@ -320,14 +314,14 @@ CONTAINS
     h=Grid%h
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) ' Error in boundsr allocation ',i,n
+       WRITE(STD_OUT,*) ' Error in boundsr allocation ',i,n
        STOP
     ENDIF
 
     success=.true.
     allocate(lwfn(n),zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
-          write(6,*) ' allocation error in boundsr ', n,i
+          write(std_out,*) ' allocation error in boundsr ', n,i
           stop
        endif
 
@@ -341,7 +335,7 @@ CONTAINS
     IF (nz>0.001d0) convrez=convre*nz
     ierr=0
 
-    WRITE(6,*) 'z , l = ',nz,l
+    WRITE(STD_OUT,*) 'z , l = ',nz,l
     ! check how many roots expected by integration outward at
     !   energy = 0
     energy = 0
@@ -355,13 +349,13 @@ CONTAINS
     call getwfnfromcfdsol(1,n,yy,p1)
     node=countnodes(2,n,p1)
 
-    WRITE(6,*) ' nodes at e=0  ', node
+    WRITE(STD_OUT,*) ' nodes at e=0  ', node
 
     mxroot=node+1
     ntroot=node
     IF (mxroot.LT.nroot) THEN
-       WRITE(6,*)'error in boundsr - for l = ',l
-       WRITE(6,*) nroot,' states requested but only',mxroot,' possible'
+       WRITE(STD_OUT,*)'error in boundsr - for l = ',l
+       WRITE(STD_OUT,*) nroot,' states requested but only',mxroot,' possible'
        DO ir=mxroot+1,nroot
           ierr=ierr+9*(10**(ir-1))
        ENDDO
@@ -380,10 +374,10 @@ CONTAINS
        IF (energy.LT.emin) energy=emin
        IF (energy.GT.emax) energy=emax
        ok=.FALSE.
-       !write(6,*) 'iter,iroot,energy',iter,iroot,energy
-       !write(6,*) 'emin,max',emin,emax
+       !write(std_out,*) 'iter,iroot,energy',iter,iroot,energy
+       !write(std_out,*) 'emin,max',emin,emax
        BigIter: DO iter=1,niter
-          !write(6,*) 'In iter with energy', iter,energy,niter,l,iroot
+          !write(std_out,*) 'In iter with energy', iter,energy,niter,l,iroot
           !  start inward integration
           !  start integration at n
           call Azeroexpand(Grid,Pot,l,energy)
@@ -418,7 +412,7 @@ CONTAINS
           ELSEIF (node.GT.iroot-1) THEN
              IF (energy.LE.emin) THEN
                 ierr=ierr+9*(10**(iroot-1))
-                WRITE(6,*) 'boundsr error -- emin too high',l,nz,emin,energy
+                WRITE(STD_OUT,*) 'boundsr error -- emin too high',l,nz,emin,energy
                 do i=2,n
                    write(999,'(1p,4e15.7)') Grid%r(i),jj(i)/Grid%r(i),ww(i),Pot%rv(i)
                 enddo
@@ -430,15 +424,15 @@ CONTAINS
           ELSEIF (node.EQ.iroot-1) THEN
              DO j=1,match
                 p1(j)=p1(j)/p1(match)
-                         !write(6,*) 'j,p1',j,p1(j)
+                         !write(std_out,*) 'j,p1',j,p1(j)
              ENDDO
              DO j=match,n
                 p1(j)=p2(j)/p2(match)
-                         !write(6,*) 'j,p2',j,p1(j)
+                         !write(std_out,*) 'j,p2',j,p1(j)
              ENDDO
              scale=1.d0/overlap(Grid,p1,p1)
              dele=(rout-rin)*scale
-                  !write(6,*) 'energy,dele,scale',energy,dele,scale
+                  !write(std_out,*) 'energy,dele,scale',energy,dele,scale
              x=ABS(dele)
              IF (x.LT.best) THEN
                 scale=SQRT(scale)
@@ -446,11 +440,11 @@ CONTAINS
                 call filter(n,p1,machine_zero)
                 wfn(1:n,iroot)=p1(1:n)
                 eig(iroot)=energy
-                !write(6,*) 'root',l,iroot,eig(iroot),emin,emax
+                !write(std_out,*) 'root',l,iroot,eig(iroot),emin,emax
                 best=x
              ENDIF
              IF (ABS(dele).LE.convrez) THEN
-                !write(6,*) 'iter with dele' , iter,dele
+                !write(std_out,*) 'iter with dele' , iter,dele
                 ok=.TRUE.
                 !  eigenvalue found
                 ierr=ierr+10**(iroot-1)
@@ -476,8 +470,8 @@ CONTAINS
        IF (.NOT.ok) THEN
           success=.false.     
           ierr=ierr+ifac*(10**(iroot-1))
-          WRITE(6,*) 'no convergence in boundsr',iroot,l,dele,energy
-          WRITE(6,*) ' best guess of eig, dele = ',eig(iroot),best
+          WRITE(STD_OUT,*) 'no convergence in boundsr',iroot,l,dele,energy
+          WRITE(STD_OUT,*) ' best guess of eig, dele = ',eig(iroot),best
           IF (iroot.LT.mxroot) THEN
              DO ir=iroot+1,mxroot
                 ierr=ierr+9*(10**(ir-1))
@@ -494,7 +488,7 @@ CONTAINS
     ENDDO !iroot
 
     DEALLOCATE(p1,p2,dd,lwfn,yy,zz)
-             write(6,*) 'returning from boundsr -- ierr=',ierr
+             write(std_out,*) 'returning from boundsr -- ierr=',ierr
   END SUBROUTINE Boundsr
 
   subroutine prepareforcfdsol(Grid,i1,i2,n,wfn,lwfn,yy,zz)

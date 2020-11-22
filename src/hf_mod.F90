@@ -91,13 +91,13 @@ CONTAINS
 
     n=Gridwk%n
     IF (firsttime<1) THEN
-            write(6,*) 'in HF_SCF '; call flush_unit(6);
+            write(std_out,*) 'in HF_SCF '; call flush_unit(std_out);
        io=Orbitwk%norbit
        ALLOCATE(HF%lmbd(io,io),HF%SumY(n,io),HF%lmany(io), &
 &           HF%lmap(io,io), HF%emin(io),HF%emax(io),   &
 &           HF%CSlmany(io), HF%CSlmap(io,io),stat=ok)
        IF (ok /=0 ) THEN
-          WRITE(6,*) 'Error in allocate HFdata ', io,ok
+          WRITE(STD_OUT,*) 'Error in allocate HFdata ', io,ok
           STOP
        ENDIF
        HF%lmbd=0
@@ -139,7 +139,7 @@ CONTAINS
     IF(TRIM(scftype)=='AE'.OR.TRIM(scftype)=='NC') THEN
        err=1.d10; currenterror=err
        DO loop=1,mxloop
-          WRITE(6,*) '----loop---- ',loop
+          WRITE(STD_OUT,*) '----loop---- ',loop
           !IF (err<1.d0) THEN
           !   DO io=1,Orbitwk%norbit
           !      CALL Adjustnodes(Gridwk,Orbitwk,io)
@@ -148,7 +148,7 @@ CONTAINS
           previouserror=currenterror
           CALL  HFIter(mix,tol,err,success,'ALL')
           IF (success) THEN
-             WRITE(6,*) ' wfn iteration converged ', loop
+             WRITE(STD_OUT,*) ' wfn iteration converged ', loop
              EXIT
           ENDIF
        ENDDO
@@ -158,13 +158,13 @@ CONTAINS
        !ENDDO
 
        currenterror=1.d10
-       WRITE(6,*) 'Final  iterations '
+       WRITE(STD_OUT,*) 'Final  iterations '
        DO loop=1,mxloop
           previouserror=currenterror
-          WRITE(6,*) '----Last loops---- ',loop
+          WRITE(STD_OUT,*) '----Last loops---- ',loop
           CALL  HFIter(mix,tol,err,success,'CLO')
           IF (success) THEN
-             WRITE(6,*) ' wfn iteration converged ', loop
+             WRITE(STD_OUT,*) ' wfn iteration converged ', loop
              EXIT
           ENDIF
        ENDDO
@@ -198,7 +198,7 @@ CONTAINS
     IF (TRIM(scftype)=='FC') THEN
        currenterror=1.d10;
        DO loop=1,mxloop
-          WRITE(6,*) '----FC loops---- ',loop
+          WRITE(STD_OUT,*) '----FC loops---- ',loop
           !DO io=1,Orbitwk%norbit
           !   IF (.NOT.Orbitwk%iscore(io)) CALL Adjustnodes(Gridwk,Orbitwk,io)
           !ENDDO
@@ -209,12 +209,12 @@ CONTAINS
              CALL  HFVFCIter(mix,tol,err,success)
           endif
           IF (success) THEN
-             WRITE(6,*) ' wfn iteration converged ', loop
+             WRITE(STD_OUT,*) ' wfn iteration converged ', loop
              EXIT
           ENDIF
        ENDDO
        DO loop=1,mxloop
-          WRITE(6,*) '----FC loops again ---- ',loop
+          WRITE(STD_OUT,*) '----FC loops again ---- ',loop
           previouserror=currenterror
           if (Orbitwk%exctype=='HF') then
              CALL  HFFCIter(mix,tol,err,success)
@@ -222,7 +222,7 @@ CONTAINS
              CALL  HFVFCIter(mix,tol,err,success)
           endif
           IF (success) THEN
-             WRITE(6,*) ' wfn iteration converged ', loop
+             WRITE(STD_OUT,*) ' wfn iteration converged ', loop
              EXIT
           ENDIF
        ENDDO
@@ -278,9 +278,9 @@ CONTAINS
     irmax=FindGridIndex(Grid,Rmax)
     lmax=MAXVAL(Orbit%l)
 
-    write(6,*) 'Before HFDiag '; call flush_unit(6)
+    write(std_out,*) 'Before HFDiag '; call flush_unit(std_out)
     CALL HFDiag(Grid,Orbit,Pot,whichtype)
-    write(6,*) 'After HFDiag '; call flush_unit(6)
+    write(std_out,*) 'After HFDiag '; call flush_unit(std_out)
     CALL Total_Energy_Report(SCFwk,6)
     CALL One_electron_energy_Report(Orbit,6)
 
@@ -306,7 +306,7 @@ CONTAINS
                  en=Orbit%eig(io-1)+0.1d0
              endif
           endif
-          WRITE(6,*) 'wARNING -- en reset ', Orbit%eig(io),en
+          WRITE(STD_OUT,*) 'wARNING -- en reset ', Orbit%eig(io),en
        ENDIF
        x=en
        do iter=1,mxiter
@@ -318,14 +318,14 @@ CONTAINS
           if (x>0.or.nodes==j)exit
           if (j>nodes)x=x-fixenergy
           if (j<nodes)x=x+fixenergy
-          write(6,*) 'Rerunning inhomo with x = ',&
+          write(std_out,*) 'Rerunning inhomo with x = ',&
 &                 x,j,nodes
        enddo
        dum=(Orbit%wfn(:,io)-tmpOrbit%wfn(:,io))**2
        err=err+Orbit%occ(io)*Integrator(Grid,dum)
     ENDDO
 
-    WRITE(6,*) 'COmpleted iter ', fcount,err
+    WRITE(STD_OUT,*) 'COmpleted iter ', fcount,err
     SCFwk%delta=err; SCFwk%iter=fcount; currenterror=err
 
    ! CALL mkname(fcount,stuff)
@@ -345,7 +345,7 @@ CONTAINS
     ! update wfn if tolerance not satisfied
     IF (err>tol.AND.ABS(err-previouserror)>tol) THEN
        val=1.d0-mix
-       WRITE(6,*) 'mixing wfns ', val
+       WRITE(STD_OUT,*) 'mixing wfns ', val
        DO io=1,norbit
           Orbit%wfn(:,io)=val*Orbit%wfn(:,io)+mix*tmpOrbit%wfn(:,io)
        ENDDO
@@ -401,11 +401,11 @@ CONTAINS
        lmany=>HF%CSlmany
        lmap=>HF%CSlmap
     ELSE
-       WRITE(6,*) 'Error in HFDiag no matching type ', whichtype
+       WRITE(STD_OUT,*) 'Error in HFDiag no matching type ', whichtype
        STOP
     ENDIF
 
-    WRITE(6,*) ' Beginning HFDiag with fcount ', fcount
+    WRITE(STD_OUT,*) ' Beginning HFDiag with fcount ', fcount
     CALL GetLambda(Grid,Orbit,Pot)
 
 !!! now done in GetLambda
@@ -417,7 +417,7 @@ CONTAINS
     DO l=0,lmax
        A=0;w=0;work=0
        k=lmany(l+1)
-       WRITE(6,*) 'l k ', l,k
+       WRITE(STD_OUT,*) 'l k ', l,k
        IF(k>1) THEN
           DO i=1,k
              DO j=1,k
@@ -426,13 +426,13 @@ CONTAINS
              ENDDO
           ENDDO
           CALL dsyev('V','U',k,A,norbit,w,work,lwork,i)
-          WRITE(6,*) 'returning form dsyev with info = ',i
+          WRITE(STD_OUT,*) 'returning form dsyev with info = ',i
           DO i=1,k
-             WRITE(6,'(i5,2x,1p,15e15.7)') i,(A(i,j),j=1,k)
+             WRITE(STD_OUT,'(i5,2x,1p,15e15.7)') i,(A(i,j),j=1,k)
           ENDDO
           DO i=1,k
              io=lmap(l+1,i)
-             WRITE(6,'("l,i,io, eig = ",3i5,2x,1p,5E15.7)')  l,i,io,w(i)
+             WRITE(STD_OUT,'("l,i,io, eig = ",3i5,2x,1p,5E15.7)')  l,i,io,w(i)
              Orbit%eig(io)=w(i)
              Orbit%wfn(:,io)=0.d0
              DO j=1,k
@@ -450,16 +450,16 @@ CONTAINS
 
     CALL GetLambda(Grid,Orbit,Pot)
 
-    WRITE(6,*) 'Checking orthonormality'
+    WRITE(STD_OUT,*) 'Checking orthonormality'
     DO io=1,norbit
        DO jo=1,norbit
           IF (Orbit%l(io)==Orbit%l(jo)) THEN
-             WRITE(6,*) io,jo,&
+             WRITE(STD_OUT,*) io,jo,&
 &                 overlap(Grid,Orbit%wfn(:,io),Orbit%wfn(:,jo))
           ENDIF
        ENDDO
     ENDDO
-    WRITE(6,*) ' Ending HFDiag with fcount ', fcount; call flush_unit(6)
+    WRITE(STD_OUT,*) ' Ending HFDiag with fcount ', fcount; call flush_unit(std_out)
 
     fcount=fcount+1
     CALL DestroyOrbit(tmpOrbit)
@@ -538,7 +538,7 @@ CONTAINS
     IF(frozencorecalculation) THEN
        CALL Get_Energy_EXX_VC(Grid,Orbit,x)
        CALL Get_Energy_EXX_VV(Grid,Orbit,y)
-       WRITE(6,*) '--EXX_VC = ',x,'--EXX_VV = ',y
+       WRITE(STD_OUT,*) '--EXX_VC = ',x,'--EXX_VV = ',y
        SCFloc%valeexc=x+y
        CALL Get_Energy_EXX(Grid,Orbit,x)
        SCFloc%eexc=x
@@ -547,7 +547,7 @@ CONTAINS
        SCFloc%eexc=x
     ENDIF
 
-    WRITE(6,*) 'Checking Lambda '
+    WRITE(STD_OUT,*) 'Checking Lambda '
     DO io=1,norbit
        CALL Calc_dexdphi_io(Grid,Orbit,io,sumY(:,io));l=Orbit%l(io)
        res(2:n)=sumY(2:n,io)/r(2:n); res(1)=0.d0
@@ -568,7 +568,7 @@ CONTAINS
              x=x+integrator(Grid,dum); t2=integrator(Grid,dum)
              x=x+overlap(Grid,Orbit%wfn(:,jo),res)
              t3=overlap(Grid,Orbit%wfn(:,jo),res)
-             WRITE(6,'("CHK lmbdD  ",3i5,2x,1p,5e15.7)') l,jo,io,x,t1,t2,t3
+             WRITE(STD_OUT,'("CHK lmbdD  ",3i5,2x,1p,5e15.7)') l,jo,io,x,t1,t2,t3
              lmbd(jo,io)=x
           ENDIF
        ENDDO
@@ -576,7 +576,7 @@ CONTAINS
 
     DO io=1,norbit
        DO jo=1,norbit
-          WRITE(6,'("CHK lmbdagain ", 2i5,1Pe15.7)') io,jo,lmbd(io,jo)
+          WRITE(STD_OUT,'("CHK lmbdagain ", 2i5,1Pe15.7)') io,jo,lmbd(io,jo)
        ENDDO
     ENDDO
     DO io=1,norbit
@@ -631,7 +631,7 @@ CONTAINS
     IF(frozencorecalculation) THEN
        CALL Get_Energy_EXX_VC(Grid,Orbit,x)
        CALL Get_Energy_EXX_VV(Grid,Orbit,y)
-       WRITE(6,*) '--EXX_VC = ',x,'--EXX_VV = ',y
+       WRITE(STD_OUT,*) '--EXX_VC = ',x,'--EXX_VV = ',y
        SCF%valeexc=x+y
        CALL Get_Energy_EXX(Grid,Orbit,x)
        SCF%eexc=x
@@ -728,11 +728,11 @@ CONTAINS
     !If(frozencorecalculation) then   (assumed)
     CALL Get_Energy_EXX_VC(Grid,Orbit,x)
     CALL Get_Energy_EXX_VV(Grid,Orbit,y)
-    WRITE(6,*) '--EXX_VC = ',x,'--EXX_VV = ',y
+    WRITE(STD_OUT,*) '--EXX_VC = ',x,'--EXX_VV = ',y
     !SCFloc%valeexc=x+y
     dum=0; dum(2:n)=HF%rvxcore(2:n)/Grid%r(2:n)
     z=overlap(Grid,dum,FCloc%valeden)
-    WRITE(6,*) '--EXX_VCV = ',z ; CALL flush_unit(6)
+    WRITE(STD_OUT,*) '--EXX_VCV = ',z ; CALL flush_unit(std_out)
     SCFloc%valeexc=y+z
     !call Get_Energy_EXX(Grid,Orbit,x)
     !SCFloc%eexc=x
@@ -741,7 +741,7 @@ CONTAINS
     !  SCFloc%eexc=x
     !endif
 
-    WRITE(6,*) 'Checking Lambda '; CALL flush_unit(6)
+    WRITE(STD_OUT,*) 'Checking Lambda '; CALL flush_unit(std_out)
     DO io=1,norbit
        IF (.NOT.Orbit%iscore(io)) THEN
           CALL Calc_dexdphi_io_v(Grid,Orbit,io,HF%sumYVV(:,io));l=Orbit%l(io)
@@ -759,8 +759,8 @@ CONTAINS
                 x=x+integrator(Grid,dum); t2=integrator(Grid,dum)
                 x=x+overlap(Grid,Orbit%wfn(:,jo),res)
                 t3=overlap(Grid,Orbit%wfn(:,jo),res)
-                WRITE(6,'("CHK lmbdV  ",3i5,2x,1p,5e15.7)') l,io,jo,x,t1,t2,t3
-                call flush_unit(6)
+                WRITE(STD_OUT,'("CHK lmbdV  ",3i5,2x,1p,5e15.7)') l,io,jo,x,t1,t2,t3
+                call flush_unit(std_out)
                 lmbd(jo,io)=x
              ENDIF
           ENDDO
@@ -768,8 +768,8 @@ CONTAINS
     ENDDO
     DO io=1,norbit
        DO jo=1,norbit
-          WRITE(6,'("CHK lmbdagain ", 2i5,1Pe15.7)') io,jo,lmbd(io,jo)
-          CALL flush_unit(6)
+          WRITE(STD_OUT,'("CHK lmbdagain ", 2i5,1Pe15.7)') io,jo,lmbd(io,jo)
+          CALL flush_unit(std_out)
        ENDDO
     ENDDO
     DO io=1,norbit
@@ -832,7 +832,7 @@ CONTAINS
        REAL(8), PARAMETER :: threshold=1.d-8
 
        IF (.NOT.frozencorecalculation) THEN
-          WRITE(6,*) 'Error -- subroutine HFFCIter is only for Frozen core '
+          WRITE(STD_OUT,*) 'Error -- subroutine HFFCIter is only for Frozen core '
           STOP
        ENDIF
 
@@ -884,7 +884,7 @@ CONTAINS
           ENDIF
        ENDDO
 
-       WRITE(6,*) 'COmpleted iter ', fcount,err
+       WRITE(STD_OUT,*) 'COmpleted iter ', fcount,err
        SCFwk%delta=err; SCFwk%iter=fcount;currenterror=err
 
       ! CALL mkname(fcount,stuff)
@@ -904,7 +904,7 @@ CONTAINS
        ! update wfn if tolerance not satisfied
        IF (err>tol.AND.ABS(err-previouserror)>tol) THEN
           val=(1.d0-mix)
-          WRITE(6,*) 'mixing wfns ', val
+          WRITE(STD_OUT,*) 'mixing wfns ', val
           DO io=1,norbit
              IF (.NOT.Orbit%iscore(io)) THEN
                 Orbit%wfn(:,io)=val*Orbit%wfn(:,io)+mix*tmpOrbit%wfn(:,io)
@@ -950,7 +950,7 @@ CONTAINS
        Pot=>Potwk
 
        IF (.NOT.frozencorecalculation.OR.Orbit%exctype/='HFV') THEN
-          WRITE(6,*) 'Error -- subroutine HFVFCIter is only for Frozen core '
+          WRITE(STD_OUT,*) 'Error -- subroutine HFVFCIter is only for Frozen core '
           STOP
        ENDIF
 
@@ -1000,7 +1000,7 @@ CONTAINS
           ENDIF
        ENDDO
 
-       WRITE(6,*) 'COmpleted iter ', fcount,err
+       WRITE(STD_OUT,*) 'COmpleted iter ', fcount,err
        SCFwk%delta=err; SCFwk%iter=fcount;currenterror=err
 
       ! CALL mkname(fcount,stuff)
@@ -1021,7 +1021,7 @@ CONTAINS
        ! update wfn if tolerance not satisfied
        IF (err>tol.AND.ABS(err-previouserror)>tol) THEN
           val=(1.d0-mix)
-          WRITE(6,*) 'mixing wfns ', val
+          WRITE(STD_OUT,*) 'mixing wfns ', val
           DO io=1,norbit
              IF (.NOT.Orbit%iscore(io)) THEN
                 Orbit%wfn(:,io)=val*Orbit%wfn(:,io)+mix*tmpOrbit%wfn(:,io)
@@ -1069,10 +1069,10 @@ CONTAINS
        SCF%valecoul=integrator(Grid,dum)+val
        CALL Get_Energy_EXX_VC(Grid,Orbit,x)
        CALL Get_Energy_EXX_VV(Grid,Orbit,y)
-       WRITE(6,*) '--EXX_VC = ',x,'--EXX_VV = ',y    ; CALL flush_unit(6)
+       WRITE(STD_OUT,*) '--EXX_VC = ',x,'--EXX_VV = ',y    ; CALL flush_unit(std_out)
        dum=0; dum(2:n)=HF%rvxcore(2:n)/Grid%r(2:n)
        z=overlap(Grid,dum,FC%valeden)
-       WRITE(6,*) '--EXX_VCV = ',z ; CALL flush_unit(6)
+       WRITE(STD_OUT,*) '--EXX_VCV = ',z ; CALL flush_unit(std_out)
        SCF%valeexc=y+z
 
        norbit=Orbit%norbit; SCF%valekin=0
@@ -1117,11 +1117,11 @@ CONTAINS
        INTEGER :: icount=0
 
        IF (energy<0.d0) THEN
-          WRITE(6,*) 'Error in HFunocc -- assumes energy>0 ',energy
+          WRITE(STD_OUT,*) 'Error in HFunocc -- assumes energy>0 ',energy
           STOP
        ENDIF
 
-       write(6,*) 'Entering HFunocc with energy l = ', energy,l
+       write(std_out,*) 'Entering HFunocc with energy l = ', energy,l
        n=Grid%n
        r=>Grid%r
        r0=Grid%drdu(1)
@@ -1139,15 +1139,15 @@ CONTAINS
             if (j>lng) lng=j
             range=Grid%r(lng)
        end do
-       write(6,*) 'HFunocc: range ', lng, range
-       write(6,*) 'Calculating HFunocc for range ', range, lng
+       write(std_out,*) 'HFunocc: range ', lng, range
+       write(std_out,*) 'Calculating HFunocc for range ', range, lng
 
        imtch=1
        do i=1,lng
           imtch=i
           if(Grid%r(i)>rch) exit
        enddo
-       write(6,*) 'Calculating HFunocc for imtch ', rch , &
+       write(std_out,*) 'Calculating HFunocc for imtch ', rch , &
 &            Grid%r(imtch), imtch
 
        ALLOCATE(wfn0(n),ve(n),X(n),dum(n))
@@ -1155,10 +1155,10 @@ CONTAINS
        istart=6
 
        ZZ=(-rv(1)+0.001d0)/2
-       write(6,*) 'ZZ = ', ZZ
+       write(std_out,*) 'ZZ = ', ZZ
        ve(2:n)=(rv(2:n)+2*ZZ)/Grid%r(2:n)
        CALL extrapolate(Grid,ve)
-       write(6,*) 've ', ve(1),ve(2),ve(3), ve(4),ve(5)
+       write(std_out,*) 've ', ve(1),ve(2),ve(3), ve(4),ve(5)
        wfn0=0
        wfn0(1:lng)=((Grid%r(1:lng)/r0)**(l+1))*(1-&
 &            (float(ZZ)/(l+1))*Grid%r(1:lng))
@@ -1167,11 +1167,11 @@ CONTAINS
        Call Calc_Xp(Grid,Orbit,ni,l,wfn0,X,lng)
        X(2:lng)=X(2:lng)/Grid%r(2:lng)
        Call extrapolate(Grid,X)
-       !write(6,*) 'X ', X(1),X(2),X(3), X(4),X(5)
+       !write(std_out,*) 'X ', X(1),X(2),X(3), X(4),X(5)
 
        dum(2:lng)=X(2:lng)/(Grid%r(2:lng)**(l+1))
        call extrapolate(Grid,dum)
-       write(6,*) 'dum ', dum(1),dum(2),dum(3), dum(4),dum(5)
+       write(std_out,*) 'dum ', dum(1),dum(2),dum(3), dum(4),dum(5)
 
        wfn=0
        do i=2,istart
@@ -1191,11 +1191,11 @@ CONTAINS
           Call Calc_Xp(Grid,Orbit,ni,l,wfn0,X,lng)
           X(2:lng)=X(2:lng)/Grid%r(2:lng)
           Call extrapolate(Grid,X)
-          ! write(6,*) 'X ', X(1),X(2),X(3), X(4),X(5)
+          ! write(std_out,*) 'X ', X(1),X(2),X(3), X(4),X(5)
           !Call Milne(Grid,istart,energy,l,ZZ,ve,X,wfn)
           dum(2:lng)=X(2:lng)/(Grid%r(2:lng)**(l+1))
           call extrapolate(Grid,dum)
-           write(6,*) 'dum ', dum(1),dum(2),dum(3), dum(4),dum(5)
+           write(std_out,*) 'dum ', dum(1),dum(2),dum(3), dum(4),dum(5)
           wfn=0
           do i=2,istart
              xx=Grid%r(i);c0=1.d0;c1=-float(ZZ)/(l+1)
@@ -1207,10 +1207,10 @@ CONTAINS
           CALL midrange_numerov(Grid,l,istart,lng,energy,rv,X,wfn)
           !wfn(1:lng)=wfn(1:lng)/wfn(lng)
           !do i=1,lng
-          !   write(600+iter,'(1p,8e16.7)') Grid%r(i),wfn(i),wfn0(i),X(i)
+          !   write(std_out00+iter,'(1p,8e16.7)') Grid%r(i),wfn(i),wfn0(i),X(i)
           !enddo
           residue=sum(abs(wfn(1:lng)-wfn0(1:lng)))
-          write(6,*) 'iter ', iter,residue
+          write(std_out,*) 'iter ', iter,residue
           if (residue<tol) then
                   success=.true.
                   exit
@@ -1221,8 +1221,8 @@ CONTAINS
 
 
        IF (.NOT.success) THEN
-          WRITE(6,*) 'Warning in HFunocc not converged ',l,energy,range,residue
-          WRITE(6,*)  'stopping after dump ' , 800+icount
+          WRITE(STD_OUT,*) 'Warning in HFunocc not converged ',l,energy,range,residue
+          WRITE(STD_OUT,*)  'stopping after dump ' , 800+icount
           do i=1,lng
            write(800+icount,'(1P,3e15.7)')Grid%r(i),wfn0(i),wfn(i)
           enddo
@@ -1260,11 +1260,11 @@ CONTAINS
        !!  store variables in Orbit datastructure
        Orbitwk%X=HF%SumY
        Orbitwk%lqp=HF%lmbd
-       WRITE(6,*)
-       WRITE(6,*) ' Summary of HF orbitals '
-       WRITE(6,"(' n  l     occupancy            energy      ')")
+       WRITE(STD_OUT,*)
+       WRITE(STD_OUT,*) ' Summary of HF orbitals '
+       WRITE(STD_OUT,"(' n  l     occupancy            energy      ')")
        DO io=1,Orbitwk%norbit
-          WRITE(6,'(i2,1x,i2,4x,1p,3e15.7)') &
+          WRITE(STD_OUT,'(i2,1x,i2,4x,1p,3e15.7)') &
 &              Orbitwk%np(io),Orbitwk%l(io),Orbitwk%occ(io),Orbitwk%eig(io)
        ENDDO
 

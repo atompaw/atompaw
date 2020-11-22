@@ -126,15 +126,15 @@ CONTAINS
     ENDIF
 
 !   Electronic configuration of atom
-    WRITE(6,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%zz
-    call flush_unit(6)
+    WRITE(STD_OUT,'(a,f6.2)') ' Calculation for atomic number = ',AEPot%zz
+    call flush_unit(std_out)
 
     nps=input_dataset%np(1)
     npp=input_dataset%np(2)
     npd=input_dataset%np(3)
     npf=input_dataset%np(4)
     npg=input_dataset%np(5)
-    WRITE(6,'(5i4)') nps,npp,npd,npf,npg
+    WRITE(STD_OUT,'(5i4)') nps,npp,npd,npf,npg
 
     i=MAX(nps,npp,npd,npf,npg)
     j=nps
@@ -203,12 +203,12 @@ CONTAINS
       AEOrbit%npf=npf
       AEOrbit%npg=npg
       IF (AEOrbit%norbit/=input_dataset%norbit) STOP 'Inconsistent number of orbitals!'
-      WRITE(6,*) AEOrbit%norbit, ' orbitals will be calculated'
+      WRITE(STD_OUT,*) AEOrbit%norbit, ' orbitals will be calculated'
  
-      WRITE(6,*)' Below are listed the default occupations '
-      WRITE(6,"(' n  l     occupancy')")
+      WRITE(STD_OUT,*)' Below are listed the default occupations '
+      WRITE(STD_OUT,"(' n  l     occupancy')")
       DO io=1,AEOrbit%norbit
-        WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)') &
+        WRITE(STD_OUT,'(i2,1x,i2,4x,1p,1e15.7)') &
   &          AEOrbit%np(io),AEOrbit%l(io),AEOrbit%occ(io)
       ENDDO
 
@@ -219,17 +219,17 @@ CONTAINS
         xocc=input_dataset%orbit_mod_occ(io)
         nfix=nl(ip,l+1)
         IF (nfix<=0.OR.nfix>AEOrbit%norbit) THEN
-          WRITE(6,*) 'error in occupations -- ip,l,xocc: ',ip,l,xocc,nfix,AEOrbit%norbit
+          WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc: ',ip,l,xocc,nfix,AEOrbit%norbit
           STOP
         ENDIF
         AEOrbit%occ(nfix)=xocc
       END DO
 
-      WRITE(6,*) ' Corrected occupations are: '
-      WRITE(6,"(' n  l     occupancy')")
+      WRITE(STD_OUT,*) ' Corrected occupations are: '
+      WRITE(STD_OUT,"(' n  l     occupancy')")
       electrons=0.d0
       DO io=1,AEOrbit%norbit
-         WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)')  &
+         WRITE(STD_OUT,'(i2,1x,i2,4x,1p,1e15.7)')  &
   &           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%occ(io)
          electrons=electrons+AEOrbit%occ(io)
       ENDDO
@@ -330,12 +330,12 @@ CONTAINS
       AEOrbit%npf=npf
       AEOrbit%npg=npg
       IF (AEOrbit%norbit/=input_dataset%norbit) STOP 'Inconsistent number of orbitals!'
-      WRITE(6,*) AEOrbit%norbit, ' orbitals will be calculated'
+      WRITE(STD_OUT,*) AEOrbit%norbit, ' orbitals will be calculated'
 
-      WRITE(6,*)' Below are listed the default occupations '
-      WRITE(6,"(' n  l kappa     occupancy')")
+      WRITE(STD_OUT,*)' Below are listed the default occupations '
+      WRITE(STD_OUT,"(' n  l kappa     occupancy')")
       DO io=1,AEOrbit%norbit
-         WRITE(6,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)') &
+         WRITE(STD_OUT,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)') &
   &           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%kappa(io),AEOrbit%occ(io)
       ENDDO
 
@@ -347,17 +347,17 @@ CONTAINS
         xocc=input_dataset%orbit_mod_occ(io)
         nfix=nl(ip,kappa)
         IF (nfix<=0.OR.nfix>AEOrbit%norbit) THEN
-          WRITE(6,*) 'error in occupations -- ip,l,kappa,xocc: ',ip,l,kappa,xocc,nfix,AEOrbit%norbit
+          WRITE(STD_OUT,*) 'error in occupations -- ip,l,kappa,xocc: ',ip,l,kappa,xocc,nfix,AEOrbit%norbit
           STOP
         ENDIF
          AEOrbit%occ(nfix)=xocc
       END DO
 
-      WRITE(6,*) ' Corrected occupations are: '
-      WRITE(6,"(' n  l  kappa   occupancy')")
+      WRITE(STD_OUT,*) ' Corrected occupations are: '
+      WRITE(STD_OUT,"(' n  l  kappa   occupancy')")
       electrons=0.d0
       DO io=1,AEOrbit%norbit
-         WRITE(6,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)')  &
+         WRITE(STD_OUT,'(i2,1x,i2,3x,i2,4x,1p,1e15.7)')  &
   &           AEOrbit%np(io),AEOrbit%l(io),AEOrbit%kappa(io),AEOrbit%occ(io)
          electrons=electrons+AEOrbit%occ(io)
       ENDDO
@@ -365,16 +365,16 @@ CONTAINS
  
     AEPot%q=electrons
     qf=AEPot%nz-electrons
-    WRITE(6,*)
-    WRITE(6,*) 'nuclear charge    = ', AEPot%nz
-    WRITE(6,*) 'electronic charge = ', electrons
-    WRITE(6,*) 'net charge        = ', qf
+    WRITE(STD_OUT,*)
+    WRITE(STD_OUT,*) 'nuclear charge    = ', AEPot%nz
+    WRITE(STD_OUT,*) 'electronic charge = ', electrons
+    WRITE(STD_OUT,*) 'net charge        = ', qf
 
     CALL InitSCF(AESCF)
     IF (scalarrelativistic) CALL Allocate_Scalar_Relativistic(Grid)
     IF (diracrelativistic)  CALL Allocate_Dirac_Relativistic(Grid)
 
-    write(6,*) 'Finish SCFatom_Init' ; call flush_unit(6)
+    write(std_out,*) 'Finish SCFatom_Init' ; call flush_unit(std_out)
 
     DEALLOCATE(nl)
 
@@ -450,9 +450,9 @@ CONTAINS
        CALL EXXOCC_SCF(scftype,lotsofoutput,Grid,OrbitPtr,PotPtr,FC,SCFPtr)
 
     ELSE IF (TRIM(OrbitPtr%exctype)=='HF'.or.TRIM(OrbitPtr%exctype)=='HFV') THEN
-       write(6,*) 'Just before HF_SCF'; call flush_unit(6)
+       write(std_out,*) 'Just before HF_SCF'; call flush_unit(std_out)
        CALL HF_SCF(scftype,lotsofoutput,Grid,OrbitPtr,PotPtr,FC,SCFPtr)
-       write(6,*) 'Just after HF_SCF'; call flush_unit(6)
+       write(std_out,*) 'Just after HF_SCF'; call flush_unit(std_out)
 
     ELSE
       !LDA or GGA
@@ -460,7 +460,7 @@ CONTAINS
     ENDIF
 
     If (HFpostprocess) then
-       write(6,*) "******PostProcessing HF*********"
+       write(std_out,*) "******PostProcessing HF*********"
        CALL InitSCF(SCFPP)
        call hf_energy_only(Grid,OrbitPtr,PotPtr,SCFPP)
     endif
@@ -495,7 +495,7 @@ CONTAINS
           l=Orbit%l(io)
           xocc=Orbit%occ(io)
           Orbit%eig(io)=-(zeff/(np))**2
-          WRITE(6,*) io,np,l,xocc,Orbit%eig(io)
+          WRITE(STD_OUT,*) io,np,l,xocc,Orbit%eig(io)
           DO ir=1,Grid%n
              Orbit%wfn(ir,io)=hwfn(zeff,np,l,Grid%r(ir))
              IF (ABS(Orbit%wfn(ir,io))<machine_zero) Orbit%wfn(ir,io)=0.d0
@@ -511,7 +511,7 @@ CONTAINS
           kappa=Orbit%kappa(io)
           xocc=Orbit%occ(io)
           Orbit%eig(io)=-(zeff/(np))**2
-          WRITE(6,*) io,np,l,xocc,Orbit%eig(io)
+          WRITE(STD_OUT,*) io,np,l,xocc,Orbit%eig(io)
           DO ir=1,Grid%n
            call dirachwfn(np,kappa,zeff,Grid%r(ir),Orbit%eig(io) &
 &               ,Orbit%wfn(ir,io),Orbit%lwfn(ir,io))
@@ -550,7 +550,7 @@ CONTAINS
 !               formulation
        qcal=integrator(Grid,Orbit%den)
        qf=qcal
-       !WRITE(6,*) 'qcal electrons = ',qcal, electrons
+       !WRITE(STD_OUT,*) 'qcal electrons = ',qcal, electrons
        !rescale density
        rescale=electrons/qcal
        Orbit%den(1:Grid%n)=Orbit%den(1:Grid%n)*rescale
@@ -558,7 +558,7 @@ CONTAINS
 
        deallocate(dpdr,pbr)
        initialconfig=1
-        write(6,*) 'completed Orbit_Init '; call flush_unit(6)
+        write(std_out,*) 'completed Orbit_Init '; call flush_unit(std_out)
 
   END SUBROUTINE Orbit_Init
 
@@ -596,7 +596,7 @@ CONTAINS
              ENDIF
            ENDDO
            IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
-             WRITE(6,*) 'error in occupations -- ip,l,xocc',&
+             WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc',&
               orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
              STOP
            ENDIF
@@ -609,26 +609,26 @@ CONTAINS
        ENDIF
 
        electrons=0.d0
-       WRITE(6,*) ' Corrected occupations are: '
+       WRITE(STD_OUT,*) ' Corrected occupations are: '
        IF (.NOT.diracrelativistic) THEN
-         WRITE(6,"(' n  l     occupancy')")
+         WRITE(STD_OUT,"(' n  l     occupancy')")
          DO io=1,Orbit%norbit
-            WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)') Orbit%np(io),Orbit%l(io),Orbit%occ(io)
+            WRITE(STD_OUT,'(i2,1x,i2,4x,1p,1e15.7)') Orbit%np(io),Orbit%l(io),Orbit%occ(io)
             electrons=electrons+Orbit%occ(io)
          ENDDO
        ELSE
-         WRITE(6,"(' n  l kap     occupancy')")
+         WRITE(STD_OUT,"(' n  l kap     occupancy')")
          DO io=1,Orbit%norbit
-            WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)') Orbit%np(io),Orbit%l(io),Orbit%kappa(io),Orbit%occ(io)
+            WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)') Orbit%np(io),Orbit%l(io),Orbit%kappa(io),Orbit%occ(io)
             electrons=electrons+Orbit%occ(io)
          ENDDO
        ENDIF
        Pot%q=electrons
        qf=Pot%nz-electrons
-       WRITE(6,*)
-       WRITE(6,*) 'nuclear charge    = ' , Pot%nz
-       WRITE(6,*) 'electronic charge = ', electrons
-       WRITE(6,*) 'net charge        = ', qf
+       WRITE(STD_OUT,*)
+       WRITE(STD_OUT,*) 'nuclear charge    = ' , Pot%nz
+       WRITE(STD_OUT,*) 'electronic charge = ', electrons
+       WRITE(STD_OUT,*) 'net charge        = ', qf
        !
        !
        !  calculate initial charge density from stored wavefunctions
@@ -661,7 +661,7 @@ CONTAINS
        !
        qcal=integrator(Grid,Orbit%den)
        qf=qcal
-       !WRITE(6,*) 'qcal electrons = ',qcal, electrons
+       !WRITE(STD_OUT,*) 'qcal electrons = ',qcal, electrons
        !  rescale density
        rescale=electrons/qcal
        Orbit%den=Orbit%den*rescale
@@ -682,7 +682,7 @@ CONTAINS
     INTEGER :: io
     LOGICAL :: noalt=.true.
     If (choosevalence/=0) then
-     write(6,*) 'Error in aeatom -- SC_Init already called'
+     write(std_out,*) 'Error in aeatom -- SC_Init already called'
        stop
     endif
 
@@ -698,10 +698,10 @@ CONTAINS
        Call Get_FCKinCoul(Grid,Pot,Orbit,FC,SCF,noalt)
        CALL Get_FCEnergy_EXX(Grid,Orbit,FC,SCF)
     ELSEIF (TRIM(Orbit%exctype)=='HF'.or.TRIM(Orbit%exctype)=='HFV') THEN
-       write(6,*) ' Completed Setcore '; call flush_unit(6)
+       write(std_out,*) ' Completed Setcore '; call flush_unit(std_out)
        CALL Get_FCEnergy_HF(Grid,Pot,Orbit,FC,SCF)
        CALL Total_FCEnergy_Report(SCF,6)
-       write(6,*) ' Completed Setcore '; call flush_unit(6)
+       write(std_out,*) ' Completed Setcore '; call flush_unit(std_out)
     ELSE
        Call Get_FCKinCoul(Grid,Pot,Orbit,FC,SCF)
        CALL Get_FCEXC(SCF)
@@ -723,17 +723,17 @@ CONTAINS
     INTEGER, ALLOCATABLE :: orbit_mod_l(:),orbit_mod_n(:),orbit_mod_k(:)
     REAL(8), ALLOCATABLE :: orbit_mod_occ(:)
 
-       WRITE(6,*)' Below are listed the current valence occupations '
+       WRITE(STD_OUT,*)' Below are listed the current valence occupations '
        IF (.NOT.diracrelativistic) THEN
-         WRITE(6,"(' n  l     occupancy')")
+         WRITE(STD_OUT,"(' n  l     occupancy')")
          DO io=1,Orbit%norbit
-            IF (.NOT.Orbit%iscore(io)) WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)') &
+            IF (.NOT.Orbit%iscore(io)) WRITE(STD_OUT,'(i2,1x,i2,4x,1p,1e15.7)') &
 &                Orbit%np(io),Orbit%l(io),Orbit%occ(io)
          ENDDO
        ELSE
-         WRITE(6,"(' n  l kap     occupancy')")
+         WRITE(STD_OUT,"(' n  l kap     occupancy')")
          DO io=1,Orbit%norbit
-            IF (.NOT.Orbit%iscore(io)) WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)') &
+            IF (.NOT.Orbit%iscore(io)) WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)') &
 &                Orbit%np(io),Orbit%l(io),Orbit%kappa(io),Orbit%occ(io)
          ENDDO
        ENDIF
@@ -753,7 +753,7 @@ CONTAINS
            ENDIF
          ENDDO
          IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
-           WRITE(6,*) 'error in occupations -- ip,l,xocc',&
+           WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc',&
             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
            STOP
          ENDIF
@@ -765,21 +765,21 @@ CONTAINS
        DEALLOCATE(orbit_mod_occ)
 
        FC%zvale=0.d0
-       WRITE(6,*) ' Corrected occupations are: '
+       WRITE(STD_OUT,*) ' Corrected occupations are: '
        IF (.NOT.diracrelativistic) THEN
-         WRITE(6,"(' n  l     occupancy')")
+         WRITE(STD_OUT,"(' n  l     occupancy')")
          DO io=1,Orbit%norbit
            If (.not.Orbit%iscore(io))then
-             WRITE(6,'(i2,1x,i2,4x,1p,1e15.7)')  &
+             WRITE(STD_OUT,'(i2,1x,i2,4x,1p,1e15.7)')  &
 &              Orbit%np(io),Orbit%l(io),Orbit%occ(io)
              FC%zvale=FC%zvale+Orbit%occ(io)
            Endif
          ENDDO
        ELSE
-         WRITE(6,"(' n  l kap     occupancy')")
+         WRITE(STD_OUT,"(' n  l kap     occupancy')")
          DO io=1,Orbit%norbit
            If (.not.Orbit%iscore(io))then
-             WRITE(6,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)')  &
+             WRITE(STD_OUT,'(i2,1x,i2,2x,i2,4x,1p,1e15.7)')  &
 &              Orbit%np(io),Orbit%l(io),Orbit%kappa(io),Orbit%occ(io)
              FC%zvale=FC%zvale+Orbit%occ(io)
            Endif
@@ -819,10 +819,10 @@ CONTAINS
        endif
 
        Orbit%den=FC%valeden+FC%coreden
-       WRITE(6,*)
-       WRITE(6,*) 'core charge    = ' , FC%zcore
-       WRITE(6,*) 'valence charge = ',  FC%zvale
-       WRITE(6,*) 'net charge     = ',  Pot%nz-FC%zcore-FC%zvale
+       WRITE(STD_OUT,*)
+       WRITE(STD_OUT,*) 'core charge    = ' , FC%zcore
+       WRITE(STD_OUT,*) 'valence charge = ',  FC%zvale
+       WRITE(STD_OUT,*) 'net charge     = ',  Pot%nz-FC%zcore-FC%zvale
 
   END SUBROUTINE FC_Init
 
@@ -840,7 +840,7 @@ CONTAINS
 
 
     CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
-    write(6,*) 'In Potential_Init', Pot%q,ecoul; call flush_unit(6)
+    write(std_out,*) 'In Potential_Init', Pot%q,ecoul; call flush_unit(std_out)
 
   END SUBROUTINE Potential_Init
 
@@ -860,7 +860,7 @@ CONTAINS
     FC%coretau=0; FC%valetau=0
 
     DO io=1,FCOrbit%norbit
-       WRITE(6,'(3i5,1p,2e15.7)') io,FCOrbit%np(io),FCOrbit%l(io),&
+       WRITE(STD_OUT,'(3i5,1p,2e15.7)') io,FCOrbit%np(io),FCOrbit%l(io),&
 &           FCOrbit%occ(io),FCOrbit%eig(io)
 
        FCOrbit%iscore(io)=input_dataset%orbit_iscore(io)
@@ -883,12 +883,12 @@ CONTAINS
        ENDIF
     ENDDO
 
-         write(6,*) 'Returning from SetValence'
-         write(6,*) 'Core electrons', FC%zcore,integrator(Grid,FC%coreden)
-         write(6,*) 'Vale electrons', FC%zvale,integrator(Grid,FC%valeden)
+         write(std_out,*) 'Returning from SetValence'
+         write(std_out,*) 'Core electrons', FC%zcore,integrator(Grid,FC%coreden)
+         write(std_out,*) 'Vale electrons', FC%zvale,integrator(Grid,FC%valeden)
 
-         write(6,*) 'Coretau:',FC%coretau(1:20)
-         write(6,*) 'Valetau:',FC%valetau(1:20)
+         write(std_out,*) 'Coretau:',FC%coretau(1:20)
+         write(std_out,*) 'Valetau:',FC%valetau(1:20)
   END SUBROUTINE Set_Valence
 
 ! dump and load subroutines need to be updated!!!!  
@@ -903,10 +903,10 @@ CONTAINS
      INTEGER, parameter :: ifo=15
      INTEGER :: i,io,n
 
-     Write(6,*) 'Note that dump has been called; code not completely checked'
+     Write(STD_OUT,*) 'Note that dump has been called; code not completely checked'
 
      open(ifo,file=Fn,form='formatted',status='replace')
-     write(6,*) 'Creating or replacing dump file', Fn
+     write(std_out,*) 'Creating or replacing dump file', Fn
 
      write(ifo,*) 'ATOMPAW'    ! keyword
 
@@ -967,7 +967,7 @@ CONTAINS
 
    close(ifo)
 
-   write(6,*) 'Closing dump file'
+   write(std_out,*) 'Closing dump file'
   END SUBROUTINE dump_aeatom
 
   SUBROUTINE load_aeatom(Fn,Grid,AEOrbit,AEPot,AESCF,FCOrbit,FCPot,FCSCF,FC)
@@ -982,16 +982,16 @@ CONTAINS
      INTEGER :: n,norbit,nps,npp,npd,npf,npg,i,io
      CHARACTER(132) :: inputfile
 
-     Write(6,*) 'Note that load has been called; code not completely checked'
+     Write(STD_OUT,*) 'Note that load has been called; code not completely checked'
 
      open(ifo,file=Fn,form='formatted',status='old')
-     write(6,*) 'Reading dump file ', Fn
+     write(std_out,*) 'Reading dump file ', Fn
 
      read(ifo,*) inputfile(1:7)
      if (inputfile(1:7)=='ATOMPAW') then
-       write(6,*) 'File seems to be fine'
+       write(std_out,*) 'File seems to be fine'
      else
-       write(6,*) 'File is not correct -- program will stop'
+       write(std_out,*) 'File is not correct -- program will stop'
        stop
      endif
 
@@ -1063,8 +1063,8 @@ CONTAINS
 
    close(ifo)
 
-   write(6,*) 'Closing load file'
-   write(6,*) 'Load completed normally'
+   write(std_out,*) 'Closing load file'
+   write(std_out,*) 'Load completed normally'
 
   END SUBROUTINE load_aeatom
 

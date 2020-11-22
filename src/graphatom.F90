@@ -39,12 +39,12 @@ PROGRAM graphatom
   CALL Report_Graphatom('AE',Grid,AEOrbit,AEPot,AESCF)
 
   DO
-     WRITE(6,*) ' Input 0 or END for plotting results and completing program (once)'
-     WRITE(6,*) ' Input 1  for changing all-electron configuration (many)'
-     WRITE(6,*) ' Input 2  for choosing frozencore in current config. (once)'
-     WRITE(6,*) ' Input 3  for changing frozen-core configuration (many)'
+     WRITE(STD_OUT,*) ' Input 0 or END for plotting results and completing program (once)'
+     WRITE(STD_OUT,*) ' Input 1  for changing all-electron configuration (many)'
+     WRITE(STD_OUT,*) ' Input 2  for choosing frozencore in current config. (once)'
+     WRITE(STD_OUT,*) ' Input 3  for changing frozen-core configuration (many)'
 
-     READ(5,'(a)',iostat=ios) token
+     READ(STD_IN,'(a)',iostat=ios) token
      IF (ios/=0) EXIT
 
      IF (checkline2(token,"0","END")) THEN
@@ -56,11 +56,11 @@ PROGRAM graphatom
          CALL Report_Graphatom('NC',Grid,AEOrbit,AEPot,AESCF)
        ELSE IF (i == 2) THEN
          CALL SCFatom('SC',lotsofoutput)
-         write(6,*) ' Finished SC in graphatom '; call flush_unit(6)
+         write(std_out,*) ' Finished SC in graphatom '; call flush_unit(std_out)
          CALL Report_Graphatom('FC',Grid,FCOrbit,FCPot,FCSCF)
-         write(6,*) ' Finished SC report in graphatom '; call flush_unit(6)
+         write(std_out,*) ' Finished SC report in graphatom '; call flush_unit(std_out)
        ELSE IF (i == 3) THEN
-         write(6,*) 'before FC in graphtom' ; call flush_unit(6)
+         write(std_out,*) 'before FC in graphtom' ; call flush_unit(std_out)
          CALL SCFatom('FC',lotsofoutput)
          CALL Report_Graphatom('FC',Grid,FCOrbit,FCPot,FCSCF)
        ENDIF

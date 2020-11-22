@@ -121,13 +121,13 @@ Module exx_pseudo
     REAL(8) :: occ,term,term1,wgt,occi,occj,rc,uvjo
     REAL(8), PARAMETER :: threshold=1.d-8
 
-    write(6,*) 'Calc_tecpot_io ',io; call flush_unit(6)
+    write(std_out,*) 'Calc_tecpot_io ',io; call flush_unit(std_out)
     n=Grid%n
     Orbit=>PAW%OCCwfn
     tOrbit=>PAW%tOCCwfn
     ALLOCATE(wfp(n),vl(n),arg(n),dum(n),dum1(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_expot_io allocation error:', n,Orbit%norbit,ok
+       WRITE(STD_OUT,*) 'calc_expot_io allocation error:', n,Orbit%norbit,ok
        STOP
     ENDIF
 
@@ -201,7 +201,7 @@ Module exx_pseudo
               If (TRIM(inputline)=='<SVDCUTOFF>') exit
             enddo
             READ(1002,*)  svdcut
-            WRITE(6,*) 'Modified SVD Cutoff ', svdcut
+            WRITE(STD_OUT,*) 'Modified SVD Cutoff ', svdcut
          close(1002)
      endif
 
@@ -236,11 +236,11 @@ Module exx_pseudo
 !        i=0
 !        do io=1,Orbit%norbit
 !           if (ABS(Orbit%eig(io)-S_E(ip))<1.d-8) then
-!              i=io; S_omap(ip)=io; write(6,*) 'ip io map', ip,io ; exit
+!              i=io; S_omap(ip)=io; write(std_out,*) 'ip io map', ip,io ; exit
 !           endif
 !        enddo
 !        if (i==0) then
-!           write(6,*) 'Error:  No match found for ',ip,S_E(ip)
+!           write(std_out,*) 'Error:  No match found for ',ip,S_E(ip)
 !           stop
 !        endif
 !    Enddo
@@ -280,7 +280,7 @@ Module exx_pseudo
 !&                            PAW%otphi(:,ib)*PAW%otphi(:,map(iq))*trvx0
 !                       d(1)=0; d(2:n)=d(2:n)/Grid%r(2:n)
 !                       S_X(ib,ip)=S_X(ib,ip)-wgt*integrator(Grid,d,1,irc)
-!                       write(6,*) 'Check ',ib,ip,integrator(Grid,d,1,irc),&
+!                       write(std_out,*) 'Check ',ib,ip,integrator(Grid,d,1,irc),&
 !&                        integrator(Grid,d)
 !                    endif
 !                 enddo
@@ -294,17 +294,17 @@ Module exx_pseudo
 !        d=(F2(:,ip)-HSZ%rVxvale(:)*PAW%ophi(:,map(ip)))*PAW%ophi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
 !        S_U(ip)=integrator(Grid,d)
-!        write(6,*) 'Checking U ', ip,map(ip),integrator(Grid,d),&
+!        write(std_out,*) 'Checking U ', ip,map(ip),integrator(Grid,d),&
 !&          HSZ%Uvale(S_omap(ip))
 !        d=d-HSZ%Uvale(S_omap(ip))*PAW%ophi(:,map(ip))**2
-!        write(6,*) 'FC rhs',ip,integrator(Grid,d),integrator(Grid,d,1,irc)
+!        write(std_out,*) 'FC rhs',ip,integrator(Grid,d),integrator(Grid,d,1,irc)
 !        d=S_W(:,ip)*PAW%otphi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
-!        write(6,*) 'Checking dtEx ', ip,map(ip),&
+!        write(std_out,*) 'Checking dtEx ', ip,map(ip),&
 !&            integrator(Grid,d)+S_X(map(ip),ip),S_X(map(ip),ip)
 !        d=F2(:,ip)*PAW%ophi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
-!        write(6,*) 'Checking dEx ', ip,map(ip),integrator(Grid,d)
+!        write(std_out,*) 'Checking dEx ', ip,map(ip),integrator(Grid,d)
 !        d=S_W(:,ip)*PAW%otphi(:,map(ip))
 !        d(1)=0;d(2:n)=d(2:n)/Grid%r(2:n)
 !        F(:)=F(:)+occp*d(:)
@@ -344,7 +344,7 @@ Module exx_pseudo
 !             d(1)=0; d(2:n)=d(2:n)/Gridwk%r(2:n)
 !             S_Vx(ib,ip)=integrator(Gridwk,d,1,irc)
 !          endif
-!          write(6,'(" vx ",2i5,1p,1e15.7)') ib,ip,S_Vx(ib,ip)
+!          write(std_out,'(" vx ",2i5,1p,1e15.7)') ib,ip,S_Vx(ib,ip)
 !       enddo
 !    enddo
 !
@@ -359,7 +359,7 @@ Module exx_pseudo
 !
 !     Do ip=1,nocc
 !        do ib=1,nbase
-!           write(6,*) 'X  ', ip,ib,S_X(ib,ip)
+!           write(std_out,*) 'X  ', ip,ib,S_X(ib,ip)
 !        enddo
 !     enddo
 !
@@ -378,7 +378,7 @@ Module exx_pseudo
 !&                 1.d-8,1.d-16,.TRUE.)
 !   CALL DoAndersonMix(AC,arg,xxx,tVXsub1,success)
 !   trvx(1:irc)=arg(1:irc)
-!      WRITE(6,*) 'Finished trvx iter # ',AC%CurIter,AC%res
+!      WRITE(STD_OUT,*) 'Finished trvx iter # ',AC%CurIter,AC%res
 !   CALL FreeAnderson(AC)
 !
 !     Open(1001,file='trvx',form='formatted')
@@ -539,10 +539,10 @@ Module exx_pseudo
           tu(1)=0; tu(2:irc)=tu(2:irc)/Gridwk%r(2:irc)
           dvx(ib,ip)=S_Vx(ib,ip)-integrator(Gridwk,tu,1,irc)
           endif
-          write(6,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
+          write(std_out,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
        enddo
     enddo
-    call flush_unit(6)
+    call flush_unit(std_out)
     tw=S_tVxvale
     tw(1:irc)=w(1:irc)
     shift=0 ;
@@ -561,7 +561,7 @@ Module exx_pseudo
           endif
        enddo
 
-      write(6,*)' Check smooth rhs ip ', ip,  &
+      write(std_out,*)' Check smooth rhs ip ', ip,  &
 &                overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)),1,irc),&
 &                overlap(Gridwk,rhs,PAW%otphi(:,S_bmap(ip)))
 
@@ -572,9 +572,9 @@ Module exx_pseudo
 
       do ib=1,nbase
          if (l==PAW%l(ib)) then
-            write(6,*) ' ip ib <g|p> = ', ip,ib ,&
+            write(std_out,*) ' ip ib <g|p> = ', ip,ib ,&
 &             overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
-            write(6,*) ' ip ib <g|tphi> = ', &
+            write(std_out,*) ' ip ib <g|tphi> = ', &
 &             overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
          endif
       enddo
@@ -593,7 +593,7 @@ Module exx_pseudo
     en=err
     S_shift=shift
 
-    WRITE(6,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
+    WRITE(STD_OUT,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
 
     call mkname(fcount,stuff)
     open(1001,file='pseudo.'//TRIM(stuff),form='formatted')
@@ -646,10 +646,10 @@ Module exx_pseudo
           tu(1)=0; tu(2:irc)=tu(2:irc)/Gridwk%r(2:irc)
           dvx(ib,ip)=S_Vx(ib,ip)-integrator(Gridwk,tu,1,irc)
           endif
-          write(6,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
+          write(std_out,'(" dvx ",2i5,1p,1e15.7)') ib,ip,dvx(ib,ip)
        enddo
     enddo
-    call flush_unit(6)
+    call flush_unit(std_out)
     tw=S_tVxvale
     tw(1:irc)=w(1:irc)
     shift=0 ;
@@ -680,19 +680,19 @@ Module exx_pseudo
 
       ! Remove homogeneous solution
       x=0; y=0
-      write(6,*) 'Fix tail ', ip,S_bmap(ip)
+      write(std_out,*) 'Fix tail ', ip,S_bmap(ip)
       do i=irc+1,n
          x=x+PAW%otphi(i,S_bmap(ip))**2
          y=y+(S_tgvv(i,ip)-S_gvv(i,ip))*PAW%otphi(i,S_bmap(ip))
       enddo
-         write(6,*) 'Adjust tail value ', ip ,y,x
+         write(std_out,*) 'Adjust tail value ', ip ,y,x
          S_tgvv(:,ip)=S_tgvv(:,ip)-(y/x)*PAW%otphi(:,S_bmap(ip))
 
       do ib=1,nbase
          if (l==PAW%l(ib)) then
-            write(6,*) ' ip ib <g|p> = ', ip,ib ,&
+            write(std_out,*) ' ip ib <g|p> = ', ip,ib ,&
 &             overlap(Gridwk,S_tgvv(:,ip),PAW%otp(:,ib))
-            write(6,*) ' ip ib <g|tphi> = ', &
+            write(std_out,*) ' ip ib <g|tphi> = ', &
 &             overlap(Gridwk,S_tgvv(:,ip),PAW%otphi(:,ib))
          endif
       enddo
@@ -710,7 +710,7 @@ Module exx_pseudo
     en=err
     S_shift=shift
 
-    WRITE(6,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
+    WRITE(STD_OUT,'("PAWiter",i5,1p,1e20.12,1p,2e15.7)')fcount,en
 
     call mkname(fcount,stuff)
     open(1001,file='pseudo.'//TRIM(stuff),form='formatted')
@@ -741,14 +741,14 @@ Module exx_pseudo
       Do loop=1,mxloop*10
          CALL InitAnderson_dr(AC,6,2,n,0.001d0,1.d1,mxl,1.d-6,1.d-6,.true.)
          CALL DoAndersonMix(AC,arg,xxx,tVXsub0,success)
-         write(6,*) 'Finished EXX_PseudoVx',AC%CurIter,AC%res
+         write(std_out,*) 'Finished EXX_PseudoVx',AC%CurIter,AC%res
          CALL FreeAnderson(AC)
 
          trvx=arg
          arg=0
          arg(2:n)=-S_shift(2:n)/Gridwk%r(2:n)
          xxx=DOT_PRODUCT(arg(1:n),arg(1:n))
-         write(6,*) 'tVX loop ', loop,xxx
+         write(std_out,*) 'tVX loop ', loop,xxx
            call mkname(loop,nm)
               Open(1001,file='anal'//TRIM(nm),form='formatted')
                  do i=1,n
@@ -757,7 +757,7 @@ Module exx_pseudo
                  enddo
               close(1001)
          if (xxx<threshold) then
-            write(6,*) ' tVX loop converged with ', loop,xxx
+            write(std_out,*) ' tVX loop converged with ', loop,xxx
             exit
          endif
          trvx=trvx+mix*arg
@@ -790,7 +790,7 @@ Module exx_pseudo
     enddo
 
     if (mult-1/=many) then
-         write(6,*) 'Error in multisolv ', mult,many
+         write(std_out,*) 'Error in multisolv ', mult,many
          stop
     endif
 
@@ -830,9 +830,9 @@ Module exx_pseudo
       MMM=MM
       call linsol(MMM,cc,many,nbase,nbase,nbase)
 
-      write(6,*) ' linsol results '
+      write(std_out,*) ' linsol results '
       do io=1,many
-         write(6,*) io,cc(io)
+         write(std_out,*) io,cc(io)
       enddo
 
       res=tw(:,1)

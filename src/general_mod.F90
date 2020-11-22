@@ -77,8 +77,6 @@ CONTAINS
           kappa=-1     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 's s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -86,7 +84,6 @@ CONTAINS
           IF (.NOT.OK) THEN
              success=.FALSE.
           ENDIF
-       !write(6,*)'s ', nroot,s1,s2 ; call flush(6)   
     ENDIF
     !  p states :
     IF (Orbit%npp.GT.1) THEN
@@ -95,7 +92,6 @@ CONTAINS
        l=1
        nroot=Orbit%npp-1
        s1=s2+1;s2=s1+nroot-1
-       !write(6,*)'p ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
@@ -103,16 +99,11 @@ CONTAINS
           kappa=1     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'p s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
           s1=s2+1;s2=s1+nroot-1
           kappa=-2     
           emin=-nz*nz/4.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'p s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
-       !write(6,*)'p ', nroot,s1,s2 ; call flush(6)   
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -128,7 +119,6 @@ CONTAINS
        l=2
        nroot=Orbit%npd-2
        s1=s2+1;s2=s1+nroot-1
-       !write(6,*)'d ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
@@ -136,16 +126,11 @@ CONTAINS
           kappa=2     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'd s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
           kappa=-3     
        s1=s2+1;s2=s1+nroot-1
        emin=-nz*nz/9.d0-0.5d0
-       !write(6,*)'d ', nroot,s1,s2 ; call flush(6)   
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'd s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -161,7 +146,6 @@ CONTAINS
        l=3
        nroot=Orbit%npf-3
        s1=s2+1;s2=s1+nroot-1
-       !write(6,*)'f ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
@@ -169,16 +153,11 @@ CONTAINS
           kappa=3     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'f s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
           kappa=-4     
        s1=s2+1;s2=s1+nroot-1
        emin=-nz*nz/16.d0-0.5d0
-       !write(6,*)'f ', nroot,s1,s2 ; call flush(6)   
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'f s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -194,7 +173,6 @@ CONTAINS
        l=4
        nroot=Orbit%npg-4
        s1=s2+1;s2=s1+nroot-1
-       !write(6,*)'g ', nroot,s1,s2 ; call flush(6)   
        IF (scalarrelativistic) THEN
           Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
@@ -202,16 +180,12 @@ CONTAINS
           kappa=4     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'g s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
           kappa=-5     
        s1=s2+1;s2=s1+nroot-1
        emin=-nz*nz/25.d0-0.5d0
-       !write(6,*)'g ', nroot,s1,s2 ; call flush(6)   
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-          !write(6,*) 'g s1:s2', s1,s2
-          !write(6,*) Orbit%eig(s1:s2)
+
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -248,7 +222,7 @@ CONTAINS
 
     ALLOCATE(dum(n),STAT=k)
     IF (k /= 0) THEN
-       WRITE(6,*) 'Error in Get_KinCoul allocation ', n,k
+       WRITE(STD_OUT,*) 'Error in Get_KinCoul allocation ', n,k
        STOP
     ENDIF
 
@@ -281,14 +255,14 @@ CONTAINS
        Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density
 
     qcal=integrator(Grid,Orbit%den)
-    WRITE(6,*) 'qcal = ', qcal
+    WRITE(STD_OUT,*) 'qcal = ', qcal
 
     ! for FC, Big change here , electrons are total , not valence anymore!
     electrons=Pot%q
     rescale=electrons/qcal
     Orbit%den(1:n)=Orbit%den(1:n)*rescale
     Orbit%tau(1:n)=Orbit%tau(1:n)*rescale
-    !WRITE(6,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
+    !WRITE(STD_OUT,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
     deallocate(dpdr,pbr)
 
     CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
@@ -297,13 +271,13 @@ CONTAINS
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+ecoul
 
-    !WRITE(6,*) ' n  l     occupancy       energy'
+    !WRITE(STD_OUT,*) ' n  l     occupancy       energy'
     ekin=0.0d0 ; if (frozencorecalculation) ekin=SCF%corekin
     eone=0.0d0
     DO io=1,Orbit%norbit
        if(.not.frozencorecalculation &
 &          .or.frozencorecalculation.and.(.not.Orbit%iscore(io))) then
-         !WRITE(6,'(i2,1x,i2,4x,1p,2e15.7)') &
+         !WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') &
          !&  Orbit%np(io),Orbit%l(io),&
          !&  Orbit%occ(io),Orbit%eig(io)
          eone=eone+Orbit%occ(io)*Orbit%eig(io)
@@ -321,7 +295,7 @@ CONTAINS
     SCF%ecoul=ecoul
     counter=counter+1
 
-    !write(6,*) 'completed Get_KinCoul'
+    !write(std_out,*) 'completed Get_KinCoul'
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_KinCoul
@@ -350,12 +324,12 @@ CONTAINS
 
     ALLOCATE(dum(n),STAT=k)
     IF (k /= 0) THEN
-       WRITE(6,*) 'Error in Get_FCKinCoul allocation ', n,k
+       WRITE(STD_OUT,*) 'Error in Get_FCKinCoul allocation ', n,k
        STOP
     ENDIF
 
 
-     write(6,*) 'In Get_FCKinCoul ', firsttime
+     write(std_out,*) 'In Get_FCKinCoul ', firsttime
     !update density  and calculated  kinetic energy
     Orbit%den(1:n)=0.d0
     FC%valeden(1:n)=0.d0     ;   tv=0 ; tc=0; SCF%eone=0
@@ -392,22 +366,22 @@ CONTAINS
        ENDIF
     ENDDO
 
-    write(6,*) 'electron density integral',integrator(Grid,Orbit%den) 
+    write(std_out,*) 'electron density integral',integrator(Grid,Orbit%den) 
 
-    write(6,*) 'eone = ', SCF%eone
+    write(std_out,*) 'eone = ', SCF%eone
 
     if (firsttime==0) SCF%corekin=tc
     firsttime=1
     SCF%valekin=tv
     SCF%ekin=SCF%corekin+tv
     qcal=integrator(Grid,FC%valeden)
-    !WRITE(6,*) 'qcalval = ', qcal
-    Write(6,*) 'Core kin ', SCF%corekin,'  Vale kin  ', SCF%valekin
+    !WRITE(STD_OUT,*) 'qcalval = ', qcal
+    Write(STD_OUT,*) 'Core kin ', SCF%corekin,'  Vale kin  ', SCF%valekin
 
     electrons=FC%zvale
     rescale=electrons/qcal
     FC%valeden(1:n)=FC%valeden(1:n)*rescale
-    !WRITE(6,*) 'rescaled qcalval = ', integrator(Grid,FC%valeden), FC%zvale
+    !WRITE(STD_OUT,*) 'rescaled qcalval = ', integrator(Grid,FC%valeden), FC%zvale
 
     x=FC%zvale
     CALL poisson(Grid,x,FC%valeden,dum,vcoul,y)  !valence-valence
@@ -453,26 +427,26 @@ CONTAINS
           Pot%rvn(i)=-2*Pot%nz
        ENDDO
     ELSE
-       write(6,*) 'Finite nucleus model  -- readjusting integration grid'
+       write(std_out,*) 'Finite nucleus model  -- readjusting integration grid'
        a=bohr*1.d-5*(0.57d0+0.836*   &
         &     (-1.168d0+Pot%nz*(2.163d0+Pot%nz*0.004467d0)))
            !  From Eqs. A.3 and 51 in Andrae paper
-       write(6,*) 'a parameter calculated to be', a
+       write(std_out,*) 'a parameter calculated to be', a
        call destroygrid(Grid)
        SELECT CASE(Pot%finitenucleusmodel)
           CASE DEFAULT
-            write(6,*) 'Error in finitenucleusmodel',Pot%finitenucleusmodel
-            write(6,*) ' Exiting '
+            write(std_out,*) 'Error in finitenucleusmodel',Pot%finitenucleusmodel
+            write(std_out,*) ' Exiting '
             Stop
           CASE(0)      
-            write(6,*) 'Original Gaussian model'      
+            write(std_out,*) 'Original Gaussian model'      
             RR=Pot%nz
             RR=2.9d-5*(RR**0.3333333333333333333333333d0)
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
-            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            write(std_out,*) 'calling InitGrid with h, r0 =',h,r0
             Call InitGrid(Grid,h,gridrange,r0=r0)
-            write(6,*) 'New Grid ', Grid%n
+            write(std_out,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
             DO i=1,Grid%n
@@ -481,13 +455,13 @@ CONTAINS
               Pot%Nv0=-2*Pot%nz*sqrt(4.d0/pi)
               Pot%Nv0p=0.d0
           CASE(2)      
-            write(6,*) 'Model 2 -- Breit'      
+            write(std_out,*) 'Model 2 -- Breit'      
             RR=sqrt(2.d0)*a
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
-            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            write(std_out,*) 'calling InitGrid with h, r0 =',h,r0
             Call InitGrid(Grid,h,gridrange,r0=r0)
-            write(6,*) 'New Grid ', Grid%n
+            write(std_out,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
             DO i=1,Grid%n
@@ -500,13 +474,13 @@ CONTAINS
               Pot%Nv0=-2*Pot%nz*2.0d0/RR
               Pot%Nv0p=2*Pot%nz/(RR**2)
           CASE(3)      
-            write(6,*) 'Model 3 -- uniform'      
+            write(std_out,*) 'Model 3 -- uniform'      
             RR=sqrt(5.d0/3.d0)*a
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
-            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            write(std_out,*) 'calling InitGrid with h, r0 =',h,r0
             Call InitGrid(Grid,h,gridrange,r0=r0)
-            write(6,*) 'New Grid ', Grid%n
+            write(std_out,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
             DO i=1,Grid%n
@@ -520,13 +494,13 @@ CONTAINS
               Pot%Nv0=-3*Pot%nz/RR
               Pot%Nv0p=0.d0
           CASE(4)      
-            write(6,*) 'Model 4 -- exponential'      
+            write(std_out,*) 'Model 4 -- exponential'      
             RR=sqrt(1.d0/12.d0)*a
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
-            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            write(std_out,*) 'calling InitGrid with h, r0 =',h,r0
             Call InitGrid(Grid,h,gridrange,r0=r0)
-            write(6,*) 'New Grid ', Grid%n
+            write(std_out,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
             DO i=1,Grid%n
@@ -536,13 +510,13 @@ CONTAINS
               Pot%Nv0=-Pot%nz/RR
               Pot%Nv0p=0.d0
           CASE(5)      
-            write(6,*) 'Model 5 -- Gaussian'      
+            write(std_out,*) 'Model 5 -- Gaussian'      
             RR=sqrt(2.d0/3.d0)*a
             h=log(FLOAT(NN))/(NN-1)
             r0=RR/(NN-1)
-            write(6,*) 'calling InitGrid with h, r0 =',h,r0
+            write(std_out,*) 'calling InitGrid with h, r0 =',h,r0
             Call InitGrid(Grid,h,gridrange,r0=r0)
-            write(6,*) 'New Grid ', Grid%n
+            write(std_out,*) 'New Grid ', Grid%n
             Call DestroyPot(Pot)
             Call InitPot(Pot,Grid%n)
             DO i=1,Grid%n
@@ -633,7 +607,7 @@ CONTAINS
 !       enddo
 !       If (j<n+1) then
 !            Orbit%wfn(j:n,io)=0.d0
-!            write(6,*) 'Adjusted orbit ', io,'  at r = ', &
+!            write(std_out,*) 'Adjusted orbit ', io,'  at r = ', &
 !&                  Grid%r(j), Orbit%wfn(j-1,io)
 !       endif
 !     else

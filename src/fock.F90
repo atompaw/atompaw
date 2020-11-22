@@ -48,7 +48,7 @@ Module fock
 
     ALLOCATE(wfp(n),dum(n),ddum(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'allocation error in Get_Energy_EXX', i,n
+       WRITE(STD_OUT,*) 'allocation error in Get_Energy_EXX', i,n
        STOP
     ENDIF
 
@@ -108,7 +108,7 @@ Module fock
 
     ALLOCATE(wfp(n),dum(n),ddum(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'allocation error in Get_Energy_EXX_FC', i,n
+       WRITE(STD_OUT,*) 'allocation error in Get_Energy_EXX_FC', i,n
        STOP
     ENDIF
 
@@ -170,7 +170,7 @@ Module fock
 
     ALLOCATE(wfp(n),dum(n),ddum(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'allocation error in Get_Energy_EXX_FC', i,n
+       WRITE(STD_OUT,*) 'allocation error in Get_Energy_EXX_FC', i,n
        STOP
     ENDIF
 
@@ -300,7 +300,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -323,7 +323,7 @@ Module fock
                 wgt=wgt*(2*ll+1)   ! because of apoisson convention
                 CALL apoisson(Grid,ll,n,wfp,dum)
                 vl(1:n)=vl(1:n)-wgt*dum(1:n)*phi(1:n,jo)/occ
-                !write(6,*) 'In vx', io,jo,wgt/((2*ll+1)*occ)
+                !write(std_out,*) 'In vx', io,jo,wgt/((2*ll+1)*occ)
              ENDIF
           ENDDO
        ENDIF
@@ -332,7 +332,7 @@ Module fock
        !vl(1)=0;vl(2:n)=vl(2:n)/Grid%r(2:n)
        !do ko=1,norbit
        !   if(Orbit%l(ko)==li) then
-       !     write(6,'("vx sum", 4i4,2x,1p,1e15.7)') &
+       !     write(std_out,'("vx sum", 4i4,2x,1p,1e15.7)') &
        !&           io,jo,ko,jo,overlap(Grid,Orbit%wfn(:,ko),vl)
        !   endif
        !enddo
@@ -367,7 +367,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_Xp allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_Xp allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -420,12 +420,12 @@ Module fock
     REAL(8), PARAMETER :: threshold=1.d-8
 
     if(.not.frozencorecalculation) then
-       write(6,*) 'In Calc_dexdphi_io_v  but not frozencore calculation'
+       write(std_out,*) 'In Calc_dexdphi_io_v  but not frozencore calculation'
        stop
     endif
 
     if(Orbit%iscore(io)) then
-       write(6,*) 'In Calc_dexdphi_io_v but not valence orbit ', io
+       write(std_out,*) 'In Calc_dexdphi_io_v but not valence orbit ', io
        stop
     endif
 
@@ -433,7 +433,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_dexdphi_io_v allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_dexdphi_io_v allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -485,12 +485,12 @@ Module fock
     REAL(8), PARAMETER :: threshold=1.d-8
 
     if(.not.frozencorecalculation) then
-       write(6,*) 'In Calc_dexdphi_io_c  but not frozencore calculation'
+       write(std_out,*) 'In Calc_dexdphi_io_c  but not frozencore calculation'
        stop
     endif
 
     if(Orbit%iscore(io)) then
-       write(6,*) 'In Calc_dexdphi_io_c but not valence orbit ', io
+       write(std_out,*) 'In Calc_dexdphi_io_c but not valence orbit ', io
        stop
     endif
 
@@ -498,7 +498,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_dexdphi_io_c allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_dexdphi_io_c allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -553,7 +553,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_expot_io allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_expot_io allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -610,7 +610,7 @@ Module fock
     n=Grid%n
     ALLOCATE(wfp(n),vl(n),dum(n),ddum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_psi allocation error:', n,ok
+       WRITE(STD_OUT,*) 'calc_psi allocation error:', n,ok
        STOP
     ENDIF
 
@@ -632,11 +632,11 @@ Module fock
     !term1=integrator(Grid,ddum)
     !psi(:)=psi(:)-term*phi(:)/term1
     !!dum=phi(:,io)*psi(:)
-    !!write(6,*) 'ortho ', term,term1,integrator(Grid,dum)
+    !!write(std_out,*) 'ortho ', term,term1,integrator(Grid,dum)
 
     !!do jo=1,norbit
     !!   dum=EigOrbit%wfn(:,jo)*psi(:)
-    !!   write(6,*) 'ortho' , io,jo,integrator(Grid,dum)
+    !!   write(std_out,*) 'ortho' , io,jo,integrator(Grid,dum)
     !!enddo
 
     !CALL inhomo_numerov_SVD(Grid,l,n,eig,tol,rv,rhs,psi,phi)
@@ -675,7 +675,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
        STOP
     ENDIF
 
@@ -728,7 +728,7 @@ Module fock
     norbit=Orbit%norbit
     ALLOCATE(wfp(n),vl(n),dum(n),stat=ok)
     IF (ok/=0) THEN
-       WRITE(6,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
+       WRITE(STD_OUT,*) 'calc_dexdphi_io allocation error:', n,norbit,ok
        STOP
     ENDIF
 

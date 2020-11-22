@@ -50,11 +50,11 @@ CONTAINS
     FCwk=>FCin
     SCFwk=>SCFin
 
-    !write(6,*) 'in ldagga '; call flush_unit(6)
-    n=Gridwk%n     ;!write(6,*) 'n ', n; call flush_unit(6)
+    !write(std_out,*) 'in ldagga '; call flush_unit(std_out)
+    n=Gridwk%n     ;!write(std_out,*) 'n ', n; call flush_unit(std_out)
     ALLOCATE(arg(n))
 
-    !write(6,*) 'Before exch'; call flush_unit(6)
+    !write(std_out,*) 'Before exch'; call flush_unit(std_out)
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
 &       needvtau=Potwk%needvtau,tau=Orbitwk%tau,vtau=Potwk%vtau)
     
@@ -71,13 +71,13 @@ CONTAINS
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
     Potwk%rv=Potwk%rv+Potwk%rvn
 
-    !write(6,*) 'in ldagga before arg ',Potwk%v0,Potwk%v0p; 
-    !call flush_unit(6)
+    !write(std_out,*) 'in ldagga before arg ',Potwk%v0,Potwk%v0p; 
+    !call flush_unit(std_out)
     arg=Potwk%rv
 
     CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,1000,1.d-11,1.d-16,.true.)
-    !write(6,*) 'in ldagga before Doand '; call flush_unit(6)
-    !write(6,*) arg(1),arg(2)
+    !write(std_out,*) 'in ldagga before Doand '; call flush_unit(std_out)
+    !write(std_out,*) arg(1),arg(2)
     CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
 
     SCFwk%iter=AC%CurIter
@@ -86,7 +86,7 @@ CONTAINS
     CALL Report_LDAGGA_functions(scftype)
 
     CALL FreeAnderson(AC)
-    WRITE(6,*) 'Finished Anderson Mix', en1 ,' success = ', success
+    WRITE(STD_OUT,*) 'Finished Anderson Mix', en1 ,' success = ', success
     DEALLOCATE(arg)
   END SUBROUTINE LDAGGA_SCF
 
@@ -110,7 +110,7 @@ CONTAINS
 
     ALLOCATE(dum(Gridwk%n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in LDAGGAsub allocation' ,Gridwk%n
+       WRITE(STD_OUT,*) 'Error in LDAGGAsub allocation' ,Gridwk%n
        STOP
     ENDIF
 
@@ -122,7 +122,7 @@ CONTAINS
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
     tmpPot%rv=w
       If (.not.success) then   !  attempt to stablize solution
-          write(6,*) 'Current eigs', (Orbitwk%eig(io),io=1,Orbitwk%norbit)
+          write(std_out,*) 'Current eigs', (Orbitwk%eig(io),io=1,Orbitwk%norbit)
           j=n
           x=Orbitwk%eig(1)
           if (Orbitwk%norbit>1) then
@@ -131,23 +131,23 @@ CONTAINS
 &                      x=Orbitwk%eig(io)
              enddo
           endif
-          write(6,*) x,1.d0/sqrt(abs(x))
+          write(std_out,*) x,1.d0/sqrt(abs(x))
           x=1.d0/sqrt(abs(x))
           j=FindGridIndex(Gridwk,x)
-          write(6,*) 'index', x,j,Gridwk%r(j)
+          write(std_out,*) 'index', x,j,Gridwk%r(j)
           if (j<10)j=10
           if (j>n-10) j=n-10
           tmpPot%rv(j+1)=(-1.d0+w(j+1)/2)
           do i=j+2,n
              tmpPot%rv(i)=-2.d0
           enddo
-           write(6,*) 'Reset tmpPot ', j
-           write(6,*) '   Last points '
-              write(6,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
+           write(std_out,*) 'Reset tmpPot ', j
+           write(std_out,*) '   Last points '
+              write(std_out,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
 
            CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,tmpPot%rv,success)
-           write(6,*) 'after updatwfn from reset ',success;
-           call flush_unit(6)
+           write(std_out,*) 'after updatwfn from reset ',success;
+           call flush_unit(std_out)
        Endif
 
     !if FC core calc , restore core info backinto tmpOrbit
@@ -162,16 +162,16 @@ CONTAINS
     ENDIF
 
     IF (.NOT.success) THEN
-       WRITE(6,*) 'Bad luck in Sub'
+       WRITE(STD_OUT,*) 'Bad luck in Sub'
     ENDIF
 
-    !write(6,*) 'in LDAGGAsub before Get'; call flush_unit(6)
+    !write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
-    !write(6,*) 'in LDAGGAsub before EXC'; call flush_unit(6)
+    !write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
-    !write(6,*) 'after Get_EXC'; call flush_unit(6)
+    !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     dum=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn-tmpPot%rv
-    !write(6,*) 'after Get_EXC'; call flush_unit(6)
+    !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
 
 
     if(frozencorecalculation) then
@@ -199,7 +199,7 @@ CONTAINS
        Call One_electron_energy_Report(Orbitwk,6)
     ENDIF
 
-    !write(6,*) 'in LDAGGAsub before end'; call flush_unit(6)
+    !write(std_out,*) 'in LDAGGAsub before end'; call flush_unit(std_out)
     CALL DestroyOrbit(tmpOrbit)
     DEALLOCATE (dum,tmpPot%rvn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
 
@@ -224,29 +224,29 @@ CONTAINS
     INTEGER :: k,n
 
     n=Grid%n
-    !write(6,*) 'In Get_EXC', n; call flush_unit(6)
+    !write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
     CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex,&
 &       needvtau=Pot%needvtau,tau=Orbit%tau,vtau=Pot%vtau)
-    !write(6,*) 'After exch', etxc,eex; call flush_unit(6)
+    !write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
 
     SCF%eexc=eex
     etot = SCF%ekin+SCF%estatic+SCF%eexc
     SCF%etot=etot
-    WRITE(6,*) '    Total                    :  ',etot
+    WRITE(STD_OUT,*) '    Total                    :  ',etot
 
-    !write(6,*) 'before allocate'; call flush_unit(6)
+    !write(std_out,*) 'before allocate'; call flush_unit(std_out)
     ALLOCATE(dum(n))
     dum=0
-    !write(6,*) 'before dum'; call flush_unit(6)
+    !write(std_out,*) 'before dum'; call flush_unit(std_out)
     dum(2:n)=Pot%rvx(2:n)*Orbit%den(2:n)/Grid%r(2:n)
-    !write(6,*) 'after dum'; call flush_unit(6)
-    !write(6,*) SCF%eone;call flush_unit(6)
-    !write(6,*) SCF%ecoul;call flush_unit(6)
-    !write(6,*) eex;call flush_unit(6)
-    !write(6,*) integrator(Grid,dum);call flush_unit(6)
-    WRITE(6,*) '    Total   (DC form)        :  ',&
+    !write(std_out,*) 'after dum'; call flush_unit(std_out)
+    !write(std_out,*) SCF%eone;call flush_unit(std_out)
+    !write(std_out,*) SCF%ecoul;call flush_unit(std_out)
+    !write(std_out,*) eex;call flush_unit(std_out)
+    !write(std_out,*) integrator(Grid,dum);call flush_unit(std_out)
+    WRITE(STD_OUT,*) '    Total   (DC form)        :  ',&
 &        SCF%eone-SCF%ecoul+eex-integrator(Grid,dum)
-    call flush_unit(6)
+    call flush_unit(std_out)
     DEALLOCATE(dum)
   END SUBROUTINE Get_EXC
 
@@ -279,7 +279,7 @@ CONTAINS
 
     CALL mkname(counter,stuff)
 
-     write(6,*) 'in Report ', stuff; call flush_unit(6)
+     write(std_out,*) 'in Report ', stuff; call flush_unit(std_out)
 
     OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
     n=Gridwk%n

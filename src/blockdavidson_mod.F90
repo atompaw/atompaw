@@ -39,7 +39,7 @@ CONTAINS
     ALLOCATE(A(ns,ns),O(ns,ns),w(ns),v(ns,ns), &
 &        f(ndim,ns),hv(ndim),ov(ndim), stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in InitBlock...', ns,ndim,i
+       WRITE(STD_OUT,*) 'Error in InitBlock...', ns,ndim,i
        STOP
     ENDIF
   END SUBROUTINE InitBlockDavidson
@@ -122,7 +122,7 @@ CONTAINS
           CALL Diagonalizer(finish,ns,i,A,O,w,v)
 
           IF (i < nvec) THEN
-             WRITE(6,*) 'Too few eigenvalues',i,nvec
+             WRITE(STD_OUT,*) 'Too few eigenvalues',i,nvec
              STOP
           ENDIF
 
@@ -143,7 +143,7 @@ CONTAINS
     ENDDO
 
     CALL EndBlockDavidson
-    WRITE(6,*) ' BlockDavidson did not converge '
+    WRITE(STD_OUT,*) ' BlockDavidson did not converge '
 
   END SUBROUTINE BlockDavidson
 
@@ -167,7 +167,7 @@ CONTAINS
     k=VecSize
     ALLOCATE(C(k,k),U(k,k),VT(k,k),WORK(LWORK),S(k),LUT(k),STAT=i)
     IF (i /= 0) THEN
-       WRITE(6,*) 'Diagonalizer: allocation ', k,Lwork,i
+       WRITE(STD_OUT,*) 'Diagonalizer: allocation ', k,Lwork,i
        STOP
     ENDIF
 
@@ -192,7 +192,7 @@ CONTAINS
     IF (ii>0) THEN
        NewSize=ii
     ELSE
-       WRITE(6,*) 'Error in Diagonalizer -- Obase is singular '
+       WRITE(STD_OUT,*) 'Error in Diagonalizer -- Obase is singular '
        STOP
     ENDIF
 
@@ -207,12 +207,12 @@ CONTAINS
     CALL DGEEV('N', 'V', NewSize, C(1,1), ArraySize, Eigen, &
 &        S, U, ArraySize, U, ArraySize, Work, LWork, Info)
 
-    !WRITE(6,*) ' completed Hmat diagonalization with Info=',Info
-    !WRITE(6,*) 'h ', Eigen(1:NewSize)
+    !WRITE(STD_OUT,*) ' completed Hmat diagonalization with Info=',Info
+    !WRITE(STD_OUT,*) 'h ', Eigen(1:NewSize)
 
-    !WRITE(6,*) ' completed Hmat diagonalization with Info=',Info
+    !WRITE(STD_OUT,*) ' completed Hmat diagonalization with Info=',Info
     IF (info /= 0) THEN
-       WRITE(6,*) 'Stopping due to diagonalizer error'
+       WRITE(STD_OUT,*) 'Stopping due to diagonalizer error'
        STOP
     ENDIF
 

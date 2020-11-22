@@ -46,11 +46,11 @@ Module PWscfInterface
 
 !!! test for positive  pseudo core + nhat
      if (.not.PAW%poscorenhat) then
-       write(6,*) ' Detected negative values for pseudo core + nhat '
-       write(6,*)  '  which is not correctly treated in the current form '
-       write(6,*)  '  of Quantum Espresso '
-       write(6,*)  ' Please try reducing rc_core '
-       write(6,*)  ' UPF file not created '
+       write(std_out,*) ' Detected negative values for pseudo core + nhat '
+       write(std_out,*)  '  which is not correctly treated in the current form '
+       write(std_out,*)  '  of Quantum Espresso '
+       write(std_out,*)  ' Please try reducing rc_core '
+       write(std_out,*)  ' UPF file not created '
        return
      endif      
 
@@ -73,25 +73,25 @@ Module PWscfInterface
      elseif (.not.testing.and.have_libxc) then
            call libxc2UPF(exctype,UPFlabel,tmplabel,testing)
            if (.not.testing) then
-              write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
-              write(6,'(2x,a)') " libxc2UPF incorrectly executed "
-              write(6,'(2x,a,a)') " exctype = ", exctype
-              write(6,'(2x,a,a)') " UPFlabel = ", UPFlabel
-              write(6,'(2x,a,a)') " tmplabel = ", tmplabel
-              write(6,'(2x,a)') "   Please contact natalie@wfu.edu"
+              write(std_out,'(/,2x,a)') "Error in Atompaw2PWscf:"
+              write(std_out,'(2x,a)') " libxc2UPF incorrectly executed "
+              write(std_out,'(2x,a,a)') " exctype = ", exctype
+              write(std_out,'(2x,a,a)') " UPFlabel = ", UPFlabel
+              write(std_out,'(2x,a,a)') " tmplabel = ", tmplabel
+              write(std_out,'(2x,a)') "   Please contact natalie@wfu.edu"
               stop 
            endif   
      else      
-           write(6,'(/,2x,a)') "Error in Atompaw2PWscf:"
-           write(6,'(2x,a,a)') " exctype = ", exctype
-           write(6,'(2x,a)') "   Limited functionals supported for UPF output "
-           write(6,'(2x,a)') "   No UPDF file written !"
-           write(6,'(2x,a)') "   Please contact natalie@wfu.edu"
+           write(std_out,'(/,2x,a)') "Error in Atompaw2PWscf:"
+           write(std_out,'(2x,a,a)') " exctype = ", exctype
+           write(std_out,'(2x,a)') "   Limited functionals supported for UPF output "
+           write(std_out,'(2x,a)') "   No UPDF file written !"
+           write(std_out,'(2x,a)') "   Please contact natalie@wfu.edu"
            return
      end if
 
      !Read UPF options from standard input
-     WRITE(6,*)
+     WRITE(STD_OUT,*)
      call input_dataset_read_upf(upf_string=upf_line)
      upfdx=input_dataset%upf_grid_dx
      upfxmin=input_dataset%upf_grid_xmin
@@ -101,10 +101,10 @@ Module PWscfInterface
      !upfmesh=1+(LOG(upfzmesh*Grid%r(Grid%n))-upfxmin)/upfdx
      upfmesh=1+(LOG(upfzmesh*upfrange)-upfxmin)/upfdx
 
-     write(6,*) 'UPF mesh size = ', upfmesh
-     write(6,*) 'UPF xmin = ', upfxmin
-     write(6,*) 'UPF zmesh = ', upfzmesh
-     write(6,*) 'UPF range = ', upfrange
+     write(std_out,*) 'UPF mesh size = ', upfmesh
+     write(std_out,*) 'UPF xmin = ', upfxmin
+     write(std_out,*) 'UPF zmesh = ', upfzmesh
+     write(std_out,*) 'UPF range = ', upfrange
 
      ALLOCATE(upfr(upfmesh),upff(upfmesh))
 
@@ -121,7 +121,7 @@ Module PWscfInterface
         endif
      enddo
 
-     write(6,*) 'UPF irc = ',   upfirc
+     write(std_out,*) 'UPF irc = ',   upfirc
 
      vps=>PAW%abinitvloc       ! could have flag for using PAW%abinitnohat
      rtvion=vps*Grid%r
@@ -275,7 +275,7 @@ Module PWscfInterface
                call hatL(Grid,PAW,l,dum)
                dum=dum*PAW%mLij(io,jo,l+1)
                arg=dum*(Grid%r**l)
-               write(6,*) 'Chk aug', io,jo,l,integrator(Grid,arg)
+               write(std_out,*) 'Chk aug', io,jo,l,integrator(Grid,arg)
                call mkname(io,s1)
                call mkname(jo,s2)
                call mkname(l,s3)
@@ -357,9 +357,9 @@ Module PWscfInterface
 
       arg=PAW%den-PAW%tden
       q=integrator(Grid,arg)
-      write(6,*) 'check augmentation charge ', q
+      write(std_out,*) 'check augmentation charge ', q
       dum=PAW%tden+q*PAW%hatden
-      write(6,*) 'check valence charge ', integrator(Grid,dum)
+      write(std_out,*) 'check valence charge ', integrator(Grid,dum)
       WRITE(1001,'(" <PP_RHOATOM type=""real"" size=""",i6,&
 &            """ columns=""3"">")')upfmesh
             upff=0;call interpfunc(n,Grid%r,dum,upfmesh,upfr,upff)

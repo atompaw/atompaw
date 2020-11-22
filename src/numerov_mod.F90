@@ -47,7 +47,7 @@ CONTAINS
     n=Grid%n; k=n-2 ; many=4*nroot
     ALLOCATE(vec(k,many),f(k),dum(k),e(many),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) 'Error in BoundNumerov ', i,n,k
+       WRITE(STD_OUT,*) 'Error in BoundNumerov ', i,n,k
        STOP
     ENDIF
 
@@ -59,9 +59,9 @@ CONTAINS
        CALL gramschmidt(Grid,count,vec,f)
        count=count+1
     ENDDO
-    !WRITE(6,*) 'Starting with ',count,'  orthonormal functions '
+    !WRITE(STD_OUT,*) 'Starting with ',count,'  orthonormal functions '
     IF (count<1) THEN
-       WRITE(6,*) 'Error in initial wavefunctions -- stopping '
+       WRITE(STD_OUT,*) 'Error in initial wavefunctions -- stopping '
        STOP
     ENDIF
 
@@ -69,7 +69,7 @@ CONTAINS
     DO
        IF (count>=many) EXIT
        IF (i>count) THEN
-          WRITE(6,*) 'Error in initial wavefunctions -- i>count ', i,count
+          WRITE(STD_OUT,*) 'Error in initial wavefunctions -- i>count ', i,count
           STOP
        ENDIF
        dum=vec(:,i)
@@ -97,8 +97,8 @@ CONTAINS
           Eig(j)=(Eig(j-1)*(nroot-j+1))/nroot
        endif   
        Psi(1,j)=0;  Psi(n,j)=0
-       !WRITE(6,*) 'BD Eigenvalue -- ', j, Eig(j)
-       !call flush_unit(6)
+       !WRITE(STD_OUT,*) 'BD Eigenvalue -- ', j, Eig(j)
+       !call flush_unit(std_out)
        IF (usingloggrid(Grid)) THEN
           DO i=2,n-1
              Psi(i,j)=vec(i-1,j)*Grid%pref(i)
@@ -109,7 +109,7 @@ CONTAINS
           ENDDO
        ENDIF
        x=Integrator(Grid,Psi(:,j)*Psi(:,j))
-       !WRITE(6,*) 'normalization = ', x
+       !WRITE(STD_OUT,*) 'normalization = ', x
        Psi(:,j)=Psi(:,j)/SQRT(x)
     ENDDO
 
@@ -117,16 +117,16 @@ CONTAINS
     CALL endBoundNumerov
 
     If (.not.success) then
-       write(6,*) 'program faltering due to failure of BlockDavidson'
-       write(6,*) 'l = ',l
-       write(6,*) 'Eig = ', Eig(1:nroot)
+       write(std_out,*) 'program faltering due to failure of BlockDavidson'
+       write(std_out,*) 'l = ',l
+       write(std_out,*) 'Eig = ', Eig(1:nroot)
 
     endif
   Endif     !BDsolve
 
-    write(6,*) 'Before newboundsch',l,nroot, Eig(1:nroot); call flush_unit(6)
+    write(std_out,*) 'Before newboundsch',l,nroot, Eig(1:nroot); call flush_unit(std_out)
     CALL newboundsch(Grid,rv,v0,v0p,nz,l,nroot,Eig,Psi,success)
-    write(6,*) 'After newboundsch',l,nroot, Eig(1:nroot); call flush_unit(6)
+    write(std_out,*) 'After newboundsch',l,nroot, Eig(1:nroot); call flush_unit(std_out)
 
     ! adjust sign
     Do j=1,nroot
@@ -144,7 +144,7 @@ CONTAINS
        n=Grid%n
        ALLOCATE(hn(n),hd(n),on(n),od(n),stat=i)
        IF (i/=0) THEN
-          WRITE(6,*) 'Allocation error in initBoundNumerov', i,n
+          WRITE(STD_OUT,*) 'Allocation error in initBoundNumerov', i,n
           STOP
        ENDIF
        firsttime=1
@@ -292,7 +292,7 @@ CONTAINS
     h=Grid%h
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
-       WRITE(6,*) ' Error in newboundsch allocation ',i,n
+       WRITE(STD_OUT,*) ' Error in newboundsch allocation ',i,n
        STOP
     ENDIF
 
@@ -302,29 +302,29 @@ CONTAINS
     err=n*nz*(h**4);  if (err<1.d-6) err=1.d-6
     convrez=convre
     IF (nz.GT.0) convrez=convre*nz
-    !     write(6,*) 'expected error = ',err
+    !     write(std_out,*) 'expected error = ',err
     ierr=0
 
     !
     !emin=MAX(-REAL((nz)**2)/(l+1)**2-0.5d0,Eig(1)-1.d0)
     emin=(-REAL((nz)**2)/(l+1)**2-0.5d0)
-    !write(6,*) 'in boundsch --' , emin, nz, l
+    !write(std_out,*) 'in boundsch --' , emin, nz, l
     emax=0.d0
 
-    !WRITE(6,'("starting boundsch with eigenvalues -- ",1p,20e15.7)') &
+    !WRITE(STD_OUT,'("starting boundsch with eigenvalues -- ",1p,20e15.7)') &
     !&    Eig(1:nroot)
 
     DO iroot=1,nroot
        best=1.d10; dele=1.d10
        energy=Eig(iroot)
-       !write(6,*) 'starting iroot energy' ,iroot, energy
+       !write(std_out,*) 'starting iroot energy' ,iroot, energy
        IF (energy.LT.emin) energy=emin
        IF (energy.GT.emax) energy=emax
        ok=.FALSE.
-       !write(6,*) 'iter,iroot,energy',iter,iroot,energy
-       !write(6,*) 'emin,max',emin,emax
+       !write(std_out,*) 'iter,iroot,energy',iter,iroot,energy
+       !write(std_out,*) 'emin,max',emin,emax
        BigIter: DO iter=1,niter
-          !write(6,*) 'In iter with energy', iter,energy,niter,l,iroot
+          !write(std_out,*) 'In iter with energy', iter,energy,niter,l,iroot
           !  start inward integration
           !  start integration at n
           ! find classical turning point
@@ -341,7 +341,7 @@ CONTAINS
           match=match+6
           CALL derivative(Grid,p2,dd,match-5,match+5)
           rin=dd(match)/p2(match)
-          ! write(6,*) ' match point = ',match,rin,p2(match)
+          ! write(std_out,*) ' match point = ',match,rin,p2(match)
           !  start outward integration
           !    correct behavior near r=0
           ! initialize p1
@@ -355,7 +355,7 @@ CONTAINS
 
           CALL derivative(Grid,p1,dd,match-5,match+5)
           rout=dd(match)/p1(match)
-          !write(6,*) 'node,match,rin,rout',node,(iroot-1),match,rin,rout
+          !write(std_out,*) 'node,match,rin,rout',node,(iroot-1),match,rin,rout
           ! check whether node = (iroot-1)
           !   not enough nodes -- raise energy
           IF (node.LT.iroot-1) THEN
@@ -366,36 +366,36 @@ CONTAINS
           ELSEIF (node.GT.iroot-1) THEN
              IF (energy.LT.emin) THEN
                 ierr=ierr+9*(10**(iroot-1))
-                WRITE(6,*) 'newboundsch error -- emin too high',l,nz,emin,energy
+                WRITE(STD_OUT,*) 'newboundsch error -- emin too high',l,nz,emin,energy
                 RETURN
              ENDIF
              emax=MIN(emax,energy+1.d-5)
              energy=emin+(energy-emin)*ranx()
-             !write(6,*) 'energy reset to ', energy
+             !write(std_out,*) 'energy reset to ', energy
              !   correct number of nodes -- estimate correction
           ELSEIF (node.EQ.iroot-1) THEN
              DO j=1,match
                 p1(j)=p1(j)/p1(match)
-                !write(6,*) 'j,p1',j,p1(j)
+                !write(std_out,*) 'j,p1',j,p1(j)
              ENDDO
              DO j=match,n
                 p1(j)=p2(j)/p2(match)
-                !write(6,*) 'j,p2',j,p1(j)
+                !write(std_out,*) 'j,p2',j,p1(j)
              ENDDO
              scale=1.d0/overlap(Grid,p1,p1)
              dele=(rout-rin)*scale
-             !write(6,*) 'energy,dele,scale',energy,dele,scale
+             !write(std_out,*) 'energy,dele,scale',energy,dele,scale
              x=ABS(dele)
              IF (x.LT.best) THEN
                 scale=SQRT(scale)
                 p1(1:n)=p1(1:n)*scale
                 Psi(1:n,iroot)=p1(1:n)
                 Eig(iroot)=energy
-                !write(6,*) 'root',l,iroot,Eig(iroot),emin,emax
+                !write(std_out,*) 'root',l,iroot,Eig(iroot),emin,emax
                 best=x
              ENDIF
              IF (ABS(dele).LE.convrez) THEN
-                WRITE(6,*) 'converged iter with dele' , iter,dele
+                WRITE(STD_OUT,*) 'converged iter with dele' , iter,dele
                 ok=.TRUE.
                 !  eigenvalue found
                 ierr=ierr+10**(iroot-1)
@@ -410,20 +410,20 @@ CONTAINS
                 EXIT BigIter
              ENDIF
              IF (ABS(dele).GT.convrez) THEN
-                !write(6,*) 'iter with dele' , iter,dele
+                !write(std_out,*) 'iter with dele' , iter,dele
                 energy=energy+dele
                 ! if energy is out of range, pick random energy in correct range
                 IF (emin-energy.GT.convrez.OR.energy-emax.GT.convrez)         &
 &                    energy=emin+(emax-emin)*ranx()
                 ifac=2
-                !write(6,*) 'continuing with iter dele', iter,dele
+                !write(std_out,*) 'continuing with iter dele', iter,dele
              ENDIF
           ENDIF
        ENDDO BigIter !iter
        IF (.NOT.ok) THEN
           ierr=ierr+ifac*(10**(iroot-1))
-          WRITE(6,*) 'no convergence in newboundsch',iroot,l,dele,energy
-          WRITE(6,*) ' best guess of eig, dele = ',Eig(iroot),best
+          WRITE(STD_OUT,*) 'no convergence in newboundsch',iroot,l,dele,energy
+          WRITE(STD_OUT,*) ' best guess of eig, dele = ',Eig(iroot),best
           IF (iroot.LT.nroot) THEN
              DO ir=iroot+1,nroot
                 ierr=ierr+9*(10**(ir-1))
@@ -439,10 +439,10 @@ CONTAINS
        ENDIF
     ENDDO !iroot
 
-    WRITE(6,'("finish boundsch with eigenvalues -- ",1p,20e15.7)') &
+    WRITE(STD_OUT,'("finish boundsch with eigenvalues -- ",1p,20e15.7)') &
     &    Eig(1:nroot)
     DEALLOCATE(p1,p2,dd)
-    WRITE(6,*) 'returning from newboundsch -- ierr=',ierr
+    WRITE(STD_OUT,*) 'returning from newboundsch -- ierr=',ierr
 
   END SUBROUTINE newboundsch
 
@@ -494,7 +494,7 @@ CONTAINS
 
     b=SQRT(-energy)
     qbb=qq/b
-    !write(6,*) ' qbb = ', qbb
+    !write(std_out,*) ' qbb = ', qbb
     cn=l*(l+1)
     fac=EXP(-b*(r-rN))*(r**qbb)
     term=1.d0;   wfn=0
@@ -542,7 +542,7 @@ CONTAINS
 
     n=Grid%n
     IF (nr > n) THEN
-       WRITE(6,*) 'Error in unboundsch -- nr > n', nr,n
+       WRITE(STD_OUT,*) 'Error in unboundsch -- nr > n', nr,n
        STOP
     ENDIF
 

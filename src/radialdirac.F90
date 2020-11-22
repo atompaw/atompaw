@@ -24,6 +24,7 @@
 
 MODULE radialdirac
 
+  USE io_tools
   USE GlobalMath
   USE gridmod
   USE atomdata

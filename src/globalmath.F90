@@ -15,6 +15,8 @@
 
 MODULE GlobalMath
 
+  USE io_tools
+
   IMPLICIT NONE
 
   REAL(8), parameter :: inverse_fine_structure=137.035999139d0

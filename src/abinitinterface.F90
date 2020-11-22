@@ -27,6 +27,7 @@
 
 Module ABINITInterface
 
+ use io_tools
  use Tools
  use GlobalMath
  use atomdata
@@ -59,9 +60,6 @@ Module ABINITInterface
 !Default lengths
  integer, parameter :: fnlen=132    ! maximum length of file name variables
  integer, parameter :: strlen=32000 ! maximum length of input string
-
-!UNIX unit numbers : standard input, standard output
- integer, parameter :: std_in=5,std_out=6
 
 !Real, fractionary and other constants
  real(dp), parameter :: zero =0._dp

@@ -241,7 +241,7 @@ CONTAINS
    input_unit=ifunit
    OPEN(ifunit,file=trim(inputfile),form='formatted')
  ELSE
-   input_unit=5
+   input_unit=STD_IN
  END IF
 
 !Check if we read a TTY or a FILE
@@ -1319,7 +1319,7 @@ END IF
 !------------------------------------------------------------------
 
 !Select input file logical unit
- input_unit=5;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
+ input_unit=STD_IN;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
 
 !Do we echo input file content?
  has_to_echo=PRESENT(echofile_unit)
@@ -1467,7 +1467,7 @@ END IF
  ENDIF
 
 !Select input file logical unit
- input_unit=5;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
+ input_unit=STD_IN;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
 
 !Do we echo input file content?
  has_to_echo=PRESENT(echofile_unit)
@@ -1633,7 +1633,7 @@ END IF
  ENDIF
 
 !Select input file logical unit
- input_unit=5;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
+ input_unit=STD_IN;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
 
 !Do we echo input file content?
  has_to_echo=PRESENT(echofile_unit)
@@ -1825,7 +1825,7 @@ END IF
  ENDIF
 
 !Select input file logical unit
- input_unit=5;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
+ input_unit=STD_IN;IF (PRESENT(inputfile_unit)) input_unit=inputfile_unit
 
 !Do we echo input file content?
  has_to_echo=PRESENT(echofile_unit)

@@ -22,6 +22,7 @@
 
 MODULE radialsr
 
+  USE io_tools
   USE GlobalMath
   USE gridmod
   USE atomdata

@@ -114,7 +114,10 @@ Module interpolation_mod
       enddo
 !construct first equation from the boundary condition, of the form
 !             c(4,1)*s(1) + c(3,1)*s(2) = c(2,1)
-      if (ibcbeg-1)                     11,15,16
+      if (ibcbeg-1 <0)                  go to 11
+      if (ibcbeg-1==0)                  go to 15
+      if (ibcbeg-1 >0)                  go to 16
+
    11 if (n .gt. 2)                     go to 12
 !     no condition at left end and n = 2.
       c(4,1) = 1.d0
@@ -148,7 +151,10 @@ Module interpolation_mod
 !     if slope is prescribed at right end, one can go directly to back-
 !     substitution, since c array happens to be set up just right for it
 !     at this point.
-      if (ibcend-1)                     21,30,24
+      if (ibcend-1 <0)                  go to 21
+      if (ibcend-1==0)                  go to 30
+      if (ibcend-1 >0)                  go to 24
+
    21 if (n .eq. 3 .and. ibcbeg .eq. 0) go to 22
 !     not-a-knot and n .ge. 3, and either n.gt.3 or  also not-a-knot at
 !     left end point.
@@ -167,7 +173,11 @@ Module interpolation_mod
    24 c(2,n) = 3.d0*c(4,n) + c(3,n)/2.d0*c(2,n)
       c(4,n) = 2.d0
                                         go to 28
-   25 if (ibcend-1)                     26,30,24
+   25 continue
+      if (ibcend-1 <0)                  go to 26
+      if (ibcend-1==0)                  go to 30
+      if (ibcend-1 >0)                  go to 24
+
    26 if (ibcbeg .gt. 0)                go to 22
 !     not-a-knot at right endpoint and at left endpoint and n = 2.
       c(2,n) = c(4,n)

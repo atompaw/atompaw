@@ -739,7 +739,7 @@ CONTAINS
     ENDIF
 
     energy=SCFwk%etot
-    CALL Total_Energy_Report(SCFwk,6)
+    CALL Total_Energy_Report(SCFwk,std_out)
     CALL Init_EXX_vx(Gridwk,tmpOrbit,tmpPot)
     dum=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx
 
@@ -755,7 +755,7 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
 
-       CALL One_electron_energy_Report(Orbitwk,6)
+       CALL One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
     CALL DestroyPot(tmpPot)
@@ -935,7 +935,7 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
 
-       !Call One_electron_energy_Report(Orbitwk,6)
+       !Call One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
     !call writestuff
@@ -990,7 +990,7 @@ CONTAINS
 
     rv=Potwk%rv
 
-    CALL One_electron_energy_Report(Orbitwk,6)
+    CALL One_electron_energy_Report(Orbitwk,std_out)
 
     CALL   CopyOrbit(Orbitwk,EigOrbit)
     IF (frozencorecalculation) CALL Updatewfn(Gridwk,Potwk,EigOrbit,rv,success)
@@ -1011,10 +1011,10 @@ CONTAINS
        CALL Get_FCKinCoul(Gridwk,Potwk,Orbitwk,FCwk,SCFwk)
        CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
     last=HSZ%zero_index
     energy=energy

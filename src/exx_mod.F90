@@ -201,7 +201,7 @@ CONTAINS
        write(std_out,*) 'setupfrozencore', SCFwk%ekin
        CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
        CALL Report_EXX_functions('SC')
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
        RETURN
     ENDIF
 
@@ -374,7 +374,7 @@ CONTAINS
        write(std_out,*) 'setupfrozencore', SCFwk%ekin
        CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
        CALL Report_EXX_functions('SC')
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
        RETURN
     ENDIF
 
@@ -643,7 +643,7 @@ CONTAINS
     ENDIF
 
     energy=SCFwk%etot
-    CALL Total_Energy_Report(SCFwk,6)
+    CALL Total_Energy_Report(SCFwk,std_out)
     CALL Init_EXX_vx(Gridwk,tmpOrbit,tmpPot)
     dum=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx
 
@@ -659,7 +659,7 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
 
-       CALL One_electron_energy_Report(Orbitwk,6)
+       CALL One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
     CALL DestroyPot(tmpPot)
@@ -1743,7 +1743,7 @@ CONTAINS
 
     write(std_out,*) 'Starting EXXOCCiter_wfn'; call flush_unit(std_out)
     write(std_out,*) 'Initial eigenenergies'
-    call One_electron_energy_Report(Orbitwk,6)
+    call One_electron_energy_Report(Orbitwk,std_out)
 
     Orbitwk%den=0     ! update density
     Do io=1,Orbitwk%norbit
@@ -1899,17 +1899,17 @@ CONTAINS
 
     write(std_out,*) 'Get_FCKinCoul', SCFwk%ekin
 
-    CALL One_electron_energy_Report(Orbitwk,6)
+    CALL One_electron_energy_Report(Orbitwk,std_out)
     CALL Get_Energy_EXX(Gridwk,Orbitwk,SCFwk%eexc)
     SCFwk%etot=SCFwk%ekin+SCFwk%estatic+SCFwk%eexc
     IF (frozencorecalculation) THEN
        CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
 
     WRITE(STD_OUT,'("ASiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err
@@ -2006,7 +2006,7 @@ CONTAINS
     call simplemix(fac*mix,Potwk%rvh,tmpPot%rvh,dum)
     tmpPot%rvh=dum
 
-    CALL One_electron_energy_Report(tmpOrbit,6)
+    CALL One_electron_energy_Report(tmpOrbit,std_out)
 
     CALL Get_Energy_EXX(Gridwk,tmpOrbit,SCFwk%eexc)
     CALL SetIndex(tmpOrbit) ! find index of most extended wfn
@@ -2014,10 +2014,10 @@ CONTAINS
     IF (frozencorecalculation) THEN
        CALL Get_FCEnergy_EXX(Gridwk,tmpOrbit,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
 
     call NEWVX(Gridwk,tmpOrbit,HSZ,Potwk%rvx,tmpPot%rvx,OK)
@@ -2113,7 +2113,7 @@ CONTAINS
 &           tmpOrbit%occ(io),Orbitwk%eig(io)
     ENDDO
 
-    CALL One_electron_energy_Report(tmpOrbit,6)
+    CALL One_electron_energy_Report(tmpOrbit,std_out)
 
     CALL Get_Energy_EXX(Gridwk,tmpOrbit,SCFwk%eexc)
     CALL SetIndex(tmpOrbit) ! find index of most extended wfn
@@ -2122,10 +2122,10 @@ CONTAINS
        CALL Get_FCKinCoul(Gridwk,Potwk,tmpOrbit,FCwk,SCFwk)
        CALL Get_FCEnergy_EXX(Gridwk,tmpOrbit,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
 
     call NEWVX(Gridwk,tmpOrbit,HSZ,Potwk%rvx,tmpPot%rvx,OK)
@@ -2206,7 +2206,7 @@ CONTAINS
 
     write(std_out,*) 'Starting EXXKLIiter_wfn'; call flush_unit(std_out)
     write(std_out,*) 'Initial eigenenergies'
-    call One_electron_energy_Report(Orbitwk,6)
+    call One_electron_energy_Report(Orbitwk,std_out)
 
     Orbitwk%den=0     ! update density
     Do io=1,Orbitwk%norbit
@@ -2363,17 +2363,17 @@ CONTAINS
 
     write(std_out,*) 'Get_FCKinCoul', SCFwk%ekin
 
-    CALL One_electron_energy_Report(Orbitwk,6)
+    CALL One_electron_energy_Report(Orbitwk,std_out)
     CALL Get_Energy_EXX(Gridwk,Orbitwk,SCFwk%eexc)
     SCFwk%etot=SCFwk%ekin+SCFwk%estatic+SCFwk%eexc
     IF (frozencorecalculation) THEN
        CALL Get_FCEnergy_EXX(Gridwk,Orbitwk,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
 
     WRITE(STD_OUT,'("ASiter",i5,1p,1e20.12,1p,2e15.7)')fcount,energy,err
@@ -2614,7 +2614,7 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
 
-       !Call One_electron_energy_Report(Orbitwk,6)
+       !Call One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
     !call writestuff
@@ -2688,7 +2688,7 @@ CONTAINS
     tmpPot%rvh=dum
 
     !write(std_out,*) 'Before one electron report'; call flush_unit(std_out)
-    CALL One_electron_energy_Report(tmpOrbit,6)
+    CALL One_electron_energy_Report(tmpOrbit,std_out)
     !write(std_out,*) 'After one electron report'; call flush_unit(std_out)
 
     CALL   CopyOrbit(tmpOrbit,EigOrbit)
@@ -2718,10 +2718,10 @@ CONTAINS
        CALL Get_FCKinCoul(Gridwk,Potwk,tmpOrbit,FCwk,SCFwk)
        CALL Get_FCEnergy_EXX(Gridwk,tmpOrbit,FCwk,SCFwk)
        energy=SCFwk%evale
-       CALL Total_FCEnergy_Report(SCFwk,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
     ELSE
        energy=SCFwk%etot
-       CALL Total_Energy_Report(SCFwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
     ENDIF
 
     grad=-HSZ%shift

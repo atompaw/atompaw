@@ -170,8 +170,8 @@ CONTAINS
        ENDDO
 
        CALL GetLambda(Gridwk,Orbitwk,Potwk)
-       CALL Total_Energy_Report(SCFwk,6)
-       CALL One_electron_energy_Report(Orbitwk,6)
+       CALL Total_Energy_Report(SCFwk,std_out)
+       CALL One_electron_energy_Report(Orbitwk,std_out)
        CALL  Report_HF_functions(scftype)
 
        RETURN
@@ -183,12 +183,12 @@ CONTAINS
           ALLOCATE(HF%SumYVV(n,io),HF%SumYCV(n,io),HF%rVxcore(n))
           CALL HFVterms(Gridwk,Orbitwk,FCwk)
           CALL Get_FCEnergy_HFV(Gridwk,Potwk,Orbitwk,FCwk,SCFwk)
-          CALL Total_FCEnergy_Report(SCFwk,6)
+          CALL Total_FCEnergy_Report(SCFwk,std_out)
        ELSE
           CALL GetLambda(Gridwk,Orbitwk,Potwk,FCwk,SCFwk)
-          CALL Total_Energy_Report(SCFwk,6)
-          CALL Total_FCEnergy_Report(SCFwk,6)
-          CALL One_electron_energy_Report(Orbitwk,6)
+          CALL Total_Energy_Report(SCFwk,std_out)
+          CALL Total_FCEnergy_Report(SCFwk,std_out)
+          CALL One_electron_energy_Report(Orbitwk,std_out)
        ENDIF
        CALL  Report_HF_functions(scftype)
 
@@ -227,9 +227,9 @@ CONTAINS
           ENDIF
        ENDDO
        !CALL GetLambda(Gridwk,Orbitwk,Potwk,FCwk,SCFwk)
-       !CALL Total_Energy_Report(SCFwk,6)
-       !CALL Total_FCEnergy_Report(SCFwk,6)
-       !CALL One_electron_energy_Report(Orbitwk,6)
+       !CALL Total_Energy_Report(SCFwk,std_out)
+       !CALL Total_FCEnergy_Report(SCFwk,std_out)
+       !CALL One_electron_energy_Report(Orbitwk,std_out)
        CALL  Report_HF_functions(scftype)
 
        RETURN
@@ -281,8 +281,8 @@ CONTAINS
     write(std_out,*) 'Before HFDiag '; call flush_unit(std_out)
     CALL HFDiag(Grid,Orbit,Pot,whichtype)
     write(std_out,*) 'After HFDiag '; call flush_unit(std_out)
-    CALL Total_Energy_Report(SCFwk,6)
-    CALL One_electron_energy_Report(Orbit,6)
+    CALL Total_Energy_Report(SCFwk,std_out)
+    CALL One_electron_energy_Report(Orbit,std_out)
 
     ! Solve inhomogeneous diffeq. and store result in tmpOrbit
     rv=Pot%rvn+Pot%rvh
@@ -652,8 +652,8 @@ CONTAINS
 &            SCF%valekin=SCF%valekin+Orbit%occ(io)*y
     enddo
 
-    CALL Total_Energy_Report(SCF,6)
-    if (frozencorecalculation) CALL Total_FCEnergy_Report(SCF,6)
+    CALL Total_Energy_Report(SCF,std_out)
+    if (frozencorecalculation) CALL Total_FCEnergy_Report(SCF,std_out)
 
     deallocate(res,dum,den)
   END SUBROUTINE hf_energy_only
@@ -853,9 +853,9 @@ CONTAINS
        lmax=MAXVAL(Orbit%l)
 
        CALL GetLambda(Grid,Orbit,Pot)
-       CALL Total_FCEnergy_Report(SCFwk,6)
-       CALL Total_Energy_Report(SCFwk,6)
-       CALL One_electron_energy_Report(Orbit,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
+       CALL Total_Energy_Report(SCFwk,std_out)
+       CALL One_electron_energy_Report(Orbit,std_out)
 
        ! Solve inhomogeneous diffeq. and store result in tmpOrbit
        rv=Pot%rvn+Pot%rvh
@@ -969,9 +969,9 @@ CONTAINS
 
 
        CALL GetLambdaHFV(Grid,Orbit,Pot)
-       CALL Total_FCEnergy_Report(SCFwk,6)
-       !CALL Total_Energy_Report(SCFwk,6)
-       CALL One_electron_energy_Report(Orbit,6)
+       CALL Total_FCEnergy_Report(SCFwk,std_out)
+       !CALL Total_Energy_Report(SCFwk,std_out)
+       CALL One_electron_energy_Report(Orbit,std_out)
 
        ! Solve inhomogeneous diffeq. and store result in tmpOrbit
        rv=Pot%rvn+Pot%rvh + HF%rvxcore

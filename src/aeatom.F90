@@ -687,8 +687,8 @@ CONTAINS
     endif
 
     CALL Set_Valence()
-    Call Core_Electron_Report(Orbit,FC,6)
-    Call Valence_Electron_Report(Orbit,FC,6)
+    Call Core_Electron_Report(Orbit,FC,std_out)
+    Call Valence_Electron_Report(Orbit,FC,std_out)
 
     IF (TRIM(Orbit%exctype)=='EXX') THEN
        Call Get_FCKinCoul(Grid,Pot,Orbit,FC,SCF)
@@ -700,14 +700,14 @@ CONTAINS
     ELSEIF (TRIM(Orbit%exctype)=='HF'.or.TRIM(Orbit%exctype)=='HFV') THEN
        write(std_out,*) ' Completed Setcore '; call flush_unit(std_out)
        CALL Get_FCEnergy_HF(Grid,Pot,Orbit,FC,SCF)
-       CALL Total_FCEnergy_Report(SCF,6)
+       CALL Total_FCEnergy_Report(SCF,std_out)
        write(std_out,*) ' Completed Setcore '; call flush_unit(std_out)
     ELSE
        Call Get_FCKinCoul(Grid,Pot,Orbit,FC,SCF)
        CALL Get_FCEXC(SCF)
-       CALL Total_FCEnergy_Report(SCF,6)
+       CALL Total_FCEnergy_Report(SCF,std_out)
     ENDIF
-    !CALL Total_Energy_Report(SCF,6)
+    !CALL Total_Energy_Report(SCF,std_out)
     !   For EXX, exchange contribution is not known yet.
 
     choosevalence=1

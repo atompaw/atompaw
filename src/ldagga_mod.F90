@@ -178,10 +178,10 @@ CONTAINS
          Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
          CALL Get_FCEXC(SCFwk)
          energy=SCFwk%evale
-         CALL Total_FCEnergy_Report(SCFwk,6)
+         CALL Total_FCEnergy_Report(SCFwk,std_out)
     else
          energy=SCFwk%etot
-         CALL Total_Energy_Report(SCFwk,6)
+         CALL Total_Energy_Report(SCFwk,std_out)
     endif
     residue=dum
     err=Dot_Product(residue,residue)
@@ -196,7 +196,7 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
 
-       Call One_electron_energy_Report(Orbitwk,6)
+       Call One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
     !write(std_out,*) 'in LDAGGAsub before end'; call flush_unit(std_out)

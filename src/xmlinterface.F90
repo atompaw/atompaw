@@ -86,7 +86,11 @@ Module XMLInterface
 !Default unit for XML file(s)
  integer, parameter :: unit_xml=22,unit_xml_core=23
 
- real(dp),parameter :: rmax_vloc=10._dp !We decide to cut at r=10 u.a because of numeric noise...
+!Log file for LDA-1/2 calculation
+ character(len=15),parameter :: lda12_logfile='lda-12.log'
+
+!We decide to cut at r=10 u.a because of numeric noise...
+ real(dp),parameter :: rmax_vloc=10._dp
 
 !!=================================================================
 !! STRUCTURED DATATYPES
@@ -383,6 +387,8 @@ Module XMLInterface
   write(std_out,'(a,2x,2(a,i1),2(a,f5.2),a)') ch10,&
 &   'LDA-1/2 pot. calculation: orbital(n,l), ionization, rcut = [(',&
 &   pawlda12%orb_n,',',pawlda12%orb_l,'), ',pawlda12%ion,', ',pawlda12%rcut,']'
+  write(std_out,'(3a)') &
+&   '  See ''',trim(lda12_logfile),''' file to check convergence.'
  else
   write(std_out,'(a,2x,a)') ch10,'No computation of LDA-1/2 potential'
  end if
@@ -691,7 +697,6 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- character(len=15),parameter :: lda12_file='lda-12.log'
  integer,parameter :: unlog=55
  integer :: io,irc,n,unstdout
  logical :: found
@@ -708,7 +713,7 @@ Module XMLInterface
  if (.not.pawlda12%uselda12) return
 
 !Redirect standard output
- open(unlog,file=trim(lda12_file),form='formatted')
+ open(unlog,file=trim(lda12_logfile),form='formatted')
  unstdout=STD_OUT
  STD_OUT=unlog
 
@@ -760,9 +765,9 @@ Module XMLInterface
  call DestroyPot(wkPot)
  call DestroyFC(wkFC)
 
-!Restore open(unlog,file=trim(lda12_file),form='formatted')
- unstdout=STD_OUT
- STD_OUT=unlog
+!Restore stdout
+ close(unlog)
+ STD_OUT=unstdout
 
  end subroutine lda12
 

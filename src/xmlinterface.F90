@@ -691,7 +691,9 @@ Module XMLInterface
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: io,irc,n
+ character(len=15),parameter :: lda12_file='lda-12.log'
+ integer,parameter :: unlog=55
+ integer :: io,irc,n,unstdout
  logical :: found
  type(OrbitInfo)     :: wkOrbit
  type(PotentialInfo) :: wkPot
@@ -704,6 +706,11 @@ Module XMLInterface
 !------------------------------------------------------------------
 
  if (.not.pawlda12%uselda12) return
+
+!Redirect standard output
+ open(unlog,file=trim(lda12_file),form='formatted')
+ unstdout=STD_OUT
+ STD_OUT=unlog
 
 !Save current status of atomic AE data
  call CopyOrbit(AEOrbit,wkOrbit)
@@ -720,7 +727,8 @@ Module XMLInterface
    end if
  end do
  if (.not.found) then
-   write(std_out,'(/,2x,a)') 'Error in LDA-1/2 configuration: LDA-1/2 potential computation aborted!'
+   write(unstdout,'(/,2x,a)') &
+&   'Error in LDA-1/2 configuration: LDA-1/2 potential computation aborted!'
  else
 
 !  Compute new AE atomic data
@@ -751,6 +759,10 @@ Module XMLInterface
  call DestroyOrbit(wkOrbit)
  call DestroyPot(wkPot)
  call DestroyFC(wkFC)
+
+!Restore open(unlog,file=trim(lda12_file),form='formatted')
+ unstdout=STD_OUT
+ STD_OUT=unlog
 
  end subroutine lda12
 

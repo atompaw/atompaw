@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.1.0.6],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.1.1.0],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,22 +28,25 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!- Version ${PACKAGE_VERSION} - 6/2019 -MT,FJ,NH overlap>0, core kinetic
+!- Version ${PACKAGE_VERSION} - 11/2020 - MT,FJ added LDA-1/2 potential
 EOF
-#!- Version ${PACKAGE_VERSION} - 12/2018 -MT modified abinitinterface pbesol
-#!- Version ${PACKAGE_VERSION} - 9/2018 - NH check for positive xc argument
-#!- Version ${PACKAGE_VERSION} - 7/2018 - MT fixed some libxc issues 
-#!- Version ${PACKAGE_VERSION} - 5/2018 - mod. abinitinterface, other updates
-#!--- Version ${PACKAGE_VERSION} - 3/2018 -- MT enabled libxc4
-#!--- Version ${PACKAGE_VERSION} - 01/2018 -- Dirac solver available for graphatom
-#!--- Version ${PACKAGE_VERSION} - 09/2017 -- LibXC C API now used + libXC detection improved
-#!--- Version ${PACKAGE_VERSION} - 12/2016 -- Finite-Nucleus fixed for DFT
-#!--- Version ${PACKAGE_VERSION} - 02/2016 -- XML output improved; --version command line option
-#!--- Version ${PACKAGE_VERSION} - 03/2015 -- PBESOL ; SOCCORO output
-#!--- Version ${PACKAGE_VERSION} - 08/2014 -- portability corrections; rename f90 in F90
-#!--- Version ${PACKAGE_VERSION} - 08/2014 -- added exchange core-valence terms
-#!--- Version ${PACKAGE_VERSION} - 06/2013; 1/2014 solver, coretail, xml corr.
-#!--- Version ${PACKAGE_VERSION} - 06/2013; 11/2013 solver fixed; 1/2014 coretail
+#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT introduce std I/O variables
+#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT change input reading design
+#!--- Version ${PACKAGE_VERSION} - 06/2019 - MT,FJ,NH overlap>0, core kinetic
+#!--- Version ${PACKAGE_VERSION} - 12/2018 - MT modified abinitinterface pbesol
+#!--- Version ${PACKAGE_VERSION} - 09/2018 - NH check for positive xc argument
+#!--- Version ${PACKAGE_VERSION} - 07/2018 - MT fixed some libxc issues 
+#!--- Version ${PACKAGE_VERSION} - 05/2018 - mod. abinitinterface, other updates
+#!--- Version ${PACKAGE_VERSION} - 03/2018 - MT enabled libxc4
+#!--- Version ${PACKAGE_VERSION} - 01/2018 - Dirac solver available for graphatom
+#!--- Version ${PACKAGE_VERSION} - 09/2017 - LibXC C API now used + libXC detection improved
+#!--- Version ${PACKAGE_VERSION} - 12/2016 - Finite-Nucleus fixed for DFT
+#!--- Version ${PACKAGE_VERSION} - 02/2016 - XML output improved; --version command line option
+#!--- Version ${PACKAGE_VERSION} - 03/2015 - PBESOL ; SOCCORO output
+#!--- Version ${PACKAGE_VERSION} - 08/2014 - portability corrections; rename f90 in F90
+#!--- Version ${PACKAGE_VERSION} - 08/2014 - added exchange core-valence terms
+#!--- Version ${PACKAGE_VERSION} - 01/2014 - solver, coretail, xml corr.
+#!--- Version ${PACKAGE_VERSION} - 11/2013 - solver fixed; 1/2014 coretail
 
 # Initialize Automake
 AC_CANONICAL_TARGET

@@ -2,6 +2,18 @@
 =========                  ChangeLog for ATOMPAW v4.x                =========
 ==============================================================================
 
+ 11/2020  -- MT,FJ added LDA-1/2 potential
+ 11/2020  -- MT: introduce std I/O variables
+ 11/2020  -- MT: change input reading design
+ 06/2019  -- MT,FJ,NH: overlap>0, core kinetic
+ 12/2018  -- MT: modified abinitinterface pbesol
+ 09/2018  -- NH: check for positive xc argument
+ 07/2018  -- MT: fixed some libxc issues 
+ 05/2018  -- NH: mod. abinitinterface, other updates
+ 03/2018  -- MT: enabled libxc4
+ 01/2018  -- NH: Dirac solver available for graphatom
+ 09/2017  -- MT: LibXC C API now used + libXC detection improved
+ 12/2016  -- NH: Finite-Nucleus fixed for DFT
  02/2016  -- MT: Improved configuration script; added Mac compatibility
                  added command line option   --version
  07/2015  -- NH: Minor changes to graphatom; allowing core hole
@@ -9,8 +21,7 @@
  05/2015  -- MT: improved xml output for abinit
  12/2014  -- NH: fixed PBEsol for PWscf
  11/2014  -- NH: added socorro output option
- 08/2014  -- NH: Added exchange core-valence terms
- 
+ 08/2014  -- NH: Added exchange core-valence terms 
  07-07-13 -- MT: Re-introduce "build system" (from v3.1.x)
                  Now standard "configure;make" procedure is available
 

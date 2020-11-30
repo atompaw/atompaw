@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  This module contains the following active subroutines:
 !      mkname, PrintDate, PrintDateStr, ConvertChar, flush_unit
-!      extractword, UpperCase
+!      extractword, UpperCase, eliminate_comment
 !  This module contains the following active functions:
 !      stripchar, checkline2
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -168,7 +168,7 @@ End Subroutine
 
 !******************************************************************************
 !  UpperCase - Converts a string to Upper Case
-! str     - String to convert
+!  str     - String to convert
 !******************************************************************************
   SUBROUTINE UpperCase(str)
     CHARACTER(*), INTENT(INOUT) :: str
@@ -200,5 +200,21 @@ End Subroutine
      if ((.not.checkline2).and.leninput==len2) checkline2=(inputline_u(1:len2)==trim(in2))
      RETURN
   END FUNCTION checkline2
+
+!******************************************************************************
+!  eliminate_comment - Eliminate comment on the right of a line (! or #)
+!     line - string to convert (output replaces input)
+!******************************************************************************
+  SUBROUTINE eliminate_comment(line)
+    CHARACTER(*), INTENT(INOUT) :: line
+    INTEGER :: i,i0
+    i0=-1 ; i=1
+    DO WHILE (i0<0.AND.i<LEN(line))
+      i=i+1
+      IF (line(i:i)=="!".OR.line(i:i)=="#") i0=i
+    END DO
+    IF (i0 >1) line=line(1:i0-1)
+    IF (i0==1) line=""
+  END SUBROUTINE eliminate_comment
 
 END MODULE Tools

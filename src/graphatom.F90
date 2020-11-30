@@ -47,6 +47,8 @@ PROGRAM graphatom
      READ(STD_IN,'(a)',iostat=ios) token
      IF (ios/=0) EXIT
 
+     CALL eliminate_comment(token)
+
      IF (checkline2(token,"0","END")) THEN
        EXIT
      ELSE

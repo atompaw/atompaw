@@ -138,6 +138,8 @@ PROGRAM atompaw
    READ(STD_IN,'(a)',iostat=i) token
    if (i/=0) exit
 
+   CALL eliminate_comment(token)
+
    if (checkline2(token,"0","END")) then
      exit
    else if (checkline2(token,"1","SCFPAW")) then

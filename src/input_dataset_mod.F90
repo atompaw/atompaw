@@ -562,6 +562,7 @@ END IF
 
  READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  READ(inputline,*) dataset%lmax
 
@@ -580,6 +581,7 @@ END IF
 
  READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  CALL extractword(1,inputline,inputword);inputword=trim(inputword)
  IF (inputword/="") READ(inputword,*) dataset%rc
@@ -647,6 +649,7 @@ END IF
      END IF
      READ(STD_IN,'(a)') inputline
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+     CALL eliminate_comment(inputline)
      READ(inputline,*) CHR
      IF (CHR/='y'.AND.CHR/='Y') EXIT
      dataset%nbasis_add=dataset%nbasis_add+1
@@ -654,8 +657,9 @@ END IF
      basis_add_l(dataset%nbasis_add)=ll
      IF (has_to_ask) WRITE(STD_OUT,*) 'Enter energy for generalized function'
      READ(STD_IN,'(a)') inputline
-     READ(inputline,*) basis_add_energy(dataset%nbasis_add)
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+     CALL eliminate_comment(inputline)
+     READ(inputline,*) basis_add_energy(dataset%nbasis_add)
    END DO
  END DO
 
@@ -701,6 +705,7 @@ END IF
 
  READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  CALL Uppercase(inputline)
  inputline=TRIM(inputline)
@@ -843,6 +848,7 @@ END IF
 
  READ(STD_IN,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  call Uppercase(inputline)
  inputline=TRIM(inputline)
@@ -935,6 +941,7 @@ END IF
           IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',nn,ll
          READ(STD_IN,'(a)') inputline
          IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+         CALL eliminate_comment(inputline)
          READ(inputline,*) dataset%basis_func_rc(norb)
        END IF
      END DO
@@ -944,6 +951,7 @@ END IF
           IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',999,ll
          READ(STD_IN,'(a)') inputline
          IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+         CALL eliminate_comment(inputline)
          READ(inputline,*) dataset%basis_func_rc(norb)
        END IF
      END DO

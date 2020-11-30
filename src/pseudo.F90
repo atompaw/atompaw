@@ -3749,6 +3749,7 @@ CONTAINS
      success=.true.
      write(std_out,*) 'Input the number of PAW parameter sets in this run'
      READ(STD_IN,'(a)') inputline
+     CALL eliminate_comment(inputline)
      read(inputline,*) ndata,nrcs
      if (ndata>9999) then
           write(std_out,*) 'Error : ndata must be <= 9999', ndata

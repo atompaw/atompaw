@@ -338,7 +338,7 @@ void xc_func_set_density_threshold(XC(func_type) *xc_func, double *dens_threshol
 /* ==== libXC v4.0 and later ==== */
    {XC(func_set_dens_threshold)(xc_func, *dens_threshold);}
 #else
-   {fprintf(stderr, "WARNING: setting density threshold not available for libXC<4.0!\n");}
+   {fprintf(stdout, "WARNING: setting density threshold not available for libXC<4.0!\n");}
 #endif
 
 /* ===============================================================

@@ -1302,22 +1302,21 @@ end function libxc_nspin
     if (is_gga.or.is_mgga.and.present(vxcgr)) then
       if (nsp==1) then
         !Note: for nsp=1, factor 2 comes from sigma=grad**2
-        vxcgr(ipts,1)=vxcgr(ipts,1)+2.d0*vsigma(1)
+        vxcgr(ipts,1)=vxcgr(ipts,1)+2.d0*vsigma(1) *2.d0 ! From Ha to Ry
       else
         ! vxcgrho(npts,3)= 1/|grad_rho_up| dfx/d(|grad_rho_up|)
         !                  1/|grad_rho_dn| dfx/d(|grad_rho_dn|)
         !             and  1/|grad_rho|    dfc/d(|grad_rho|)
         ! These formulas have been checked!
         if (libxc_funcs(ii)%xckind==XC_EXCHANGE) then
-          vxcgr(ipts,1) = vxcgr(ipts,1) + 2.d0*vsigma(1)
-          vxcgr(ipts,2) = vxcgr(ipts,2) + 2.d0*vsigma(3)
+          vxcgr(ipts,1) = vxcgr(ipts,1) + 2.d0*vsigma(1) *2.d0 ! From Ha to Ry
+          vxcgr(ipts,2) = vxcgr(ipts,2) + 2.d0*vsigma(3) *2.d0 ! From Ha to Ry
         else
-          vxcgr(ipts,1) = vxcgr(ipts,1) + 2.d0*vsigma(1) - vsigma(2)
-          vxcgr(ipts,2) = vxcgr(ipts,2) + 2.d0*vsigma(3) - vsigma(2)
-          vxcgr(ipts,3) = vxcgr(ipts,3) + vsigma(2)
+          vxcgr(ipts,1) = vxcgr(ipts,1) + (2.d0*vsigma(1) - vsigma(2)) *2.d0 ! From Ha to Ry
+          vxcgr(ipts,2) = vxcgr(ipts,2) + (2.d0*vsigma(3) - vsigma(2)) *2.d0 ! From Ha to Ry
+          vxcgr(ipts,3) = vxcgr(ipts,3) + vsigma(2) *2.d0 ! From Ha to Ry
         end if
       end if
-      vxcgr(ipts,1:2*nsp-1)=2.d0*vxcgr(ipts,1:2*nsp-1) ! From Ha to Ry
     end if
 
 !   Additional output in case of meta-GGA

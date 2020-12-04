@@ -214,8 +214,9 @@ CONTAINS
  
 !---- Local variables
  INTEGER,PARAMETER :: ifunit=111,ecunit=222
+ INTEGER,PARAMETER :: nkappa(5)=(/1,2,2,2,2/)
  INTEGER :: input_unit
- INTEGER :: ii,io,ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,norb,nbl,nn
+ INTEGER :: ii,io,ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,norb,nbl,nn,nk,kk
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
@@ -282,6 +283,7 @@ CONTAINS
 
  READ(input_unit,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  READ(inputline,*) dataset%atomic_symbol,dataset%atomic_charge
 
@@ -318,6 +320,7 @@ CONTAINS
 !Read full line
  READ(input_unit,'(a)') exchangecorrelationandgridline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(exchangecorrelationandgridline)
+ CALL eliminate_comment(inputline)
 
  CALL Uppercase(exchangecorrelationandgridline)
  exchangecorrelationandgridline=trim(exchangecorrelationandgridline)
@@ -477,6 +480,7 @@ END IF
 
  READ(input_unit,'(a)') inputline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+ CALL eliminate_comment(inputline)
 
  READ(inputline,*) dataset%np(1:5)
 
@@ -517,6 +521,7 @@ END IF
  DO io=1,dataset%norbit
    DO
      READ(input_unit,'(a)') inputline
+     CALL eliminate_comment(inputline)
      READ(inputline,*) CHR
      IF (CHR=='c'.OR.CHR=='C'.OR.&
 &        CHR=='v'.OR.CHR=='V') THEN
@@ -532,18 +537,36 @@ END IF
 !Print read data
  IF (has_to_print) THEN
    WRITE(STD_OUT,'(3x,a)') "Core and valence orbitals:"
-   WRITE(STD_OUT,'(7x,a)') "n l : type"
-   io=0
-   DO ll=0,4
-     nn=dataset%np(ll+1)
-     IF (nn>0) THEN
-       DO ii=1+ll,nn
-         io=io+1
-         WRITE(STD_OUT,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
-&          MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
-       END DO
-     END IF
-   END DO
+   IF (.NOT.dataset%diracrelativistic) THEN
+	 WRITE(STD_OUT,'(7x,a)') "n l : type"
+	 io=0
+	 DO ll=0,4
+	   nn=dataset%np(ll+1)
+	   IF (nn>0) THEN
+		 DO ii=1+ll,nn
+		   io=io+1
+		   WRITE(STD_OUT,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
+&            MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
+		 END DO
+	   END IF
+	 END DO
+   ELSE
+     WRITE(STD_OUT,'(7x,a)') "n l kappa :  type"
+	 io=0
+	 DO ll=0,4
+	   nn=dataset%np(ll+1)
+	   IF (nn>0) THEN
+         DO nk=1,nkappa(ll+1)
+           kk=MERGE(ll,-(ll+1),nk==1);IF (ll==0) kk=-1
+           DO ii=1+ll,nn
+             io=io+1
+             WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,2a)') ii,ll,kk," : ", &
+&              MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
+           END DO
+         END DO 
+       END IF
+     END DO    
+   END IF 
  END IF
 
 
@@ -651,9 +674,12 @@ END IF
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
      CALL eliminate_comment(inputline)
      READ(inputline,*) CHR
-     IF (CHR/='y'.AND.CHR/='Y') EXIT
+     IF (CHR/='y'.AND.CHR/='Y') THEN
+       IF (CHR/='n'.AND.CHR/='N') STOP 'input_dataset: error -- Please enter Y or N!'
+       EXIT
+     END IF
      dataset%nbasis_add=dataset%nbasis_add+1
-     if (dataset%nbasis_add>nbasis_add_max) STOP 'Too many additional basis functions!'
+     IF (dataset%nbasis_add>nbasis_add_max) STOP 'Too many additional basis functions!'
      basis_add_l(dataset%nbasis_add)=ll
      IF (has_to_ask) WRITE(STD_OUT,*) 'Enter energy for generalized function'
      READ(STD_IN,'(a)') inputline
@@ -1409,7 +1435,7 @@ END IF
                  nn=io ; EXIT
                END IF
              END DO
-             IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",real(2*(2*ll+1)/nkappa(ll+1))
+             IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",real(2*abs(kk))
              IF (nn >0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",orbit_mod_occ(nn)
            END DO
          END DO

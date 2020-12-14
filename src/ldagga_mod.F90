@@ -157,6 +157,7 @@ CONTAINS
           IF(Orbitwk%iscore(io)) THEN
              tmpOrbit%eig(io)=Orbitwk%eig(io)
              tmpOrbit%wfn(:,io)=Orbitwk%wfn(:,io)
+             if(diracrelativistic) tmpOrbit%lwfn(:,io)=Orbitwk%lwfn(:,io)
           ENDIF
        ENDDO
     ENDIF
@@ -172,6 +173,23 @@ CONTAINS
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     dum=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn-tmpPot%rv
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
+    residue=dum
+    err=Dot_Product(residue,residue)
+    w=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn
+
+
+    IF (update) THEN
+       Potwk%rv=tmpPot%rv
+       Potwk%rvh=tmpPot%rvh
+       Potwk%rvx=tmpPot%rvx
+
+       Orbitwk%wfn=tmpOrbit%wfn
+       If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
+       Orbitwk%eig=tmpOrbit%eig
+       Orbitwk%den=tmpOrbit%den
+
+       Call One_electron_energy_Report(Orbitwk,std_out)
+    ENDIF
 
 
     if(frozencorecalculation) then
@@ -183,22 +201,6 @@ CONTAINS
          energy=SCFwk%etot
          CALL Total_Energy_Report(SCFwk,std_out)
     endif
-    residue=dum
-    err=Dot_Product(residue,residue)
-    w=tmpPot%rv
-
-    IF (update) THEN
-       Potwk%rv=tmpPot%rv
-       Potwk%rvh=tmpPot%rvh
-       Potwk%rvx=tmpPot%rvx
-
-       Orbitwk%wfn=tmpOrbit%wfn
-       Orbitwk%eig=tmpOrbit%eig
-       Orbitwk%den=tmpOrbit%den
-
-       Call One_electron_energy_Report(Orbitwk,std_out)
-    ENDIF
-
     !write(std_out,*) 'in LDAGGAsub before end'; call flush_unit(std_out)
     CALL DestroyOrbit(tmpOrbit)
     DEALLOCATE (dum,tmpPot%rvn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)

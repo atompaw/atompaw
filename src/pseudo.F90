@@ -1087,6 +1087,12 @@ CONTAINS
 
     END SUBROUTINE selfhatpot
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! For diracrelativistic case, this subroutine is not yet ready
+!     Suggested future changes are added as comments, such as
+!     Upper component of wave function is loaded with renormalization
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE setbasis(Grid,Pot,Orbit)
     TYPE(GridInfo), INTENT(IN) :: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
@@ -1162,6 +1168,13 @@ CONTAINS
              PAW%eig(nbase)=Orbit%eig(io)
              PAW%occ(nbase)=Orbit%occ(io)
              PAW%phi(:,nbase)=Orbit%wfn(:,io)
+
+             if(diracrelativistic) then 
+               STOP 'Error -- setbasis subroutine not ready for diracrelativistic!'
+               !rat=1.d0/sqrt(overlap(Grid,PAW%phi(:,nbase),PAW%phi(:,nbase)))
+               !PAW%phi(:,nbase)=rat*PAW%phi(:,nbase)
+             endif  
+
              PAW%valencemap(io)=nbase
              IF(Orbit%exctype=='HF') then
                PAW%eig(nbase)=HF%lmbd(io,io)

@@ -30,6 +30,8 @@ MODULE atomdata
      LOGICAL, POINTER :: iscore(:) => null()
      REAL(8),POINTER :: den(:) => null() ! accumulated over states
      REAL(8),POINTER :: tau(:) => null() ! accumulated over states
+     REAL(8),POINTER :: deltatau(:) => null() !tau-tauW   (tauW==Weizsacker)
+                                      ! note this is evaluated with 1/4pir^2
   END TYPE OrbitInfo
 
   TYPE FCinfo
@@ -107,9 +109,10 @@ CONTAINS
     Orbit%np=0;Orbit%l=0
     Orbit%eig=0.d0;Orbit%occ=0.d0
     ALLOCATE(Orbit%wfn(n,norbit),Orbit%otau(n,norbit), &
-&                      Orbit%den(n),Orbit%tau(n),stat=ok)
+&             Orbit%den(n),Orbit%tau(n),Orbit%deltatau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of wfn, den...'
     Orbit%wfn=0.d0;Orbit%den=0.d0;Orbit%tau=0.d0;Orbit%otau=0.d0
+    Orbit%deltatau=0.d0
     If (diracrelativistic) then
        ALLOCATE(Orbit%lwfn(n,norbit),Orbit%kappa(norbit),stat=ok)
        IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
@@ -139,6 +142,7 @@ CONTAINS
     IF (ASSOCIATED(Orbit%lwfn)) DEALLOCATE(Orbit%lwfn)
     IF (ASSOCIATED(Orbit%den)) DEALLOCATE(Orbit%den)
     IF (ASSOCIATED(Orbit%tau)) DEALLOCATE(Orbit%tau)
+    IF (ASSOCIATED(Orbit%deltatau)) DEALLOCATE(Orbit%deltatau)
     IF (ASSOCIATED(Orbit%lqp)) DEALLOCATE(Orbit%lqp)
     IF (ASSOCIATED(Orbit%X)) DEALLOCATE(Orbit%X)
   END SUBROUTINE DestroyOrbit
@@ -166,6 +170,7 @@ CONTAINS
     COrbit%iscore(1:SOrbit%norbit)=SOrbit%iscore(1:SOrbit%norbit)
     COrbit%den=SOrbit%den
     COrbit%tau=SOrbit%tau
+    COrbit%deltatau=SOrbit%deltatau
     If (diracrelativistic) then
        COrbit%lwfn(:,1:SOrbit%norbit)=SOrbit%lwfn(:,1:SOrbit%norbit)
        COrbit%kappa(1:SOrbit%norbit)=SOrbit%kappa(1:SOrbit%norbit)

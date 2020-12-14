@@ -100,29 +100,32 @@ PROGRAM atompaw
      endif
   endif
 
-  CALL SetPAWOptions1(ifen,Grid)
-  CALL InitPAW(PAW,Grid,FCOrbit)
-  CALL setbasis(Grid,FCPot,FCOrbit)
-  Call setcoretail(Grid,FC%coreden)
-  Call setttau(Grid,FC%coretau)
-  If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
-  If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
-  Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,OK)
-  If (.not.OK) stop 'Stopping due to options failure'
-  Call Report_Pseudobasis(Grid,PAW,ifen)
+  if(.not.diracrelativistic) then
+    CALL SetPAWOptions1(ifen,Grid)
+    CALL InitPAW(PAW,Grid,FCOrbit)
+    CALL setbasis(Grid,FCPot,FCOrbit)
+    Call setcoretail(Grid,FC%coreden)
+    Call setttau(Grid,FC%coretau)
+    If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
+    If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
+    Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,OK)
+    If (.not.OK) stop 'Stopping due to options failure'
+    Call Report_Pseudobasis(Grid,PAW,ifen)
 
-  Call Set_PAW_MatrixElements(Grid,PAW,ifen)
-  CALL logderiv(Grid,FCPot,PAW)
-  CALL ftprod(Grid)
+    Call Set_PAW_MatrixElements(Grid,PAW,ifen)
+    CALL logderiv(Grid,FCPot,PAW)
+    CALL ftprod(Grid)
 
-  CALL FindVlocfromVeff(Grid,FCOrbit,PAW)
-  CALL Report_Pseudopotential(Grid,PAW)
+    CALL FindVlocfromVeff(Grid,FCOrbit,PAW)
+    CALL Report_Pseudopotential(Grid,PAW)
 
-  CALL SPMatrixElements(Grid,FCPot,FC,PAW)
-  CALL Report_pseudo_energies(PAW,6)
-  CALL Report_pseudo_energies(PAW,ifen)
-
-   CLOSE(ifen)
+    CALL SPMatrixElements(Grid,FCPot,FC,PAW)
+    CALL Report_pseudo_energies(PAW,6)
+    CALL Report_pseudo_energies(PAW,ifen)
+  else
+    write(STD_OUT,*) 'PAW pseudo routines need more work for dirac case!'
+  endif
+  CLOSE(ifen)
 
   scfpaw_done=.false.
   Do

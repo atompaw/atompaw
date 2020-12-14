@@ -8,7 +8,8 @@
 !         cfdsol, mod_backward_numerov, kinetic, kinetic_ij, deltakinetic_ij,
 !         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
 !         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
-!         gramschmidt, Milne, midrange_numerov,
+!         gramschmidt, Milne, midrange_numerov, getwfnfromcfdsol,
+!         taufromwfn
 !  This module contains the following functions, most of which are active:
 !       usingloggrid, overint, integrator, overlap, FindGridIndex,
 !         secondderiv, firstderiv, Gsecondderiv, Gfirstderiv, gridindex,
@@ -660,9 +661,10 @@ CONTAINS
   END SUBROUTINE extrapolate
 
   !*************************************************************
-  ! subroutine forward_numerov(Grid,l,many,energy,rv,zeroval,wfn,nodes)
+  ! subroutine forward_numerov(Grid,l,many,energy,rv,zeroval,wfn,nodes,wgt)
+  !   modified slightly for case energy -->energy*wgt(r)
   !*************************************************************
-  SUBROUTINE forward_numerov(Grid,l,many,energy,rv,zeroval,wfn,nodes)
+  SUBROUTINE forward_numerov(Grid,l,many,energy,rv,zeroval,wfn,nodes,wgt)
     TYPE (GridInfo), INTENT(IN) :: Grid
     INTEGER, INTENT(IN) :: l,many
     REAL(8), INTENT(IN) :: energy,zeroval,rv(:)
@@ -671,11 +673,16 @@ CONTAINS
     ! on ouput wfn(i) given for
     !      i<=many
     INTEGER, INTENT(OUT) :: nodes
+    REAL(8), INTENT(IN), OPTIONAL :: wgt(:)
 
     REAL(8), ALLOCATABLE :: a(:),b(:),p(:)
     REAL(8) :: xx,angm,h,h2,scale
     REAL(8), PARAMETER :: vlarg=1.d30
     INTEGER :: i,j,k,n
+    LOGICAL :: withwgt
+
+    withwgt=.false.
+    If (PRESENT(wgt)) withwgt=.true.
 
     ALLOCATE(a(many),b(many),p(many),stat=i)
     IF (i/=0) THEN
@@ -690,7 +697,11 @@ CONTAINS
     a=0
     h=Grid%h;    h2=h*h
     DO i=2,many
-       a(i)=rv(i)/Grid%r(i)-energy+angm/(Grid%r(i)**2)
+      if (withwgt) then
+        a(i)=rv(i)/Grid%r(i)-energy*wgt(i)+angm/(Grid%r(i)**2)
+      else
+        a(i)=rv(i)/Grid%r(i)-energy+angm/(Grid%r(i)**2)
+      endif  
     ENDDO
     IF (Grid%type==loggrid) THEN
        p(1:2)=wfn(1:2)/Grid%pref(1:2)
@@ -1352,13 +1363,15 @@ CONTAINS
   END SUBROUTINE inhomo_bv_numerov
 
   !*********************************************************
-  ! subroutine backward_numerov(Grid,l,match,energy,rv,wfn)
+  ! subroutine backward_numerov(Grid,l,match,energy,rv,wfn,wgt)
+  !   modified slightly for case energy -->energy*wgt(r)
   !*********************************************************
-  SUBROUTINE backward_numerov(Grid,l,match,energy,rv,wfn)
+  SUBROUTINE backward_numerov(Grid,l,match,energy,rv,wfn,wgt)
     TYPE (GridInfo), INTENT(IN) :: Grid
     INTEGER, INTENT(IN) :: l,match
     REAL(8), INTENT(IN) :: energy,rv(:)
     REAL(8), INTENT(INOUT) :: wfn(:)    ! on input wfn(n-1) and wfn(n) given
+    REAL(8), INTENT(IN), OPTIONAL :: wgt(:)
     ! on ouput wfn(i) given for
     !      start<=i<=n
 
@@ -1366,6 +1379,10 @@ CONTAINS
     REAL(8) :: xx,angm,h,h2,scale
     REAL(8), PARAMETER :: vlarg=1.d30
     INTEGER :: i,j,k,n
+    LOGICAL :: withwgt
+
+    withwgt=.false.
+    If (PRESENT(wgt)) withwgt=.true.
 
     n=Grid%n
     ALLOCATE(a(n),b(n),p(n),stat=i)
@@ -1380,7 +1397,11 @@ CONTAINS
     a=0
     h=Grid%h;    h2=h*h
     DO i=match,n
-       a(i)=rv(i)/Grid%r(i)-energy+angm/(Grid%r(i)**2)
+      if(withwgt) then
+        a(i)=rv(i)/Grid%r(i)-energy*wgt(i)+angm/(Grid%r(i)**2)
+      else        
+        a(i)=rv(i)/Grid%r(i)-energy+angm/(Grid%r(i)**2)
+      endif
     ENDDO
     IF (Grid%type==loggrid) THEN
        p(n-1:n)=p(n-1:n)/Grid%pref(n-1:n)
@@ -1419,11 +1440,11 @@ CONTAINS
   !     routine for solving coupled first order differential equations
   !
   !      d yy(x,1)
-  !      ---------   =  zz(x,1,1) * yy(x,1) + zz(x,1,2) * yy(2,1)
+  !      ---------   =  zz(x,1,1) * yy(x,1) + zz(x,1,2) * yy(x,2)
   !         dx
   !
   !      d yy(x,2)
-  !      ---------   =  zz(x,2,1) * yy(x,1) + zz(x,2,2) * yy(2,1)
+  !      ---------   =  zz(x,2,1) * yy(x,1) + zz(x,2,2) * yy(x,2)
   !         dx
   !
   !
@@ -1534,6 +1555,161 @@ CONTAINS
     DEALLOCATE(tmpz)
   END SUBROUTINE cfdsol
 
+
+   subroutine getwfnfromcfdsol(start,finish,yy,wfn)
+      INTEGER, INTENT(IN) :: start,finish
+      REAL(8), INTENT(IN) :: yy(:,:)
+      REAL(8), INTENT(INOUT) :: wfn(:)
+
+      INTEGER :: i
+
+      wfn=0
+      do i=start,finish
+         wfn(i)=yy(1,i)
+      enddo
+   end subroutine getwfnfromcfdsol
+
+
+  !===========================================================================
+  !      subroutine inhomocfdsol(zz,yy,ff,jj1,jj2)
+  ! Original subroutine from David Vanderbilt's USPS code, modified by Marc
+  !     Torrent and Francois Jollet, further modified by NAWH
+  !===========================================================================
+
+  !     routine for solving coupled first order differential equations
+  !
+  !      d yy(1,x)
+  !      ---------   =  zz(1,1,x) * yy(1,x) + zz(1,2,x) * yy(2,x) + ff(1,x)
+  !         dx
+  !
+  !      d yy(2,x)
+  !      ---------   =  zz(2,1,x) * yy(1,x) + zz(2,2,x) * yy(2,x) + ff(2,x)
+  !         dx
+  !
+  !
+  !     using fifth order predictor corrector algorithm
+  !
+  !     routine integrates from jj1 to jj2 and can cope with both cases
+  !     jj1 < jj2 and jj1 > jj2.  first five starting values of yy must
+  !     be provided by the calling program.
+  !     Inhomogeneous version (this one) not tested for jj1 < jj2
+
+  SUBROUTINE inhomocfdsol(Grid,zz,yy,ff,jj1,jj2)
+    TYPE(gridinfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN):: zz(:,:,:),ff(:,:)
+    REAL(8), INTENT(INOUT):: yy(:,:)
+    INTEGER, INTENT(IN)  :: jj1,jj2
+
+    REAL(8):: fa(0:5),fb(0:5),abp(1:5),amc(0:4)
+    INTEGER :: isgn,i,j,ip,mesh
+    REAL(8):: arp,brp
+    REAL(8), ALLOCATABLE :: tmpz(:,:,:),ff1(:),ff2(:)
+
+    write(std_out,*) 'inhomocfdsol '; call flush_unit(std_out)
+
+    mesh=SIZE(yy(2,:))
+    write (6,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
+    call flush_unit(std_out)
+    IF (SIZE(zz(2,2,:))/=mesh.or.SIZE(ff(2,:))/=mesh) THEN
+       WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
+       STOP
+    ENDIF
+    isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
+    IF ( isgn .EQ. + 1 ) THEN
+       IF ( jj1 .LE. 5 .OR. jj2 .GT. mesh ) THEN
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+          CALL EXIT(1)
+       ENDIF
+    ELSEIF ( isgn .EQ. - 1 ) THEN
+       IF ( jj1 .GE. ( mesh - 4 ) .OR. jj2 .LT. 1 ) THEN
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+          CALL EXIT(1)
+       ENDIF
+    ELSE
+       WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+    ENDIF
+
+10  FORMAT(' ***error in subroutine difsol',/,&
+         &' isgn =',i2,' jj1 =',i5,' jj2 =',i5,' mesh =',i5,&
+         &' are not allowed')
+
+    ALLOCATE(tmpz(2,2,mesh),ff1(mesh),ff2(mesh))
+    tmpz=zz
+    ff1(:)=ff(1,:)
+    ff2(:)=ff(2,:)
+
+    DO i=1,2
+       DO j=1,2
+          tmpz(i,j,:)=tmpz(i,j,:)*Grid%h
+          if (Grid%TYPE==loggrid) tmpz(i,j,1:mesh)=tmpz(i,j,1:mesh)*Grid%drdu(1:mesh)
+       ENDDO
+    ENDDO
+    
+    if(Grid%type==lineargrid) then
+       ff1(:)=ff(1,:)*Grid%h
+       ff2(:)=ff(2,:)*Grid%h
+    elseif  (Grid%type==loggrid) then
+       ff1(1:mesh)=ff(1,1:mesh)*Grid%drdu(1:mesh)*Grid%h
+       ff2(1:mesh)=ff(2,1:mesh)*Grid%drdu(1:mesh)*Grid%h
+    else
+       write(std_out,*) 'Error in inhomocfgsol -- grid%type ', grid%type
+    endif
+
+    abp(1) = 1901.d0 / 720.d0
+    abp(2) = -1387.d0 / 360.d0
+    abp(3) = 109.d0 / 30.d0
+    abp(4) = -637.d0 / 360.d0
+    abp(5) = 251.d0 / 720.d0
+    amc(0) = 251.d0 / 720.d0
+    amc(1) = 323.d0 / 360.d0
+    amc(2) = -11.d0 / 30.d0
+    amc(3) = 53.d0 / 360.d0
+    amc(4) = -19.d0 / 720.d0
+
+    DO j = 1,5
+       ip = jj1 - isgn * j
+       fa(j) = tmpz(1,1,ip) * yy(1,ip) + tmpz(1,2,ip) * yy(2,ip) + ff1(ip)
+       fb(j) = tmpz(2,1,ip) * yy(1,ip) + tmpz(2,2,ip) * yy(2,ip) + ff2(ip)
+    ENDDO
+
+    DO j = jj1,jj2,isgn
+       arp = yy(1,j-isgn)
+       brp = yy(2,j-isgn)
+! rescaling not valid for inhomogeneous case
+!       IF (ABS(arp)>verylarge.OR.brp>verylarge) THEN
+!          scale=1.d0/(ABS(arp)+ABS(brp))
+!          arp=arp*scale
+!          brp=brp*scale
+!          fa(:)=fa(:)*scale; fb(:)=fb(:)*scale
+!          yy=yy*scale
+!       ENDIF
+!  end rescaling
+       DO  i = 1,5
+          arp = arp + DBLE(isgn) * abp(i) * fa(i)
+          brp = brp + DBLE(isgn) * abp(i) * fb(i)
+       ENDDO
+
+       fa(0) = tmpz(1,1,j) * arp + tmpz(1,2,j) * brp + ff1(j)
+       fb(0) = tmpz(2,1,j) * arp + tmpz(2,2,j) * brp + ff2(j)
+       yy(1,j) = yy(1,j-isgn)
+       yy(2,j) = yy(2,j-isgn)
+       DO  i = 0,4,1
+          yy(1,j) = yy(1,j) + DBLE(isgn) * amc(i) * fa(i)
+          yy(2,j) = yy(2,j) + DBLE(isgn) * amc(i) * fb(i)
+       ENDDO
+
+       DO i = 5,2,-1
+          fa(i) = fa(i-1)
+          fb(i) = fb(i-1)
+       ENDDO
+       fa(1) = tmpz(1,1,j) * yy(1,j) + tmpz(1,2,j) * yy(2,j) + ff1(j)
+       fb(1) = tmpz(2,1,j) * yy(1,j) + tmpz(2,2,j) * yy(2,j) + ff2(j)
+    ENDDO
+
+    write(std_out,*) 'completed inhomocdfsol '; call flush_unit(std_out)
+
+    DEALLOCATE(tmpz,ff1,ff2)
+  END SUBROUTINE inhomocfdsol
 
   !*********************************************************
   ! subroutine mod_backward_numerov(Grid,match,ww,wfn)
@@ -2349,5 +2525,64 @@ CONTAINS
     DEALLOCATE(a,b,c,p)
 
   END SUBROUTINE midrange_numerov
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+!  SUBROUTINE taufromwfn(Grid,wfn,otau)
+!    input radial wfn and output its kinetic energy density
+!     note that total wavefunction is wfn/r * Ylm
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+  SUBROUTINE taufromwfn(Grid,wfn,l,otau)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN) :: wfn(:)
+    INTEGER, INTENT(IN) :: l
+    REAL(8), INTENT(OUT) :: otau(:)
+
+    INTEGER :: n,i
+    REAL(8) :: fac
+    REAL(8), allocatable:: pbr(:),dpdr(:)
+
+    n=Grid%n
+    allocate(pbr(n),dpdr(n))
+    fac=l*(l+1)
+    dpdr=0.d0;pbr=0.d0
+    pbr(2:n)=wfn(2:n)/Grid%r(2:n)
+    CALL derivative(Grid,pbr,dpdr,2,n)
+    CALL extrapolate(Grid,pbr)
+    CALL extrapolate(Grid,dpdr)
+    otau(:)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
+    deallocate(pbr,dpdr)
+
+    call filter(n,otau,machine_zero)
+ END SUBROUTINE taufromwfn  
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  For debugging only
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  SUBROUTINE writesomestuff(Grid,f1,f2,f3,f4)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN) :: f1(:),f2(:)
+    REAL(8), INTENT(IN), OPTIONAL :: f3(:),f4(:)
+
+    INTEGER :: here=1
+    INTEGER :: i
+
+    open(7000+here,form='formatted')
+    if(.not.present(f3)) then
+    do i=1,Grid%n
+      write(7000+here,'(1p,50e16.7)')Grid%r(i),f1(i),f2(i)
+    enddo   
+    elseif (.not.present(f4)) then
+    do i=1,Grid%n
+      write(7000+here,'(1p,50e16.7)')Grid%r(i),f1(i),f2(i),f3(i)
+    enddo   
+    else
+    do i=1,Grid%n
+      write(7000+here,'(1p,50e16.7)')Grid%r(i),f1(i),f2(i),f3(i),f4(i)
+    enddo   
+    endif
+    close(7000+here)
+    here=here+1
+  END SUBROUTINE writesomestuff
 
 END MODULE gridmod

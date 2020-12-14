@@ -13,7 +13,7 @@
 ! This module contains the following active subroutines:
 !     Allocate_scalar_relativistic, deallocate_scalar_relativistic
 !        Azeroexpand, wfnsrinit, wfnsrasym, unboundsr, boundsr,
-!        scalarrelativisticturningpt, prepareforcfdsol, getwfnfromcfdsol
+!        scalarrelativisticturningpt, prepareforcfdsol
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -511,19 +511,5 @@ CONTAINS
       enddo
 
    end subroutine prepareforcfdsol
-
-   subroutine getwfnfromcfdsol(start,finish,yy,wfn)
-      INTEGER, INTENT(IN) :: start,finish
-      REAL(8), INTENT(IN) :: yy(:,:)
-      REAL(8), INTENT(INOUT) :: wfn(:)
-
-      INTEGER :: i
-
-      wfn=0
-      do i=start,finish
-         wfn(i)=yy(1,i)
-      enddo
-   end subroutine getwfnfromcfdsol
-
 
 END MODULE radialsr

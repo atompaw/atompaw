@@ -208,12 +208,11 @@ CONTAINS
     TYPE(SCFInfo), INTENT(INOUT) :: SCF
     LOGICAL, OPTIONAL :: noalt
 
-    REAL(8) :: ecoul,eex,etot,ekin,eone,h,x,v0,qcal,etxc,small,rescale
-    REAL(8) :: electrons,fac
+    REAL(8) :: ecoul,eex,etot,ekin,eone,h,x,v0,qcal,etxc,small,rescale,fpi
+    REAL(8) :: electrons,fac,xocc
     INTEGER :: icount,i,j,k,l,m,n,io
     REAL(8), ALLOCATABLE :: dum(:)
     REAL(8) :: small0=1.d-6
-    REAL(8),allocatable :: dpdr(:),pbr(:)
     INTEGER :: counter=1
 
 
@@ -227,43 +226,52 @@ CONTAINS
     ENDIF
 
     !update density
-    allocate(dpdr(Grid%n),pbr(Grid%n))
+!   Note that kinetic energy density (tau) is in Rydberg units
     Orbit%den=0.d0;Orbit%tau=0.d0
 
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
-         dpdr=0.d0;pbr=0.d0
-         pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
-         CALL extrapolate(Grid,pbr)
-         CALL derivative(Grid,Orbit%wfn(:,io),dpdr)
-         l=Orbit%l(io)
-         fac=l*(l+1)
-          DO i=1,n
-             IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
-             Orbit%den(i)=Orbit%den(i)+ Orbit%occ(io)*(Orbit%wfn(i,io)**2)
-             Orbit%tau(i)=Orbit%tau(i)+&
-&             Orbit%occ(io)*((dpdr(i)-pbr(i))**2+fac*(pbr(i))**2)
-             IF (diracrelativistic) then
-             IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
-             Orbit%den(i)=Orbit%den(i)+ &
-&                     Orbit%occ(io)*((Orbit%lwfn(i,io))**2)
-             ENDIF         
-          ENDDO
+         CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+         xocc=Orbit%occ(io)
+         DO i=1,Grid%n
+            Orbit%tau(i)=Orbit%tau(i)+xocc*Orbit%otau(i,io)
+            IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
+            Orbit%den(i)=Orbit%den(i)+xocc*(Orbit%wfn(i,io)**2)
+            IF (diracrelativistic) then
+              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
+              Orbit%den(i)=Orbit%den(i)+xocc*((Orbit%lwfn(i,io))**2)
+            ENDIF
+         ENDDO
        ENDIF
-
     ENDDO
-       Orbit%tau=0.5d0*Orbit%tau       !Kinetic energy density
+    !Kinetic energy density is in Ry (no need of 1/2 factor)
+    !Orbit%tau=0.5d0*Orbit%tau
 
     qcal=integrator(Grid,Orbit%den)
     WRITE(STD_OUT,*) 'qcal = ', qcal
 
-    ! for FC, Big change here , electrons are total , not valence anymore!
+    !For FC, Big change here , electrons are total , not valence anymore!
     electrons=Pot%q
     rescale=electrons/qcal
     Orbit%den(1:n)=Orbit%den(1:n)*rescale
     Orbit%tau(1:n)=Orbit%tau(1:n)*rescale
-    !WRITE(STD_OUT,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
-    deallocate(dpdr,pbr)
+    WRITE(STD_OUT,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
+
+!   Determine difference with tauW (Weizsaker)       
+    fpi=4*pi
+    dum(2:Grid%n)=Orbit%den(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+    CALL extrapolate(Grid,dum)
+    CALL derivative(Grid,dum,Orbit%deltatau)
+    Do i=1,Grid%n
+      if (dum(i)>machine_zero) then
+        Orbit%deltatau(i)=0.25d0*(Orbit%deltatau(i)**2)/dum(i)
+      else
+        Orbit%deltatau(i)=0.d0
+      endif
+    enddo        
+    dum(2:Grid%n)=Orbit%tau(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+    call extrapolate(Grid,dum)
+    Orbit%deltatau=dum-Orbit%deltatau
 
     CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
 
@@ -295,7 +303,13 @@ CONTAINS
     SCF%ecoul=ecoul
     counter=counter+1
 
-    !write(std_out,*) 'completed Get_KinCoul'
+!    write(std_out,*) 'completed Get_KinCoul for counter',counter-1
+!    OPEN(4000+counter,form='formatted')
+!    DO i = 1,n
+!       WRITE(4000+counter,'(1p,50e15.7)') Grid%r(i), &
+!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
+!    ENDDO
+!    CLOSE(4000+counter)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_KinCoul
@@ -313,7 +327,7 @@ CONTAINS
     TYPE(SCFInfo), INTENT(INOUT) :: SCF
     LOGICAL, OPTIONAL :: noalt
 
-    REAL(8) :: tv,tc,x,y,electrons,vcoul,ccoul,vnucl,rescale
+    REAL(8) :: tv,tc,x,y,electrons,vcoul,ccoul,vnucl,rescale,fac
     INTEGER :: icount,i,j,k,l,m,n,io
     REAL(8), ALLOCATABLE :: dum(:)
     REAL(8) :: qcal,small,small0=1.d-6
@@ -324,7 +338,7 @@ CONTAINS
 
     ALLOCATE(dum(n),STAT=k)
     IF (k /= 0) THEN
-       WRITE(STD_OUT,*) 'Error in Get_FCKinCoul allocation ', n,k
+       WRITE(STD_OUT,*) 'Error in Get_FCKinCoul allocation; n,k=',n,k
        STOP
     ENDIF
 
@@ -332,6 +346,7 @@ CONTAINS
      write(std_out,*) 'In Get_FCKinCoul ', firsttime
     !update density  and calculated  kinetic energy
     Orbit%den(1:n)=0.d0
+    Orbit%tau(1:n)=0.d0
     FC%valeden(1:n)=0.d0     ;   tv=0 ; tc=0; SCF%eone=0
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
@@ -358,10 +373,12 @@ CONTAINS
               tv=tv+Orbit%occ(io)*x
           ENDIF
           Orbit%den(:)=Orbit%den(:)+ Orbit%occ(io)*(Orbit%wfn(:,io)**2)
-             IF (diracrelativistic) then
-              Orbit%den(:)=Orbit%den(:)+ &
-&              Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
-             ENDIF         
+          IF (diracrelativistic) then
+            Orbit%den(:)=Orbit%den(:)+ &
+&           Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
+          ENDIF         
+          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+          Orbit%tau(:)=Orbit%tau(:)+ Orbit%occ(io)*Orbit%otau(:,io)
           SCF%eone=SCF%eone+Orbit%occ(io)*Orbit%eig(io)
        ENDIF
     ENDDO
@@ -371,17 +388,17 @@ CONTAINS
     write(std_out,*) 'eone = ', SCF%eone
 
     if (firsttime==0) SCF%corekin=tc
-    firsttime=1
+    firsttime=firsttime+1
     SCF%valekin=tv
     SCF%ekin=SCF%corekin+tv
     qcal=integrator(Grid,FC%valeden)
-    !WRITE(STD_OUT,*) 'qcalval = ', qcal
+    WRITE(STD_OUT,*) 'qcalval = ', qcal
     Write(STD_OUT,*) 'Core kin ', SCF%corekin,'  Vale kin  ', SCF%valekin
 
     electrons=FC%zvale
     rescale=electrons/qcal
     FC%valeden(1:n)=FC%valeden(1:n)*rescale
-    !WRITE(STD_OUT,*) 'rescaled qcalval = ', integrator(Grid,FC%valeden), FC%zvale
+    WRITE(STD_OUT,*) 'rescaled qcalval = ', integrator(Grid,FC%valeden), FC%zvale
 
     x=FC%zvale
     CALL poisson(Grid,x,FC%valeden,dum,vcoul,y)  !valence-valence
@@ -391,12 +408,23 @@ CONTAINS
     SCF%valecoul=vcoul+integrator(Grid,dum)
 
     !Update complete Hartree potential
+    qcal=integrator(Grid,Orbit%den)
+    WRITE(STD_OUT,*) 'qcal = ', qcal
+    rescale=Pot%q/qcal; Orbit%den=Orbit%den*rescale
+    write(std_out,*) 'rescaled qcal ', integrator(Grid,Orbit%den),Pot%q
     Call poisson(Grid,Pot%q,Orbit%den,Pot%rvh,x,Pot%v0)
         dum=0
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+x
     SCF%ecoul=x
 
+!   write(std_out,*) 'completed Get_FCKinCoul for counter',firsttime-1
+!   OPEN(6000+firsttime,form='formatted')
+!   DO i = 1,n
+!     WRITE(STD_OUT000+firsttime,'(1p,50e15.7)') Grid%r(i), &
+!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
+!   ENDDO
+!   CLOSE(6000+firsttime)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_FCKinCoul

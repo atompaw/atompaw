@@ -33,7 +33,7 @@ MODULE pseudodata
      REAL(8), POINTER :: coretau(:),tcoretau(:)
      REAL(8), POINTER :: valetau(:),tvaletau(:)
      INTEGER :: nbase,ncoreshell
-     INTEGER, POINTER :: np(:),l(:),nodes(:)
+     INTEGER, POINTER :: np(:),l(:),nodes(:),kappa(:)
      INTEGER, POINTER :: rng(:)       ! rng particularly of continuum states
      CHARACTER(8), POINTER :: label(:)
      REAL(8), POINTER :: phi(:,:),tphi(:,:),tp(:,:) ! before orthog
@@ -109,6 +109,10 @@ MODULE pseudodata
       PAW%ophi=0.d0;PAW%otphi=0.d0;PAW%otp=0.d0
       PAW%eig=0.d0;PAW%occ=0.d0;PAW%vrc=0.d0;PAW%ck=0.d0;PAW%Kop=0.d0
       PAW%rcio=0.d0;PAW%np=0;PAW%l=0
+      if(diracrelativistic) then
+        ALLOCATE(PAW%kappa(mxbase))
+        PAW%kappa=0
+      endif        
       PAW%rng=Grid%n
       ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),&
 &      PAW%wij(mxbase,mxbase), stat=ok)
@@ -157,6 +161,7 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
     If (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)
     If (ASSOCIATED(PAW%nodes)) DEALLOCATE(PAW%nodes)
+    If (ASSOCIATED(PAW%kappa)) DEALLOCATE(PAW%kappa)
     If (ASSOCIATED(PAW%rng)) DEALLOCATE(PAW%rng)
     If (ASSOCIATED(PAW%label)) DEALLOCATE(PAW%label)
     If (ASSOCIATED(PAW%phi)) DEALLOCATE(PAW%phi)

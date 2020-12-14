@@ -58,6 +58,10 @@ MODULE input_dataset_mod
    INTEGER,ALLOCATABLE :: orbit_mod_l(:)   ! Electronic config.: l number of the modified orbital
    INTEGER,ALLOCATABLE :: orbit_mod_k(:)   ! Electronic config.: kappa number of the modified orbital
    REAL(8),ALLOCATABLE :: orbit_mod_occ(:) ! Electronic config.: occupation of the modified orbital
+   INTEGER :: norbit_val            ! Electronic configuration: number of valence orbitals 
+   INTEGER,ALLOCATABLE :: orbit_val_n(:)   ! Electronic config.: n number of the valence orbital
+   INTEGER,ALLOCATABLE :: orbit_val_l(:)   ! Electronic config.: l number of the valence orbital
+   INTEGER,ALLOCATABLE :: orbit_val_k(:)   ! Electronic config.: kappa number of the valence orbital 
    INTEGER :: lmax=-1               ! PAW Basis: maximum l value
    REAL(8) :: rc=0.d0               ! PAW basis: cut-off radius for the augmentation regions
    REAL(8) :: rc_shap=0.d0          ! PAW basis: cut-off radius of the compensation charge shape function
@@ -65,7 +69,8 @@ MODULE input_dataset_mod
    REAL(8) :: rc_core=0.d0          ! PAW basis: matching radius for the pseudo-core density
    INTEGER :: nbasis                ! PAW basis : number of basis functions
    INTEGER :: nbasis_add            ! PAW basis: number of additional basis functions (unbound states)
-   INTEGER,ALLOCATABLE :: basis_add_l(:)      ! PAW basis: l number for then additional basis func.
+   INTEGER,ALLOCATABLE :: basis_add_l(:)      ! PAW basis: l number for the additional basis func.
+   INTEGER,ALLOCATABLE :: basis_add_k(:)      ! PAW basis: kappa number for the additional basis func.
    REAL(8),ALLOCATABLE :: basis_add_energy(:) ! PAW basis: ref. energy for the additional basis func.
    REAL(8),ALLOCATABLE :: basis_func_rc(:)    ! PAW basis: matching radii for the pseudo partial waves
    INTEGER :: projector_type        ! Type of projectors (Bloechl, Vanderbilt, ...)
@@ -216,7 +221,8 @@ CONTAINS
  INTEGER,PARAMETER :: ifunit=111,ecunit=222
  INTEGER,PARAMETER :: nkappa(5)=(/1,2,2,2,2/)
  INTEGER :: input_unit
- INTEGER :: ii,io,ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,norb,nbl,nn,nk,kk
+ INTEGER :: ii,io,nadd,norb,nval,nbl,nn,ik,kk
+ INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
@@ -225,6 +231,7 @@ CONTAINS
  CHARACTER(1) :: CHR
  REAL(8) :: x1,x2
  INTEGER :: basis_add_l(nbasis_add_max)
+ INTEGER :: basis_add_k(nbasis_add_max)
  REAL(8) :: basis_add_energy(nbasis_add_max)
  TYPE(input_dataset_t),POINTER :: dataset
 
@@ -516,6 +523,7 @@ END IF
    WRITE(STD_OUT,*) 'For each state enter c for core or v for valence'
  END IF
 
+!Read core and valence states
  IF (ALLOCATED(dataset%orbit_iscore)) DEALLOCATE(dataset%orbit_iscore)
  ALLOCATE(dataset%orbit_iscore(dataset%norbit))
  DO io=1,dataset%norbit
@@ -534,39 +542,63 @@ END IF
    dataset%orbit_iscore(io)=(CHR=='c'.OR.CHR=='C')
  END DO
 
+!Store valence states
+ dataset%norbit_val=dataset%norbit-COUNT(dataset%orbit_iscore(:))
+ IF (ALLOCATED(dataset%orbit_val_n)) DEALLOCATE(dataset%orbit_val_n)
+ IF (ALLOCATED(dataset%orbit_val_l)) DEALLOCATE(dataset%orbit_val_l)
+ IF (ALLOCATED(dataset%orbit_val_k)) DEALLOCATE(dataset%orbit_val_k)
+ ALLOCATE(dataset%orbit_val_n(dataset%norbit_val))
+ ALLOCATE(dataset%orbit_val_l(dataset%norbit_val))
+ ALLOCATE(dataset%orbit_val_k(dataset%norbit_val))
+ kk=0
+ io=0;nval=0
+ DO ll=0,4
+   nn=dataset%np(ll+1)
+   IF (nn>0) THEN
+     DO ik=1,MERGE(nkappa(ll+1),1,dataset%diracrelativistic)
+       kk=MERGE(ll,-(ll+1),ik==1);IF (ll==0) kk=-1
+       IF (.NOT.dataset%diracrelativistic) kk=0
+       DO ii=1+ll,nn
+         io=io+1
+         IF (.NOT.dataset%orbit_iscore(io)) THEN
+           nval=nval+1
+           dataset%orbit_val_n(nval)=ii
+           dataset%orbit_val_l(nval)=ll
+           dataset%orbit_val_k(nval)=kk    
+         END IF  
+       END DO
+     END DO
+   END IF
+ END DO
+ IF (dataset%norbit_val/=nval) STOP 'input_dataset: bug -- wrong nval!'
+
 !Print read data
  IF (has_to_print) THEN
    WRITE(STD_OUT,'(3x,a)') "Core and valence orbitals:"
-   IF (.NOT.dataset%diracrelativistic) THEN
-	 WRITE(STD_OUT,'(7x,a)') "n l : type"
-	 io=0
-	 DO ll=0,4
-	   nn=dataset%np(ll+1)
-	   IF (nn>0) THEN
-		 DO ii=1+ll,nn
-		   io=io+1
-		   WRITE(STD_OUT,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
+   IF (.NOT.dataset%diracrelativistic) WRITE(STD_OUT,'(7x,a)') "n l : type"
+   IF (dataset%diracrelativistic)      WRITE(STD_OUT,'(7x,a)') "n l kappa : type"
+   io=0
+   DO ll=0,4
+     nn=dataset%np(ll+1)
+     IF (nn>0) THEN
+       IF (.NOT.dataset%diracrelativistic) THEN
+         DO ii=1+ll,nn
+           io=io+1
+           WRITE(STD_OUT,'(7x,i1,1x,i1,2a)') ii,ll," : ", &
 &            MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
-		 END DO
-	   END IF
-	 END DO
-   ELSE
-     WRITE(STD_OUT,'(7x,a)') "n l kappa :  type"
-	 io=0
-	 DO ll=0,4
-	   nn=dataset%np(ll+1)
-	   IF (nn>0) THEN
-         DO nk=1,nkappa(ll+1)
-           kk=MERGE(ll,-(ll+1),nk==1);IF (ll==0) kk=-1
+         END DO
+       ELSE
+         DO ik=1,nkappa(ll+1) 
+           kk=MERGE(ll,-(ll+1),ik==1);IF (ll==0) kk=-1
            DO ii=1+ll,nn
              io=io+1
-             WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,2a)') ii,ll,kk," : ", &
+             WRITE(STD_OUT,'(7x,i1,1x,i1,2x,i2,2x,2a)') ii,ll,kk," : ", &
 &              MERGE("CORE   ","VALENCE",dataset%orbit_iscore(io))
            END DO
-         END DO 
+         END DO
        END IF
-     END DO    
-   END IF 
+     END IF
+   END DO
  END IF
 
 
@@ -658,9 +690,10 @@ END IF
 !------------------------------------------------------------------
 !=== Additional basis functions
 
- nstart=0 ; dataset%nbasis_add=0
+ nstart=0 ; dataset%nbasis_add=0 ; basis_add_k(:)=0
  DO ll=0,dataset%lmax
    nbl=0
+   nadd = MERGE(nkappa(ll+1),1,dataset%diracrelativistic)
    IF (dataset%np(ll+1)>0) THEN
      nbl=COUNT(.NOT.dataset%orbit_iscore(nstart+1:nstart+dataset%np(ll+1)-ll))
      nstart=nstart+dataset%np(ll+1)-ll
@@ -668,7 +701,11 @@ END IF
    DO
      IF (has_to_ask) THEN
        WRITE(STD_OUT,*) 'For l = ',ll,' there are currently ',nbl,' basis functions'
-       WRITE(STD_OUT,*) 'Enter y to add additional functions or n to go to next l'
+       IF (.NOT.dataset%diracrelativistic) THEN
+         WRITE(STD_OUT,*) 'Enter y to add an additional function or n to go to next l'
+       ELSE
+         WRITE(STD_OUT,*) 'Enter y to add additional functions (one per kappa) or n to go to next l'
+       END IF
      END IF
      READ(STD_IN,'(a)') inputline
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
@@ -678,23 +715,40 @@ END IF
        IF (CHR/='n'.AND.CHR/='N') STOP 'input_dataset: error -- Please enter Y or N!'
        EXIT
      END IF
-     dataset%nbasis_add=dataset%nbasis_add+1
+     dataset%nbasis_add=dataset%nbasis_add+nadd
      IF (dataset%nbasis_add>nbasis_add_max) STOP 'Too many additional basis functions!'
-     basis_add_l(dataset%nbasis_add)=ll
-     IF (has_to_ask) WRITE(STD_OUT,*) 'Enter energy for generalized function'
+     basis_add_l(dataset%nbasis_add-nadd+1:dataset%nbasis_add)=ll
+     IF (dataset%diracrelativistic) THEN
+       basis_add_k(dataset%nbasis_add)=-1
+       IF (ll/=0) THEN
+         basis_add_k(dataset%nbasis_add-1)=ll
+         basis_add_k(dataset%nbasis_add)=-(ll+1)
+       END IF
+     END IF
+     IF (has_to_ask) THEN
+       IF (.NOT.dataset%diracrelativistic) THEN
+         WRITE(STD_OUT,*) 'Enter energy for generalized function'
+       ELSE
+         IF (ll==0) WRITE(STD_OUT,*) 'Enter 1 energy for generalized function (kappa=-1)'
+         IF (ll/=0) WRITE(STD_OUT,*) 'Enter 2 energies for generalized functions (one energy per kappa)'
+       END IF
+     END IF
      READ(STD_IN,'(a)') inputline
      IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
      CALL eliminate_comment(inputline)
-     READ(inputline,*) basis_add_energy(dataset%nbasis_add)
+     READ(inputline,*) basis_add_energy(dataset%nbasis_add-nadd+1:dataset%nbasis_add)
    END DO
  END DO
 
  IF (ALLOCATED(dataset%basis_add_l)) DEALLOCATE(dataset%basis_add_l)
+ IF (ALLOCATED(dataset%basis_add_k)) DEALLOCATE(dataset%basis_add_k)
  IF (ALLOCATED(dataset%basis_add_energy)) DEALLOCATE(dataset%basis_add_energy)
  ALLOCATE(dataset%basis_add_l(dataset%nbasis_add))
+ ALLOCATE(dataset%basis_add_k(dataset%nbasis_add))
  ALLOCATE(dataset%basis_add_energy(dataset%nbasis_add))
  IF (dataset%nbasis_add>0) THEN
    dataset%basis_add_l(1:dataset%nbasis_add)=basis_add_l(1:dataset%nbasis_add)
+   dataset%basis_add_k(1:dataset%nbasis_add)=basis_add_k(1:dataset%nbasis_add)
    dataset%basis_add_energy(1:dataset%nbasis_add)=basis_add_energy(1:dataset%nbasis_add)
  END IF
 
@@ -706,10 +760,18 @@ END IF
    WRITE(STD_OUT,'(3x,a,i0)') "Number of additional basis functions : ",dataset%nbasis_add
    WRITE(STD_OUT,'(3x,a,i0)') "Total number of basis functions      : ",dataset%nbasis
    WRITE(STD_OUT,'(3x,a)') "Additional basis functions:"
-   WRITE(STD_OUT,'(7x,a)') "l : energy"
-   DO io=1,dataset%nbasis_add
-     WRITE(STD_OUT,'(7x,i1,a,f7.4)') dataset%basis_add_l(io)," : " ,dataset%basis_add_energy(io)
-   END DO
+   IF (.NOT.dataset%diracrelativistic) THEN
+     WRITE(STD_OUT,'(7x,a)') "l : energy"
+     DO io=1,dataset%nbasis_add
+       WRITE(STD_OUT,'(7x,i1,a,f7.4)') dataset%basis_add_l(io)," : " ,dataset%basis_add_energy(io)
+     END DO
+   ELSE
+     WRITE(STD_OUT,'(7x,a)') "l kappa : energy"
+     DO io=1,dataset%nbasis_add
+       WRITE(STD_OUT,'(7x,i1,2x,i2,2x,a,f7.4)') dataset%basis_add_l(io), &
+&          dataset%basis_add_k(io)," : " ,dataset%basis_add_energy(io)
+     END DO
+   END IF
  END IF
 
 
@@ -954,35 +1016,44 @@ END IF
    IF (ALLOCATED(dataset%basis_func_rc)) DEALLOCATE(dataset%basis_func_rc)
    ALLOCATE(dataset%basis_func_rc(dataset%nbasis))
 
-    IF (has_to_ask) WRITE(STD_OUT,*) 'For each of the following basis functions enter rc'
+   IF (has_to_ask) WRITE(STD_OUT,*) 'For each of the following basis functions enter rc'
 
-   norb=0 ; nstart=0
+   norb=0
    DO ll=0,dataset%lmax
-
-     nn=0
-     nbl=dataset%np(ll+1)-ll
-     DO io=nstart+1,nstart+nbl
-       IF (.NOT.dataset%orbit_iscore(io)) THEN
-         norb=norb+1;nn=nn+1
-          IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',nn,ll
-         READ(STD_IN,'(a)') inputline
-         IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
-         CALL eliminate_comment(inputline)
-         READ(inputline,*) dataset%basis_func_rc(norb)
+     DO ik=1,MERGE(nkappa(ll+1),1,dataset%diracrelativistic)
+       kk=MERGE(ll,-(ll+1),ik==1);IF (ll==0) kk=-1
+       IF (.NOT.dataset%diracrelativistic) kk=0
+       DO io=1,dataset%norbit_val
+         IF (dataset%orbit_val_l(io)==ll.AND. &
+&           ((.NOT.dataset%diracrelativistic).OR.dataset%orbit_val_k(io)==kk)) THEN     
+           norb=norb+1     
+           IF (has_to_ask.AND.(.NOT.dataset%diracrelativistic)) &
+&            WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',norb,ll
+           IF (has_to_ask.AND.dataset%diracrelativistic) &
+&            WRITE(STD_OUT,'(a,i2,a,3i4)') '  rc for basis function ',norb,' - n,l,kappa= ',norb,ll,kk
+           READ(STD_IN,'(a)') inputline
+           IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+           CALL eliminate_comment(inputline)
+           READ(inputline,*) dataset%basis_func_rc(norb)
+         END IF
+       END DO
+       IF (dataset%nbasis_add>0) THEN
+         DO io=1,dataset%nbasis_add
+           IF (dataset%basis_add_l(io)==ll.AND. &
+&             ((.NOT.dataset%diracrelativistic).OR.dataset%basis_add_k(io)==kk)) THEN     
+             norb=norb+1     
+             IF (has_to_ask.AND.(.NOT.dataset%diracrelativistic)) &
+&              WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',999,ll
+             IF (has_to_ask.AND.dataset%diracrelativistic) &
+&              WRITE(STD_OUT,'(a,i2,a,3i4)') '  rc for basis function ',norb,' - n,l,kappa= ',999,ll,kk
+             READ(STD_IN,'(a)') inputline
+             IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
+             CALL eliminate_comment(inputline)
+             READ(inputline,*) dataset%basis_func_rc(norb)
+           END IF
+         END DO
        END IF
      END DO
-     DO io=1,dataset%nbasis_add
-       IF (dataset%basis_add_l(io)==ll) THEN
-         norb=norb+1
-          IF (has_to_ask) WRITE(STD_OUT,'(a,i2,a,2i4)') '  rc for basis function ',norb,' - n,l= ',999,ll
-         READ(STD_IN,'(a)') inputline
-         IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(inputline)
-         CALL eliminate_comment(inputline)
-         READ(inputline,*) dataset%basis_func_rc(norb)
-       END IF
-     END DO
-
-     nstart=nstart+nbl
    END DO
 
    IF (dataset%nbasis/=norb) STOP 'input_dataset: error -- inconsistency in the number of basis functions!'
@@ -990,27 +1061,43 @@ END IF
 !  Print read data
    IF (has_to_print) THEN
      WRITE(STD_OUT,'(3x,a)') "Matching radius for basis functions:"
-     WRITE(STD_OUT,'(7x,a)') " # - n l : radius"
-     norb=0 ; nstart=0
+     IF (.NOT.dataset%diracrelativistic) WRITE(STD_OUT,'(7x,a)') " # - n l : radius"
+     IF (dataset%diracrelativistic) WRITE(STD_OUT,'(7x,a)') " # - n l kappa : radius"
+     norb=0
      DO ll=0,dataset%lmax
-       nn=0
-       nbl=dataset%np(ll+1)-ll
-       DO io=nstart+1,nstart+nbl
-         IF (.NOT.dataset%orbit_iscore(io)) THEN
-           norb=norb+1;nn=nn+1
-           WRITE(STD_OUT,'(7x,i2,a,i1,1x,i1,a,f7.4)') norb," - ",nn,ll," : ",dataset%basis_func_rc(norb)
+       DO ik=1,MERGE(nkappa(ll+1),1,dataset%diracrelativistic)
+         kk=MERGE(ll,-(ll+1),ik==1);IF (ll==0) kk=-1
+         IF (.NOT.dataset%diracrelativistic) kk=0
+         DO io=1,dataset%norbit_val
+           IF (dataset%orbit_val_l(io)==ll.AND. &
+&             ((.NOT.dataset%diracrelativistic).OR.dataset%orbit_val_k(io)==kk)) THEN     
+             norb=norb+1
+             IF (.NOT.dataset%diracrelativistic) &
+&              WRITE(STD_OUT,'(7x,i2,a,i1,1x,i1,a,f7.4)') &
+&              norb," - ",dataset%orbit_val_n(io),ll," : ",dataset%basis_func_rc(norb)
+             IF (dataset%diracrelativistic) &
+&              WRITE(STD_OUT,'(7x,i2,a,i1,1x,i1,2x,i2,2x,a,f7.4)') &
+&              norb," - ",dataset%orbit_val_n(io),ll,kk," : ",dataset%basis_func_rc(norb)
+           END IF
+         END DO
+         IF (dataset%nbasis_add>0) THEN
+           DO io=1,dataset%nbasis_add
+             IF (dataset%basis_add_l(io)==ll.AND. &
+&             ((.NOT.dataset%diracrelativistic).OR.dataset%basis_add_k(io)==kk)) THEN     
+               norb=norb+1
+               IF (.NOT.dataset%diracrelativistic) &
+&                WRITE(STD_OUT,'(7x,i2,a,a1,1x,i1,a,f7.4)') &
+&                norb," - ",".",ll," : ",dataset%basis_func_rc(norb)
+               IF (dataset%diracrelativistic) &
+&                WRITE(STD_OUT,'(7x,i2,a,a1,1x,i1,2x,i2,2x,a,f7.4)') &
+&                norb," - ",".",ll,kk," : ",dataset%basis_func_rc(norb)
+             END IF
+           END DO
          END IF
        END DO
-       DO io=1,dataset%nbasis_add
-         IF (dataset%basis_add_l(io)==ll) THEN
-           norb=norb+1;nn=nn+1
-           WRITE(STD_OUT,'(7x,i2,a,i1,a,f7.4)') norb," - . ",ll," : ",dataset%basis_func_rc(norb)
-         END IF
-       END DO
-       nstart=nstart+nbl
      END DO
    END IF
-       
+      
  ELSE ! Other projectors
    IF (ALLOCATED(dataset%basis_func_rc)) DEALLOCATE(dataset%basis_func_rc)
    ALLOCATE(dataset%basis_func_rc(0))
@@ -1083,6 +1170,7 @@ END IF
  dataset%np(1:5)                  = 0
  dataset%norbit                   = 0
  dataset%norbit_mod               = 0
+ dataset%norbit_val               = 0
  dataset%lmax                     =-1
  dataset%nbasis                   = 0
  dataset%nbasis_add               = 0
@@ -1157,7 +1245,11 @@ END IF
  IF (ALLOCATED(dataset%orbit_mod_l)) DEALLOCATE(dataset%orbit_mod_l)
  IF (ALLOCATED(dataset%orbit_mod_n)) DEALLOCATE(dataset%orbit_mod_n)
  IF (ALLOCATED(dataset%orbit_mod_k)) DEALLOCATE(dataset%orbit_mod_k)
+ IF (ALLOCATED(dataset%orbit_val_l)) DEALLOCATE(dataset%orbit_val_l)
+ IF (ALLOCATED(dataset%orbit_val_n)) DEALLOCATE(dataset%orbit_val_n)
+ IF (ALLOCATED(dataset%orbit_val_k)) DEALLOCATE(dataset%orbit_val_k)
  IF (ALLOCATED(dataset%basis_add_l)) DEALLOCATE(dataset%basis_add_l)
+ IF (ALLOCATED(dataset%basis_add_k)) DEALLOCATE(dataset%basis_add_k)
 
 !Logical allocatable arrays
  IF (ALLOCATED(dataset%orbit_iscore)) DEALLOCATE(dataset%orbit_iscore)
@@ -1201,6 +1293,7 @@ END IF
  output_dt%np(1:5)                 =input_dt%np(1:5)
  output_dt%norbit                  =input_dt%norbit
  output_dt%norbit_mod              =input_dt%norbit_mod
+ output_dt%norbit_val              =input_dt%norbit_val
  output_dt%lmax                    =input_dt%lmax
  output_dt%nbasis                  =input_dt%nbasis
  output_dt%nbasis_add              =input_dt%nbasis_add
@@ -1275,15 +1368,27 @@ END IF
  IF (ALLOCATED(output_dt%orbit_mod_l)) DEALLOCATE(output_dt%orbit_mod_l)
  IF (ALLOCATED(output_dt%orbit_mod_n)) DEALLOCATE(output_dt%orbit_mod_n)
  IF (ALLOCATED(output_dt%orbit_mod_k)) DEALLOCATE(output_dt%orbit_mod_k)
+ IF (ALLOCATED(output_dt%orbit_val_l)) DEALLOCATE(output_dt%orbit_val_l)
+ IF (ALLOCATED(output_dt%orbit_val_n)) DEALLOCATE(output_dt%orbit_val_n)
+ IF (ALLOCATED(output_dt%orbit_val_k)) DEALLOCATE(output_dt%orbit_val_k)
  IF (ALLOCATED(output_dt%basis_add_l)) DEALLOCATE(output_dt%basis_add_l)
+ IF (ALLOCATED(output_dt%basis_add_k)) DEALLOCATE(output_dt%basis_add_k)
  ALLOCATE(output_dt%orbit_mod_l(input_dt%norbit_mod))
  ALLOCATE(output_dt%orbit_mod_n(input_dt%norbit_mod))
  ALLOCATE(output_dt%orbit_mod_k(input_dt%norbit_mod))
+ ALLOCATE(output_dt%orbit_val_l(input_dt%norbit_val))
+ ALLOCATE(output_dt%orbit_val_n(input_dt%norbit_val))
+ ALLOCATE(output_dt%orbit_val_k(input_dt%norbit_val))
  ALLOCATE(output_dt%basis_add_l(input_dt%nbasis_add))
+ ALLOCATE(output_dt%basis_add_k(input_dt%nbasis_add))
  output_dt%orbit_mod_l(1:input_dt%norbit_mod)=input_dt%orbit_mod_l(1:input_dt%norbit_mod)
  output_dt%orbit_mod_n(1:input_dt%norbit_mod)=input_dt%orbit_mod_n(1:input_dt%norbit_mod)
  output_dt%orbit_mod_k(1:input_dt%norbit_mod)=input_dt%orbit_mod_k(1:input_dt%norbit_mod)
+ output_dt%orbit_val_l(1:input_dt%norbit_val)=input_dt%orbit_val_l(1:input_dt%norbit_val)
+ output_dt%orbit_val_n(1:input_dt%norbit_val)=input_dt%orbit_val_n(1:input_dt%norbit_val)
+ output_dt%orbit_val_k(1:input_dt%norbit_val)=input_dt%orbit_val_k(1:input_dt%norbit_val)
  output_dt%basis_add_l(1:input_dt%nbasis_add)=input_dt%basis_add_l(1:input_dt%nbasis_add)
+ output_dt%basis_add_k(1:input_dt%nbasis_add)=input_dt%basis_add_k(1:input_dt%nbasis_add)
 
 !Logical allocatable arrays
  IF (ALLOCATED(output_dt%orbit_iscore)) DEALLOCATE(output_dt%orbit_iscore)
@@ -1343,7 +1448,7 @@ END IF
 
 !---- Local variables
  INTEGER,PARAMETER :: nkappa(5)=(/1,2,2,2,2/)
- INTEGER :: input_unit,echo_unit,ll,nn,io,ii,kk,nk
+ INTEGER :: input_unit,echo_unit,ll,nn,io,ii,kk,ik
  LOGICAL :: has_to_echo
  CHARACTER(200) :: inputline
  REAL(8) :: xocc
@@ -1426,8 +1531,8 @@ END IF
      WRITE(STD_OUT,'(7x,a)') "n l kappa :  occ"
      DO ll=0,4
        IF (np(ll+1)>0) THEN
-         DO nk=1,nkappa(ll+1)
-           kk=MERGE(ll,-(ll+1),nk==1);IF (ll==0) kk=-1
+         DO ik=1,nkappa(ll+1)
+           kk=MERGE(ll,-(ll+1),ik==1);IF (ll==0) kk=-1
            DO ii=1+ll,np(ll+1)
              nn=-1
              DO io=1,norbit_mod
@@ -1435,8 +1540,8 @@ END IF
                  nn=io ; EXIT
                END IF
              END DO
-             IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",real(2*abs(kk))
-             IF (nn >0) WRITE(STD_OUT,'(7x,i1,1x,i1,4x,i2,a,f4.1)') ii,ll,kk," : ",orbit_mod_occ(nn)
+             IF (nn<=0) WRITE(STD_OUT,'(7x,i1,1x,i1,2x,i2,2x,a,f4.1)') ii,ll,kk," : ",real(2*abs(kk))
+             IF (nn >0) WRITE(STD_OUT,'(7x,i1,1x,i1,2x,i2,2x,a,f4.1)') ii,ll,kk," : ",orbit_mod_occ(nn)
            END DO
          END DO
        END IF

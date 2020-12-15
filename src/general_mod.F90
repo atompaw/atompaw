@@ -273,7 +273,7 @@ CONTAINS
     call extrapolate(Grid,dum)
     Orbit%deltatau=dum-Orbit%deltatau
 
-    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
+    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v00=v0)
 
     dum=0
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
@@ -401,7 +401,7 @@ CONTAINS
     WRITE(STD_OUT,*) 'rescaled qcalval = ', integrator(Grid,FC%valeden), FC%zvale
 
     x=FC%zvale
-    CALL poisson(Grid,x,FC%valeden,dum,vcoul,y)  !valence-valence
+    CALL poisson(Grid,x,FC%valeden,dum,vcoul,v00=y)  !valence-valence
 
     dum(2:n)=(dum(2:n)*FC%coreden(2:n)+Pot%rvn(2:n)*FC%valeden(2:n))/Grid%r(2:n)
     dum(1)=0.d0
@@ -412,7 +412,7 @@ CONTAINS
     WRITE(STD_OUT,*) 'qcal = ', qcal
     rescale=Pot%q/qcal; Orbit%den=Orbit%den*rescale
     write(std_out,*) 'rescaled qcal ', integrator(Grid,Orbit%den),Pot%q
-    Call poisson(Grid,Pot%q,Orbit%den,Pot%rvh,x,Pot%v0)
+    Call poisson(Grid,Pot%q,Orbit%den,Pot%rvh,x,v00=Pot%v0)
         dum=0
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+x

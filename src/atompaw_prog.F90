@@ -129,10 +129,11 @@ PROGRAM atompaw
 
   scfpaw_done=.false.
   Do
+   WRITE(STD_OUT,*);WRITE(STD_OUT,*)
    WRITE(STD_OUT,*) 'Enter 0 or END to end program'
    WRITE(STD_OUT,*) 'Enter 1 or SCFPAW to run SCFPAW'
    WRITE(STD_OUT,*) 'Enter 2 or ABINITOUT to run atompaw2abinit'
-   WRITE(STD_OUT,*) 'Enter 3 or PWSCFOUT to run atompaw2pwscf'
+   WRITE(STD_OUT,*) 'Enter 3 or UPFOUT or PWSCFOUT to run atompaw2pwscf'
    WRITE(STD_OUT,*) 'Enter 4 or XMLOUT  to run atompaw2xml'
    WRITE(STD_OUT,*) 'Enter 5 or PWPAWOUT  to run atompaw2pwpaw'
    WRITE(STD_OUT,*) 'Enter 6 or SOCORROOUT  to run atompaw2socorro'
@@ -144,7 +145,7 @@ PROGRAM atompaw
    CALL eliminate_comment(token)
 
    if (checkline2(token,"0","END")) then
-     exit
+     write(std_out,*) 'End atompaw.' ; exit
    else if (checkline2(token,"1","SCFPAW")) then
      CALL SCFPAW(Grid,PAW)
      scfpaw_done=.true.
@@ -156,7 +157,7 @@ PROGRAM atompaw
      else
        if (checkline2(token,"2","ABINITOUT")) then
          CALL Atompaw2Abinit(FCOrbit,FCPot,FCSCF,PAW,FC,Grid)
-       else if (checkline2(token,"3","PWSCFOUT")) then
+       else if (checkline2(token,"3","PWSCFOUT").or.checkline2(token,"3","UPFOUT")) then
          CALL Atompaw2Pwscf(Grid,FCPot,FC,PAW,FCOrbit)
        else if (checkline2(token,"4","XMLOUT")) then
          CALL Atompaw2XML(FCOrbit,FCPot,FCSCF,PAW,FC,Grid)

@@ -473,7 +473,7 @@ CONTAINS
     ALLOCATE(dum(n))
 
     dum=wfn(:)**2
-    CALL poisson(Grid,q,dum,vl,ecoul,v00)
+    CALL poisson(Grid,q,dum,vl,ecoul,v00=v00)
     !WRITE(STD_OUT,*) 'Completed Poisson ', q,ecoul,v00; CALL flush_unit(std_out)
     vl=-vl
 
@@ -1754,7 +1754,7 @@ CONTAINS
     CALL CopyPot(Potwk,tmpPot)
 
     ! replace   tmpPot%rvh   tmpPot%rvx
-    call poisson(Gridwk,x,Orbitwk%den,tmpPot%rvh,y,z)
+    call poisson(Gridwk,x,Orbitwk%den,tmpPot%rvh,y,v00=z)
     Call VXOCC(Gridwk,Orbitwk,HSZ,tmpPot%rvx)
 
     rv=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx
@@ -2217,7 +2217,7 @@ CONTAINS
     CALL CopyPot(Potwk,tmpPot)
 
     ! replace   tmpPot%rvh   tmpPot%rvx
-    call poisson(Gridwk,x,Orbitwk%den,tmpPot%rvh,y,z)
+    call poisson(Gridwk,x,Orbitwk%den,tmpPot%rvh,y,v00=z)
     Call KLIVX(Gridwk,Orbitwk,HSZ,tmpPot%rvx)
 
     rv=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx

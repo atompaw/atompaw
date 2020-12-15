@@ -839,7 +839,7 @@ CONTAINS
     LOGICAL :: success
 
 
-    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v0)
+    CALL poisson(Grid,Pot%q,Orbit%den,Pot%rvh,ecoul,v00=v0)
     write(std_out,*) 'In Potential_Init', Pot%q,ecoul; call flush_unit(std_out)
 
   END SUBROUTINE Potential_Init

@@ -1173,6 +1173,7 @@ CONTAINS
                STOP 'Error -- setbasis subroutine not ready for diracrelativistic!'
                !rat=1.d0/sqrt(overlap(Grid,PAW%phi(:,nbase),PAW%phi(:,nbase)))
                !PAW%phi(:,nbase)=rat*PAW%phi(:,nbase)
+               !PAW%kappa(nbase)=kappa
              endif  
 
              PAW%valencemap(io)=nbase

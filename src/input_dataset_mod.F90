@@ -100,6 +100,7 @@ MODULE input_dataset_mod
    LOGICAL :: xml_usexcnhat         ! XML option: TRUE if nhat density (compensation) is included in XC
    LOGICAL :: xml_prtcorewf         ! XML option: TRUE is printing of core WF is required
    CHARACTER(132) :: xml_author     ! XML option: author to be printed in the PAW dataset file
+   CHARACTER(132) :: xml_comment    ! XML option: comment to be printed in the header of PAW dataset file
    LOGICAL :: xml_usespl            ! XML option: TRUE if data are interpolated on a log. grid
    INTEGER :: xml_spl_meshsz        ! XML option: mesh size for the reduced grid
    LOGICAL :: xml_userso            ! XML option: TRUE if REAL Space Optimization is required
@@ -166,7 +167,7 @@ MODULE input_dataset_mod
  REAL(8),PARAMETER,PRIVATE :: UPF_XMIN_DEF       =-9.d0
  REAL(8),PARAMETER,PRIVATE :: UPF_ZMESH_DEF      =1.d0
  REAL(8),PARAMETER,PRIVATE :: UPF_RANGE_DEF      =15.d0
- CHARACTER(132),PARAMETER,PRIVATE :: AUTHOR_DEF  =''
+ CHARACTER(132),PARAMETER,PRIVATE :: AUTHOR_DEF  ='', COMMENT_DEF=''
 
 !Private parameters
  INTEGER,PARAMETER,PRIVATE :: norbit_max=50,nbasis_add_max=25
@@ -1240,6 +1241,7 @@ END IF
  dataset%exctype                  = ''
  dataset%abinit_author            = ''
  dataset%xml_author               = ''
+ dataset%xml_comment              = ''
 
 !Integer allocatable arrays
  IF (ALLOCATED(dataset%orbit_mod_l)) DEALLOCATE(dataset%orbit_mod_l)
@@ -1363,6 +1365,7 @@ END IF
  output_dt%exctype                 =TRIM(input_dt%exctype)
  output_dt%abinit_author           =TRIM(input_dt%abinit_author)
  output_dt%xml_author              =TRIM(input_dt%xml_author)
+ output_dt%xml_comment             =TRIM(input_dt%xml_comment)
 
 !Integer allocatable arrays
  IF (ALLOCATED(output_dt%orbit_mod_l)) DEALLOCATE(output_dt%orbit_mod_l)
@@ -1733,6 +1736,7 @@ END IF
 !!    %_usexcnhat=TRUE if nhat density (compensation) is included in XC potential
 !!    %xml_prtcorewf= TRUE is printing of core WF is required
 !!    %xml_author= author to be printed in the PAW dataset file
+!!    %xml_comment= comment line to be printed in the heder of the PAW dataset file
 !!    %xml_uselog=TRUE if data are transfered on a log. grid before being written
 !!    %xml_log_meshsz=mesh size for the logarithmic grid
 !!    %xml_log_step=logarithmic step for the logarithmic grid
@@ -1757,7 +1761,7 @@ END IF
 
 !---- Local variables
  INTEGER :: input_unit,echo_unit
- INTEGER :: i_author,i_usexcnhat,i_prtcorewf,i_logspline,i_rsoptim,i_lda12,iend
+ INTEGER :: i_author,i_comment,i_usexcnhat,i_prtcorewf,i_logspline,i_rsoptim,i_lda12,iend
  LOGICAL :: has_to_echo
  CHARACTER(200) :: inputline,inputstring,inputword
  TYPE(input_dataset_t),POINTER :: dataset
@@ -1789,6 +1793,7 @@ END IF
  i_rsoptim  =INDEX(inputline,'RSOPTIM')
  i_lda12    =INDEX(inputline,'LDA12')
  i_author   =INDEX(inputline,'AUTHOR')
+ i_comment  =INDEX(inputline,'COMMENT')
 
 !Option for core WF printing
  dataset%xml_prtcorewf=MERGE(.true.,PRTCOREWF_DEF,i_prtcorewf>0)
@@ -1811,6 +1816,7 @@ END IF
    IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
    IF (i_lda12    >i_rsoptim.AND.i_lda12    -1<iend) iend=i_lda12    -1
    IF (i_author   >i_rsoptim.AND.i_author   -1<iend) iend=i_author   -1
+   IF (i_comment  >i_rsoptim.AND.i_comment  -1<iend) iend=i_comment  -1
    inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
@@ -1839,6 +1845,7 @@ END IF
    IF (i_logspline>i_lda12.AND.i_logspline-1<iend) iend=i_logspline-1
    IF (i_rsoptim  >i_lda12.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
    IF (i_author   >i_lda12.AND.i_author   -1<iend) iend=i_author   -1
+   IF (i_comment  >i_lda12.AND.i_comment  -1<iend) iend=i_comment  -1
    inputstring="";IF (iend>i_lda12+5) inputstring=TRIM(inputline(i_lda12+5:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
@@ -1868,6 +1875,7 @@ END IF
    IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
    IF (i_lda12    >i_logspline.AND.i_lda12    -1<iend) iend=i_lda12    -1
    IF (i_author   >i_logspline.AND.i_author   -1<iend) iend=i_author   -1
+   IF (i_comment  >i_logspline.AND.i_comment  -1<iend) iend=i_comment  -1
    inputstring="";IF (iend>i_logspline+11) inputstring=TRIM(inputline(i_logspline+11:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
@@ -1875,7 +1883,7 @@ END IF
    END IF
  END IF
 
-!Author to be mentioned in the ABINIT file
+!Author to be mentioned in the XML file
  dataset%xml_author=TRIM(AUTHOR_DEF)
  IF (i_author>0) then
    iend=200
@@ -1884,9 +1892,25 @@ END IF
    IF (i_logspline>i_author.AND.i_logspline-1<iend) iend=i_logspline-1
    IF (i_rsoptim  >i_author.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
    IF (i_lda12    >i_author.AND.i_lda12    -1<iend) iend=i_lda12    -1
+   IF (i_comment  >i_author.AND.i_comment  -1<iend) iend=i_comment  -1
    inputstring=TRIM(inputline(i_author+6:))
    READ(unit=inputstring,fmt=*) dataset%xml_author
    dataset%xml_author=TRIM(dataset%xml_author)
+ END IF
+
+!Comment to be added in the XML file
+ dataset%xml_comment=TRIM(COMMENT_DEF)
+ IF (i_comment>0) then
+   iend=200
+   IF (i_usexcnhat>i_comment.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
+   IF (i_prtcorewf>i_comment.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
+   IF (i_logspline>i_comment.AND.i_logspline-1<iend) iend=i_logspline-1
+   IF (i_rsoptim  >i_comment.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
+   IF (i_lda12    >i_comment.AND.i_lda12    -1<iend) iend=i_lda12    -1
+   IF (i_author   >i_comment.AND.i_author   -1<iend) iend=i_author   -1
+   inputstring=TRIM(inputline(i_comment+7:))
+   READ(unit=inputstring,fmt=*) dataset%xml_comment
+   dataset%xml_comment=TRIM(dataset%xml_comment)
  END IF
 
 !Print read data

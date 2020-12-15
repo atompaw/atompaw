@@ -81,7 +81,7 @@ Module XMLInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2xmlver='3.2.0', verdate='nov. 2020'
+ character*10 :: atompaw2xmlver='3.3.0', verdate='dec. 2020'
 
 !Default unit for XML file(s)
  integer, parameter :: unit_xml=22,unit_xml_core=23
@@ -181,7 +181,7 @@ Module XMLInterface
  type(pawrso_type) :: pawrso
  type(pawlda12_type) :: pawlda12
  logical :: prtcorewf
- character*(fnlen) :: author,file_xml,file_xml_core,xcname
+ character*(fnlen) :: author,comment,file_xml,file_xml_core,xcname
  character*(10000) :: input_string
  real(dp),allocatable :: tproj(:,:)
 
@@ -201,7 +201,7 @@ Module XMLInterface
 !------------------------------------------------------------------
 !---- Read choices from input file
 
- call rdinputxml(vlocopt,prtcorewf,pawrso,pawlda12,author,nsplgrid,input_string)
+ call rdinputxml(vlocopt,prtcorewf,pawrso,pawlda12,author,comment,nsplgrid,input_string)
 
 !------------------------------------------------------------------
 !---- Build radial meshes definitions
@@ -261,7 +261,7 @@ Module XMLInterface
  file_xml=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.xml'
 
  call xmloutput(file_xml,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,vlocopt,&
- &              input_string,author,nsplgrid,pawlda12)
+ &              input_string,author,comment,nsplgrid,pawlda12)
 
 !------------------------------------------------------------------
 !---- Write core wave functions in XML format
@@ -269,7 +269,7 @@ Module XMLInterface
  if (prtcorewf) then
    file_xml_core=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.corewf.xml'
    call xmlprtcore(file_xml_core,Grid,AEOrbit,AEPot,FC,mesh_data,&
- &                 input_string,author)
+ &                 input_string,author,comment)
  endif
 
 !------------------------------------------------------------------
@@ -307,6 +307,7 @@ Module XMLInterface
 !!    %ion=LDA-1/2 parameter: amount of charge removed from the ionized orbital
 !!    %rcut=LDA-1/2 parameter: cut-off radius (in bohr)
 !!  author= name of the author(s)
+!!  comment= additional comment line (usually table version)
 !!  nsplgrid=if >0, size of a (reduced) grid on which interpolate all data in XML file
 !!
 !! SIDE EFFECTS
@@ -320,22 +321,22 @@ Module XMLInterface
 !! extractword,uppercase
 !!=================================================================
 
- subroutine rdinputxml(vlocopt,prtcorewf,pawrso,pawlda12,author,nsplgrid,input_string)
+ subroutine rdinputxml(vlocopt,prtcorewf,pawrso,pawlda12,author,comment,nsplgrid,input_string)
 
  integer,intent(out)            :: vlocopt,nsplgrid
  logical,intent(out)            :: prtcorewf
  type(pawrso_type),intent(out)  :: pawrso
  type(pawlda12_type),intent(out):: pawlda12
- character(len=*),intent(out)   :: author
+ character(len=*),intent(out)   :: author,comment
  character(len=*),intent(inout) :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
- integer :: i_author,len_author
+ integer :: i_author,i_comment,len_author,len_comment
  logical :: usexcnhat
- character(200) :: xmlstr
+ character(200) :: xmlstr,xmlstr_tmp
 
 !------------------------------------------------------------------
 !---- Executable code
@@ -402,19 +403,27 @@ Module XMLInterface
   write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
  end if
 
-!Author to be mentioned in Abinit file
+!Author to be mentioned in XML file header
  author=trim(input_dataset%xml_author)
 
-!Update input string (without author name)
+!Comment line to be added in XMLfile header
+ comment=trim(input_dataset%xml_comment)
+
+!Update input string (without author name and comment)
  i_author=index(xmlstr,'AUTHOR')
- if(i_author>0) then
+ i_comment=index(xmlstr,'COMMENT')
+ xmlstr_tmp=xmlstr
+ if (i_author>0) then
   len_author=len(trim(author))
-  write(unit=input_string,fmt='(6a)') trim(input_string),char(10),"XMLOUT",&
-&   char(10),xmlstr(1:i_author-1),trim(xmlstr(i_author+len_author+10:))
- else
-  write(unit=input_string,fmt='(5a)') trim(input_string),char(10),"XMLOUT",&
-&   char(10),trim(xmlstr)
+  if (i_author==1) xmlstr_tmp=trim(xmlstr_tmp(i_author+len_author+10:))
+  if (i_author >1) xmlstr_tmp=xmlstr_tmp(1:i_author-1)//trim(xmlstr_tmp(i_author+len_author+10:))
  end if
+ if (i_comment>0) then
+  len_comment=len(trim(comment))
+  if (i_comment==1) xmlstr_tmp=trim(xmlstr_tmp(i_author+len_comment+10:))
+  if (i_comment >1) xmlstr_tmp=xmlstr_tmp(1:i_comment-1)//trim(xmlstr_tmp(i_author+len_comment+10:))
+ end if
+ write(unit=input_string,fmt='(6a)') trim(input_string),char(10),"XMLOUT",char(10),trim(xmlstr_tmp)
 
  end subroutine rdinputxml
 
@@ -793,6 +802,7 @@ Module XMLInterface
 !! vlocopt= option for local potential (1=Blochl, 2=Kresse)
 !! input_string= string containing a copy of atompaw input file
 !! author= string containing the author(s) name
+!! comment= additional comment line to be printed in the header (usually table version)
 !! nsplgrid=if >0, size of a (reduced) grid on which interpolate all data in XML file
 !! pawlda12
 !!    %uselda12=TRUE if LDA-1/2 potential calculation is required
@@ -807,10 +817,10 @@ Module XMLInterface
 !!=================================================================
 
  subroutine xmloutput(fname,Grid,AESCF,AEPot,FC,PAW,mesh_data,tproj,&
-&                     vlocopt,input_string,author,nsplgrid,pawlda12)
+&                     vlocopt,input_string,author,comment,nsplgrid,pawlda12)
 
  integer,intent(in) :: vlocopt,nsplgrid
- character(len=*),intent(in) :: input_string,author,fname
+ character(len=*),intent(in) :: input_string,author,comment,fname
  TYPE(Gridinfo),intent(in) :: Grid
  TYPE (SCFInfo),intent(in) :: AESCF
  TYPE(Potentialinfo),intent(in) :: AEPot
@@ -878,10 +888,28 @@ Module XMLInterface
 !Open file for writing
  OPEN(unit_xml,file=TRIM(fname),form='formatted')
 
-!Write header
+!Write XML header
  WRITE(unit_xml,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml,'("<paw_dataset version=""0.7"">")')
  WRITE(unit_xml,'("<!-- PAW-XML specification: http://esl.cecam.org/Paw-xml -->")')
+
+!Write title
+ WRITE(unit_xml,'(/,"<!-- PAW atomic dataset for ",a," -->")') trim(ADJUSTL(AEPot%sym))
+
+!Write additional comment line (usually table version)
+ if (trim(comment)/="") WRITE(unit_xml,'("<!-- ",a," -->")') trim(comment)
+
+!Write Atompaw information
+ WRITE(unit_xml,'(/,"<!-- Atompaw ",a)') atp_version
+ WRITE(unit_xml,'("  Contact info: Natalie Holzwarth")')
+ WRITE(unit_xml,'("  email: natalie@wfu.edu, web: pwpaw.wfu.edu")')
+ WRITE(unit_xml,'("  Energy units=Hartree, length units=bohr")')
+ CALL PrintDate(unit_xml, '  PAW functions generated on ')
+ if (trim(author)/="") WRITE(unit_xml,'(a,a)') '  by ',trim(author)
+ WRITE(unit_xml,'("  The input file is available at the end of this file")')
+ WRITE(unit_xml,'("-->",/)')
+
+!Write atom definition
  WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &   trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
@@ -930,21 +958,13 @@ Module XMLInterface
  if (scalarrelativistic) then
    WRITE(unit_xml,'("<generator type=""scalar-relativistic"" name=""",a,""" orthogonalisation=""", a,"""/>")')&
 &               TRIM(code_name),trim(PAW%orthogonalization_scheme)
+ else if (diracrelativistic) then
+   WRITE(unit_xml,'("<generator type=""dirac-relativistic"" name=""",a,""" orthogonalisation=""", a,"""/>")')&
+&               TRIM(code_name),trim(PAW%orthogonalization_scheme)
  else
    WRITE(unit_xml,'("<generator type=""non-relativistic"" name=""",a,""" orthogonalisation=""", a,"""/>")')&
 &               TRIM(code_name),trim(PAW%orthogonalization_scheme)
  endif
-
-!Echo input file
- WRITE(unit_xml,'("<!-- Atompaw ",a)')atp_version
- WRITE(unit_xml,'(" Contact info: Natalie Holzwarth")')
- WRITE(unit_xml,'(" email: natalie@wfu.edu, web: pwpaw.wfu.edu")')
- WRITE(unit_xml,'(" Energy units=Hartree, length units=bohr")')
- Call PrintDate(unit_xml, ' PAW functions generated on ')
- if (trim(author)/="") WRITE(unit_xml,'(a,a)') ' by ',trim(author)
-!WRITE(unit_xml,'(" JTH table v1.2")')
- WRITE(unit_xml,'(" The input file is available at the end of this file")')
- WRITE(unit_xml,'(" Atompaw -->")')
 
 !Energies
  WRITE(unit_xml,'("<ae_energy kinetic=""",1pe25.17,""" xc=""",1pe25.17,"""")') &
@@ -1404,6 +1424,7 @@ Module XMLInterface
 !!            all the radial meshes used in the XML file
 !! input_string= string containing a copy of atompaw input file
 !! author= string containing the author(s) name
+!! comment= additional comment line to be printed in the header (usually table version)
 !!
 !! PARENTS
 !! atompaw2xml
@@ -1412,7 +1433,7 @@ Module XMLInterface
 !!
 !!=================================================================
 
- SUBROUTINE xmlprtcore(fname,Grid,AEOrbit,AEPot,FC,mesh_data,input_string,author)
+ SUBROUTINE xmlprtcore(fname,Grid,AEOrbit,AEPot,FC,mesh_data,input_string,author,comment)
 
  character(len=fnlen),intent(in) :: fname
  TYPE (FCInfo),intent(in) :: FC
@@ -1420,7 +1441,7 @@ Module XMLInterface
  type(OrbitInfo),intent(in) :: AEOrbit
  TYPE(Potentialinfo),intent(in) :: AEPot
  TYPE(Gridinfo),intent(in) :: Grid
- character(len=*),intent(in) :: input_string,author
+ character(len=*),intent(in) :: input_string,author,comment
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1448,9 +1469,25 @@ Module XMLInterface
 !Open file for writing
  OPEN(unit_xml_core,file=TRIM(fname),form='formatted')
 
-!Write header
+!Write XML header
  WRITE(unit_xml_core,'("<?xml  version=""1.0""?>")')
  WRITE(unit_xml_core,'("<paw_setup version=""0.5"">")')
+
+!Write title
+ WRITE(unit_xml_core,'(/,"<!-- All-electron core wavefunctions for ",a," -->")') trim(ADJUSTL(AEPot%sym))
+
+!Write additional comment line (usually table version)
+ if (trim(comment)/="") WRITE(unit_xml_core,'("<!-- ",a," -->")') trim(comment)
+
+!Write Atompaw information
+ WRITE(unit_xml_core,'(/,"<!-- Atompaw ",a)') atp_version
+ CALL PrintDate(unit_xml_core, '  Core orbitals generated on ')
+ if (trim(author)/="") WRITE(unit_xml_core,'(a,a)') '  by ',trim(author)
+ WRITE(unit_xml_core,'("  Energy units=Hartree, length units=bohr")')
+ WRITE(unit_xml_core,'("  The input file is available at the end of this file")')
+ WRITE(unit_xml_core,'("-->",/)')
+
+!Write atom definition
  WRITE(unit=char5a,fmt='(f5.2)') AEPot%zz
  WRITE(unit_xml_core,'("<atom symbol=""",a,""" Z=""",a,$)') &
 &      trim(ADJUSTL(AEPot%sym)),trim(ADJUSTL(char5a))
@@ -1476,20 +1513,8 @@ Module XMLInterface
  endif
  WRITE(unit_xml_core,'("</generator>)")')
 
-!Echo input file
- WRITE(unit_xml_core,'("<!-- All-electron core wavefunctions- generated with Atompaw ",a)')atp_version
- Call PrintDate(unit_xml_core, ' Core wavefunctions generated on ')
- if (trim(author)/="") WRITE(unit_xml_core,'(a,a)') ' by ',trim(author)
- WRITE(unit_xml_core,'(" JTH table v0.2")')
- WRITE(unit_xml_core,'(" Energy units=Hartree, length units=bohr")')
- WRITE(unit_xml_core,'(" The input file is available at the end of this file")')
- WRITE(unit_xml_core,'(" Atompaw -->")')
-
 !Number of core orbitals (not needed)
- core_size=0
- do ib=1,AEOrbit%norbit
- if (AEOrbit%iscore(ib)) core_size=core_size+1
- end do
+ core_size=count(AEOrbit%iscore(1:AEOrbit%norbit))
 !WRITE(unit_xml_core,'("<orbitals norbs=""",i2,"""/>")') core_size
 
 !Read mesh size 

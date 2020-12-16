@@ -112,6 +112,7 @@ MODULE input_dataset_mod
    INTEGER :: xml_lda12_orb_n       ! XML option: LDA-1/2 parameter - n quantum number of the ionized orbital
    REAL(8) :: xml_lda12_ion         ! XML option: LDA-1/2 parameter - amount of charge removed from the ionized orbital
    REAL(8) :: xml_lda12_rcut        ! XML option: LDA-1/2 parameter - cut-off radius (in bohr)
+   CHARACTER(15) :: xml_lda12_logfile ! XML option: LDA-1/2 parameter - name of the log file
    REAL(8) :: upf_grid_xmin         ! UPF option: minimum radius given by the grid
    REAL(8) :: upf_grid_zmesh        ! UPF option: inverse of the rdial step of the grid
    REAL(8) :: upf_grid_dx           ! UPF option: logarithmic step of the grid
@@ -163,6 +164,7 @@ MODULE input_dataset_mod
  INTEGER,PARAMETER,PRIVATE :: LDA12_ORB_N_DEF    =-1
  REAL(8),PARAMETER,PRIVATE :: LDA12_ION_DEF      =0.d0
  REAL(8),PARAMETER,PRIVATE :: LDA12_RCUT_DEF     =0.d0
+ CHARACTER(15),PARAMETER,PRIVATE :: lda12_logfile='lda-12.log'
  REAL(8),PARAMETER,PRIVATE :: UPF_DX_DEF         =0.005d0
  REAL(8),PARAMETER,PRIVATE :: UPF_XMIN_DEF       =-9.d0
  REAL(8),PARAMETER,PRIVATE :: UPF_ZMESH_DEF      =1.d0
@@ -1242,6 +1244,7 @@ END IF
  dataset%abinit_author            = ''
  dataset%xml_author               = ''
  dataset%xml_comment              = ''
+ dataset%xml_lda12_logfile        = ''
 
 !Integer allocatable arrays
  IF (ALLOCATED(dataset%orbit_mod_l)) DEALLOCATE(dataset%orbit_mod_l)
@@ -1366,6 +1369,7 @@ END IF
  output_dt%abinit_author           =TRIM(input_dt%abinit_author)
  output_dt%xml_author              =TRIM(input_dt%xml_author)
  output_dt%xml_comment             =TRIM(input_dt%xml_comment)
+ output_dt%xml_lda12_logfile       =TRIM(input_dt%xml_lda12_logfile)
 
 !Integer allocatable arrays
  IF (ALLOCATED(output_dt%orbit_mod_l)) DEALLOCATE(output_dt%orbit_mod_l)
@@ -1697,19 +1701,24 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(STD_OUT,'(3x,a)')  'Options for ABINIT file:'
-   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : use of compensation in XC =',MERGE("YES"," NO",dataset%abinit_usexcnhat)
-   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : output of core wave funcs =',MERGE("YES"," NO",dataset%abinit_prtcorewf)
-   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : transfer to a log grid    =',MERGE("YES"," NO",dataset%abinit_uselog)
+   WRITE(STD_OUT,'(/,2x,a)')'Options for ABINIT file:'
+   WRITE(STD_OUT,'(2x,2a)') 'ABINIT option : output of core wave funcs =',MERGE("YES"," NO",dataset%abinit_prtcorewf)
+   WRITE(STD_OUT,'(2x,2a)') 'ABINIT option : transfer to a log grid    =',MERGE("YES"," NO",dataset%abinit_uselog)
    IF (dataset%abinit_uselog) THEN
-     WRITE(STD_OUT,'(7x,a,i5)') '- mesh size of the log grid =',dataset%abinit_log_meshsz
-     WRITE(STD_OUT,'(7x,a,i5)') '- step of the log grid      =',dataset%abinit_log_step
+     WRITE(STD_OUT,'(5x,a,i5)') '- mesh size of the log grid =',dataset%abinit_log_meshsz
+     WRITE(STD_OUT,'(5x,a,g8.2)') '- step of the log grid      = ',dataset%abinit_log_step
    END IF
-   WRITE(STD_OUT,'(3x,2a)') 'ABINIT option : Real Space Optimization   =',MERGE("YES"," NO",dataset%abinit_userso)
+   WRITE(STD_OUT,'(2x,2a)') 'ABINIT option : Real Space Optimization   =',MERGE("YES"," NO",dataset%abinit_userso)
    IF (dataset%abinit_userso) THEN
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%abinit_rso_ecut
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%abinit_rso_gfact
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO maximum error     =',dataset%abinit_rso_werror
+     WRITE(STD_OUT,'(5x,a,f7.2)') '- RSO plane wave cutoff =',dataset%abinit_rso_ecut
+     WRITE(STD_OUT,'(5x,a,1x,f6.2)') '- RSO Gamma/Gmax ratio  =',dataset%abinit_rso_gfact
+     WRITE(STD_OUT,'(5x,a,g11.3)') '- RSO maximum error     = ',dataset%abinit_rso_werror
+   END IF
+   WRITE(STD_OUT,'(2x,2a)') 'ABINIT option : use of compensation in XC =',MERGE("YES"," NO",dataset%abinit_usexcnhat)
+   IF (dataset%abinit_usexcnhat) THEN
+     WRITE(STD_OUT,'(5x,a)') '- Kresse local ionic potential output in XML file'
+   ELSE
+     WRITE(STD_OUT,'(5x,a)') '- Blochl local ionic potential output in XML file'
    END IF
  END IF
 
@@ -1749,6 +1758,7 @@ END IF
 !!    %xml_lda12_orb_n=LDA-1/2 parameter: n quantum number of the orbital to be ionized
 !!    %xml_lda12_ion=LDA-1/2 parameter: amount of charge to be removed from the ionized orbital
 !!    %xml_lda12_rcut=LDA-1/2 parameter: cut-off radius (in bohr)
+!!    %xml_lda12_logfile=LDA-1/2 parameter: name of the log file
 !!  [xml_string]= character string containing the ABINIT options line from input file
 !!
 !!=================================================================
@@ -1838,6 +1848,7 @@ END IF
  dataset%xml_lda12_orb_n=LDA12_ORB_N_DEF
  dataset%xml_lda12_ion=LDA12_ION_DEF
  dataset%xml_lda12_rcut=LDA12_RCUT_DEF
+ dataset%xml_lda12_logfile=TRIM(LDA12_LOGFILE)
  IF (dataset%xml_uselda12) THEN
    iend=200
    IF (i_usexcnhat>i_lda12.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
@@ -1915,25 +1926,32 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(STD_OUT,'(3x,a)')  'Options for XML file:'
-   WRITE(STD_OUT,'(3x,2a)') 'XML option : use of compensation in XC =',MERGE("YES"," NO",dataset%xml_usexcnhat)
-   WRITE(STD_OUT,'(3x,2a)') 'XML option : output of core wave funcs =',MERGE("YES"," NO",dataset%xml_prtcorewf)
-   WRITE(STD_OUT,'(3x,2a)') 'XML option : spline to a log grid      =',MERGE("YES"," NO",dataset%xml_usespl)
+   WRITE(STD_OUT,'(/,2x,a)')'Options for XML file:'
+   WRITE(STD_OUT,'(2x,2a)') 'XML option : output of core wave funcs =',MERGE("YES"," NO",dataset%xml_prtcorewf)
+   WRITE(STD_OUT,'(2x,2a)') 'XML option : spline to a log grid      =',MERGE("YES"," NO",dataset%xml_usespl)
    IF (dataset%xml_usespl) THEN
-     WRITE(STD_OUT,'(7x,a,i5)') '- mesh size of the log grid =',dataset%xml_spl_meshsz
+     WRITE(STD_OUT,'(5x,a,i5)') '- mesh size of the log grid =',dataset%xml_spl_meshsz
    END IF
-   WRITE(STD_OUT,'(3x,2a)') 'XML option : Real Space Optimization   =',MERGE("YES"," NO",dataset%xml_userso)
+   WRITE(STD_OUT,'(2x,2a)') 'XML option : Real Space Optimization   =',MERGE("YES"," NO",dataset%xml_userso)
    IF (dataset%xml_userso) THEN
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO plane wave cutoff =',dataset%xml_rso_ecut
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO Gamma/Gmax ratio  =',dataset%xml_rso_gfact
-     WRITE(STD_OUT,'(7x,a,i5)') '- RSO maximum error     =',dataset%xml_rso_werror
+     WRITE(STD_OUT,'(5x,a,f7.2)') '- RSO plane wave cutoff =',dataset%xml_rso_ecut
+     WRITE(STD_OUT,'(5x,a,1x,f6.2)') '- RSO Gamma/Gmax ratio  =',dataset%xml_rso_gfact
+     WRITE(STD_OUT,'(5x,a,g11.3)') '- RSO maximum error     = ',dataset%xml_rso_werror
    END IF
-   WRITE(STD_OUT,'(3x,2a)') 'XML option : output of LDA-1/2 pot.    =',MERGE("YES"," NO",dataset%xml_uselda12)
+   WRITE(STD_OUT,'(2x,2a)') 'XML option : output of LDA-1/2 pot.    =',MERGE("YES"," NO",dataset%xml_uselda12)
    IF (dataset%xml_uselda12) THEN
-     WRITE(STD_OUT,'(7x,a,i2)') '- LDA-1/2 ionized orbital n =',dataset%xml_lda12_orb_n
-     WRITE(STD_OUT,'(7x,a,i2)') '- LDA-1/2 ionized orbital l =',dataset%xml_lda12_orb_l
-     WRITE(STD_OUT,'(7x,a,f5.2)') '- LDA-1/2 ionization        =',dataset%xml_lda12_ion
-     WRITE(STD_OUT,'(7x,a,f7.4)') '- LDA-1/2 cutoff radius (au)=',dataset%xml_lda12_rcut
+     WRITE(STD_OUT,'(5x,a,i2)') '- LDA-1/2 ionized orbital n =',dataset%xml_lda12_orb_n
+     WRITE(STD_OUT,'(5x,a,i2)') '- LDA-1/2 ionized orbital l =',dataset%xml_lda12_orb_l
+     WRITE(STD_OUT,'(5x,a,f5.2)') '- LDA-1/2 ionization        =',dataset%xml_lda12_ion
+     WRITE(STD_OUT,'(5x,a,f7.4)') '- LDA-1/2 cutoff radius (au)=',dataset%xml_lda12_rcut
+     WRITE(STD_OUT,'(5x,3a)') '- LDA-1/2: see ''',trim(dataset%xml_lda12_logfile),&
+&                             ''' file to check convergence'
+   END IF
+   WRITE(STD_OUT,'(2x,2a)') 'XML option : use of compensation in XC =',MERGE("YES"," NO",dataset%xml_usexcnhat)
+   IF (dataset%xml_usexcnhat) THEN
+     WRITE(STD_OUT,'(5x,a)') '- Zero potential and Kresse local ionic potential output in XML file'
+   ELSE
+     WRITE(STD_OUT,'(5x,a)') '- Zero potential and Blochl local ionic potential output in XML file'
    END IF
  END IF
 
@@ -2030,11 +2048,11 @@ END IF
 
 !Print read data
  IF (has_to_print) THEN
-   WRITE(STD_OUT,'(3x,a)')       'Options for UPF file:'
-   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : logarithmic step (upfdx)      =',dataset%upf_grid_dx
-   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : minimum radius (upfxmin)      =',dataset%upf_grid_xmin
-   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : inv. of radial step (upfzmesh)=',dataset%upf_grid_zmesh
-   WRITE(STD_OUT,'(3x,a,es9.3)') 'UPF grid option : grid range (upf_gridrange)    =',dataset%upf_grid_range
+   WRITE(STD_OUT,'(/,2x,a)')      'Options for UPF file:'
+   WRITE(STD_OUT,'(2x,a,es10.3)') 'UPF grid option : logarithmic step (upfdx)      =',dataset%upf_grid_dx
+   WRITE(STD_OUT,'(2x,a,es10.3)') 'UPF grid option : minimum grid x (upfxmin)      =',dataset%upf_grid_xmin
+   WRITE(STD_OUT,'(2x,a,es10.3)') 'UPF grid option : inv. of radial step (upfzmesh)=',dataset%upf_grid_zmesh
+   WRITE(STD_OUT,'(2x,a,es10.3)') 'UPF grid option : grid range (upf_gridrange)    =',dataset%upf_grid_range
  END IF
 
  END SUBROUTINE input_dataset_read_upf

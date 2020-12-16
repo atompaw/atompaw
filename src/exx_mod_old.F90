@@ -292,7 +292,7 @@ CONTAINS
     ALLOCATE(dum(n))
 
     dum=wfn(:)**2
-    CALL poisson(Grid,q,dum,vl,ecoul,v00)
+    CALL poisson(Grid,q,dum,vl,ecoul,v00=v00)
     !WRITE(STD_OUT,*) 'Completed Poisson ', q,ecoul,v00; CALL flush_unit(std_out)
     vl=-vl
 

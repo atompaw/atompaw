@@ -11,15 +11,17 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!Notes:  08/08/2014  This subroutine produces *.abinit output file for use
-!                    use with abinit; it is being replaced with xmlinterface
-!List of active subroutines in this module
-!    Atompaw2Abinit,rdpawps1,rdinputabinit,initpawps,initmesh,rdpawps2
-!      calc_shapef,calc_valden,calc_dij0,calc_rhoij0,calc_vloc,opt_proj,
-!      aamat,wrpawps,wrcorewf,read_inputstring,grid2pawrad,csimp,gauleg,
-!      meshes_def
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! Notes:  08/08/2014  This subroutine produces *.abinit output
+!!         file for use use with abinit; it is being replaced
+!!         with xmlinterface
+!!    List of active subroutines in this module
+!!    Atompaw2Abinit,rdpawps1,rdinputabinit,initpawps,initmesh,
+!!      rdpawps2,calc_shapef,calc_valden,calc_dij0,calc_rhoij0,
+!!      calc_vloc,opt_proj,aamat,wrpawps,wrcorewf,read_inputstring,
+!!      grid2pawrad,csimp,gauleg,meshes_def,pawarray_free,
+!!      pawps_free,pshead_free,pawrad_free
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
 #include "config.h"
@@ -85,7 +87,7 @@ Module ABINITInterface
 !!=================================================================
 
 !Version number
- character*10 :: atompaw2abinitver='3.4.3', abinitver='6.1.0+', verdate='oct. 2020'
+ character*10 :: atompaw2abinitver='3.4.4', abinitver='6.1.0+', verdate='dec. 2020'
 
 !Default name for Abinit file
  integer, parameter :: unit_abinit=22
@@ -140,34 +142,34 @@ Module ABINITInterface
   real(dp) :: rc_sph         ! Default PAW sphere radius
   real(dp) :: sigma          ! Sigma for gaussian shape function
   character*(fnlen) :: title ! Title for pseudopotential
-  integer, pointer :: orbitals(:)      ! orbitals(basis_size) (l quantum number for each basis function)
-  integer, pointer :: orbitals_core(:) ! orbitals_core(basis_size) (l quantum number for each core WF)
-  real(dp), pointer :: occ(:)          ! occ(basis_size) (occupation for each basis function)
+  integer, allocatable :: orbitals(:)      ! orbitals(basis_size) (l quantum number for each basis function)
+  integer, allocatable :: orbitals_core(:) ! orbitals_core(basis_size) (l quantum number for each core WF)
+  real(dp), allocatable :: occ(:)          ! occ(basis_size) (occupation for each basis function)
  end type pshead_type
 
 !ABINIT PAW dataset (except header)
  type pawps_type
-  real(dp), pointer :: coreden4pr2(:)  ! coreden4pr2(atompaw_meshsz)
-                                       ! Gives the core density multiplied by 4Pi.r2
-  real(dp), pointer :: tcoreden4pr2(:) ! tcoreden4pr2(core_meshsz)
-                                       ! Gives the pseudized core density multiplied by 4Pi.r2
-  real(dp), pointer :: tvaleden4pr2(:) ! tvaleden4pr2(vale_meshsz)
-                                       ! Gives the pseudized core density multiplied by 4Pi.r2 (up to r(vale_meshsz))
-  real(dp), pointer :: phi(:,:)        ! phi(sph_meshsz,basis_size)
-                                       ! Gives, on the radial grid, the PAW atomic wavefunctions
-  real(dp), pointer :: tphi(:,:)       ! tphi(sph_meshsz,basis_size)
-                                       ! Gives, on the radial grid, the PAW atomic pseudowavefunctions
-  real(dp), pointer :: tproj(:,:)      ! tproj(prj_msz_max,basis_size)
-                                       ! Gives, on the radial grid, the PAW projectors for each basis function
-  real(dp), pointer :: dij0(:)         ! dij0(lmn2_size)
-                                       ! Part of the Dij term (non-local operator) frozen during SCF
-  real(dp), pointer :: rhoij0(:)       ! rhoij0(lmn2_size)
-                                       ! Atomic initialization of rhoij
-  real(dp), pointer :: vbare(:)        ! vbare(sph_meshsz)
-                                       ! Gives the "bare" local potential
-  real(dp), pointer :: vhtnzc(:)       ! vhtnzc(vloc_meshsz)
-                                       ! Gives the Hartree potential of the pseudo density
-                                       ! of the nucleus + core electrons of the atom
+  real(dp), allocatable :: coreden4pr2(:)  ! coreden4pr2(atompaw_meshsz)
+                                           ! Core density *4Pi.r2
+  real(dp), allocatable :: tcoreden4pr2(:) ! tcoreden4pr2(core_meshsz)
+                                           ! Pseudized core density *4Pi.r2
+  real(dp), allocatable :: tvaleden4pr2(:) ! tvaleden4pr2(vale_meshsz)
+                                           ! Pseudized core density *4Pi.r2 (up to r(vale_meshsz))
+  real(dp), allocatable :: phi(:,:)        ! phi(sph_meshsz,basis_size)
+                                           ! PAW atomic wavefunctionson the radial grid, the
+  real(dp), allocatable :: tphi(:,:)       ! tphi(sph_meshsz,basis_size)
+                                           ! PAW atomic pseudowavefunctions on the radial grid
+  real(dp), allocatable :: tproj(:,:)      ! tproj(prj_msz_max,basis_size)
+                                           ! PAW projectors on the radial grid
+  real(dp), allocatable :: dij0(:)         ! dij0(lmn2_size)
+                                           ! Frozen part of the Dij term (non-local operator)
+  real(dp), allocatable :: rhoij0(:)       ! rhoij0(lmn2_size)
+                                           ! Atomic initialization of rhoij
+  real(dp), allocatable :: vbare(:)        ! vbare(sph_meshsz)
+                                           ! "Bare" local potential
+  real(dp), allocatable :: vhtnzc(:)       ! vhtnzc(vloc_meshsz)
+                                           ! Hartree potential of the pseudo density
+                                           ! of the nucleus + core electrons of the atom
  end type pawps_type
 
 !Grid definitions
@@ -176,37 +178,38 @@ Module ABINITInterface
   integer :: meshsz               ! Dimension of max. radial mesh (max. of all mesh sizes)
   real(dp) :: rstep               ! Step corresponding to radial mesh
   real(dp) :: lstep               ! Step corresponding to exponential term (logarithmic mesh)
-  real(dp), pointer :: rad(:)     ! rad(max_meshsz)  Coordinates of all the pts of the radial grid
-  real(dp), pointer :: radfact(:) ! radfact(max_meshsz) used to compute radial integrals on generalized grid
+  real(dp), allocatable :: rad(:)     ! rad(max_meshsz)  Coordinates of all the pts of the radial grid
+  real(dp), allocatable :: radfact(:) ! radfact(max_meshsz) used to compute radial integrals on generalized grid
  end type pawrad_type
 
 !Various useful arrays used during ABINIT PAW dataset generation
  type pawarray_type
-  integer, pointer :: indlmn(:,:)      ! indlmn(6,lmn_size) Gives l,m,n,lm,ln,s for i=lmn
-  real(dp), pointer :: hatden4pr2(:)   ! hatden4pr2(sph_meshsz) Gives the compensation density
-                                       ! multiplied by 4Pi.r2 (following Abinit definition)
-  real(dp), pointer :: kij(:)          ! kij(lmn2_size) Kinetic overlap operator
-  real(dp), pointer :: shapefunc(:)    ! shapefunc(sph_meshsz) Gives the normalized shape function
-                                       ! of the atom used for the compensation density
-  real(dp), pointer :: shpnrm(:)       ! shpnrm(l_size) Gives the moment of shapefunction for each l
-  real(dp), pointer :: tvaleden4pr2(:) ! tvaleden4pr2(sph_meshsz) Gives the pseudized valence density
-                                       ! multiplied by 4Pi.r2 (only part inside spheres)
+  integer, allocatable :: indlmn(:,:)      ! indlmn(6,lmn_size) Gives l,m,n,lm,ln,s for i=lmn
+  real(dp), allocatable :: hatden4pr2(:)   ! hatden4pr2(sph_meshsz)
+                                           ! Compensation density *4Pi.r2 (following Abinit definition)
+  real(dp), allocatable :: kij(:)          ! kij(lmn2_size) Kinetic overlap operator
+  real(dp), allocatable :: shapefunc(:)    ! shapefunc(sph_meshsz)
+                                           ! Normalized shape function used for the compensation density
+  real(dp), allocatable :: shpnrm(:)       ! shpnrm(l_size)
+                                           ! Moment of shapefunction for each l
+  real(dp), allocatable :: tvaleden4pr2(:) ! tvaleden4pr2(sph_meshsz)
+                                           ! Pseudized valence density *4Pi.r2 (inside spheres)
  end type pawarray_type
 
 !Options for REAL SPACE OPTIMIZATION of projectors
  type pawrso_type
-  logical :: userso           ! TRUE if Real Space Optimization is required
-  real(dp) :: ecut            ! Real Space Optimization parameter: plane wave cutoff = 1/2 Gmax**2
-  real(dp) :: gfact           ! Real Space Optimization parameter: Gamma/Gmax ratio
-  real(dp) :: werror          ! Real Space Optimization parameter: max. error W_l allowed
+  logical :: userso     ! TRUE if Real Space Optimization is required
+  real(dp) :: ecut      ! Real Space Optimization parameter: plane wave cutoff = 1/2 Gmax**2
+  real(dp) :: gfact     ! Real Space Optimization parameter: Gamma/Gmax ratio
+  real(dp) :: werror    ! Real Space Optimization parameter: max. error W_l allowed
  end type pawrso_type
 
 !Options for transfer of dataset onto a reduced log. grid
  type loggrd_type
-  logical :: uselog           ! TRUE if data are transfered on a log. grid before being written
-  integer :: meshsz           ! Mesh size for the logarithmic grid
-  real(dp) :: log_step        ! Logarithmic step for the logarithmic grid
-  real(dp) :: rad_step        ! Radial step for the logarithmic grid
+  logical :: uselog     ! TRUE if data are transfered on a log. grid before being written
+  integer :: meshsz     ! Mesh size for the logarithmic grid
+  real(dp) :: log_step  ! Logarithmic step for the logarithmic grid
+  real(dp) :: rad_step  ! Radial step for the logarithmic grid
  end type loggrd_type
 
  CONTAINS
@@ -255,8 +258,8 @@ Module ABINITInterface
  type(pawrad_type)   :: pawrad
  type(loggrd_type)   :: loggrd
  type(pawrso_type)   :: pawrso
- integer :: id
- logical :: prtcorewf
+ integer :: id,err
+ logical :: prtcorewf,print_corewf,print_abinitfile
  character*(fnlen) :: author,file_abinit,xcname
  character*(10000) :: input_string
 
@@ -264,91 +267,105 @@ Module ABINITInterface
 !---- Executable code
 !------------------------------------------------------------------
 
- write(std_out,'(2a)') ch10,'========================================================'
- write(std_out,'(3a)')      '==   Atompaw2Abinit - v',trim(atompaw2abinitver),&
-&                                                       '                          =='
- write(std_out,'(a)')       '==   Converts a PAW dataset generated by "Atompaw"    =='
- write(std_out,'(a)')       '==   into a PAW atomic data file readable             =='
- write(std_out,'(3a)')      '==   by ABINIT (v',trim(abinitver),&
-&                                                    ')                            =='
- write(std_out,'(a)')       '==                                                    =='
- write(std_out,'(a)')       '==   "ABINIT" can be found at:  http://www.abinit.org =='
- write(std_out,'(a)')       '========================================================'
+ write(std_out,'(/,a)') '========================================================'
+ write(std_out,'(3a)')  '==   Atompaw2Abinit - v',trim(atompaw2abinitver),&
+&                                                   '                          =='
+ write(std_out,'(a)')   '==   Converts a PAW dataset generated by "Atompaw"    =='
+ write(std_out,'(a)')   '==   into a PAW atomic data file readable             =='
+ write(std_out,'(3a)')  '==   by ABINIT (v',trim(abinitver),&
+&                                                ')                            =='
+ write(std_out,'(a)')   '==                                                    =='
+ write(std_out,'(a)')   '==   "ABINIT" can be found at:  http://www.abinit.org =='
+ write(std_out,'(a)')   '========================================================'
+
+ print_abinitfile=.true.
+ print_corewf=.true.
 
  call read_inputstring(input_string)
-
-!------------------------------------------------------------------
-!---- Load PAW dataset header into ABINIT datastructure (sizes of arrays)
-
- call rdpawps1(AEOrbit,AEPot,PAW,FC,Grid,pshead)
 
 !------------------------------------------------------------------
 !---- Read choices from input file
 
  call rdinputabinit(pshead,pawrso,loggrd,prtcorewf,author,input_string)
+ print_corewf=(print_corewf.and.prtcorewf)
+
+!Do not try to print ABINIT dataset when it is not possible
+ if (diracrelativistic) then
+  write(std_out,'(/,2x,a)') 'ABINIT dataset output not compatible with Dirac relativistic approach!'
+  write(std_out,'(2x,a)')   'ABINIT dataset file will not be created.'
+  if (print_corewf) write(std_out,'(2x,a)')   'Only core orbitals file will be created.'
+  print_abinitfile=.false.
+ end if
+
+!------------------------------------------------------------------
+!---- Load PAW dataset header into ABINIT datastructure (sizes of arrays)
+
+ call rdpawps1(AEOrbit,AEPot,PAW,FC,Grid,pshead,err)
+ print_abinitfile=(print_abinitfile.and.err==0)
+ print_corewf=(print_corewf.and.err==0)
 
 !------------------------------------------------------------------
 !---- Allocations and initializations
 
-!---- Initialize some useful data
-!!! test for positive  pseudo core + nhat
-     if (pshead%vlocopt==1.and..not.PAW%poscorenhat) then
-      write(std_out,*) ' Detected negative values for pseudo core + nhat '
-      write(std_out,*)  '  which is incompatible with usexcnhat '
-      write(std_out,*)  ' Please try reducing rc_core '
-      write(std_out,*)  ' abinit file not created '
-      return
-    endif
- allocate(pawarray%indlmn(6,pshead%lmn_size))
+!---- Initialize radial meshes
  call initpawps(pshead,pawarray)
-
-!---- Allocate memory
- allocate(pawps%phi(pshead%wav_meshsz,pshead%basis_size))
- allocate(pawps%tphi(pshead%wav_meshsz,pshead%basis_size))
- allocate(pawps%tproj(pshead%prj_msz_max,pshead%basis_size))
- allocate(pawps%coreden4pr2(pshead%atompaw_meshsz))
- allocate(pawps%tcoreden4pr2(pshead%core_meshsz))
- allocate(pawps%tvaleden4pr2(pshead%vale_meshsz))
- allocate(pawps%dij0(pshead%lmn2_size))
- allocate(pawps%rhoij0(pshead%lmn2_size))
- allocate(pawarray%shapefunc(pshead%wav_meshsz))
- allocate(pawarray%shpnrm(pshead%l_size))
- allocate(pawarray%kij(pshead%lmn2_size))
- allocate(pawarray%tvaleden4pr2(pshead%wav_meshsz))
- allocate(pawarray%hatden4pr2(pshead%sph_meshsz))
- allocate(pawps%vbare(pshead%sph_meshsz))
- allocate(pawps%vhtnzc(pshead%vloc_meshsz))
-
-!---- Initialize radial mesh
  allocate(pawrad%rad(pshead%max_meshsz),pawrad%radfact(pshead%max_meshsz))
  call initmesh(pawrad,pshead%max_meshsz,pshead%mesh_type,pshead%rad_step,pshead%log_step)
 
+!---- Allocate memory
+ if (print_abinitfile) then
+  allocate(pawps%phi(pshead%wav_meshsz,pshead%basis_size))
+  allocate(pawps%tphi(pshead%wav_meshsz,pshead%basis_size))
+  allocate(pawps%tproj(pshead%prj_msz_max,pshead%basis_size))
+  allocate(pawps%coreden4pr2(pshead%atompaw_meshsz))
+  allocate(pawps%tcoreden4pr2(pshead%core_meshsz))
+  allocate(pawps%tvaleden4pr2(pshead%vale_meshsz))
+  allocate(pawps%dij0(pshead%lmn2_size))
+  allocate(pawps%rhoij0(pshead%lmn2_size))
+  allocate(pawarray%shapefunc(pshead%wav_meshsz))
+  allocate(pawarray%shpnrm(pshead%l_size))
+  allocate(pawarray%kij(pshead%lmn2_size))
+  allocate(pawarray%tvaleden4pr2(pshead%wav_meshsz))
+  allocate(pawarray%hatden4pr2(pshead%sph_meshsz))
+  allocate(pawps%vbare(pshead%sph_meshsz))
+  allocate(pawps%vhtnzc(pshead%vloc_meshsz))
+ end if
+
 !------------------------------------------------------------------
 !---- Load PAW dataset "body" into ABINIT datastructure
- call rdpawps2(PAW,FC,pshead,pawps,pawarray,pawrad)
+ if (print_abinitfile) then
+  call rdpawps2(PAW,FC,pshead,pawps,pawarray,pawrad,err)
+  print_abinitfile=(print_abinitfile.and.err==0)
+ end if
 
 !------------------------------------------------------------------
 !---- Compute new data needed by Abinit
- call calc_shapef(pshead,pawarray,pawrad)
- call calc_valden(pshead,pawps,pawarray,pawrad)
- call calc_dij0(pshead,pawps,pawarray,pawrad)
- call calc_rhoij0(pshead,pawps)
+ if (print_abinitfile) then
+  call calc_shapef(pshead,pawarray,pawrad)
+  call calc_valden(pshead,pawps,pawarray,pawrad)
+  call calc_dij0(pshead,pawps,pawarray,pawrad)
+  call calc_rhoij0(pshead,pawps)
+ end if
 
 !------------------------------------------------------------------
 !---- Possibly optimize projectors
- call opt_proj(pshead,pawps,pawrad,pawrso)
+ if (print_abinitfile) then
+  call opt_proj(pshead,pawps,pawrad,pawrso,err)
+  print_abinitfile=(print_abinitfile.and.err==0)
+ end if
 
 !------------------------------------------------------------------
 !---- Write PAW dataset file for ABINIT
- xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
- file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.abinit'
-
- call wrpawps(pshead,pawps,pawarray,pawrad,loggrd,file_abinit,&
-&             unit_abinit,author)
+ if (print_abinitfile) then
+  xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
+  file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.abinit'
+  call wrpawps(pshead,pawps,pawarray,pawrad,loggrd,file_abinit,&
+&              unit_abinit,author)
+ end if
 
 !------------------------------------------------------------------
 !---- Write core Wave Function file for ABINIT
- if (prtcorewf) then
+ if (print_corewf) then
   xcname=exctype;if (have_libxc) call libxc_getshortname(exctype,xcname)
   file_abinit=TRIM(AEpot%sym)//'.'//TRIM(xcname)//'-paw.corewf.abinit'
   call wrcorewf(AEOrbit,FC,pshead,pawrad,loggrd,file_abinit,unit_abinit)
@@ -357,16 +374,12 @@ Module ABINITInterface
 !------------------------------------------------------------------
 !---- Deallocate memory
 
- deallocate(pshead%orbitals,pshead%orbitals_core,pshead%occ)
- deallocate(pawps%phi,pawps%tphi,pawps%tproj)
- deallocate(pawps%coreden4pr2,pawps%tcoreden4pr2,pawps%tvaleden4pr2)
- deallocate(pawps%dij0,pawps%rhoij0)
- deallocate(pawarray%shapefunc,pawarray%shpnrm,pawarray%kij)
- deallocate(pawarray%tvaleden4pr2,pawarray%hatden4pr2)
- deallocate(pawps%vbare,pawps%vhtnzc)
- deallocate(pawarray%indlmn,pawrad%rad,pawrad%radfact)
+ call pawarray_free(pawarray)
+ call pawps_free(pawps)
+ call pshead_free(pshead)
+ call pawrad_free(pawrad)
 
- write(std_out,'(2x,a,a)') 'Atompaw2Abinit ended.',ch10
+ write(std_out,'(/,2x,a)') 'Atompaw2Abinit ended.'
 
  end subroutine Atompaw2Abinit
 
@@ -405,12 +418,13 @@ Module ABINITInterface
 !!    %vale_meshsz= Dimension of radial mesh for pseudo valence density
 !!    %vloc_meshsz= Dimension of radial mesh for vloc=vhtnzc (with hat in XC)
 !!    %wav_meshsz= Dimension of radial mesh for phi, tphi ...
+!!  err=error code (0=OK)
 !!
 !! PARENTS
 !! atompaw2abinit
 !!=================================================================
 
- subroutine rdpawps1(AEOrbit,AEPot,PAW,FC,Grid,pshead)
+ subroutine rdpawps1(AEOrbit,AEPot,PAW,FC,Grid,pshead,err)
 
  type(GridInfo),intent(in)       :: Grid
  type(OrbitInfo),intent(in)      :: AEOrbit
@@ -418,6 +432,7 @@ Module ABINITInterface
  type(Pseudoinfo),intent(in)     :: PAW
  type(FCInfo),intent(in)         :: FC
  type(pshead_type),intent(inout) :: pshead
+ integer,intent(out)             :: err
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -430,6 +445,8 @@ Module ABINITInterface
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
+
+ err=0
 
 !--Read TITLE
  write(unit=pshead%title,fmt='(8a)') &
@@ -471,7 +488,11 @@ Module ABINITInterface
 
 !--Read GRID parameters
  pshead%atompaw_meshsz=Grid%n
- pshead%wav_meshsz=PAW%irc+Grid%ishift
+ if (PAW%irc>0) then
+  pshead%wav_meshsz=PAW%irc+Grid%ishift
+ else
+  pshead%wav_meshsz=pshead%atompaw_meshsz
+ end if
  if (usingloggrid(Grid)) then
   pshead%mesh_type=2
   pshead%rad_step=Grid%drdu(1)
@@ -486,13 +507,25 @@ Module ABINITInterface
  pshead%rc_sph=PAW%rc
 
 !--Read MESH SIZE FOR CORE DENSITIES
- pshead%core_meshsz=PAW%coretailpoints
+ if (PAW%coretailpoints>0) then
+  pshead%core_meshsz=PAW%coretailpoints
+ else
+  pshead%core_meshsz=pshead%atompaw_meshsz
+ end if
 
 !--Read MESH SIZE FOR PSEUDO_VALENCE_DENSITY
- pshead%vale_meshsz=PAW%ivale
+ if (PAW%ivale>0) then
+  pshead%vale_meshsz=PAW%ivale
+ else
+  pshead%vale_meshsz=pshead%atompaw_meshsz
+ end if
 
 !--Read MESH SIZE FOR VLOCION
- pshead%vloc_meshsz=PAW%ivion
+ if (PAW%ivion>0) then
+  pshead%vloc_meshsz=PAW%ivion
+ else
+  pshead%vloc_meshsz=pshead%atompaw_meshsz
+ end if
 
 !--Read MESH SIZE FOR CORE WF
  ii=0;allocate(irwf(pshead%core_size));irwf(:)=Grid%n
@@ -536,11 +569,11 @@ Module ABINITInterface
    pshead%pspxc_abinit=-id(2)
   else
    write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type!"
-   stop
+   err=1
   end if
  else
   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1): unknown XC type!"
-  stop
+  err=1
  endif
 
 !--Read SHAPE TYPE AND SHAPE PARAM
@@ -564,21 +597,21 @@ Module ABINITInterface
   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1):"
   write(std_out,'(2x,a)') "   Mesh size for tcore density (CORETAIL_POINTS)"
   write(std_out,'(2x,a)') "   must be greater or equal than MESH_SIZE!"
-  stop
+  err=1
  endif
  if (pshead%mesh_type==1) then
   if (pshead%rc_sph>pshead%rad_step*dble(pshead%wav_meshsz-1)+tol8) then
    write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(rdpawps1):"
    write(std_out,'(2x,a)') "   Radius for PAW spheres (RC)"
    write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE)!"
-   stop
+   err=1
   endif
  else
   if (pshead%rc_sph>pshead%rad_step*(exp(pshead%log_step*dble(pshead%wav_meshsz-1))-one)+tol8) then
    write(std_out,'(/,2x,a)') "Error in :Atompaw2Abinit(rdpawps1)"
    write(std_out,'(2x,a)') "   Radius for PAW spheres (RC)"
    write(std_out,'(2x,a)') "   must be less (or equal) than R(MESH_SIZE)!"
-   stop
+   err=1
   endif
  endif
 
@@ -620,16 +653,17 @@ Module ABINITInterface
  subroutine rdinputabinit(pshead,pawrso,loggrd,prtcorewf,author,input_string)
 
  type(pshead_type),intent(inout) :: pshead
- type(pawrso_type),intent(out)   :: pawrso
- type(loggrd_type),intent(out)   :: loggrd
+ type(pawrso_type),intent(inout) :: pawrso
+ type(loggrd_type),intent(inout) :: loggrd
  logical,intent(out)             :: prtcorewf
  character(len=*),intent(out)    :: author
- character(len=*),intent(inout) :: input_string
+ character(len=*),intent(inout)  :: input_string
 
 !------------------------------------------------------------------
 !---- Local variables
 !------------------------------------------------------------------
 
+ logical,parameter :: print_options=.false. !Already done in input_dataset_mod
  integer :: i_author,len_author
  logical :: usexcnhat
  character(200) :: abinitstr
@@ -643,20 +677,24 @@ Module ABINITInterface
 
 !Option for the PRinTing of CORE Wave Functions
  prtcorewf=input_dataset%abinit_prtcorewf
- if (prtcorewf) then
-  write(std_out,'(a,2x,a)') ch10,'Printing of core wave functions file'
- else
-  write(std_out,'(a,2x,a)') ch10,'No printing of core wave functions file'
+ if (print_options) then
+  if (prtcorewf) then
+   write(std_out,'(a,2x,a)') ch10,'Printing of core wave functions file'
+  else
+   write(std_out,'(a,2x,a)') ch10,'No printing of core wave functions file'
+  end if
  end if
 
 !Option for use of NHAT in XC
  usexcnhat=input_dataset%abinit_usexcnhat
  if (usexcnhat) then
   pshead%vlocopt=1
-  write(std_out,'(a,2x,a)') ch10,'Use of compensation charge in XC terms'
+   if (print_options) &
+&    write(std_out,'(a,2x,a)') ch10,'Use of compensation charge in XC terms'
  else
   pshead%vlocopt=2
-  write(std_out,'(a,2x,a)') ch10,'No use of compensation charge in XC terms'
+  if (print_options) &
+&   write(std_out,'(a,2x,a)') ch10,'No use of compensation charge in XC terms'
  end if
 
 !Option for use of REAL SPACE OPTIMIZATION
@@ -664,24 +702,28 @@ Module ABINITInterface
  pawrso%ecut=input_dataset%abinit_rso_ecut
  pawrso%gfact=input_dataset%abinit_rso_gfact
  pawrso%werror=input_dataset%abinit_rso_werror
- if (pawrso%userso) then
-  write(std_out,'(a,2x,a,f6.2,a,f6.2,a,g8.2,a)') ch10,&
-&   'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) = [',&
-&   pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
- else
-  write(std_out,'(a,2x,a)') ch10,'No Real Space Optimization of projectors'
+ if (print_options) then
+  if (pawrso%userso) then
+   write(std_out,'(a,2x,a,f6.2,a,f6.2,a,g8.2,a)') ch10,&
+&    'Real Space optim.: Ecut, Gamma/Gmax, Wl(error) = [',&
+&    pawrso%ecut,', ',pawrso%gfact,', ',pawrso%werror,']'
+  else
+   write(std_out,'(a,2x,a)') ch10,'No Real Space Optimization of projectors'
+  end if
  end if
 
 !Option for spline on a reduced log. grid
  loggrd%uselog=input_dataset%abinit_uselog
  loggrd%meshsz=input_dataset%abinit_log_meshsz
  loggrd%log_step=input_dataset%abinit_log_step
- if (loggrd%uselog) then
-  write(std_out,'(a,2x,a,i3,a,f7.3,a)') ch10,&
-&   'Logarithmic grid: Number of pts, logarithmic step = [',&
-&   loggrd%meshsz,', ',loggrd%log_step,']'
- else
-  write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
+ if (print_options) then
+  if (loggrd%uselog) then
+   write(std_out,'(a,2x,a,i3,a,f7.3,a)') ch10,&
+&    'Logarithmic grid: Number of pts, logarithmic step = [',&
+&    loggrd%meshsz,', ',loggrd%log_step,']'
+  else
+   write(std_out,'(a,2x,a)') ch10,'No spline on a reduced log. grid'
+  end if
  end if
 
 !Author to be mentioned in Abinit file
@@ -816,6 +858,7 @@ Module ABINITInterface
 &                      pshead%atompaw_meshsz)
 
 !Initialization of the orbital basis indexes (indlmn)
+ allocate(pawarray%indlmn(6,pshead%lmn_size))
  ilmn=0;iln=0
  do il=0,pshead%lmax
   nproj=0
@@ -936,6 +979,7 @@ Module ABINITInterface
 !!    %tphi(wav_meshsz,basis_size)= PAW atomic pseudo-wavefunctions on the radial grid
 !!    %tproj(prj_msz_max,basis_size)= PAW projectors on the radial grid
 !!    %vbare(sph_meshsz)= bare local potential (part of VH(tnzc))
+!!  err=error code (0=OK)
 !!
 !! SIDE EFFECTS
 !!  pshead
@@ -946,7 +990,7 @@ Module ABINITInterface
 !! atompaw2abinit
 !!=================================================================
 
- subroutine rdpawps2(PAW,FC,pshead,pawps,pawarray,pawrad)
+ subroutine rdpawps2(PAW,FC,pshead,pawps,pawarray,pawrad,err)
 
  type(Pseudoinfo),intent(in)       :: PAW
  type(FCInfo),intent(in)           :: FC
@@ -954,6 +998,7 @@ Module ABINITInterface
  type(pawps_type),intent(inout)    :: pawps
  type(pawarray_type),intent(inout) :: pawarray
  type(pawrad_type),intent(in)      :: pawrad
+ integer,intent(out)               :: err
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -964,6 +1009,8 @@ Module ABINITInterface
 !------------------------------------------------------------------
 !---- Executable code
 !------------------------------------------------------------------
+
+ err=0
 
 !--Read WAVE FUNCTIONS PHI, PSEUDO WAVE FUNCTIONS TPHI and PROJECTORS TPROJ
  do ib=1,pshead%basis_size
@@ -1009,18 +1056,27 @@ Module ABINITInterface
 &  pawps%tcoreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz) = &
 &   pawps%coreden4pr2(pshead%wav_meshsz+1:pshead%core_meshsz)
 
-!--Test pseudo valence density
+!--Check pseudo valence density
  if (pshead%vale_meshsz>0) then
-  write(std_out,'(/,2x,a,a,f5.2,a,a,g11.4)') 'Atompaw2Abinit info:',&
+  write(std_out,'(/,2x,a,/,2x,a,f5.2,a,a,g11.4)') 'Atompaw2Abinit info:',&
 &   '  At r=',pawrad%rad(pshead%vale_meshsz),' a.u.,',&
 &   ' Pseudo_valence_density= ', pawps%tvaleden4pr2(pshead%vale_meshsz) &
 &                               /pawrad%rad(pshead%vale_meshsz)**2/(4*pi)
   write(std_out,'(2x,a)') '  This quantity must be as small as possible.'
  endif
 
-!--Test potential
+!--Check (pseudo-core + nhat) density is positive 
+ if (.not.PAW%poscorenhat) then 
+  write(std_out,'(/,2x,a)') 'Detected negative values for pseudo core + nhat'
+  write(std_out,'(2x,a)')   '  which is incompatible with usexcnhat.'
+  write(std_out,'(2x,a)')   'Please try reducing rc_core.'
+  write(std_out,'(2x,a)')   'ABINIT file not created!'
+  err=1
+ endif
+
+!--Check potential
  if (pshead%vlocopt==1.or.pshead%vlocopt==2) then
-  write(std_out,'(/,2x,a,a,f5.2,a,a,g11.4)') 'Atompaw2Abinit info:',&
+  write(std_out,'(/,2x,a,/,2x,a,f5.2,a,a,g11.4)') 'Atompaw2Abinit info:',&
 &   '  At r_vloc=',pawrad%rad(pshead%vloc_meshsz),' a.u.,',&
 &   ' VHartree(ntild(Zv+Zc))= -Zv/r + ', pawps%vhtnzc(pshead%vloc_meshsz) &
 &    +(pshead%atomic_charge-pshead%core_charge)/pawrad%rad(pshead%vloc_meshsz)
@@ -1062,9 +1118,9 @@ Module ABINITInterface
 
  subroutine calc_shapef(pshead,pawarray,pawrad)
 
- type(pshead_type),intent(in)    :: pshead
- type(pawarray_type),intent(out) :: pawarray
- type(pawrad_type),intent(in)    :: pawrad
+ type(pshead_type),intent(in)      :: pshead
+ type(pawarray_type),intent(inout) :: pawarray
+ type(pawrad_type),intent(in)      :: pawrad
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1101,8 +1157,7 @@ Module ABINITInterface
    pawarray%shapefunc(ir)=al(1)*jbes1+al(2)*jbes2
   enddo
  else if (pshead%shape_type/=-1) then
-  write(std_out,'(/,2x,a)') 'Error in Atompaw2Abinit(calc_shapef): invalid value of pshead%shape_type !'
-  stop
+  stop '  Bug (1) in calc_shapef: invalid value for pshead%shape_type!'
  endif
 
 !Compute moments of shape function
@@ -1246,10 +1301,10 @@ end subroutine calc_shapef
 
  subroutine calc_dij0(pshead,pawps,pawarray,pawrad)
 
- type(pshead_type),intent(in)   :: pshead
- type(pawps_type),intent(inout) :: pawps
- type(pawarray_type),intent(in) :: pawarray
- type(pawrad_type),intent(inout)   :: pawrad
+ type(pshead_type),intent(in)    :: pshead
+ type(pawps_type),intent(inout)  :: pawps
+ type(pawarray_type),intent(in)  :: pawarray
+ type(pawrad_type),intent(inout) :: pawrad
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1505,6 +1560,9 @@ end subroutine calc_shapef
 !!    %orbitals(basis_size)= Quantum number l for each basis function
 !!    %prj_meshsz=Dimension of radial mesh for tproj (initialized at input)
 !!
+!! OUTPUT
+!!  err=error code (0=OK)
+!!
 !! SIDE EFFECTS
 !!  pshead
 !!    %prj_meshsz= Dimension of radial mesh for tproj
@@ -1518,12 +1576,13 @@ end subroutine calc_shapef
 !! aamat,csimp,gauleg,jbessel,DGETRF,DGETRS
 !!=================================================================
 
- subroutine opt_proj(pshead,pawps,pawrad,pawrso)
+ subroutine opt_proj(pshead,pawps,pawrad,pawrso,err)
 
  type(pshead_type),intent(inout) :: pshead
  type(pawps_type),intent(inout)  :: pawps
  type(pawrad_type),intent(in)    :: pawrad
  type(pawrso_type),intent(in)    :: pawrso
+ integer,intent(out)             :: err
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1543,6 +1602,7 @@ end subroutine calc_shapef
 !---- Executable code
 !------------------------------------------------------------------
 
+ err=0
  if (.not.pawrso%userso) return
 
  write(std_out,'(3(/,2x,a),/,2x,a,f7.2,/,2x,a,f6.2,/,2x,a,g11.3)') &
@@ -1609,7 +1669,7 @@ end subroutine calc_shapef
   end if
   if (r0_meshsz>pshead%prj_msz_max) then
    write(std_out,'(/,2x,a)') 'Error in Atompaw2Abinit(opt_proj): ro_meshsz too big !'
-   stop
+   err=1;exit
   endif
   r0=pawrad%rad(r0_meshsz)
   allocate(gg(r0_meshsz))
@@ -1687,15 +1747,17 @@ end subroutine calc_shapef
 
  deallocate(am,bm,chi1g,chi2g,chireg,ff,wgauss1,qgauss1,wgauss2,qgauss2)
 
- pshead%prj_meshsz=r0_meshsz
- write(std_out,'(2(a,f7.4),a)') '  New radius R0 for nl projectors (Bohr)=',&
-&                         r0,' (=',r0/rc_prj,'*Rc(proj))'
- if (r0>1.55_dp*rc_prj) &
-&  write(std_out,'(4(/,a))') &
-&                'Warning:',&
-&                '  Radius for nl projectors (R0) seems to be high !',&
-&                '  You should change parameters of Real Space Optimization',&
-&                '  (increase Ecut, Gamma/Gmax or Wl).'
+ if (err==0) then
+  pshead%prj_meshsz=r0_meshsz
+  write(std_out,'(4x,2(a,f7.4),a)') 'New radius R0 for projectors (a.u.)=',&
+&                          r0,' (=',r0/rc_prj,'*Rc(proj))'
+  if (r0>1.55_dp*rc_prj) &
+&   write(std_out,'(4x,a,3(/,4x,a))') &
+&                 'Warning:',&
+&                 '  Radius for projectors (R0) seems to be high !',&
+&                 '  You should change parameters of Real Space Optimization',&
+&                 '  (increase Ecut, Gamma/Gmax or Wl).'
+ end if
 
  end subroutine opt_proj
 
@@ -2125,6 +2187,7 @@ end subroutine calc_shapef
 
 !Close the file and end
  close(funit)
+ WRITE(STD_OUT,'(/,2x,a)') 'ABINIT atomic dataset created.'
 
  if (loggrd%uselog) deallocate(rr_log)
  if (pshead%core_meshsz>0) call DestroyGrid(Grid_core)
@@ -2323,7 +2386,7 @@ end subroutine calc_shapef
  icor=0
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
-   icor=icor+1;if (icor>pshead%core_size) stop "Atompaw : bug in wrcorewf!"
+   icor=icor+1;if (icor>pshead%core_size) stop '  Bug (1) in wrcorewf!'
    do isppol=1,nsppol
     if (nsppol==2) then
      if (isppol==1) spstrg=" UP"
@@ -2366,7 +2429,7 @@ end subroutine calc_shapef
    icor=0
    do ib=1,AEOrbit%norbit
      if (AEOrbit%iscore(ib)) then
-       icor=icor+1;if (icor>pshead%core_size) stop "Atompaw : bug in wrcorewf !"
+       icor=icor+1;if (icor>pshead%core_size) stop '  Bug (2) in wrcorewf!'
        write(funit,'(a,i2,a)') "===== Core wave functions PHI second spinor component",icor,&
 &          " =====   [phi(r)=PHI(r)/r*Ylm(th,ph)]"
        write(funit,'(i2,a)') imesh,"  : radial mesh index"
@@ -2392,6 +2455,8 @@ end subroutine calc_shapef
 
 !Close the file and end
  close(funit)
+ WRITE(STD_OUT,'(/,2x,a)') 'ABINIT core orbitals file created.'
+
  if (loggrd%uselog) deallocate(rr_log)
 
  end subroutine wrcorewf
@@ -2482,9 +2547,8 @@ end subroutine calc_shapef
 
  if (idir==1) then
 
-  if (nn>Grid%n) then
-   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large!"
-  end if
+  if (nn>Grid%n) stop '  Bug (1) in grid2pawrad: mesh size too large!'
+
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=Grid%n
 
@@ -2498,17 +2562,16 @@ end subroutine calc_shapef
    pawrad%rstep=Grid%h
    pawrad%lstep=zero
   end if
-  if (associated(pawrad%rad)) deallocate(pawrad%rad)
-  if (associated(pawrad%radfact)) deallocate(pawrad%radfact)
+  if (allocated(pawrad%rad)) deallocate(pawrad%rad)
+  if (allocated(pawrad%radfact)) deallocate(pawrad%radfact)
   allocate(pawrad%rad(meshsz),pawrad%radfact(meshsz))
   pawrad%rad    (1:meshsz)=Grid%r   (1:meshsz)
   pawrad%radfact(1:meshsz)=Grid%drdu(1:meshsz)
 
  else if (idir==-1) then
 
-  if (nn>pawrad%meshsz) then
-   write(std_out,'(/,2x,a)') "Error in Atompaw2Abinit(grid2pawrad): mesh size too large!"
-  end if
+  if (nn>pawrad%meshsz) stop '  Bug (2) in grid2pawrad: mesh size too large!'
+
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=pawrad%meshsz
   Grid%n=meshsz
@@ -2728,9 +2791,6 @@ end subroutine calc_shapef
 !!  coremeshsz,prjmeshsz,valemeshsz,vlocmeshsz,wavmeshsz
 !!  meshsz(nmesh_max),meshtp(nmesh_max)
 !!  radstp(nmesh_max),logstp(nmesh_max)
-!!
-!! PARENTS
-!!
 !!=================================================================
 
 subroutine meshes_def(coremeshsz,icoremesh,iprjmesh,ivalemesh,ivlocmesh,&
@@ -2863,6 +2923,63 @@ subroutine meshes_def(coremeshsz,icoremesh,iprjmesh,ivalemesh,ivlocmesh,&
  endif
 
  end subroutine meshes_def
+
+
+!!=================================================================
+!! NAME
+!! pawarray_free
+!! pawps_free
+!! pshead_free
+!! pawrad_free
+!!
+!! FUNCTION
+!! Several functions to release memory of datastructures
+!!
+!!
+!! SIDE EFFECTS
+!!  pawarray= datastructure to be destroyed
+!!  pawps   = datastructure to be destroyed
+!!  pshead  = datastructure to be destroyed
+!!  pawrad  = datastructure to be destroyed
+!!=================================================================
+
+ subroutine pawarray_free(pawarray)
+  type(pawarray_type),intent(inout) :: pawarray
+  if (allocated(pawarray%indlmn)) deallocate(pawarray%indlmn)
+  if (allocated(pawarray%hatden4pr2)) deallocate(pawarray%hatden4pr2)
+  if (allocated(pawarray%kij)) deallocate(pawarray%kij)
+  if (allocated(pawarray%shapefunc)) deallocate(pawarray%shapefunc)
+  if (allocated(pawarray%shpnrm)) deallocate(pawarray%shpnrm)
+  if (allocated(pawarray%tvaleden4pr2)) deallocate(pawarray%tvaleden4pr2)
+ end subroutine pawarray_free
+
+ subroutine pawps_free(pawps)
+  type(pawps_type),intent(inout) :: pawps
+  if (allocated(pawps%coreden4pr2)) deallocate(pawps%coreden4pr2)
+  if (allocated(pawps%tcoreden4pr2)) deallocate(pawps%tcoreden4pr2)
+  if (allocated(pawps%tvaleden4pr2)) deallocate(pawps%tvaleden4pr2)
+  if (allocated(pawps%phi)) deallocate(pawps%phi)
+  if (allocated(pawps%tphi)) deallocate(pawps%tphi)
+  if (allocated(pawps%tproj)) deallocate(pawps%tproj)
+  if (allocated(pawps%dij0)) deallocate(pawps%dij0)
+  if (allocated(pawps%rhoij0)) deallocate(pawps%rhoij0)
+  if (allocated(pawps%vbare)) deallocate(pawps%vbare)
+  if (allocated(pawps%vhtnzc)) deallocate(pawps%vhtnzc)
+ end subroutine pawps_free
+
+ subroutine pshead_free(pshead)
+  type(pshead_type),intent(inout) :: pshead
+  if (allocated(pshead%orbitals)) deallocate(pshead%orbitals)
+  if (allocated(pshead%orbitals_core)) deallocate(pshead%orbitals_core)
+  if (allocated(pshead%occ)) deallocate(pshead%occ)
+ end subroutine pshead_free
+
+ subroutine pawrad_free(pawrad)
+  type(pawrad_type),intent(inout) :: pawrad
+  if (allocated(pawrad%rad)) deallocate(pawrad%rad)
+  if (allocated(pawrad%radfact)) deallocate(pawrad%radfact)
+ end subroutine pawrad_free
+
 
 !!=================================================================
 END Module ABINITInterface

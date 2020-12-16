@@ -381,9 +381,9 @@ CONTAINS
   END SUBROUTINE laplacian
 
   !******************************************************
-  ! SUBROUTINE poisson(Grid,q,den,rv,ecoul,v00)
+  ! SUBROUTINE poisson(Grid,q,den,rv,ecoul,v00,debug)
   !*****************************************************
-  SUBROUTINE poisson(Grid,q,den,rv,ecoul,v00)
+  SUBROUTINE poisson(Grid,q,den,rv,ecoul,v00,debug)
     !  use Numerov algorithm to solve poisson equation
     !  den(n) is electron density * (4*pi*r**2)
     !  rv(n) is returned as electrostatic potential * r
@@ -393,17 +393,20 @@ CONTAINS
     REAL(8), INTENT(IN):: den(:)
     REAL(8), INTENT(INOUT) :: rv(:),ecoul,q
     REAL(8), OPTIONAL, INTENT(OUT) :: v00
+    LOGICAL,OPTIONAL :: DEBUG
 
     REAL(8), ALLOCATABLE :: a(:),b(:)
     REAL(8) :: sd,sl,h,h2
     INTEGER :: i,n
+    LOGICAL :: mydebug
 
+    mydebug=.true.;if (present(debug)) mydebug=debug
     n=Grid%n
     h=Grid%h
 
     rv=0.d0
     q=integrator(Grid,den)
-    write(std_out,*) 'In poisson q = ', q; call flush_unit(std_out)
+    if (mydebug) write(std_out,*) 'In poisson q = ', q; call flush_unit(std_out)
 
     ALLOCATE(a(n),b(n),stat=i)
     IF (i/=0) THEN

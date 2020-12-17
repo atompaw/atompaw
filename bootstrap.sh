@@ -55,4 +55,9 @@ echo "done."
 # Do not use "automake --force-missing", as it overwrites the INSTALL file.
 echo "Generating Makefile.in for each directory..."
 automake --add-missing --copy
+
+# Dirty trick to fix a (possible) automake bug
+sed -i -e 's/\$(PROGRAMS) \$(LTLIBRARIES)/\$(LTLIBRARIES) \$(PROGRAMS)/g' src/Makefile.in
+rm -f "src/Makefile.in-e"
+
 echo "done."

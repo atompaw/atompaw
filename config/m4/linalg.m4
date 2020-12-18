@@ -69,8 +69,8 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
 
   atp_linalg_libs_ok="no"
 
-  if test "x${LINALG_LIBDIR}" != "x" -a "x${with_linalg_prefix}" = "x"; then
-    with_linalg_prefix="${LINALG_LIBDIR}"
+  if test "x${LINALG_PREFIX}" != "x" -a "x${with_linalg_prefix}" = "x"; then
+    with_linalg_prefix="${LINALG_PREFIX}"
   fi
 
 # First, check with user-defined macros

@@ -93,11 +93,11 @@ AC_ARG_WITH([linalg-prefix],[
     [Linear Algebra libraries installation root directory (e.g. /usr/local, ...)])])
 
 # Declare environment variables
-AC_ARG_VAR([LINALG_LIBDIR],
+AC_ARG_VAR([LINALG_PREFIX],
   [Directory where to search for linear algebra libraries])
 
 # Declare environment variables
-AC_ARG_VAR([LIBXC_LIBDIR],
+AC_ARG_VAR([LIBXC_PREFIX],
   [Directory where to search for libXC library])
 
                     # ------------------------------------ #

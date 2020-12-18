@@ -1077,7 +1077,7 @@ end function libxc_nspin
 !!  rho(npts,nsp)= electronic density
 !!  [grho(npts,2*nsp-1)]= gradient of the density (optional)
 !!  [lrho(npts,2*nsp-1)]= laplacian of the density (optional)
-!!  [tau(npts,2*nsp-1)]= sum of squared gradient of occ wf's (optional)
+!!  [tau(npts,nsp)]= sum of squared gradient of occ wf's (optional)
 !!
 !! OUTPUT
 !!  exc(npts)=XC energy density

@@ -649,11 +649,11 @@ CONTAINS
        tmpv(1:n)=tmpv(1:n)*den(1:n)
        etxc=eexc-integrator(Grid,tmpv(1:n),1,n)
        WRITE(STD_OUT,*) 'etxc,eexc = ',etxc,eexc;call flush_unit(std_out)
-       open(1001,file='expot',form='formatted')
-       do i=1,n
-          write(1001,'(1p,20e15.7)')Grid%r(i),rvxc(i),den(i),exci(i)
-          enddo   
-       deallocate(tmpd,tmpv,exci,tmpt)
+       !open(1001,file='expot',form='formatted')
+       !do i=1,n
+       !   write(1001,'(1p,20e15.7)')Grid%r(i),rvxc(i),den(i),exci(i)
+       !   enddo   
+       !deallocate(tmpd,tmpv,exci,tmpt)
     else
 
        WRITE(STD_OUT,*) 'Warning (EXCOR): ', itype,' no results returned !'

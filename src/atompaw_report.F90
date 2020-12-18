@@ -223,6 +223,7 @@ CONTAINS
         IF (PAW%tcore(i)<machine_zero) PAW%tcore(i)=0
         IF (PAW%den(i)<machine_zero) PAW%den(i)=0
         IF (PAW%tden(i)<machine_zero) PAW%tden(i)=0
+        IF (abs(PAW%nhatv(i))<machine_zero) PAW%nhatv(i)=0
         WRITE(ifout,'(1p,1e15.7,1p,5e25.17)') Grid%r(i),PAW%core(i),&
              PAW%den(i),PAW%tcore(i),PAW%tden(i),PAW%nhatv(i)
      ENDDO

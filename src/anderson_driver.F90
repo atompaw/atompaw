@@ -380,6 +380,9 @@ CONTAINS
        CALL Anderson_Mix(AC,w,residue)
        !WRITE(STD_OUT,*) 'Returning from AM with ', i,OK,AC%NewMix
     ENDDO
+    If (AC%CurIter.ge.AC%MaxIter) then
+       WRITE(STD_OUT,*) 'Anderson Mix reached MaxIter without success ',AC%MaxIter
+    Endif     
 
     DEALLOCATE(residue,tmp)
 

@@ -55,6 +55,10 @@ CONTAINS
     minexparg=LOG(machine_precision);  minexp=0.d0
     maxexparg=-LOG(machine_precision);  maxexp=EXP(maxexparg)
 
+    write(std_out,*) 'Init_GlobalConstants: machine_precision ', machine_precision
+    write(std_out,*) 'Init_GlobalConstants: machine_zero ', machine_zero
+    write(std_out,*) 'Init_GlobalConstants: machine_infinity ', machine_infinity
+
     RETURN
   END SUBROUTINE Init_GlobalConstants
 

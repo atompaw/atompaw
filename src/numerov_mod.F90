@@ -496,7 +496,7 @@ CONTAINS
     qbb=qq/b
     !write(std_out,*) ' qbb = ', qbb
     cn=l*(l+1)
-    fac=EXP(-b*(r-rN))*(r**qbb)
+    fac=DDEXP(-b*(r-rN))*(r**qbb)
     term=1.d0;   wfn=0
     DO i=1,last
        wfn=wfn+term

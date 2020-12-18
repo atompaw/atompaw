@@ -69,8 +69,8 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
 
   atp_linalg_libs_ok="no"
 
-  if test "x${LINALG_LIBDIR}" != "x" -a "x${with_linalg_prefix}" = "x"; then
-    with_linalg_prefix="${LINALG_LIBDIR}"
+  if test "x${LINALG_PREFIX}" != "x" -a "x${with_linalg_prefix}" = "x"; then
+    with_linalg_prefix="${LINALG_PREFIX}"
   fi
 
 # First, check with user-defined macros
@@ -123,6 +123,18 @@ AC_DEFUN([ATP_LINALG_SEARCH],[
       for func in ${list_funcs}; do
         AC_SEARCH_LIBS(${func},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
       done
+      if test "${atp_linalg_libs_ok}" != "yes";then
+        if test "x${with_linalg_prefix}" != "xempty"; then
+          if test "x${with_linalg_prefix}" != "x"; then
+            LDFLAGS="-L${with_linalg_prefix}/lib64 -lxc"
+            LIBS="-L${with_linalg_prefix}/lib64 -lxc"
+            atp_linalg_libs_ok="yes"
+            for func in ${list_funcs}; do
+              AC_SEARCH_LIBS(${func},[lapack],[],[atp_linalg_libs_ok="no"],[-lblas])
+            done
+          fi
+        fi
+      fi
       if test "${atp_linalg_libs_ok}" = "yes"; then
         with_linalg_libs="${LDFLAGS}"
         break

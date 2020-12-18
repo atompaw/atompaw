@@ -55,4 +55,12 @@ echo "done."
 # Do not use "automake --force-missing", as it overwrites the INSTALL file.
 echo "Generating Makefile.in for each directory..."
 automake --add-missing --copy
+
+# Dirty trick to fix a (possible) automake bug
+# Change src/Makefile.in preserving timestamp
+touch -r src/Makefile.in src/Makefile.timestamp
+sed -i -e 's/\$(PROGRAMS) \$(LTLIBRARIES)/\$(LTLIBRARIES) \$(PROGRAMS)/g' src/Makefile.in
+touch -r src/Makefile.timestamp src/Makefile.in
+rm -f src/Makefile.timestamp src/Makefile.in-e
+
 echo "done."

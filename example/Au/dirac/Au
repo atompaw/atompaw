@@ -1,0 +1,59 @@
+ Completed calculations for Au
+ Exchange-correlation type: LDA, Perdew-Wang correlation
+  Radial integration grid is logarithmic 
+r0 =   8.6915222E-05 h =   6.8663025E-03   n =      2001 rmax =   8.0000000E+01
+ Dirac-relativistic calculation
+   AEatom converged in          35  iterations
+     for nz =  79.00
+     delta  =    7.1009426400019517E-012
+  All Electron Orbital energies:         
+  n   kappa  l   occupancy       energy
+ 1 -1   0      2.0000000E+00 -5.9233999E+03
+ 2 -1   0      2.0000000E+00 -1.0443790E+03
+ 3 -1   0      2.0000000E+00 -2.4644922E+02
+ 4 -1   0      2.0000000E+00 -5.3440459E+01
+ 5 -1   0      2.0000000E+00 -7.9755619E+00
+ 6 -1   0      1.0000000E+00 -4.4827054E-01
+ 2  1   1      2.0000000E+00 -1.0016794E+03
+ 3  1   1      2.0000000E+00 -2.2723354E+02
+ 4  1   1      2.0000000E+00 -4.5251385E+01
+ 5  1   1      2.0000000E+00 -5.3102329E+00
+ 6  1   1      0.0000000E+00 -9.7322637E-02
+ 2 -2   1      4.0000000E+00 -8.6688708E+02
+ 3 -2   1      4.0000000E+00 -1.9749529E+02
+ 4 -2   1      4.0000000E+00 -3.8101322E+01
+ 5 -2   1      4.0000000E+00 -4.0844244E+00
+ 6 -2   1      0.0000000E+00 -5.5597048E-02
+ 3  2   2      4.0000000E+00 -1.6552601E+02
+ 4  2   2      4.0000000E+00 -2.4688226E+01
+ 5  2   2      4.0000000E+00 -5.9413835E-01
+ 3 -3   2      6.0000000E+00 -1.5913045E+02
+ 4 -3   2      6.0000000E+00 -2.3356823E+01
+ 5 -3   2      6.0000000E+00 -4.8110441E-01
+ 4  3   3      6.0000000E+00 -6.1354100E+00
+ 4 -4   3      8.0000000E+00 -5.8549893E+00
+
+  Total energy
+     Total                    :    -40917.856659351019     
+ Completed calculations for Au
+ Exchange-correlation type: LDA, Perdew-Wang correlation
+  Radial integration grid is logarithmic 
+r0 =   8.6915222E-05 h =   6.8663025E-03   n =      2001 rmax =   8.0000000E+01
+ Dirac-relativistic calculation
+   SCatom converged in           4  iterations
+     for nz =  79.00
+     delta  =    4.0645787747535130E-015
+   Valence Electron Orbital energies:         
+  n  kappa l   occupancy       energy
+ 5 -1   0      2.0000000E+00 -7.9755620E+00
+ 6 -1   0      1.0000000E+00 -4.4827053E-01
+ 5  1   1      2.0000000E+00 -5.3102329E+00
+ 6  1   1      0.0000000E+00 -9.7322634E-02
+ 5 -2   1      4.0000000E+00 -4.0844244E+00
+ 6 -2   1      0.0000000E+00 -5.5597042E-02
+ 5  2   2      4.0000000E+00 -5.9413837E-01
+ 5 -3   2      6.0000000E+00 -4.8110442E-01
+
+  Total energy
+     Total                    :    -40917.856659422796     
+     Valence                  :    -961.74140778287665     

@@ -39,6 +39,8 @@ EXTRA_DIST = \
 
 # Files to distribute in the source package
 atp_xmpl_srcs = \
+	example/Au/dirac/Au.input \
+        example/Au/dirac/Au \	
 	example/F/lda/F.input \
 	example/F/lda/F.atomicdata \
     example/F/lda/F.LDA-PW-paw.abinit \

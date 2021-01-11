@@ -57,7 +57,6 @@ MODULE atomdata
      !  rvh is hartree potential for den
      !  rvn is nuclear potential
      !  rvx is exchange-correlation potential
-     LOGICAL :: needvtau
      REAL(8), POINTER :: vtau(:) => null() !for meta-gga
      INTEGER :: finitenucleusmodel
      ! Based on models 2, 3, 4, 5 discussed by Dirk Anrae ,
@@ -76,6 +75,8 @@ MODULE atomdata
   LOGICAL :: setupfrozencore
   LOGICAL :: scalarrelativistic
   LOGICAL :: diracrelativistic
+  LOGICAL :: shapetcore
+  LOGICAL :: needvtau
   LOGICAL :: BDsolve
   LOGICAL :: finitenucleus
   LOGICAL :: gaussianshapefunction,besselshapefunction
@@ -231,7 +232,6 @@ CONTAINS
     ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),Pot%vtau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
     Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0;Pot%vtau=0.d0
-    Pot%needvtau=.false.
   END SUBROUTINE InitPot
 
   SUBROUTINE DestroyPot(Pot)
@@ -266,7 +266,6 @@ CONTAINS
     CPot%rvh(1:n)=SPot%rvh(1:n)
     CPot%rvx(1:n)=SPot%rvx(1:n)
     CPot%vtau(1:n)=SPot%vtau(1:n)
-    CPot%needvtau=SPot%needvtau
   END SUBROUTINE CopyPot
 
   SUBROUTINE InitSCF(SCF)

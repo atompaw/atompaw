@@ -16,6 +16,7 @@ MODULE general_mod
   USE globalmath
   USE gridmod
   USE radialDirac
+  USE radialked
   USE radialsr
 
   IMPLICIT NONE
@@ -26,6 +27,7 @@ CONTAINS
   !  SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
   !      Given new potential rvin, generate new Orbit%wfn,Orbit%eig,Pot%den
   !
+  !       note that rvin=rvh+rvx
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
     TYPE (GridInfo), INTENT(INOUT) :: Grid
@@ -47,8 +49,9 @@ CONTAINS
 
     allocate(dum(n))
 
-    Pot%rv=rvin
-    dum=rvin-Pot%rvn
+    Pot%rv=rvin+Pot%rvn(1:n)
+    dum=rvin
+    if (needvtau) dum(1)=dum(1)-Pot%rvx(1)
     CALL zeropot(Grid,dum,Pot%v0,Pot%v0p)
     IF (ABS(Pot%v0)> 1.d6) Pot%v0=0
     IF (ABS(Pot%v0p)> 1.d6) Pot%v0p=0
@@ -77,6 +80,9 @@ CONTAINS
           kappa=-1     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -104,6 +110,9 @@ CONTAINS
           emin=-nz*nz/4.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -131,6 +140,9 @@ CONTAINS
        emin=-nz*nz/9.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -158,6 +170,9 @@ CONTAINS
        emin=-nz*nz/16.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -185,7 +200,9 @@ CONTAINS
        emin=-nz*nz/25.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-
+       ELSE IF (needvtau) THEN
+         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+&             l,nroot,emin,ierr,OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -231,14 +248,18 @@ CONTAINS
 
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
+         DO i=1,Grid%n      
+            IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
+            IF (diracrelativistic) then
+              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
+            ENDIF
+         ENDDO   
          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
          xocc=Orbit%occ(io)
          DO i=1,Grid%n
             Orbit%tau(i)=Orbit%tau(i)+xocc*Orbit%otau(i,io)
-            IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
             Orbit%den(i)=Orbit%den(i)+xocc*(Orbit%wfn(i,io)**2)
             IF (diracrelativistic) then
-              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
               Orbit%den(i)=Orbit%den(i)+xocc*((Orbit%lwfn(i,io))**2)
             ENDIF
          ENDDO
@@ -302,14 +323,6 @@ CONTAINS
     SCF%ekin=ekin
     SCF%ecoul=ecoul
     counter=counter+1
-
-!    write(std_out,*) 'completed Get_KinCoul for counter',counter-1
-!    OPEN(4000+counter,form='formatted')
-!    DO i = 1,n
-!       WRITE(4000+counter,'(1p,50e15.7)') Grid%r(i), &
-!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
-!    ENDDO
-!    CLOSE(4000+counter)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_KinCoul
@@ -417,14 +430,6 @@ CONTAINS
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+x
     SCF%ecoul=x
-
-!   write(std_out,*) 'completed Get_FCKinCoul for counter',firsttime-1
-!   OPEN(6000+firsttime,form='formatted')
-!   DO i = 1,n
-!     WRITE(STD_OUT000+firsttime,'(1p,50e15.7)') Grid%r(i), &
-!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
-!   ENDDO
-!   CLOSE(6000+firsttime)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_FCKinCoul

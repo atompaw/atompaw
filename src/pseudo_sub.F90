@@ -60,6 +60,14 @@ CONTAINS
      PAW%rveff(i)=AA*sin(QQ*r(i))
     enddo
 
+
+    open(88,file='NNC',form='formatted')
+    do i=1,n
+       write(88,'(1p,50e16.7)') r(i),PAW%rveff(i),rv(i)
+    enddo
+    close(88)   
+
+
   END SUBROUTINE besselps
 
 
@@ -451,31 +459,37 @@ CONTAINS
     INTEGER :: n,i,ok,l,irc
     REAL(8) :: angm
     REAL(8), POINTER :: r(:)
-    REAL(8), ALLOCATABLE :: dum(:),tdel1(:),tdel2(:)
+    REAL(8), ALLOCATABLE :: dum(:),tdel1(:),tdel2(:),aux(:),auxp(:)
 
     tij=0
     IF (PAW%l(ib)/=PAW%l(ic)) RETURN
     n=Grid%n;  r=>Grid%r;  l=PAW%l(ib);  irc=PAW%irc
-    ALLOCATE(dum(n),tdel1(n),tdel2(n),stat=ok)
+    ALLOCATE(dum(n),tdel1(n),tdel2(n),aux(n),auxp(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dtij allocation', n,ok
        STOP
     ENDIF
     dum=0
     DO i=2,irc
-       !dum(i)=(PAW%eig(ic)-AEPot%rv(i)/Grid%r(i))*PAW%ophi(i,ib)*PAW%ophi(i,ic)
-       dum(i)=PAW%ophi(i,ib)*PAW%Kop(i,ic)
+      dum(i)=(PAW%eig(ic)-PAW%AErefrv(i)/Grid%r(i))*PAW%ophi(i,ib)*PAW%ophi(i,ic)
+!     dum(i)=PAW%ophi(i,ib)*PAW%Kop(i,ic)
     ENDDO
     CALL derivative(Grid,PAW%otphi(:,ic),tdel1)
     CALL derivative(Grid,tdel1,tdel2)
+    aux=1.d0;auxp=0.d0
+    if(needvtau) then
+       aux=1.d0+PAW%tvtau
+       call derivative(Grid,PAW%tvtau,auxp)     
+    endif
     angm=l*(l+1)
     DO i=2,irc
-       dum(i)=dum(i)+PAW%otphi(i,ib)*(tdel2(i)-&
-&           angm*PAW%otphi(i,ic)/(Grid%r(i)**2))
+       dum(i)=dum(i)+PAW%otphi(i,ib)*(aux(i)*(tdel2(i)-&
+&           angm*PAW%otphi(i,ic)/(Grid%r(i)**2))+auxp(i)*&
+&           (tdel1(i)-PAW%otphi(i,ic)/Grid%r(i)))
     ENDDO
     tij=integrator(Grid,dum,1,irc)
 
-    DEALLOCATE(dum,tdel1,tdel2)
+    DEALLOCATE(dum,tdel1,tdel2,aux,auxp)
   END SUBROUTINE altdtij
 
   SUBROUTINE dvij(Grid,PAW,FC,nz,ib,ic,vij)
@@ -1194,7 +1208,8 @@ CONTAINS
 
 !   Calculate atomic energy from PAW matrix elements
     PAW%tkin=0; PAW%tion=0; PAW%tvale=0;PAW%txc=0;PAW%Ea=0
-    PAW%Etotal=0;PAW%Eaxc=0;PAW%den=0; PAW%tden=0
+    PAW%Etotal=0;PAW%Eaxc=0;PAW%den=0; PAW%tden=0; PAW%valetau=0
+    PAW%tvaletau=0
     norbit=PAW%TOCCWFN%norbit
     DO io=1,norbit
       if (.NOT.PAW%TOCCWFN%iscore(io)) then
@@ -1203,6 +1218,12 @@ CONTAINS
          PAW%tkin=PAW%tkin+occ*x
          PAW%den=PAW%den+occ*(PAW%OCCWFN%wfn(:,io))**2
          PAW%tden=PAW%tden+occ*(PAW%TOCCWFN%wfn(:,io))**2
+         CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &
+&                       PAW%OCCwfn%l(io),d)
+         CALL taufromwfn(Grid,PAW%TOCCwfn%wfn(:,io), &
+&                       PAW%OCCwfn%l(io),td)
+         PAW%valetau=PAW%valetau+occ*d
+         PAW%tvaletau=PAW%tvaletau+occ*td
       endif   
     ENDDO
     write(std_out,*) 'smooth kinetic ', PAW%tkin
@@ -1227,7 +1248,8 @@ CONTAINS
       write(std_out,*) 'Warning: does not include core contributions'
     ELSE
       arg=PAW%tden+PAW%tcore
-         CALL exch(Grid,arg,dum,y,x)
+      td=PAW%tcoretau+PAW%tvaletau
+      CALL exch(Grid,arg,dum,y,x,tau=td,vtau=d)
     ENDIF
     write(std_out,*) 'Smooth exchange-correlation contribution ', x
     PAW%txc=x   ; PAW%tvale=PAW%tvale+PAW%txc
@@ -1248,7 +1270,7 @@ CONTAINS
     
     do ib=1,nbase
       do jb=1,nbase
-        PAW%wij(lb,jb)=wij(ib,jb)
+        PAW%wij(ib,jb)=wij(ib,jb)
       enddo
     enddo
     DO ib=1,nbase
@@ -1277,11 +1299,13 @@ CONTAINS
       PAW%Ea=PAW%Ea+x; PAW%Eaxc=x
     ELSE
       arg=PAW%tden+PAW%tcore
+      td=PAW%tcoretau+PAW%tvaletau
       !CALL exch(Grid,arg(1:irc),dum(1:irc),y,x,fin=irc)
-         CALL exch(Grid,arg,dum,y,x)
+         CALL exch(Grid,arg,dum,y,x,tau=td,vtau=d)
       arg=PAW%den+FC%coreden
+      td=PAW%coretau+PAW%valetau
       !CALL exch(Grid,arg(1:irc),dum(1:irc),y,z,fin=irc)
-         CALL exch(Grid,arg,dum,y,z)
+         CALL exch(Grid,arg,dum,y,z,tau=td,vtau=d)
       write(std_out,*) ' one center xc ', z,x,z-x
       PAW%Ea=PAW%Ea+z-x; PAW%Eaxc=z-x
     ENDIF

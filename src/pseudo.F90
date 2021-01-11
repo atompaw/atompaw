@@ -9,7 +9,8 @@
 !        logderiv, FindVlocfromVeff, SCFPAW, PAWIter_LDA, exploreparms,
 !        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
 !        Check_overlap_of_projectors
-!        smoothcore, settau
+!        smoothcore, smoothtau, setttau , calculate_tvtau
+!        resettcore
 !
 ! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -32,6 +33,7 @@ MODULE pseudo
   USE pseudodata
   USE pseudo_sub
   USE radialDirac
+  USE radialked
   USE radialsr
   USE input_dataset_mod
 
@@ -45,9 +47,9 @@ MODULE pseudo
   INTEGER,PRIVATE,PARAMETER :: VANDERBILTORTHO=0, GRAMSCHMIDTORTHO=1
   INTEGER,PRIVATE,PARAMETER :: SVDORTHO=2
   INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3, KERKER_E=4, KERKER_P=5
-  INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=4, SETVLOC=5
+  INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=6, SETVLOC=7, VPSMATCHNC=8, VPSMATCHNNC=9
 
-  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12
+  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12, gausstol=1.d-4
   INTEGER, PRIVATE :: coretailpoints=-1,besselopt=-1
   INTEGER, PRIVATE :: Projectorindex=-1,PSindex=-1,Orthoindex=-1,Vlocalindex=-1
   REAL(8), PRIVATE :: gaussparam=-1
@@ -135,6 +137,7 @@ CONTAINS
    IF (input_dataset%ortho_type==ORTHO_TYPE_HF) Orthoindex=-13
 
    write(PAW%Proj_description,'("Projector type:")')
+
    if (PSindex==BLOECHLPS) then
     write(PAW%Proj_description,'(a," Bloechl")') trim(PAW%Proj_description)
    else if (Projectorindex==MODRRKJ) then
@@ -198,6 +201,13 @@ CONTAINS
      endif
    endif
 
+   !Smooth core shape
+   shapetcore=input_dataset%shapetcore
+   if (shapetcore) then
+     write(std_out,*) 'Resetting tcore with shapetcore'
+     call resettcore(Grid,PAW)
+   endif
+
    !Core tolerance for HF (from input dataset)
    PAW%coretol=MAX(input_dataset%hf_coretol,0.d0)
    if (Projectorindex==HFPROJ) write(std_out,*) 'Resetting coretol to ', PAW%coretol
@@ -205,13 +215,16 @@ CONTAINS
    !Vlocal parameters (from input dataset)
    pdeg=input_dataset%pseudo_polynom2_pdeg
    qcut=input_dataset%pseudo_polynom2_qcut
-   IF (input_dataset%vloc_type==VLOC_TYPE_MTROULLIER) Vlocalindex=MTROULLIER
-   IF (input_dataset%vloc_type==VLOC_TYPE_ULTRASOFT) Vlocalindex=ULTRASOFT
-   IF (input_dataset%vloc_type==VLOC_TYPE_BESSEL) Vlocalindex=BESSEL
-   IF (input_dataset%vloc_type==VLOC_TYPE_SETVLOC) Vlocalindex=SETVLOC
+   IF (input_dataset%vloc_type==VLOC_TYPE_MTROULLIER)  Vlocalindex=MTROULLIER
+   IF (input_dataset%vloc_type==VLOC_TYPE_ULTRASOFT)   Vlocalindex=ULTRASOFT
+   IF (input_dataset%vloc_type==VLOC_TYPE_BESSEL)      Vlocalindex=BESSEL
+   IF (input_dataset%vloc_type==VLOC_TYPE_VPSMATCHNC)  Vlocalindex=VPSMATCHNC
+   IF (input_dataset%vloc_type==VLOC_TYPE_VPSMATCHNNC) Vlocalindex=VPSMATCHNNC
+   IF (input_dataset%vloc_type==VLOC_TYPE_SETVLOC)     Vlocalindex=SETVLOC
    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) Vlocalindex=KERKER_E
    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_POLY) Vlocalindex=KERKER_P
 
+   !Store the description of Vloc scheme in a string
    if (Vlocalindex==MTROULLIER) then
      l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
      WRITE(PAW%Vloc_description,&
@@ -221,6 +234,16 @@ CONTAINS
      l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
      WRITE(PAW%Vloc_description,&
 &      '("Vloc: Non norm-conserving form with l= ",i1,";e= ",1p,1e12.4)')l,e
+   endif
+   if (Vlocalindex==VPSMATCHNC) then
+     l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+     WRITE(PAW%Vloc_description,&
+&      '("Vloc: VPS match (norm-conservation) with l= ",i1,";e= ",1p,1e12.4)')l,e
+   endif
+   if (Vlocalindex==VPSMATCHNNC) then
+     l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+     WRITE(PAW%Vloc_description,&
+&      '("Vloc: VPS match (without norm-conservation) with l= ",i1,";e= ",1p,1e12.4)')l,e
    endif
    if (Vlocalindex==BESSEL) then
      WRITE(PAW%Vloc_description,&
@@ -250,35 +273,75 @@ CONTAINS
 
    WRITE(STD_OUT,*) PAW%Vloc_description
 
-   IF (Vlocalindex==MTROULLIER.and.Projectorindex/=HFPROJ) &
-&    CALL troullier(Grid,Pot,PAW,l,e)
-   IF (Vlocalindex==MTROULLIER.and.Projectorindex==HFPROJ) then
-     CALL make_hf_basis_only(Grid,Pot,PAW)
-     CALL troullier_HF(Grid,Pot,PAW,l,e)
-   ENDIF
-   IF (Vlocalindex==ULTRASOFT) CALL nonncps(Grid,Pot,PAW,l,e)
-   IF (Vlocalindex==BESSEL) CALL besselps(Grid,Pot,PAW)
-   IF (Vlocalindex==KERKER_E.or.Vlocalindex==KERKER_P) CALL kerker(Grid,Pot,PAW)
-  !! Note: if SETVLOC only HF or VANDERBILT schemes work
-   IF (Projectorindex==BLOECHL) THEN
-     CALL makebasis_bloechl(Grid,Pot,0)
-   ELSE IF (Projectorindex==CUSTOM.AND.PSindex==BLOECHLPS) THEN
-     CALL makebasis_bloechl(Grid,Pot,1)
-   ELSE IF (Projectorindex==VANDERBILT.OR.Projectorindex==CUSTOM) THEN
-     if (Vlocalindex==SETVLOC) then
-        Call makebasis_V_setvloc(Grid,Pot,PAW)
-     else
-        CALL makebasis_custom(Grid,Pot,PSindex,Orthoindex,pdeg,qcut)
-     endif
-   ELSE IF (Projectorindex==HFPROJ) THEN
-     CALL make_hf_tp_only(Grid,Pot,PAW)
-   ELSE IF (Projectorindex==MODRRKJ) THEN
-     CALL makebasis_modrrkj(Grid,Pot,Orthoindex,success)
+   !Call the routine computing Vloc - Not mGGA
+   IF (.NOT.needvtau) THEN
+	 IF (Vlocalindex==MTROULLIER.and.Projectorindex/=HFPROJ) THEN
+       CALL troullier(Grid,Pot,PAW,l,e)
+     ENDIF
+	 IF (Vlocalindex==MTROULLIER.and.Projectorindex==HFPROJ) THEN
+	   CALL make_hf_basis_only(Grid,Pot,PAW)
+	   CALL troullier_HF(Grid,Pot,PAW,l,e)
+	 ENDIF
+	 IF (Vlocalindex==ULTRASOFT) CALL nonncps(Grid,Pot,PAW,l,e)
+	 IF (Vlocalindex==BESSEL) CALL besselps(Grid,Pot,PAW)
+	 IF (Vlocalindex==VPSMATCHNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
+	 IF (Vlocalindex==VPSMATCHNNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.false.)
+	 IF (Vlocalindex==KERKER_E.or.Vlocalindex==KERKER_P) CALL kerker(Grid,Pot,PAW)
+	 IF (Projectorindex==BLOECHL) THEN
+	   CALL makebasis_bloechl(Grid,Pot,0)
+	 ELSE IF (Projectorindex==CUSTOM.AND.PSindex==BLOECHLPS) THEN
+	   CALL makebasis_bloechl(Grid,Pot,1)
+	 ELSE IF (Projectorindex==VANDERBILT.OR.Projectorindex==CUSTOM) THEN
+	   !! Note: if SETVLOC only HF or VANDERBILT schemes work
+	   if (Vlocalindex==SETVLOC) then
+		  Call makebasis_V_setvloc(Grid,Pot,PAW)
+	   else
+		  CALL makebasis_custom(Grid,Pot,PSindex,Orthoindex,pdeg,qcut)
+	   endif
+	 ELSE IF (Projectorindex==HARTREE_FOCK) THEN
+	  CALL make_hf_tp_only(Grid,Pot,PAW)
+	 ELSE IF (Projectorindex==MODRRKJ) THEN
+	  CALL makebasis_modrrkj(Grid,Pot,Orthoindex,success)
+	 ENDIF
    ENDIF
 
+   !Call the routine computing Vloc - mGGA case
+   IF (needvtau) THEN
+     !All compatibility checks in input_dataset_read routine
+     WRITE(STD_OUT,*) 'Sequence of dataset construction modified for MGGA'      
+     WRITE(STD_OUT,*) ' Not all possibilites tested carefully yet.... '
+     WRITE(STD_OUT,*) ' Some possibilites not yet programmed.... '
+     !Build basis
+     IF (Projectorindex==VANDERBILT.OR.Projectorindex==CUSTOM) THEN
+       CALL makebasis_custom_vtau1(Grid,Pot,PSindex,Orthoindex,pdeg,qcut)
+     ELSE IF (Projectorindex==MODRRKJ) THEN
+      CALL makebasis_modrrkj_vtau1(Grid,Pot,Orthoindex,success)
+     ENDIF
+     !Calculate PAW%vtau and PAW%tvtau     
+     CALL calculate_tvtau(Grid)
+     !Set pseudoptentials     
+     IF (Vlocalindex==MTROULLIER.and.(TRIM(Orbit%exctype)/='HF')) then
+       WRITE(STD_OUT,*) 'TROULLIER PS not available for MGGA '
+       WRITE(STD_OUT,*) ' calling VPSmatch with norm conservation instead '     
+       CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
+     ENDIF         
+     IF (Vlocalindex==VPSMATCHNNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.false.)
+     IF (Vlocalindex==VPSMATCHNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
+     IF (Vlocalindex==ULTRASOFT) CALL nonncps(Grid,Pot,PAW,l,e)
+     IF (Vlocalindex==BESSEL) CALL besselps(Grid,Pot,PAW)
+     !Calculate projectors
+     CALL makeprojectors_vtau(Grid)
+   ENDIF
+
+   !Output in summary file
+   IF (needvtau) THEN
+     WRITE(ifen,*) 'Sequence of dataset construction steps modified for mGGA'      
+     WRITE(ifen,*) 'Only projectors from Vanderbilt scheme available'
+   ENDIF
    WRITE(ifen,*) TRIM(PAW%Vloc_description)
    WRITE(ifen,*) TRIM(PAW%Proj_description)
    WRITE(ifen,*) TRIM(PAW%Comp_description)
+   if (shapetcore) WRITE(ifen,*) 'tcore reset with hatshape form'
 
    CALL StoreTOCCWFN(PAW)
 
@@ -319,7 +382,7 @@ CONTAINS
     INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
     INTEGER, PARAMETER :: niter=5000
     REAL(8), PARAMETER :: small=1.0d-9
-    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:)
+    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:)
     REAL(8), POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
 
@@ -331,7 +394,7 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
        STOP
@@ -341,6 +404,8 @@ CONTAINS
     !call flush_unit(std_out)
     if (scalarrelativistic) then
        CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+    else if (needvtau) then
+       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
     else
        CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
     endif
@@ -389,6 +454,10 @@ CONTAINS
     WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
     !
     ! Now  calculate VNC
+    if (needvtau) then
+       aux=0.d0
+       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    endif     
     OPEN(88,file='NC',form='formatted')
     !
     VNC=0
@@ -410,8 +479,13 @@ CONTAINS
           WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
           WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
        ENDIF
-       VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
-       dum(i)=(r(i)**(l+1))*EXP(p(i))
+       if (needvtau) then
+               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
+&                +aux(i)*(dpp+l/r(i))                       
+       else        
+               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+       endif
+               dum(i)=(r(i)**(l+1))*EXP(p(i))
        WRITE(88,'(1p,5e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i)
     ENDDO
     CLOSE(88)
@@ -421,7 +495,7 @@ CONTAINS
     VNC(irc:n)=rv(irc:n)/r(irc:n)
     PAW%rveff(1:n)=VNC(1:n)*r(1:n)
 
-    DEALLOCATE(VNC,wfn,p,dum)
+    DEALLOCATE(VNC,wfn,p,dum,aux)
   END SUBROUTINE troullier
 
   !***************************************************************
@@ -432,6 +506,8 @@ CONTAINS
   !          are input powers
   !    Psi(r) = r^(l+1)*exp(p(r)) if PStype = EXPF
   !    Psi(r) = r^(l+1)*(p(r))    if PStype = POLY
+  !    Note that this subroutine may not be called in this
+  !      version of ATOMPAW ...
   !***************************************************************
   SUBROUTINE kerker(Grid,Pot,PAW)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -447,7 +523,7 @@ CONTAINS
     INTEGER, PARAMETER :: niter=5000
     REAL(8), PARAMETER :: small=1.0d-12
     CHARACTER(10) :: vtype
-    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:)
+    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:)
     REAL(8), POINTER :: r(:),rv(:)
 
     !Read data from input dataset
@@ -464,7 +540,7 @@ CONTAINS
     nr=min(PAW%irc_vloc+10,n)
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
-    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
        STOP
@@ -472,6 +548,8 @@ CONTAINS
 
     if (scalarrelativistic) then
        CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+    else if (needvtau) then
+       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
     else
        CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
     endif
@@ -542,6 +620,10 @@ CONTAINS
       WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:4)
       !
       ! Now  calculate VNC
+    if (needvtau) then
+       aux=0.d0
+       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    endif     
       OPEN(88,file='NC',form='formatted')
       !
       VNC=0
@@ -565,11 +647,21 @@ CONTAINS
             WRITE(STD_OUT,*) 'check dddp', dddpp,  D/rc**3
          ENDIF
          IF (wavetype==EXPF) THEN
-            VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+           if (needvtau) then
+               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
+&                +aux(i)*(dpp+l/r(i))                       
+           else        
+               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+           endif
             dum(i)=(r(i)**(l+1))*EXP(p(i))
          ENDIF
          IF (wavetype==POLY) THEN
-            VNC(i)=e+(ddpp+2*(l+1)*dpp/r(i))/p(i)
+           if (needvtau) then
+               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+2*(l+1)*dpp/r(i))/p(i) &
+&                +aux(i)*(dpp/p(i)+l/r(i))                       
+           else        
+               VNC(i)=e+(ddpp+2*(l+1)*dpp/r(i))/p(i)
+           endif
             dum(i)=(r(i)**(l+1))*(p(i))
          ENDIF
          WRITE(88,'(1p,5e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i)
@@ -581,8 +673,218 @@ CONTAINS
       VNC(irc:n)=rv(irc:n)/r(irc:n)
       PAW%rveff(1:n)=VNC(1:n)*r(1:n)
 
-      DEALLOCATE(VNC,wfn,p,dum)
+      DEALLOCATE(VNC,wfn,p,dum,aux)
     END SUBROUTINE kerker
+ 
+
+  !***************************************************************
+  ! SUBROUTINE VPSmatch(lmax,Grid,Pot,NC)
+  !  Creates  screened norm-conserving pseudopotential similar to the
+  !    approach of N. Troullier and J. L. Martins, PRB 43, 1993 (1991)
+  !    Uses p(r)=a0+f(r); f(r)=SUMm(Coef(m)*r^(2*m), where
+  !          m=1,2..6
+  !    Psi(r) = r^(l+1)*exp(p(r))
+  !    Modified for MGGA case and norm conserving condition is optional
+  !    norm conservation controlled with optional variable NC
+  !      defaults to no norm conservation
+  !  Note this program assumes that wfn keeps the same sign for
+  !    all matching points r(irc-match+1)....r(irc)
+  !***************************************************************
+  SUBROUTINE VPSmatch(Grid,Pot,PAW,l,e,NC)
+    TYPE(Gridinfo), INTENT(IN) :: Grid
+    TYPE(Potentialinfo), INTENT(IN) :: Pot
+    TYPE(Pseudoinfo), INTENT(INOUT) ::  PAW
+    INTEGER,INTENT(IN) :: l
+    REAL(8),INTENT(IN) :: e
+    LOGICAL,INTENT(IN), OPTIONAL :: NC
+
+    REAL(8), ALLOCATABLE :: VNC(:)
+    REAL(8) :: A0,A,B,B0,C,C0,D,F,S
+    REAL(8) :: Coef(6),Coef0,Coef0old
+    REAL(8) :: h,rc,delta,x
+    REAL(8) :: gam,bet
+    INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
+    INTEGER, parameter :: match=6
+    REAL(8) :: AAA(match,match),BBB(match)
+    REAL(8) :: AAAA(match-1,match-1),BBBB(match-1)
+    INTEGER, PARAMETER :: niter=5000
+    REAL(8), PARAMETER :: small=1.0d-9
+    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),dp(:),ddp(:)
+    REAL(8), POINTER :: r(:),rv(:)
+    CHARACTER(132) :: line
+    LOGICAL :: normcons
+
+    normcons=.false.
+    if(PRESENT(NC)) normcons=NC
+
+    write(std_out,*) 'Entering VPSmatch with normcons ', normcons
+
+    n=Grid%n
+    h=Grid%h
+    r=>Grid%r
+    rv=>Pot%rv
+    nr=min(PAW%irc_vloc+10,n)
+    irc=PAW%irc_vloc
+    rc=PAW%rc_vloc
+
+    ALLOCATE(VNC(n),wfn(n),p(n),dum(n),aux(n),dp(n),ddp(n),stat=ok)
+    IF (ok /=0) THEN
+       WRITE(std_out,*) 'Error in VPSmatch  -- in allocating wfn,p', n,ok
+       STOP
+    ENDIF
+
+    wfn=0
+    !write(std_out,*) ' VPSmatch ', n,nr,irc,match
+    !call flush_unit(std_out)
+    if (scalarrelativistic) then
+       CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+    else if (needvtau) then
+       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
+    else
+       CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
+    endif
+
+    IF (wfn(irc)<0) wfn=-wfn
+
+!  first solve non-norm conserving results
+
+    AAA=0;BBB=0
+    Do i=1,match
+       x=r(irc-match+i)
+       BBB(i)=log(wfn(irc-match+i)/(x**(l+1)))
+       do j=1,match
+          AAA(i,j)=x**(2*(j-1))
+       enddo
+    Enddo
+
+    CALL  SolveAXeqB(match,AAA,BBB,1.d20)
+
+    write(std_out,*) 'Returned from SolveAXeqB in VPSmatch with Coefficients '
+    write(std_out,'(1p,50e16.7)') (BBB(i),i=1,match)
+    ! Now  calculate VNC
+    if (needvtau) then
+       aux=0.d0
+       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    endif     
+    OPEN(88,file='NNC',form='formatted')
+    !
+    VNC=0;p=0;dp=0;ddp=0;dum=0
+!specific for match=6
+    DO  i=2,nr
+       x=(r(i))**2
+       p(i)=BBB(1)+x*(BBB(2)+x*(BBB(3)+x*(BBB(4)+x*(BBB(5)+x*BBB(6)))))
+       dp(i)=2*r(i)*(BBB(2)+x*(2*BBB(3)+x*(3*BBB(4)+x*(4*BBB(5)+5*x*BBB(6)))))
+       ddp(i)=2*(BBB(2)+x*(6*BBB(3)+x*(15*BBB(4)+x*(28*BBB(5)+45*x*BBB(6)))))
+       if (needvtau) then
+               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
+&                dp(i)*(dp(i)+2*(l+1)/r(i))) &
+&                +aux(i)*(dp(i)+l/r(i))                       
+       else        
+               VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
+       endif
+               dum(i)=(r(i)**(l+1))*EXP(p(i))
+    ENDDO
+ 
+    S=overlap(Grid,wfn(1:irc),wfn(1:irc),1,irc)
+    C0=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+    WRITE(STD_OUT,*) 'check norm ',C0,S
+
+    VNC(irc:n)=rv(irc:n)/r(irc:n)
+    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+
+    DO  i=1,n
+       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),rv(i)
+    ENDDO
+    CLOSE(88)
+    
+    write(std_out,*) 'Completed non-norm-conserving PS '
+
+   if(.not.normcons) return
+
+!  Iterate to find norm conserving results
+
+    C0=C0/(EXP(2*BBB(1)))
+    delta=1.d10
+    iter=0
+    Coef0=0.5d0*log(S/C0)
+
+    DO WHILE(delta>small.AND.iter<=niter)
+       Coef0old=Coef0
+       iter=iter+1
+       AAAA=0;BBBB=0
+       Do i=1,match-1
+          x=r(irc-match+1+i)
+          BBBB(i)=log(wfn(irc-match+1+i)/(x**(l+1)))-Coef0old
+          do j=1,match-1
+             AAAA(i,j)=x**(2*(j))
+          enddo
+       Enddo
+
+       CALL  SolveAXeqB(match-1,AAAA,BBBB,1.d20)
+
+       write(std_out,*) 'Returned from SolveAXeqB in VPSmatch with Coefficients '
+       write(std_out,'(1p,50e16.7)') (BBBB(i),i=1,match-1)
+
+       !specific for match-1=5
+           p=0;dum=0
+           DO  i=2,nr
+              x=(r(i))**2
+              p(i)=x*(BBBB(1)+x*(BBBB(2)+x*(BBBB(3)+x*(BBBB(4)+x*BBBB(5)))))
+              dum(i)=(r(i)**(l+1))*EXP(Coef0+p(i))
+           ENDDO
+           C0=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+           WRITE(std_out,*) 'check norm ',C0,S
+           Coef0=0.5d0*log(S/C0)
+       delta=ABS(Coef0-Coef0old)
+       WRITE(std_out,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+    ENDDO
+    WRITE(std_out,*) '  VNC converged in ', iter,'  iterations'
+    WRITE(std_out,*) '  Coefficients  -- ', Coef0,BBBB(1:match-1)
+    !
+    ! Now  calculate VNC
+    if (needvtau) then
+       aux=0.d0
+       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    endif     
+    OPEN(88,file='NC',form='formatted')
+    !
+    VNC=0;p=0;dp=0;ddp=0
+    
+    DO  i=2,nr
+       x=(r(i))**2
+       p(i)=x*(BBBB(1)+x*(BBBB(2)+x*(BBBB(3)+x*(BBBB(4)+x*BBBB(5)))))
+       dp(i)=2*r(i)*(BBBB(1)+x*(2*BBBB(2)+x*(3*BBBB(3)+x*(4*BBBB(4)+5*x*BBBB(5)))))
+       ddp(i)=2*(BBBB(1)+x*(6*BBBB(2)+x*(15*BBBB(3)+x*(28*BBBB(4)+45*x*BBBB(5)))))
+       if (needvtau) then
+               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
+&                dp(i)*(dp(i)+2*(l+1)/r(i))) &
+&                +aux(i)*(dp(i)+l/r(i))                       
+       else        
+               VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
+       endif
+               dum(i)=(r(i)**(l+1))*EXP(Coef0+p(i))
+    ENDDO
+ 
+    C0=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+    WRITE(std_out,*) 'check norm ',C0,S
+
+    VNC(irc:n)=rv(irc:n)/r(irc:n)
+    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+
+    DO  i=1,n
+       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),rv(i)
+    ENDDO
+    CLOSE(88)
+    
+    write(std_out,*) 'Completed norm-conserving PS '
+
+    if (iter.ge.niter) then
+         write(std_out,*) 'Failed to converged norm-conserving VPS '
+         stop
+    endif     
+    DEALLOCATE(VNC,wfn,p,dp,ddp,dum,aux)
+  END SUBROUTINE VPSmatch
+
 
   !***************************************************************
   ! SUBROUTINE nonncps(lmax,Grid,Pot)
@@ -601,7 +903,7 @@ CONTAINS
     INTEGER :: i,irc,n,nr,ok,nodes,i1,i2,i3,i4
     REAL(8) :: rc,x,y1,y2,y3,p0,p1,p2,p3,sgn
     REAL(8) :: b(4),c(4),d(4),amat(4,4)
-    REAL(8),ALLOCATABLE ::  VNC(:),wfn(:)
+    REAL(8),ALLOCATABLE ::  VNC(:),wfn(:),aux(:)
     REAL(8),POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
 
@@ -618,11 +920,13 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),aux(nr),stat=ok)
     IF (ok/=0) stop 'Error in uspseudo -- allocating arrays'
 
     if (scalarrelativistic) then
        CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+    else if (needvtau) then
+       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
     else
        CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
     endif
@@ -667,15 +971,32 @@ CONTAINS
     !write(std_out,*) 'Completed linsol with coefficients'
     !write(std_out,'(1p,10e15.7)') (b(i),i=1,4)
 
+    if (needvtau) then
+       aux=0.d0
+       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    endif     
+
     PAW%rveff(1)=0.d0
     DO i=2,irc-1
      c(1)=2.0d0*b(2)*r(i)+ 4.0d0*b(3)*r(i)**3+ 6.0d0*b(4)*r(i)**5
      c(2)=2.0d0*b(2)     +12.0d0*b(3)*r(i)**2+30.0d0*b(4)*r(i)**4
-     PAW%rveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
+     if (needvtau) then
+        PAW%rveff(i)=r(i)*(e+(dble(2*l+2)*c(1)/r(i)+c(1)**2+&
+&           c(2))*(1.d0+PAW%tvtau(i))+aux(i)*(c(1)+dble(l)/r(i)))
+     else        
+        PAW%rveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
+     endif
     ENDDO
     PAW%rveff(irc:n)=rv(irc:n)
 
-    DEALLOCATE(VNC,wfn)
+
+    open(88,file='NNC',form='formatted')
+    do i=1,n
+       write(88,'(1p,50e16.7)') r(i),PAW%rveff(i),rv(i)
+    enddo
+    close(88)   
+
+    DEALLOCATE(VNC,wfn,aux)
 
   END SUBROUTINE nonncps
 
@@ -813,65 +1134,6 @@ CONTAINS
 
     END SUBROUTINE coretailselfenergy
 
-
-!    SUBROUTINE setcoretail(Grid,coreden)
-!      TYPE(GridInfo), INTENT(IN) :: Grid
-!      REAL(8), INTENT(IN) :: coreden(:)
-!
-!      REAL(8) :: rc,h,x,y,z,u0,u2,u4
-!      REAL(8), allocatable :: d1(:),d2(:)
-!      INTEGER :: i,j,k,n,irc
-!
-!      n=Grid%n
-!      h=Grid%h
-!      irc=PAW%irc_core
-!      rc=PAW%rc_core
-!
-!      allocate(d1(n),d2(n),stat=i)
-!          if (i /= 0) then
-!             write(std_out,*) 'setcoretail: allocation error -- ', n,i
-!             stop
-!          endif
-!      CALL derivative(Grid,coreden,d1)
-!      CALL derivative(Grid,d1,d2)
-!
-!      x=coreden(irc)
-!      y=d1(irc)*rc
-!      z=d2(irc)*(rc*rc)
-!      write(std_out,*) 'setcoretail: x,y,z = ', x,y,z
-!
-!      u0=3*x - 9*y/8 + z/8
-!      u2=-3*x + 7*y/4 - z/4
-!      u4=x - 5*y/8 + z/8
-!
-!      write(std_out,*) 'setcoretail: u0,u2,u4 = ', u0,u2,u4
-!
-!      PAW%core=coreden
-!      PAW%tcore=coreden
-!
-!      do i=1,irc
-!         x=(Grid%r(i)/rc)**2
-!         PAW%tcore(i)= x*(u0+x*(u2+x*u4))
-!      enddo
-!
-!  ! Find coretailpoints
-!     z = integrator(Grid,coreden)
-!
-!     coretailpoints=PAW%irc+Grid%ishift    !! coretailpoints should be>=PAW%irc
-!        do i=PAW%irc+Grid%ishift,n
-!           if(ABS(z-integrator(Grid,coreden,1,i))<coretailtol) then
-!             coretailpoints=i
-!             exit
-!           endif
-!        enddo
-!     write(std_out,*) 'coretailpoints = ',coretailpoints
-!     PAW%coretailpoints=coretailpoints
-!
-!      deallocate(d1,d2)
-!
-!    END SUBROUTINE setcoretail
-
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! SUBROUTINE smoothcore
 !    program to take array orig (all electron den or tau
@@ -886,11 +1148,13 @@ CONTAINS
       REAL(8) :: rc,h,x,y,z,u0,u2,u4
       REAL(8), allocatable :: d1(:),d2(:)
       INTEGER :: i,j,k,n,irc
+      INTEGER :: counter=0
 
       n=Grid%n
       h=Grid%h
       irc=PAW%irc_core
       rc=PAW%rc_core
+      write(std_out,*) 'In smoothcore ', irc,rc
 
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
@@ -917,9 +1181,125 @@ CONTAINS
          smooth(i)= x*(u0+x*(u2+x*u4))
       enddo
 
+         open(1001,file='smoothcore',form='formatted')
+         do i=1,Grid%n
+          write(1001,'(1p,50e15.7)') Grid%r(i), orig(i),smooth(i)
+         enddo  
+         close(1001)  
+
       deallocate(d1,d2)
   END SUBROUTINE smoothcore
 
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! SUBROUTINE smoothtau
+!    program to take array orig (all electron) coretau
+!        and return smooth polynomial function for 0 \le r \le rc_core
+!        similar to smoothcore, but using r**4 as leading term
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    SUBROUTINE smoothtau(Grid,orig,smooth)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      REAL(8), INTENT(IN) :: orig(:)
+      REAL(8), INTENT(INOUT) :: smooth(:)
+
+      REAL(8) :: rc,h,x,y,z,u0,u2,u4
+      REAL(8), allocatable :: d1(:),d2(:)
+      INTEGER :: i,j,k,n,irc
+      INTEGER :: counter=0
+
+      n=Grid%n
+      h=Grid%h
+      irc=PAW%irc_core
+      rc=PAW%rc_core
+      write(std_out,*) 'In smoothtau ', irc,rc
+
+      allocate(d1(n),d2(n),stat=i)
+          if (i /= 0) then
+             write(std_out,*) 'smoothtau: allocation error -- ', n,i
+             stop
+          endif
+      CALL derivative(Grid,orig,d1)
+      CALL derivative(Grid,d1,d2)
+
+      x=orig(irc)
+      y=d1(irc)*rc
+      z=d2(irc)*(rc*rc)
+      write(std_out,*) 'smoothtau: x,y,z = ', x,y,z
+
+      u0=6*x - 13*y/8 + z/8
+      u2=-8*x + 11*y/4 - z/4
+      u4=3*x - 9*y/8 + z/8
+
+      write(std_out,*) 'smoothtau: u0,u2,u4 = ', u0,u2,u4
+
+      smooth=orig
+      do i=1,irc
+         x=(Grid%r(i)/rc)**2
+         y=x*x
+         smooth(i)= y*(u0+x*(u2+x*u4))
+      enddo
+
+         open(1001,file='smoothtau',form='formatted')
+         do i=1,Grid%n
+          write(1001,'(1p,50e15.7)') Grid%r(i), orig(i),smooth(i)
+         enddo  
+         close(1001)  
+
+      deallocate(d1,d2)
+  END SUBROUTINE smoothtau
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+! SUBROUTINE smoothpower
+!    program to take array orig (all electron tau or den)
+!        and return smooth polynomial function for 0 \le r \le rc_core
+!        matching 4 points less than and equal to rc_core
+!          power could be 2 or 4, representing the leading power
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    SUBROUTINE smoothpower(Grid,power,orig,smooth)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      INTEGER, INTENT(IN) :: power
+      REAL(8), INTENT(IN) :: orig(:)
+      REAL(8), INTENT(INOUT) :: smooth(:)
+
+      INTEGER, parameter :: terms=5
+      REAL(8) :: rc,h,x,y,z,u0,u2,u4
+      REAL(8) :: aa(terms,terms),Ci(terms)
+      INTEGER :: i,j,k,n,irc,many
+
+      n=Grid%n
+      h=Grid%h
+      irc=PAW%irc_core
+      rc=Grid%r(irc)
+      write(std_out,*) 'smoothpower -- ', power,irc,rc
+
+      aa=0; Ci=0
+      do i=1,terms
+         x=Grid%r(irc-terms+i)
+         Ci(i)=orig(irc-terms+i)/x**power
+         do j=1,terms
+            aa(i,j)=x**(2*(j-1))
+         enddo   
+      enddo
+      call SolveAXeqBM(terms,aa,Ci,terms-1)
+         write(std_out,*) 'Completed SolveAXeqB with coefficients'
+         write(std_out,'(1p,10e15.7)') (Ci(i),i=1,terms)
+      smooth=orig
+      do i=1,irc-1
+         smooth(i)=0
+         x=Grid%r(i)
+         do j=1,terms
+            smooth(i)=smooth(i)+Ci(j)*(x**(power+2*(j-1)))
+         enddo
+      enddo
+
+      if (power==2) open(1001,file='smoothcoreden',form='formatted')
+      if (power==4) open(1001,file='smoothcoretau',form='formatted')
+      do i=1,n
+        write(1001,'(1p,50e16.7)') Grid%r(i),orig(i),smooth(i)
+      enddo   
+      close(1001)
+
+  END SUBROUTINE smoothpower
 
     SUBROUTINE setcoretail(Grid,coreden)
       TYPE(GridInfo), INTENT(IN) :: Grid
@@ -933,7 +1313,8 @@ CONTAINS
       irc=PAW%irc_core
       rc=PAW%rc_core
 
-      CALL smoothcore(Grid,coreden,PAW%tcore) 
+      !CALL smoothcore(Grid,coreden,PAW%tcore) 
+      CALL smoothpower(Grid,2,coreden,PAW%tcore) 
 
       PAW%core=coreden
 
@@ -951,6 +1332,61 @@ CONTAINS
      PAW%coretailpoints=coretailpoints
 
     END SUBROUTINE setcoretail
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  resettcore(Grid,PAW)
+!     This routine attempts to construct tcore so that it is likely
+!      to cancel a negative compensation charge for the purpose of
+!      dealing with Kresse exchange-correlation form
+!     Performs the matching between irc_core and irc_shape, checking
+!      to make sure that tcore is positive.   Stops if no positive
+!      tcore is found
+!  Note: assumes that PAW_irc_core<=irc_shape
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    SUBROUTINE resettcore(Grid,PAW)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+      
+      REAL(8), allocatable :: d(:),g(:)
+      REAL(8) :: denrc,ddenrc,shaperc,dshaperc
+      INTEGER :: i,j
+      LOGICAL :: ok
+
+      allocate(d(Grid%n),g(Grid%n))
+      call derivative(Grid,PAW%core,d)      
+      call derivative(Grid,PAW%hatden,g)      
+
+      Do j=PAW%irc_core,PAW%irc_shap
+         denrc=PAW%core(j)
+         ddenrc=d(j)
+         shaperc=PAW%hatden(j)
+         dshaperc=g(j)
+         PAW%tcore=PAW%core
+         ok=.true.
+         do i=1,j-1
+           PAW%tcore(i)=denrc+(ddenrc/dshaperc)*(PAW%hatden(i)-shaperc)
+           if (PAW%tcore(i)<0.d0) ok=.false.
+           if (abs(PAW%tcore(i))<machine_zero) PAW%tcore(i)=0.d0
+         enddo      
+         write(std_out,*) 'resettcore at j =', j,' r = ', Grid%r(j), ' good?  ',ok
+         if (ok) exit
+      enddo     
+
+      open(2005,file='tcoreden.dat',form='formatted')
+      do i=1,Grid%n
+         write(2005,'(1p,30e16.7)')Grid%r(i),PAW%tcore(i),PAW%core(i), &
+&                  PAW%hatden(i)    
+      enddo
+      close(2005)
+
+      if (.not.ok) then
+          write(std_out,*) 'resettcore terminating due to negative values '
+          stop
+      else  
+          write(std_out,*)' successfully completed resettcore with irc_core = ',j    
+      endif    
+! presumably it is not necessary to recalculate coretailpoints
+     deallocate(d,g)
+End subroutine resettcore    
 
     SUBROUTINE setttau(Grid,coretau)
       TYPE(GridInfo), INTENT(IN) :: Grid
@@ -958,7 +1394,8 @@ CONTAINS
       REAL(8) :: sqr4pi
 
       write(std_out,*) 'in setttau '
-      CALL smoothcore(Grid,coretau,PAW%tcoretau) 
+      !CALL smoothtau(Grid,coretau,PAW%tcoretau) 
+      CALL smoothpower(Grid,4,coretau,PAW%tcoretau) 
 
       PAW%coretau=coretau
       write(std_out,*) 'completed setttau'
@@ -973,7 +1410,7 @@ CONTAINS
    END SUBROUTINE setttau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!   Set smooth core functions for EXXKLI case  using proceedure
+!   Set smooth core functions for EXXKLI case  using procedure
 !      identical to HF
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1103,6 +1540,7 @@ CONTAINS
     INTEGER :: i,j,k,io,ok,nbl,nr,nodes,ib,loop,niter,iter,ibasis_add
     REAL(8) :: h,rc,q00,energy,rat,delta,thisconv,qeff,tq,range
     REAL(8) :: ecoul,etxc,eexc
+    REAL(8),allocatable :: checkden(:),valden(:)
     REAL(8), POINTER  :: r(:)
 
     n=Grid%n
@@ -1112,6 +1550,15 @@ CONTAINS
     nr=MIN(irc+100,n-100)
     rc=PAW%rc
     lmax=PAW%lmax
+
+    allocate(checkden(n),valden(n));checkden=0.d0;valden=0.d0
+
+!Check beginning valence density
+    DO io=1,Orbit%norbit 
+       if (.not.Orbit%iscore(io)) then
+         valden=valden+Orbit%occ(io)*(Orbit%wfn(:,io)**2)        
+       endif
+    ENDDO   
 
   ! set AErefrv
     PAW%AErefrv=Pot%rv
@@ -1211,6 +1658,8 @@ CONTAINS
          PAW%phi(1:n,nbase)=0.d0
          if (scalarrelativistic) then
             CALL unboundsr(Grid,Pot,n,l,energy,PAW%phi(:,nbase),nodes)
+         else if (needvtau) then
+            CALL unboundked(Grid,Pot,n,l,energy,PAW%phi(:,nbase),nodes)
          elseif ( Orbit%exctype=='HF') then
             CALL HFunocc(Grid,Orbit,l,energy,Pot%rv,Pot%v0,Pot%v0p, &
 &                    PAW%phi(:,nbase),PAW%rng(nbase))
@@ -1227,13 +1676,25 @@ CONTAINS
          nbl=nbl+1
          ibasis_add=ibasis_add+1
        ENDDO generalizedloop
-
-
+       !
     ENDDO   ! end lmax loop
 
-    WRITE(STD_OUT,*) 'completed phi basis with ',nbase,' functions '
+    WRITE(std_out,*) 'completed phi basis with ',nbase,' functions '
     PAW%nbase=nbase     ! reset nbase
 
+
+!  Check density
+!    checkden=0
+!    do io=1,PAW%nbase
+!       checkden=checkden+PAW%occ(io)*(PAW%phi(:,io)**2)
+!    enddo   
+
+!   open(1001,file='Checkdeninsetbasis',form='formatted')
+!    do i=1,n
+!       write(1001,'(1p, 50e16.7)') Grid%r(i),checkden(i),valden(i)
+!    enddo   
+!   close(1001)
+!   deallocate(checkden,valden)
   END SUBROUTINE setbasis
 
   !**************************************************************************
@@ -1254,6 +1715,11 @@ CONTAINS
     TYPE(PotentialInfo), TARGET:: PS
     REAL(8), POINTER  :: r(:)
 
+    if(needvtau) then
+       write(std_out,*) 'Sorry -- this case has not been programmed yet'
+       write(std_out,*)  ' need to modify bsolv routine for extra derivatives '
+       stop
+    endif   
     n=Grid%n
     h=Grid%h
     r=>Grid%r
@@ -1310,7 +1776,7 @@ CONTAINS
     INTEGER, ALLOCATABLE :: omap(:)
     REAL(8), ALLOCATABLE :: VNC(:),Ci(:),aa(:,:),ai(:,:)
     REAL(8), POINTER  :: r(:)
-
+ 
     if (optps<1.or.optps>3) stop 'bug: error calling makebasis_custom routine'
     if (optorth<0.or.optorth>1) stop 'bug: error calling makebasis_custom routine'
 
@@ -1371,7 +1837,8 @@ CONTAINS
           gpp=gpp+dble((2*j-2)*(2*j-3))*Ci(j)*xx**(j-2)
          enddo
          PAW%tphi(i,io)=PAW%tphi(i,io)*r(i)**(l+1)
-         PAW%tp(i,io)=(dble(2*(l+1))*gp+gpp)*r(i)**(l+1)+(PAW%eig(io)-VNC(i))*PAW%tphi(i,io)
+         PAW%tp(i,io)=(dble(2*(l+1))*gp+gpp)*r(i)**(l+1)+&
+&                   (PAW%eig(io)-VNC(i))*PAW%tphi(i,io)
         enddo
        else if (optps==3) then
         PAW%tphi(1,io)=0.d0
@@ -1501,6 +1968,110 @@ CONTAINS
 
   END SUBROUTINE makebasis_custom
 
+  !**************************************************************************
+  !  Program to generate atomic basis functions -- MGGA version
+  !     Part 1 -- generate pseudo basis functions only
+  !
+  !   1) Pseudization of partial waves:
+  !        - simple polynom scheme                                            [optps=1]
+  !                   r^(l+1).Sum[Ci.r^2i]  0<=i<=4
+  !   OR   - ultrasoft polynom scheme                                         [optps=2]
+  !                   r^(l+1).{Sum[Ci.r^2i]+Sum[Cj.r^2j]}  0<=i<=3
+  !                           3<j adjusted using Fourier filtering
+  !   OR   - RRKJ scheme with 2 Bessel functions (PHYS REV B 41,1227 (1990))  [optps=3]
+  !
+  !   2) Build and orthogonalization of projectors
+  !        - Vanderbilt generation method (PHYS REV B 41,7892 (1990))  [optorth=0]
+  !   OR   - Gram-Schmidt like sheme                                   [optorth=1]
+  !   For this case, only Vanderbilt scheme programmed
+  !**************************************************************************
+  SUBROUTINE makebasis_custom_vtau1(Grid,Pot,optps,optorth,pdeg,qcut)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    TYPE(PotentialInfo), INTENT(IN) :: Pot
+    INTEGER, INTENT(IN) :: optps,optorth,pdeg
+    REAL(8), INTENT(IN) :: qcut
+
+    INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
+    INTEGER :: icount,jcount,istart,ifinish,ibase,jbase
+    REAL(8) :: choice,rc,xx,yy,gg,g,gp,gpp,al(2),ql(2)
+    REAL(8), ALLOCATABLE :: Ci(:)
+    REAL(8), POINTER  :: r(:)
+    
+    write(std_out,*) 'Entering makebasis_custom_vtau1'
+    if (optps<1.or.optps>3) stop 'bug: error calling makebasis_custom routine'
+    if (optorth<0.or.optorth>1) stop 'bug: error calling makebasis_custom routine'
+
+    n=Grid%n
+    r=>Grid%r
+    irc=PAW%irc
+    nbase=PAW%nbase
+    lmax=PAW%lmax
+
+    np=5;if (optps==2) np=pdeg+1 ;
+    if (optps==1.or.optps==2) allocate(Ci(np))
+
+  ! Loop on basis elements
+    do io=1,nbase
+       l=PAW%l(io)
+
+     ! Read matching radius
+       thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(io))
+       thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
+       rc=r(thisrc);PAW%rcio(io)=rc
+       WRITE(std_out,'(a,3i5,1p,1e15.7)') ' For this wfn: ',io,PAW%np(io),PAW%l(io),PAW%eig(io)
+       WRITE(std_out,'(a,f10.7)') '  >>> rc =', rc
+       if (thisrc<3.or.thisrc>irc.or. &
+&          (optps==1.and.thisrc>n-3).or. &
+&          (optps==2.and.thisrc>n-6)) then
+          write(std_out,*) 'rc out of range', thisrc,n,irc
+          stop
+       endif
+
+     ! Find partial wave pseudization
+       if (optps==1) then
+        call pspolyn(PAW%phi(:,io),Ci,r,l,np,thisrc,n)
+       else if (optps==2) then
+        call psuspolyn(PAW%phi(:,io),Ci,r,l,np,thisrc,n,qcut)
+       else if (optps==3) then
+        call psbes(PAW%phi(:,io),al,ql,Grid,l,thisrc,n)
+       endif
+
+     ! Compute pseudized partial wave and unnormalized projector
+       PAW%tphi(:,io)=PAW%phi(:,io)
+       if (optps==1.or.optps==2) then
+        do i=1,thisrc-1
+         xx=r(i)*r(i)
+         PAW%tphi(i,io)=Ci(1)+Ci(2)*xx
+         gp=2.d0*Ci(2)
+         gpp=2.d0*Ci(2)
+         do j=3,np
+          PAW%tphi(i,io)=PAW%tphi(i,io)+Ci(j)*xx**(j-1)
+          gp=gp+dble(2*j-2)*Ci( j)*xx**(j-2)
+          gpp=gpp+dble((2*j-2)*(2*j-3))*Ci(j)*xx**(j-2)
+         enddo
+         PAW%tphi(i,io)=PAW%tphi(i,io)*r(i)**(l+1)
+        enddo
+       else if (optps==3) then
+        PAW%tphi(1,io)=0.d0
+        do i=2,thisrc-1
+         xx=ql(1)*r(i)
+         call jbessel(g,gp,gpp,l,2,xx)
+         PAW%tphi(i,io)=al(1)*g*r(i)
+         gg=al(1)*(2.d0*ql(1)*gp+ql(1)*xx*gpp)
+         xx=ql(2)*r(i)
+         call jbessel(g,gp,gpp,l,2,xx)
+         PAW%tphi(i,io)=PAW%tphi(i,io)+al(2)*g*r(i)
+         gg=gg+al(2)*(2.d0*ql(2)*gp+ql(2)*xx*gpp)
+        enddo
+       endif
+
+    enddo  !nbase
+
+    if (optps==1.or.optps==2) deallocate(Ci)
+
+  END SUBROUTINE makebasis_custom_vtau1
+  
+  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! makebasis_modrrkj
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1837,6 +2408,143 @@ CONTAINS
   Deallocate(VNC,kv,jl,f,Ci,rcindex,rcval)
   END SUBROUTINE makebasis_modrrkj
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! makebasis_modrrkj_vtau1
+!     version for MGGA case -- Part 1 to determine pseudobasis
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE makebasis_modrrkj_vtau1(Grid,Pot,Orthoindex,success)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    TYPE(PotentialInfo), INTENT(IN) :: Pot
+    INTEGER, INTENT(IN) :: Orthoindex
+
+    INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
+    INTEGER :: icount,jcount,istart,ifinish,ibase,jbase,lprev
+    INTEGER :: match=5
+    REAL(8) :: dk
+    REAL(8) :: choice,rc,xx,yy,gg,g,gp,gpp,al(2),ql(2),root1,root2,logderiv
+    INTEGER, ALLOCATABLE :: omap(:),rcindex(:)
+    REAL(8), ALLOCATABLE :: VNC(:),Ci(:),aa(:,:),ai(:,:),jl(:,:),kv(:)
+    REAL(8), ALLOCATABLE :: f(:),rcval(:)
+    REAL(8), ALLOCATABLE :: U(:,:),VT(:,:),WORK(:),S(:),X(:,:)
+    INTEGER :: LWORK
+    REAL(8), POINTER  :: r(:)
+    LOGICAL :: success
+
+    write(std_out,*) 'Entering makebasis_modrrkj_vtau1'
+    success=.false.
+    n=Grid%n
+    r=>Grid%r
+    irc=PAW%irc
+    nbase=PAW%nbase
+    lmax=PAW%lmax
+
+    ALLOCATE(rcindex(nbase),rcval(nbase))
+
+   !Input matching radii for each basis function
+    call readmatchradius(Grid,rcindex,rcval)
+
+    allocate(kv(match),jl(n,match),f(n),Ci(match),aa(match,match))
+
+  ! Loop on basis elements
+    lprev=-1;np=0
+    do io=1,nbase
+
+       PAW%Kop(1,io)=0
+       PAW%Kop(2:n,io)=(PAW%eig(io)-Pot%rv(2:n)/Grid%r(2:n))*PAW%phi(2:n,io)
+
+       l=PAW%l(io)
+       if (l==lprev) then
+         np=np+1
+       else
+         np=1
+         lprev=l
+       endif
+
+       thisrc=rcindex(io)
+       rc=rcval(io);PAW%rcio(io)=rc
+
+    ! Set normalization for PAW%eig(io)>0
+      if (PAW%eig(io)>0) then
+         PAW%phi(:,io)=PAW%phi(:,io)/PAW%phi(thisrc,io)
+      endif
+     ! Find logderiv
+       logderiv=Gfirstderiv(Grid,thisrc,PAW%phi(:,io))/PAW%phi(thisrc,io)
+       write(std_out,*) 'logderiv ', io, l, logderiv
+
+     !  Find   bessel function zeros
+        call solvbes(kv,1.d0,0.d0,l,np)
+        write(std_out,*) 'Searching for solution ',kv(np)
+        if (np==1) then
+         root1=0.001d0; root2=kv(1)-0.001d0; xx=0.5d0*(root1+root2)
+        else
+         root1=kv(np-1)+0.001d0; root2=kv(np)-0.001d0; xx=0.5d0*(root1+root2)
+        endif
+        icount=0
+        Do
+          call jbessel(g,gp,gpp,l,2,xx)
+          yy=(logderiv-(1.d0/xx+gp/g))/(-1.d0/xx**2+gpp/g-(gp/g)**2)
+          if (abs(yy)<1.d-6) then
+            write(std_out,*) 'exiting Bessel loop', icount,xx,yy
+            exit
+          else
+            if (xx+yy>root2) then
+                 xx=0.5*(xx+root2)
+            else if (xx+yy<root1) then
+                 xx=0.5*(xx+root1)
+            else
+                xx=xx+yy
+            endif
+          endif
+          !write(std_out,*) 'iter Bessel', xx,yy
+          icount=icount+1
+          if (icount>1000) then
+            write(std_out,*) 'Giving up on Bessel root'
+            return
+          endif
+        Enddo
+
+        success=.true.
+        write(std_out,*) 'Found Bessel root at xx' , xx
+        dk=(pi/40)/rc             !  could be made adjustable
+        write(std_out,*) 'dk value for this case ', dk
+        kv=0
+        kv(1)=xx/rc-dk*(match-1)/2
+        write(std_out,*) '#  kv      1', kv(1)
+        Do i=2,match
+          kv(i)=kv(i-1)+dk
+          write(std_out,*) '#  kv   ',   i, kv(i)
+        enddo
+
+        Do i=1,match
+          f(:)=kv(i)*r(:)
+          call sphbes(l,n,f)
+          jl(:,i)=f(:)*r(:)
+        Enddo
+
+      ! Match bessel functions with wavefunctions
+
+        Ci=0; aa=0
+        Do j=1,match
+           i=match-j
+           Ci(j)=PAW%phi(thisrc-i,io)                ! 1 step should vary
+           aa(j,1:match)=jl(thisrc-i,1:match)
+        enddo
+
+        call SolveAXeqBM(match,aa,Ci,match-1)
+        write(std_out,*) 'Completed SolveAXeqB with coefficients'
+        write(std_out,'(1p,10e15.7)') (Ci(i),i=1,match)
+
+     ! Compute pseudized partial wave 
+       PAW%tphi(:,io)=PAW%phi(:,io);
+        do i=1,thisrc-1
+         PAW%tphi(i,io)=sum(Ci(1:match)*jl(i,1:match))
+        enddo
+
+    enddo  !nbase
+
+    deallocate(kv,jl,f,Ci,aa)
+  END SUBROUTINE makebasis_modrrkj_vtau1
+
   SUBROUTINE readmatchradius(Grid,rcindex,rcval)
       TYPE(GridInfo), INTENT(IN) :: Grid
       INTEGER, INTENT(INOUT) :: rcindex(:)
@@ -1868,6 +2576,191 @@ CONTAINS
    ENDDO
   END SUBROUTINE      
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  calculate_tvtau    for MGGA case
+!     Assume valence pseudo wavefunctions known
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE calculate_tvtau(Grid)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+
+    INTEGER :: i,j,k,l
+    REAL(8), allocatable :: dp(:),ddp(:),vxc(:),tvxc(:),locald(:),localtd(:)
+    REAL(8) :: fac,exc,texc,sum,tsum
+    REAL(8), parameter :: small=1.d-5
+
+    allocate(dp(Grid%n),ddp(Grid%n),vxc(Grid%n),tvxc(Grid%n))
+    allocate(locald(Grid%n),localtd(Grid%n))
+
+    locald=PAW%core
+    localtd=PAW%tcore
+    PAW%valetau=0.d0
+    PAW%tvaletau=0.d0
+
+    do i=1,PAW%nbase
+      write(std_out,*) 'tvtau -- ', i,PAW%l(i),PAW%occ(i),PAW%eig(i)
+      if (PAW%occ(i).gt.small) then
+         locald=locald+PAW%occ(i)*(PAW%phi(:,i)**2)
+         localtd=localtd+PAW%occ(i)*(PAW%tphi(:,i)**2)
+         CALL taufromwfn(Grid,PAW%phi(:,i),PAW%l(i),dp)
+         CALL taufromwfn(Grid,PAW%tphi(:,i),PAW%l(i),ddp)
+         PAW%valetau=PAW%valetau+PAW%occ(i)*dp
+         PAW%tvaletau=PAW%tvaletau+PAW%occ(i)*ddp
+      endif   
+    enddo
+     dp=PAW%coretau+PAW%valetau
+     ddp=PAW%tcoretau+PAW%tvaletau
+     CALL exch(Grid,locald,vxc,sum,exc,&
+&       tau=dp,vtau=PAW%vtau)
+
+     CALL exch(Grid,localtd,tvxc,tsum,texc,&
+&       tau=ddp,vtau=PAW%tvtau)
+
+    write(std_out,*) 'tvtau exc texc ', exc, texc
+
+  open(1001,file='testvtau',form='formatted')
+  write(1001,*)'r        den      tildeden         tau       tildetau   rvxc                trvxc        vtau        tvtau '
+     do i=1,Grid%n
+        write(1001,'(1p, 50e17.7)') Grid%r(i),locald(i),localtd(i) &
+&          ,dp(i),ddp(i),vxc(i),tvxc(i),PAW%vtau(i),PAW%tvtau(i)                
+    enddo
+ close(1001)
+
+  open(1001,file='coredenandtau',form='formatted')
+     do i=1,Grid%n
+        write(1001,'(1p, 50e17.7)') Grid%r(i),PAW%core(i),PAW%tcore(i)&
+&          ,PAW%coretau(i),PAW%tcoretau(i)
+    enddo
+ close(1001)
+
+
+    deallocate(dp,ddp,vxc,tvxc,locald,localtd)
+  END SUBROUTINE calculate_tvtau
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! makeprojectors_vtau
+!     Designed for MGGA case
+!     Needs PAW%rveff, PAW%tphi
+!     Uses Vanderbilt scheme to develop projectors
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE makeprojectors_vtau(Grid)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+
+    INTEGER :: i,j,k,l,io,jo,ok,lmax,nbase,n,irc,irc_vloc,nr,np,thisrc
+    INTEGER :: icount,jcount,istart,ifinish,ibase,jbase,lprev
+    INTEGER :: match=5
+    REAL(8) :: choice,rc,xx,yy,gg,g,gp,gpp,al(2),ql(2),root1,root2,logderiv
+    INTEGER, ALLOCATABLE :: omap(:)
+    REAL(8), ALLOCATABLE :: VNC(:),aa(:,:),ai(:,:),aux(:)
+    REAL(8), ALLOCATABLE :: f(:),d(:),dd(:)
+    INTEGER :: LWORK
+    REAL(8), POINTER  :: r(:)
+    LOGICAL :: success
+
+    n=Grid%n
+    r=>Grid%r
+    irc=PAW%irc
+    irc_vloc=PAW%irc_vloc
+    nbase=PAW%nbase
+    lmax=PAW%lmax
+
+
+  ! Set screened local pseudopotential
+    allocate(VNC(n),aux(n),f(n),d(n),dd(n),stat=i)
+    if (i/=0) stop 'allocation error in make_modrrkj'
+    VNC(2:n)=PAW%rveff(2:n)/r(2:n)
+    call extrapolate(Grid,VNC)
+    call derivative(Grid,PAW%tvtau,aux)
+ 
+    write(std_out,*) 'In program makeprojectors_vtau '; call flush_unit(std_out)
+! Form unorthogonalized projectors
+    do io=1,nbase
+       f=PAW%tphi(:,io)
+       l=PAW%l(io)
+       xx=l*(l+1)
+       call derivative(Grid,f,d)
+       call derivative(Grid,d,dd)
+       dd(2:n)=dd(2:n)-xx*f(2:n)/(Grid%r(2:n)**2)
+       d(2:n)=d(2:n)-f(2:n)/Grid%r(2:n)
+       call extrapolate(Grid,d)
+       call extrapolate(Grid,dd)
+       PAW%tp(:,io)=(PAW%eig(io)-VNC(:))*f(:)+&
+&                 (1.d0+PAW%tvtau(:))*dd(:)+aux(:)*d(:)
+!       do i=1,n
+!          write(100+io,'(1p,50e16.7)') Grid%r(i),f(i),d(i),dd(i),PAW%tp(i,io)
+!       enddo   
+    enddo   
+
+!    stop
+  !! Form orthogonalized projectors --   VANDERBILTORTHO
+     write(std_out,*) ' Vanderbilt ortho'
+     do l=0,lmax
+       icount=0
+       do io=1,nbase
+        if (PAW%l(io)==l) icount=icount+1
+       enddo
+       if (icount==0) cycle
+       write(std_out,*) 'For l = ', l,icount,' basis functions'
+       allocate(aa(icount,icount),ai(icount,icount),omap(icount))
+       aa=0;icount=0
+       do io=1,nbase
+        if (PAW%l(io)==l) then
+          icount=icount+1
+          omap(icount)=io
+        endif
+       enddo
+       do i=1,icount
+         io=omap(i)
+         PAW%otphi(:,io)=PAW%tphi(:,io)
+         PAW%ophi(:,io)=PAW%phi(:,io)
+       enddo
+       do i=1,icount
+          io=omap(i)
+         do j=1,icount
+           jo=omap(j)
+           aa(i,j)=overlap(Grid,PAW%otphi(:,io),PAW%tp(:,jo),1,irc)
+         enddo
+       enddo
+       ai=aa;call minverse(ai,icount,icount,icount)
+
+       do i=1,icount
+         io=omap(i)
+         PAW%ck(io)=ai(i,i)
+         PAW%otp(:,io)=0
+         do j=1,icount
+           jo=omap(j)
+           PAW%otp(:,io)=PAW%otp(:,io)+PAW%tp(:,jo)*ai(j,i)
+         enddo
+       enddo
+
+       write(std_out,*) 'Check  otp for l = ', l
+       do i = 1, icount
+          io=omap(i)
+          do j = 1, icount
+             jo=omap(j)
+             write(std_out,*) 'Overlap i j ', i,j, &
+&                    overlap(Grid,PAW%otphi(:,io),PAW%otp(:,jo),1,irc)
+          enddo
+       enddo
+       deallocate(aa,ai,omap)
+    enddo
+
+    open(1001,file='nonorthoproj',form='formatted')
+      do i=1,irc+100
+         write(1001,'(1p,50e16.7)') Grid%r(i),(PAW%tp(i,io),io=1,nbase)
+      enddo   
+    close(1001)  
+    open(1001,file='orthoproj',form='formatted')
+      do i=1,irc+100
+         write(1001,'(1p,50e16.7)') Grid%r(i),(PAW%otp(i,io),io=1,nbase)
+      enddo   
+    close(1001)  
+    do io=1,nbase
+       write(std_out,*) 'For basis ', io, ' projector error ',SUM(abs(PAW%tp(irc_vloc:n,io)))
+       PAW%tp(irc_vloc+1:n,io)=0.d0
+       PAW%otp(irc_vloc+1:n,io)=0.d0
+    enddo
+  deallocate(VNC,aux,f,d,dd)
+  END SUBROUTINE makeprojectors_vtau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !modified version of SUBROUTINE makebasis_custom which was
@@ -1888,6 +2781,11 @@ CONTAINS
       REAL(8), ALLOCATABLE :: Ci(:),dum(:),tdum(:),hat(:),aa(:,:),ai(:,:)
       REAL(8), ALLOCATABLE :: dpdr(:),pdr(:)
       REAL(8), PARAMETER :: threshold=1.d-6
+
+      if(needvtau) then
+           write(std_out,*) 'In makebasis_V_setvloc -- needvtau not setup'
+           stop
+      endif   
 
       if (TRIM(PAW%exctype)=='HF'.or.TRIM(PAW%exctype)=='EXX') then
          write(std_out,*) 'makebasis_V_setvloc is not designed for ', PAW%exctype
@@ -2613,6 +3511,137 @@ CONTAINS
     END SUBROUTINE unboundsep
 
     !***************************************************************************
+    !  Modified for meta gga  and extra terms
+    !
+    !  pgm to solve separable radial schroedinger equation
+    !    at energy 'energy' and at angular momentum l
+    !
+    !    with smooth potential rveff/r, given in uniform mesh of n points
+    !   r=i*h, i=1,...n-1 ;assuming p(r)=C*r**(l+1)*polynomial(r) for r==0;
+    !                               p((n+1)*h)=0
+    !
+    !  uses inhomocfdsol
+    !
+    !  For l=0,1 corrections are needed to approximate wfn(r=0)
+    !     These depend upon:
+    !         e0 (current guess of energy eigenvalue)
+    !         l,nz==0
+    !         v(0) == v0 electronic potential at r=0
+    !         v'(0) == v0p derivative of electronic potential at r=0
+    !
+    ! also returns node == number of nodes for calculated state
+    !
+    !  proj == projector functions
+    !  hij and qij == hamiltonianian and overlap matrix elements
+    !***************************************************************************
+    SUBROUTINE unboundsepked(Grid,Pot,PAW,nr,l,energy,wfn,node)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      TYPE(PotentialInfo), INTENT(IN) :: Pot
+      TYPE(PseudoInfo), INTENT(IN) :: PAW
+      INTEGER, INTENT(IN) :: l,nr
+      REAL(8), INTENT(IN) :: energy
+      REAL(8), INTENT(INOUT) :: wfn(:)
+      INTEGER, INTENT(INOUT) :: node
+
+      INTEGER :: n,ia,ib,ic,nbase,icount,jcount,lcount,irc
+      REAL(8) :: summ,h,scale,zeroval
+      REAL(8), ALLOCATABLE :: y(:,:),b(:),a(:,:)
+
+      n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc
+
+      IF (nr<irc) THEN
+         WRITE(STD_OUT,*) 'error in unboundsepked -- nr < irc', nr,irc
+         STOP
+      ENDIF
+      !
+
+      call unboundked(Grid,Pot,nr,l,energy,wfn,node)
+
+      ALLOCATE(y(nr,nbase),b(nbase),stat=ib)
+      IF (ib/=0) THEN
+         WRITE(STD_OUT,*) 'Error in unboundsepked allocation',  nr,nbase,ib
+         STOP
+      ENDIF
+
+      lcount=0
+      DO ib=1,nbase
+         IF (l==PAW%l(ib)) THEN
+            lcount=lcount+1
+            CALL unboundkedinhomo(Grid,Pot,PAW%otp(1:nr,ib),nr,l,energy,&
+&              y(1:nr,lcount))
+         ENDIF
+      ENDDO
+
+      IF(lcount>0) THEN
+         ALLOCATE(a(lcount,lcount),stat=ib)
+         IF (ib/=0) THEN
+            WRITE(STD_OUT,*) 'Error in unboundsepked allocation',  lcount,ib
+            STOP
+         ENDIF
+
+         icount=0
+         DO ib=1,nbase
+            summ=0.d0
+            IF (l==PAW%l(ib)) THEN
+               icount=icount+1
+               DO ic=1,nbase
+                  IF (l==PAW%l(ic)) THEN
+                     summ=summ+(PAW%dij(ib,ic)-energy*PAW%oij(ib,ic))*&
+&                         overlap(Grid,PAW%otp(:,ic),wfn,1,irc)
+                  ENDIF
+               ENDDO
+               b(icount)=-summ
+            ENDIF
+         ENDDO
+         !
+         icount=0
+         DO ia=1,nbase
+            IF (l==PAW%l(ia)) THEN
+               icount=icount+1
+               jcount=0
+               DO ib=1,nbase
+                  IF (l==PAW%l(ib)) THEN
+                     jcount=jcount+1
+                     summ=0.d0
+                     IF (ia.EQ.ib) summ=1.d0
+                     DO ic=1,nbase
+                        IF (l==PAW%l(ic)) THEN
+                           summ=summ+(PAW%dij(ia,ic)-energy*PAW%oij(ia,ic))*&
+&                          overlap(Grid,PAW%otp(:,ic),y(:,jcount),1,irc)
+                        ENDIF
+                     ENDDO
+                     a(icount,jcount)=summ
+                  ENDIF
+               ENDDO
+            ENDIF
+         ENDDO
+         !
+         CALL linsol(a,b,lcount,lcount,lcount,nbase)
+
+         icount=0
+         DO ib=1,nbase
+            IF(l==PAw%l(ib)) THEN
+               icount=icount+1
+               wfn(1:nr)=wfn(1:nr)+b(icount)*y(1:nr,icount)
+            ENDIF
+         ENDDO
+         DEALLOCATE(a)
+      ENDIF
+      !
+      ! normalize to unity within integration range
+      !
+      scale=1.d0/sepnorm(Grid,PAW,nr,l,wfn)
+      IF (scale.LE.0.d0) THEN
+         WRITE(STD_OUT,*) 'warning -- negative norm for l=',l
+         scale=-scale
+         IF (scale.EQ.0.d0) scale=1.d0
+      ENDIF
+      scale=DSIGN(SQRT(scale),wfn(nr-2))
+      wfn(1:nr)=wfn(1:nr)*scale
+      DEALLOCATE(b,y)
+    END SUBROUTINE unboundsepked
+
+    !***************************************************************************
     !  pgm to solve separable radial schroedinger equation
     !    for bound state near energy 'energy' and at angular momentum l
     !
@@ -2888,10 +3917,10 @@ CONTAINS
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
       INTEGER, INTENT(IN) :: ifen
 
-      INTEGER :: nbase,l,ib,ic,io
-      REAL(8) :: x
+      INTEGER :: nbase,l,ib,ic,io,n
+      REAL(8) :: x,y,occ
       TYPE(OrbitInfo), POINTER :: PSO
-      REAL(8), allocatable :: wij(:,:)
+      REAL(8), allocatable :: wij(:,:),d(:),td(:)
 
       PAW%oij=0
       PAW%dij=0
@@ -3063,14 +4092,15 @@ CONTAINS
 
       n=Grid%n; h=Grid%h; nbase=PAW%nbase; irc=PAW%irc;  nr=irc+10
 
-      ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),stat=ie)
+      ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),PS%vtau(n),PS%rvx(n),stat=ie)
       IF (ie/=0) THEN
          WRITE(STD_OUT,*) 'Error in logderiv allocation',n,ie
          STOP
       ENDIF
 
       ! load  PS
-      PS%rv=PAW%rveff ; PS%nz=0.d0
+      PS%rv=PAW%rveff ; PS%nz=0.d0 ; PS%rvx=PAW%rveff
+      if(needvtau) PS%vtau=PAW%tvtau
       call zeropot(Grid,PS%rv,PS%v0,PS%v0p)
       !
       !   calculate logderivatives at irc
@@ -3098,13 +4128,19 @@ CONTAINS
             psi=0;tpsi=0;ttpsi=0
             if (scalarrelativistic) then
                CALL unboundsr(Grid,Pot,nr,l,energy,psi,nodes)
+            else if (needvtau) then
+               CALL unboundked(Grid,Pot,nr,l,energy,psi,nodes)
             elseif (TRIM(PAW%exctype)=='HF') then
                CALL HFunocc(Grid,PAW%OCCWFN,l,energy,Pot%rv,Pot%v0,Pot%v0p,&
 &                       psi,lng)
             else
                CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,energy,psi,nodes)
             endif
-            CALL unboundsep(Grid,PS,PAW,nr,l,energy,tpsi,nodes)
+            if(needvtau) then
+                CALL unboundsepked(Grid,PS,PAW,nr,l,energy,tpsi,nodes)    
+            else
+                CALL unboundsep(Grid,PS,PAW,nr,l,energy,tpsi,nodes)
+            endif
             CALL PStoAE(Grid,PAW,nr,l,tpsi,ttpsi)
             !
 !            dwdr=Gfirstderiv(Grid,irc,psi)/psi(irc)
@@ -3158,11 +4194,12 @@ CONTAINS
 
       ENDDO !l
 
-      DEALLOCATE(psi,tpsi,PS%rv)
+      DEALLOCATE(psi,tpsi,PS%rv,PS%vtau)
     END SUBROUTINE logderiv
 
 
-    !  Assumes prior call to SUBROUTINE Set_PAW_MatrixElements(Grid,PAW)
+    !  Assumes prior call to SUBROUTINE calculate_tvtau
+    !  which now fills PAW%tden and PAW%ttau
     SUBROUTINE FindVlocfromVeff(Grid,Orbit,PAW)
       TYPE(GridInfo), INTENT(INOUT) :: Grid
       TYPE(OrbitInfo), INTENT(IN) :: Orbit
@@ -3171,7 +4208,8 @@ CONTAINS
       REAL(8), POINTER  :: r(:)
       REAL(8) :: h,qeff,tq,rat,q00,ecoul,etxc,eexc,occ,fac
       INTEGER :: n,i,irc,io,nbase,ib,ic
-      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:),dpdr(:),pbr(:)
+      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:)
+      REAL(8), allocatable :: t(:),vt(:)
 
       CALL FillHat(Grid,PAW)
 
@@ -3185,34 +4223,28 @@ CONTAINS
       h=Grid%h ; r=>Grid%r
       irc=max(PAW%irc,PAW%irc_shap,PAW%irc_vloc,PAW%irc_core)
 
+! Recalculate den and tau      
       PAW%den=0.d0;PAW%tden=0.d0
       PAW%valetau=0.d0;PAW%tvaletau=0.d0
-      allocate(pbr(n),dpdr(n),d(n))
+      allocate(d(n))
       do io=1,PAW%OCCWFN%norbit
          if (.not.PAW%OCCwfn%iscore(io)) then
             occ=PAW%OCCwfn%occ(io)
             fac=PAW%OCCwfn%l(io)*(PAW%OCCwfn%l(io)+1)
             PAW%den=PAW%den+occ*PAW%OCCwfn%wfn(:,io)**2
             PAW%tden=PAW%tden+occ*PAW%TOCCwfn%wfn(:,io)**2
-            dpdr=0.d0;pbr=0.d0
-            pbr(2:n)=PAW%OCCwfn%wfn(2:n,io)/Grid%r(2:n)
-            CALL derivative(Grid,pbr,dpdr,2,Grid%n)
-            CALL extrapolate(Grid,pbr)
-            CALL extrapolate(Grid,dpdr)
-            d(:)=((Grid%r(:)*dpdr(:)))**2+fac*(pbr(:))**2
+            CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &
+&                    PAW%OCCwfn%l(io),d)
             PAW%valetau=PAW%valetau+occ*d
-            dpdr=0.d0;pbr=0.d0
-            pbr(2:n)=PAW%TOCCwfn%wfn(2:n,io)/Grid%r(2:n)
-            CALL derivative(Grid,pbr,dpdr,2,Grid%n)
-            CALL extrapolate(Grid,pbr)
-            CALL extrapolate(Grid,dpdr)
-            d(:)=((Grid%r(:)*dpdr(:)))**2+fac*(pbr(:))**2
+            CALL taufromwfn(Grid,PAW%TOCCwfn%wfn(:,io), &
+&                    PAW%TOCCwfn%l(io),d)
             PAW%tvaletau=PAW%tvaletau+occ*d
           endif
       enddo
-      deallocate(pbr,dpdr,d)
+      deallocate(d)
 
       allocate(d(n),dv(n),dvx(n),STAT=i)
+      allocate(t(n),vt(n))       
       if (i/=0) stop 'Error (1) in allocating  arrays in findvlocfromveff'
 
       d=PAW%tden+PAW%tcore
@@ -3243,19 +4275,34 @@ CONTAINS
         PAW%trvx=0.d0
       ELSE
         d=PAW%tden+PAW%tcore
-           CALL exch(Grid,d,dvx,etxc,eexc)
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,dvx,etxc,eexc,tau=t,vtau=vt)
         PAW%trvx=dvx
+        if (needvtau) PAW%tvtau=vt
         dv=dv+dvx
       endif
 
+!! testing
+      open(1001,file='testvlocagain',form='formatted')
       rat=0.d0
       DO i=2,n
          PAW%vloc(i)=(PAW%rveff(i)-dv(i))/r(i)
          IF (i>=irc) rat=rat+ABS(PAW%vloc(i))
+         write(1001,'(1p,10e15.7)') Grid%r(i),PAW%vloc(i),PAW%rveff(i),dv(i),rat
       ENDDO
+      close(1001)
       WRITE(STD_OUT,*) 'Error in vloc -- ',rat
       call extrapolate(Grid,PAW%vloc)
+
+!!! Check rveff and unscreening potential
+      open(1001,file='Vloccheck',form='formatted')
+      do i=1,n
+         write(1001,'(1p,10e15.7)') Grid%r(i),PAW%rveff(i),dv(i),PAW%vloc(i)
+      enddo    
+      close(1001)
+
       PAW%vloc(irc:n)=0.d0
+
 
 !!!!!!!!!!!This part does not work for HF!!!!
 !     Construct ionic local potential for abinit from screened pseudopotential
@@ -3278,11 +4325,13 @@ CONTAINS
 
 !     Compute Vxc(tcore+tDEN)
       d=PAW%tcore+PAW%tden
-        CALL exch(Grid,d,v,etxc,eexc)
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,v,etxc,eexc,tau=t,vtau=vt)
 
 !     Compute Vxc(tcore+tDEN+hatDEN)
       d=PAW%tcore+PAW%tden+tq*PAW%hatden
-         CALL exch(Grid,d,vv,etxc,eexc)
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,vv,etxc,eexc,tau=t,vtau=vt)
 
 !     Store Vxc(tcore+tDEN)-Vxc(tcore+tDEN+hatDEN)
       do i=2,n
@@ -3513,6 +4562,7 @@ CONTAINS
       INTEGER :: i,j,k,l,n,io,jo,ib,jb,kb,lb,irc,nbase,nocc
       INTEGER, allocatable :: tmap(:)
       REAL(8) , ALLOCATABLE :: arg(:),rhs(:),rv(:),aden(:),v1(:),v2(:),o(:,:)
+      REAL(8) , ALLOCATABLE :: t(:),vt(:)
       Type(OrbitInfo), POINTER :: PSO
       Type(OrbitInfo) :: tmpOrbit
       REAL(8) :: occ,x,y,q,v0term,en,val,mix1
@@ -3522,6 +4572,7 @@ CONTAINS
       n=Grid%n; nbase=PAW%nbase;  irc=PAW%irc
       ALLOCATE(arg(n),rhs(n),rv(n),aden(n),v1(n),v2(n),&
 &           tmap(PAW%OCCWFN%norbit),o(PAW%OCCWFN%norbit,nbase))
+      ALLOCATE(t(n),vt(n))
 
       PSO=>PAW%TOCCWFN
       ! orthonormalize
@@ -3590,7 +4641,8 @@ CONTAINS
         PAW%tion=overlap(Grid,arg,PAW%tden)
         rv=rv+rhs    ! vion + valence-Hartree
         arg=PAW%tden+PAW%tcore
-           call exch(Grid,arg,rhs,x,y)
+        t=PAW%tcoretau+PAW%tvaletau
+        call exch(Grid,arg,rhs,x,y,tau=t,vtau=vt)
         PAW%txc=y
         rv=rv+rhs    ! + vxc
 
@@ -3638,9 +4690,11 @@ CONTAINS
 
       Write(STD_OUT,*) 'Before EXC ', PAW%Ea
       irc=PAW%irc
-         call exch(Grid,arg,v1,x,y,fin=irc)
+         t=PAW%coretau+PAW%valetau
+         call exch(Grid,arg,v1,x,y,fin=irc,tau=t,vtau=vt)
       PAW%Ea=PAW%Ea+y  ; write(std_out,*) 'AE EXC ' ,y
-         call exch(Grid,rhs,v2,x,y,fin=irc)
+         t=PAW%tcoretau+PAW%tvaletau
+         call exch(Grid,arg,v2,x,y,fin=irc,tau=t,vtau=vt)
       PAW%Ea=PAW%Ea-y  ; write(std_out,*) 'PS EXC ' ,y
 
       PAW%Etotal=PAW%tkin+PAW%tion+PAW%tvale+PAW%txc+PAW%Ea
@@ -3679,6 +4733,9 @@ CONTAINS
       enddo
 
     ! Solve inhomogeneous diffeq. and store result in tmpOrbit
+    if(needvtau) then
+        write(std_out,*) 'PAWIter_LDA --orbital solutions not quite correct for mgga'
+    endif    
     err=0;
     do k=1,nocc
        io=tmap(k); l=PSO%l(io)
@@ -3718,6 +4775,7 @@ CONTAINS
        ENDIF
      fcount=fcount+1
      DEALLOCATE(arg,rhs,rv,aden,v1,v2,tmap,o)
+     Deallocate(t,vt)
      Call DestroyOrbit(tmpOrbit)
   END SUBROUTINE PAWIter_LDA
 

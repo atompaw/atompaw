@@ -39,7 +39,7 @@ CONTAINS
     TYPE(FCInfo),TARGET :: FCin
     TYPE(SCFInfo),TARGET :: SCFin
 
-    INTEGER :: n,i
+    INTEGER :: n,i,j
     REAL(8) :: en1,etxc,eex
     REAL(8), ALLOCATABLE :: arg(:)
     LOGICAL :: success
@@ -56,7 +56,7 @@ CONTAINS
 
     !write(std_out,*) 'Before exch'; call flush_unit(std_out)
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
-&       needvtau=Potwk%needvtau,tau=Orbitwk%tau,vtau=Potwk%vtau)
+&       tau=Orbitwk%tau,vtau=Potwk%vtau)
     
     !open(1001,file='testpot',form='formatted')
     !do i=1,n
@@ -67,15 +67,15 @@ CONTAINS
     !stop
                
 
-    Potwk%rv=Potwk%rvh+Potwk%rvx
+    Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
-    Potwk%rv=Potwk%rv+Potwk%rvn
+    Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
 
     !write(std_out,*) 'in ldagga before arg ',Potwk%v0,Potwk%v0p; 
     !call flush_unit(std_out)
-    arg=Potwk%rv
-
-    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,1000,1.d-11,1.d-16,.true.)
+    !arg=Potwk%rv   !no longer used
+    arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
+    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,3000,1.d-11,1.d-16,.true.)
     !write(std_out,*) 'in ldagga before Doand '; call flush_unit(std_out)
     !write(std_out,*) arg(1),arg(2)
     CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
@@ -91,7 +91,7 @@ CONTAINS
   END SUBROUTINE LDAGGA_SCF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  LDAGGASub									!!!!
+!!!!  LDAGGASub	-- w is electronic part of potential
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE LDAGGASub(w,energy,residue,err,success,update)
     REAL(8), INTENT(INOUT) :: w(:)
@@ -101,27 +101,29 @@ CONTAINS
     LOGICAL, INTENT(OUT) :: success
     LOGICAL, INTENT(IN) :: update
 
-    INTEGER :: i,j,k,n,io
+    INTEGER :: i,j,k,n,io,nw
     REAL(8),ALLOCATABLE :: dum(:)
     REAL(8) :: x
     INTEGER:: fcount=0
     TYPE (OrbitInfo) :: tmpOrbit
     TYPE (PotentialInfo) :: tmpPot
 
-    ALLOCATE(dum(Gridwk%n),stat=i)
+    n=Gridwk%n
+    nw=SIZE(w)
+    ALLOCATE(dum(nw),stat=i)
     IF (i/=0) THEN
-       WRITE(STD_OUT,*) 'Error in LDAGGAsub allocation' ,Gridwk%n
-       STOP
+        WRITE(6,*) 'Error in LDAGGAsub allocation' ,nw
+        STOP
     ENDIF
 
-    n=Gridwk%n
 
     CALL CopyOrbit(Orbitwk,tmpOrbit)
     CALL CopyPot(Potwk,tmpPot)
 
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
-    tmpPot%rv=w
+    !tmpPot%rv=w         ! no longer used
       If (.not.success) then   !  attempt to stablize solution
+              !   probably needs rethinking....
           write(std_out,*) 'Current eigs', (Orbitwk%eig(io),io=1,Orbitwk%norbit)
           j=n
           x=Orbitwk%eig(1)
@@ -137,15 +139,15 @@ CONTAINS
           write(std_out,*) 'index', x,j,Gridwk%r(j)
           if (j<10)j=10
           if (j>n-10) j=n-10
-          tmpPot%rv(j+1)=(-1.d0+w(j+1)/2)
+          w(j+1)=(-1.d0+w(j+1)/2)
           do i=j+2,n
-             tmpPot%rv(i)=-2.d0
+             w(i)=-2.d0
           enddo
            write(std_out,*) 'Reset tmpPot ', j
            write(std_out,*) '   Last points '
-              write(std_out,'(1p,20e15.7)') Gridwk%r(n), tmpPot%rv(n),w(n)
+              write(std_out,'(1p,20e15.7)') Gridwk%r(n), dum(n),w(n)
 
-           CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,tmpPot%rv,success)
+           CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
            write(std_out,*) 'after updatwfn from reset ',success;
            call flush_unit(std_out)
        Endif
@@ -158,6 +160,7 @@ CONTAINS
              tmpOrbit%eig(io)=Orbitwk%eig(io)
              tmpOrbit%wfn(:,io)=Orbitwk%wfn(:,io)
              if(diracrelativistic) tmpOrbit%lwfn(:,io)=Orbitwk%lwfn(:,io)
+             tmpOrbit%otau(:,io)=Orbitwk%otau(:,io)
           ENDIF
        ENDDO
     ENDIF
@@ -171,39 +174,43 @@ CONTAINS
     !write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
-    dum=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn-tmpPot%rv
+    dum(1:n)=tmpPot%rvh+tmpPot%rvx-w(1:n)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     residue=dum
     err=Dot_Product(residue,residue)
-    w=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn
+    write(STD_OUT,*) 'in LDAGGASub   err ', err;call flush_unit(STD_OUT)
+    
+   if(frozencorecalculation) then
+     Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
+     CALL Get_FCEXC(SCFwk)
+     energy=SCFwk%evale
+     CALL Total_FCEnergy_Report(SCFwk,STD_OUT)
+   else
+     energy=SCFwk%etot
+     CALL Total_Energy_Report(SCFwk,STD_OUT)
+   endif
 
 
     IF (update) THEN
-       Potwk%rv=tmpPot%rv
+       Potwk%rv=w+tmpPot%rvn
        Potwk%rvh=tmpPot%rvh
        Potwk%rvx=tmpPot%rvx
-
+       if (needvtau) Potwk%vtau=0.5d0*tmpPot%vtau+0.5d0*Potwk%vtau
+          !   needed to stabilize calculation -- may need adjustments
        Orbitwk%wfn=tmpOrbit%wfn
        If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
-
+       Orbitwk%otau=tmpOrbit%otau
+       Orbitwk%deltatau=tmpOrbit%deltatau
        Call One_electron_energy_Report(Orbitwk,std_out)
     ENDIF
 
 
-    if(frozencorecalculation) then
-         Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
-         CALL Get_FCEXC(SCFwk)
-         energy=SCFwk%evale
-         CALL Total_FCEnergy_Report(SCFwk,std_out)
-    else
-         energy=SCFwk%etot
-         CALL Total_Energy_Report(SCFwk,std_out)
-    endif
     !write(std_out,*) 'in LDAGGAsub before end'; call flush_unit(std_out)
     CALL DestroyOrbit(tmpOrbit)
-    DEALLOCATE (dum,tmpPot%rvn,tmpPot%rv,tmpPot%rvh,tmpPot%rvx)
+    CALL DestroyPot(tmpPot)
+    DEALLOCATE (dum)
 
   END SUBROUTINE  LDAGGASub
 
@@ -226,10 +233,10 @@ CONTAINS
     INTEGER :: k,n
 
     n=Grid%n
-    !write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
+    write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
     CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex,&
-&       needvtau=Pot%needvtau,tau=Orbit%tau,vtau=Pot%vtau)
-    !write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
+&       tau=Orbit%tau,vtau=Pot%vtau)
+    write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
 
     SCF%eexc=eex
     etot = SCF%ekin+SCF%estatic+SCF%eexc
@@ -274,7 +281,6 @@ CONTAINS
   SUBROUTINE Report_LDAGGA_functions(sub)
     CHARACTER(2) :: sub
     INTEGER :: i,j,k,n,nmap
-    INTEGER, ALLOCATABLE :: mmap(:)
 
     INTEGER, SAVE :: counter=0
     CHARACTER(4) :: stuff
@@ -284,25 +290,25 @@ CONTAINS
      write(std_out,*) 'in Report ', stuff; call flush_unit(std_out)
 
     OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
+    WRITE(1001,*)'#    r         rv               rvh           rvx       den                  tau          vtau          deltatau '
+   
     n=Gridwk%n
     DO i = 1,n
-      if (frozencorecalculation) then
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i)
-      else
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%tau(i),Potwk%vtau(i)
-      endif
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),&
+&            Potwk%vtau(i),Orbitwk%deltatau(i)
     ENDDO
     CLOSE(1001)
     OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
     if (.not.diracrelativistic) then
+    WRITE(1001,*) '#         r          wfn in order of s, p, d ... '
     DO i = 1,n
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
 &           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
     ENDDO
     endif
     if (diracrelativistic) then
+    WRITE(1001,*) '#         r          wfn, lwfn in order of s, p-1/2, p+1/2 ... '
     DO i = 1,n
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
 &           (Orbitwk%wfn(i,j),Orbitwk%lwfn(i,j),j=1,Orbitwk%norbit)
@@ -311,7 +317,6 @@ CONTAINS
 
     CLOSE(1001)
 
-    IF (ALLOCATED(mmap)) DEALLOCATE(mmap)
 
     counter=counter+1
 

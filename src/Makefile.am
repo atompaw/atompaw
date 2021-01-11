@@ -44,7 +44,9 @@ atp_srcs = \
   pseudo_sub.F90 \
   pseudo.F90 \
   pseudodata.F90 \
+  r2scanmod.F90 \
   radialdirac.F90 \
+  radialked.F90 \
   radialsr.F90 \
   report_mod.F90 \
   abinitinterface.F90 \
@@ -58,7 +60,7 @@ atp_built_srcs = \
   pkginfo.f90
 
 # Libraries to install
-noinst_LTLIBRARIES = libatompaw.la
+noinst_lib_LTLIBRARIES = libatompaw.la
 libatompaw_la_SOURCES = $(atp_srcs) atompaw_lib.F90
 nodist_libatompaw_la_SOURCES = $(atp_built_srcs)
 #libatompaw_la_LDFLAGS = -version-info 0:0:0
@@ -86,6 +88,7 @@ abinitinterface.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) \
 
 aeatom.$(LTOBJEXT): atomdata.$(LTOBJEXT) excor.$(LTOBJEXT) exx_mod.$(LTOBJEXT) \
 	general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
+	radialdirac.$(LTOBJEXT) radialked.$(LTOBJEXT) radialsr.$(LTOBJEXT) \
 	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
 	input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
@@ -113,7 +116,7 @@ blockdavidson_mod.$(LTOBJEXT): globalmath.$(LTOBJEXT) search_sort.$(LTOBJEXT) \
 	 tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 excor.$(LTOBJEXT): atomdata.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
-	libxc_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+	libxc_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT) r2scanmod.$(LTOBJEXT)
 
 exx_mod.$(LTOBJEXT): anderson_driver.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	exxdata.$(LTOBJEXT) fock.$(LTOBJEXT) general_mod.$(LTOBJEXT) \
@@ -132,7 +135,7 @@ fock.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) globalmath.$(LTOBJEXT
 
 general_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) numerov_mod.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialsr.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+	radialked.$(LTOBJEXT) radialsr.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 globalmath.$(LTOBJEXT): io_tools.$(LTOBJEXT)
 
@@ -178,7 +181,8 @@ pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEX
 	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
 	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
 	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) radialsr.$(LTOBJEXT) \
-	tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+	radialked.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT) \
+	io_tools.$(LTOBJEXT)
 
 pseudo_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) excor.$(LTOBJEXT) fock.$(LTOBJEXT) \
@@ -191,7 +195,12 @@ pwscfinterface.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	pseudo.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT) \
 	tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
+r2scanmod.$(LTOBJEXT): globalmath.$(LTOBJEXT)
+
 radialdirac.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
+	atomdata.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+
+radialked.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
 radialsr.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \

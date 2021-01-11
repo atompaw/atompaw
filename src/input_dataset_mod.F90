@@ -50,6 +50,7 @@ MODULE input_dataset_mod
    LOGICAL :: fixed_zero            ! Flag activating the "fixed zero" exact exchange potential calculation
    INTEGER :: fixed_zero_index      ! Option for "fixed zero" calculation in the exact exchange potential
    CHARACTER(132) :: exctype        ! Exchange-correlation type (string)
+   LOGICAL :: needvtau              ! TRUE if Calculation is performed with full kinetic energy functional
    INTEGER :: np(5)                 ! Electronic configuration: number of s,p,d,f,g shells
    INTEGER :: norbit                ! Electronic configuration: number of orbitals
    LOGICAL,ALLOCATABLE :: orbit_iscore(:)  ! Electronic configuration: TRUE for the core orbitals
@@ -80,6 +81,7 @@ MODULE input_dataset_mod
    REAL(8) :: pseudo_polynom2_qcut  ! Polynom2 projectors: q-value for Fourier filtering
    INTEGER :: shapefunc_type           ! Compensation shape function type (sinc2, gaussian, ...)
    REAL(8) :: shapefunc_gaussian_param ! Compensation shape function: parameter for gaussian type
+   LOGICAL :: shapetcore            ! Flag activating building of tcore cancelling a negative compensation charge
    REAL(8) :: hf_coretol            ! Tolerance for core density (Hartree-Fock only)
    INTEGER :: vloc_type             ! Type of local potential pseudization
    INTEGER :: vloc_l                ! Local potential: l quantum number (MTrouillier, Ultrasoft)
@@ -147,6 +149,8 @@ MODULE input_dataset_mod
  INTEGER,PARAMETER,PUBLIC :: VLOC_TYPE_SETVLOC        = 4
  INTEGER,PARAMETER,PUBLIC :: VLOC_TYPE_KERKER_EXPF    = 5
  INTEGER,PARAMETER,PUBLIC :: VLOC_TYPE_KERKER_POLY    = 6
+ INTEGER,PARAMETER,PUBLIC :: VLOC_TYPE_VPSMATCHNC     = 7
+ INTEGER,PARAMETER,PUBLIC :: VLOC_TYPE_VPSMATCHNNC    = 8
  INTEGER,PARAMETER,PUBLIC :: UNKNOWN_TYPE             =-1
 
  !Default values
@@ -225,7 +229,7 @@ CONTAINS
  INTEGER,PARAMETER :: nkappa(5)=(/1,2,2,2,2/)
  INTEGER :: input_unit
  INTEGER :: ii,io,nadd,norb,nval,nbl,nn,ik,kk
- INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex
+ INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,itau
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
@@ -310,7 +314,10 @@ CONTAINS
  IF (has_to_ask) THEN
    WRITE(STD_OUT,*) 'Enter exchange-correlation type, among the following:'
    WRITE(STD_OUT,*) '    * LDA-PW (default), GGA-PBE, GGA-PBESOL'
+   WRITE(STD_OUT,*) '    * MGGA-R2SCAN-001, MGGA-R2SCAN-01'
    WRITE(STD_OUT,*) '    * LibXC keyword beginning with XC_'
+   WRITE(STD_OUT,*) '    * WTAU followed by LibXC keyword beginning with XC_ '
+   WRITE(STD_OUT,*) '       for mgga with altered Kohn-Sham equations'
    WRITE(STD_OUT,*) '    * EXX, EXXOCC, EXXKLI, EXXCS'
    WRITE(STD_OUT,*) '    * HF, HFV'
    WRITE(STD_OUT,*) ' further optionally (space) "nonrelativistic/scalarrelativistic/diracrelativistic" keyword'
@@ -351,6 +358,7 @@ CONTAINS
  ihfpp=INDEX(exchangecorrelationandgridline,'HFPOSTPROCESS')
  ilcex=INDEX(exchangecorrelationandgridline,'LOCALIZEDCOREEXCHANGE')
  ifixz=INDEX(exchangecorrelationandgridline,'FIXED_ZERO')
+ itau=INDEX(exchangecorrelationandgridline,'WTAU')
  igrid=max(ilin,ilog)  !This line may need attention....
  irelat=max(inrl,iscl) !This line may need attention....
 
@@ -441,7 +449,12 @@ CONTAINS
  END IF
 
 !Treat XC/HF
- READ(unit=exchangecorrelationandgridline,fmt=*) dataset%exctype
+ if (itau>0) then     
+   READ(unit=exchangecorrelationandgridline(itau+5:),fmt=*) dataset%exctype
+ else  
+   READ(unit=exchangecorrelationandgridline(1:),fmt=*) dataset%exctype
+ endif  
+ dataset%needvtau=(itau>0.or.TRIM(dataset%exctype)=='MGGA-R2SCAN-001'.or.TRIM(dataset%exctype)=='MGGA-R2SCAN-01')
  dataset%localizedcoreexchange=(ilcex>0)
  dataset%fixed_zero=(ifixz>0) ; dataset%fixed_zero_index=-1
  IF (dataset%fixed_zero) &
@@ -455,6 +468,8 @@ CONTAINS
    IF (dataset%finitenucleus) THEN
      WRITE(STD_OUT,'(3x,a,i0)') "    - Finite-nucleus model      : ",dataset%finitenucleusmodel
    END IF
+   WRITE(STD_OUT,'(3x,2a)')     "Exchange-correlation functional : ",TRIM(dataset%exctype)
+   WRITE(STD_OUT,'(3x,2a)')     "mGGA kinetic energy functional  : ",MERGE("YES"," NO",dataset%needvtau)
    WRITE(STD_OUT,'(3x,2a)')     "Block-Davidson calculation      : ",MERGE("YES"," NO",dataset%BDsolve)
    WRITE(STD_OUT,'(3x,2a)')     "Grid type                       : ",TRIM(dataset%gridkey)
    WRITE(STD_OUT,'(3x,a,i0)')   "Grid size                       : ",dataset%gridpoints
@@ -789,9 +804,10 @@ END IF
    WRITE(STD_OUT,*) '     "bloechlps", "polynom", "polynom2 p qcut" or "RRKJ"'
    WRITE(STD_OUT,*) ' - For orthogonalization scheme:'
    WRITE(STD_OUT,*) '     "gramschmidtortho" or "vanderbiltortho" or "svdortho"'
-   WRITE(STD_OUT,*) ' - Sinc^2 shape is set by default,'
+   WRITE(STD_OUT,*) ' - Sinc^2 compensation charge shape is set by default,'
    WRITE(STD_OUT,*) '   Gaussian shape can be specified by adding "Gaussian" keyword and tol,'
    WRITE(STD_OUT,*) '   Bessel shape can be specified by adding "Besselshape" keyword'
+   WRITE(STD_OUT,*) ' - Optional shapetcore keyword to modify smooth core shape '
  END IF
 
  READ(STD_IN,'(a)') inputline
@@ -857,9 +873,29 @@ END IF
    WRITE(STD_OUT,'(3x,a)') '>> You are using HF XC type: pseudo and orthogonalization line will be ignored!'
  END IF
 
- IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR.dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K)&
+ IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
+&     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
 &   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) STOP &
 &  'input_dataset: error -- Vanderbilt orthogonalization not compatible with Bloechls projector scheme!'
+
+ IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
+&     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
+&   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) STOP &
+&  'input_dataset: error -- Vanderbilt orthogonalization not compatible with Bloechls projector scheme!'
+
+ IF ((dataset%projector_type==PROJECTOR_TYPE_BLOECHL) &
+&   .AND.dataset%needvtau) STOP &
+&   'input_dataset: error -- mGGA not compatible the Bloechl projector scheme!'
+
+ !!!! Hopefully this will never happen             
+ IF ((dataset%projector_type==PROJECTOR_TYPE_HF) &
+&   .AND.dataset%needvtau) STOP &
+&   'input_dataset: error -- mGGA and Hartree-Fock are not compatible!'
+
+ IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
+&     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
+&   .AND.dataset%needvtau) STOP &
+&   'input_dataset: error -- mGGA not compatible the Bloechl pseudization scheme!'
 
  IF (INDEX(inputline,'SINC2')>0) THEN
    dataset%shapefunc_type=SHAPEFUNC_TYPE_SINC
@@ -877,6 +913,8 @@ END IF
  IF (nstart>0) THEN
    READ(unit=inputline(nstart+7:),fmt=*) dataset%hf_coretol
  END IF
+
+ dataset%shapetcore=(INDEX(inputline,'SHAPETCORE')>0)
 
 !Print read data
  IF (has_to_print) THEN
@@ -919,6 +957,7 @@ END IF
 &    WRITE(STD_OUT,'(3x,a)') "Compensation charge shape function : BESSEL"
    IF (INDEX(inputline,'CORETOL')>0) &
 &    WRITE(STD_OUT,'(3x,a,es9.3)') "Core tolerance for Hartree-Fock : ",dataset%hf_coretol
+   WRITE(STD_OUT,'(3x,a)') "Smooth tcore shape (no negative nhat) : ",MERGE("YES"," NO",dataset%shapetcore)
  END IF
 
 
@@ -930,11 +969,15 @@ END IF
    WRITE(STD_OUT,*) '  1- a Troullier-Martins scheme for specified l value and energy'
    WRITE(STD_OUT,*) '  2- a non norm-conserving pseudopotential scheme for specified l value and energy'
    WRITE(STD_OUT,*) '  3- a simple pseudization scheme using a single spherical Bessel function'
-   WRITE(STD_OUT,*) '  4- Vloc ==  VlocCoef*Shapefunc'
+   WRITE(STD_OUT,*) '  4- VPS match with norm-conservation'
+   WRITE(STD_OUT,*) '  5- VPS match without norm-conservation'
+   WRITE(STD_OUT,*) '  6- Vloc =  VlocCoef*Shapefunc'
    WRITE(STD_OUT,*) 'For choice 1, enter (high) l value and energy e'
    WRITE(STD_OUT,*) 'For choice 2, enter (high) l value, energy e and "ultrasoft"'
    WRITE(STD_OUT,*) 'For choice 3, enter "bessel"'
-   WRITE(STD_OUT,*) 'For choice 4, enter "setvloc x y" - x is VlocCoef y is VlocRad'
+   WRITE(STD_OUT,*) 'For choice 4, enter l value, energy e and "vpsmatchnc"'
+   WRITE(STD_OUT,*) 'For choice 5, enter l value, energy e and "vpsmatchnnc"'
+   WRITE(STD_OUT,*) 'For choice 6, enter "setvloc x y" - x is VlocCoef, y is VlocRad'
  END IF
 
  READ(STD_IN,'(a)') inputline
@@ -957,6 +1000,10 @@ END IF
    dataset%vloc_type=VLOC_TYPE_ULTRASOFT
  ELSE IF (INDEX(inputline,'BESSEL')>0) THEN
    dataset%vloc_type=VLOC_TYPE_BESSEL
+ ELSE IF (INDEX(inputline,'VPSMATCHNC')>0) THEN
+   dataset%vloc_type=VLOC_TYPE_VPSMATCHNC
+ ELSE IF (INDEX(inputline,'VPSMATCHNNC')>0) THEN
+   dataset%vloc_type=VLOC_TYPE_VPSMATCHNNC
  ELSE IF (INDEX(inputline,'SETVLOC')>0) THEN
    dataset%vloc_type=VLOC_TYPE_SETVLOC
    nstart=INDEX(inputline,'SETVLOC')
@@ -979,7 +1026,16 @@ END IF
 334  CONTINUE
  END IF
 
- IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.OR.dataset%vloc_type==VLOC_TYPE_ULTRASOFT) THEN
+ IF ((dataset%vloc_type==VLOC_TYPE_SETVLOC.OR. &
+&     dataset%vloc_type==VLOC_TYPE_KERKER_EXPF.OR. &
+&     dataset%vloc_type==VLOC_TYPE_KERKER_POLY) &
+&   .AND.dataset%needvtau) STOP &
+&   'input_dataset: error -- mGGA not compatible the chosen Vloc scheme!'
+
+ IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.OR. &
+&    dataset%vloc_type==VLOC_TYPE_VPSMATCHNC.OR. &
+&    dataset%vloc_type==VLOC_TYPE_VPSMATCHNNC.OR. &
+&    dataset%vloc_type==VLOC_TYPE_ULTRASOFT) THEN
    READ(unit=inputline,fmt=*,err=444,end=444,iostat=io) dataset%vloc_l,dataset%vloc_ene
 444  CONTINUE
    IF (dataset%vloc_l<0.or.dataset%vloc_l>10) STOP 'input_dataset: error while reading Vloc parameters!'
@@ -995,15 +1051,30 @@ END IF
 &          dataset%vloc_l,", energy=",dataset%vloc_ene
    IF (dataset%vloc_type==VLOC_TYPE_BESSEL) &
 &    WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : BESSEL"
-   IF (dataset%vloc_type==VLOC_TYPE_SETVLOC) &
-&    WRITE(STD_OUT,'(7x,a,es9.4,a,es9.4)') "Local pseudopotential type : SETVLOC, coef=",&
+   IF (dataset%vloc_type==VLOC_TYPE_VPSMATCHNC) &
+&    WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : VPS MATCHNC"
+   IF (dataset%vloc_type==VLOC_TYPE_VPSMATCHNNC) &
+&    WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : VPS MATCHNNC"
+   IF (dataset%vloc_type==VLOC_TYPE_SETVLOC) THEN
+     WRITE(STD_OUT,'(7x,a,es9.4,a,es9.4)') "Local pseudopotential type : SETVLOC, coef=",&
 &          dataset%vloc_setvloc_coef,", rad=",dataset%vloc_setvloc_rad
+     IF (dataset%needvtau) THEN
+       write(STD_OUT,*) 'SETVLOC  option not available for MGGA'
+         stop
+     ENDIF     
+   ENDIF  
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) &
 &    WRITE(STD_OUT,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER EXPF, powers=",&
 &          dataset%vloc_kerker_power(1:4)
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_POLY) &
 &    WRITE(STD_OUT,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER POLY, powers=",&
 &          dataset%vloc_kerker_power(1:4)
+   IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.AND.dataset%needvtau) THEN
+     WRITE(STD_OUT,'(7x,a)') 'NOTE: MTROULLIER Vloc not available for mGGA!'
+     WRITE(STD_OUT,'(7x,a)') '      Calling VPSmatch with norm conservation instead.'
+     dataset%vloc_type=VLOC_TYPE_VPSMATCHNC
+     WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : VPS MATCHNC"
+   END IF
  END IF
 
 
@@ -1198,6 +1269,8 @@ END IF
  dataset%localizedcoreexchange    = .false.
  dataset%BDsolve                  = .false.
  dataset%Fixed_zero               = .false.
+ dataset%needvtau                 = .false.
+ dataset%shapetcore               = .false.
  dataset%abinit_usexcnhat         = .false.
  dataset%abinit_prtcorewf         = .false.
  dataset%abinit_uselog            = .false.
@@ -1323,6 +1396,8 @@ END IF
  output_dt%localizedcoreexchange   =input_dt%localizedcoreexchange
  output_dt%BDsolve                 =input_dt%BDsolve
  output_dt%Fixed_zero              =input_dt%Fixed_zero
+ output_dt%needvtau                =input_dt%needvtau
+ output_dt%shapetcore              =input_dt%shapetcore
  output_dt%abinit_usexcnhat        =input_dt%abinit_usexcnhat
  output_dt%abinit_prtcorewf        =input_dt%abinit_prtcorewf
  output_dt%abinit_uselog           =input_dt%abinit_uselog

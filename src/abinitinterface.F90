@@ -119,7 +119,7 @@ Module ABINITInterface
   integer :: prj_meshsz      ! Dimension of radial mesh for tproj
   integer :: prj_msz_max     ! Maximal dimension of radial mesh for tproj
   integer :: pspcod          ! Psp code number for Abinit (here PAW->pspcod=7 !)
-  integer :: pspxc_abinit    ! Abinit code number for the XC functionnal
+  integer :: pspxc_abinit    ! Abinit code number for the XC functional
   integer :: shape_type      ! Shape function type
                              ! shape_type=1 ; g(r)=sinc2
                              ! shape_type=2 ; g(r)=exp

@@ -188,6 +188,7 @@ PROGRAM atompaw
   Call DestroyFC(FC)
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (have_libxc) call libxc_end_func()
+  if(needvtau) call Deallocate_ked
   Call input_dataset_free()
 
 END PROGRAM atompaw

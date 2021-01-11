@@ -32,6 +32,7 @@ MODULE pseudodata
      REAL(8), POINTER :: den(:),tden(:),core(:),tcore(:),nhatv(:)
      REAL(8), POINTER :: coretau(:),tcoretau(:)
      REAL(8), POINTER :: valetau(:),tvaletau(:)
+     REAL(8), POINTER :: vtau(:),tvtau(:)
      INTEGER :: nbase,ncoreshell
      INTEGER, POINTER :: np(:),l(:),nodes(:),kappa(:)
      INTEGER, POINTER :: rng(:)       ! rng particularly of continuum states
@@ -89,6 +90,7 @@ MODULE pseudodata
 &        PAW%den(n),PAW%tden(n),PAW%core(n),PAW%tcore(n),&
 &        PAW%coretau(n),PAW%tcoretau(n),&
 &        PAW%valetau(n),PAW%tvaletau(n),&
+&        PAW%vtau(n),PAW%tvtau(n),&
 &        PAW%nhatv(n),stat=ok)
       IF (ok/=0) STOP 'Allocation error 1 in InitPAW'
       PAW%projshape=0.d0;PAW%hatden=0.d0;PAW%hatpot=0.d0
@@ -99,6 +101,7 @@ MODULE pseudodata
       PAW%XCORECORE=0.d0;PAW%nhatv=0.d0
       PAW%coretau=0.d0;PAW%tcoretau=0.d0
       PAW%valetau=0.d0;PAW%tvaletau=0.d0
+      PAW%vtau=0.d0;PAW%tvtau=0.d0
       ALLOCATE(PAW%phi(n,mxbase),PAW%tphi(n,mxbase),PAW%tp(n,mxbase),&
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
@@ -157,6 +160,8 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%tcoretau)) DEALLOCATE(PAW%tcoretau)
     If (ASSOCIATED(PAW%valetau)) DEALLOCATE(PAW%valetau)
     If (ASSOCIATED(PAW%tvaletau)) DEALLOCATE(PAW%tvaletau)
+    If (ASSOCIATED(PAW%vtau)) DEALLOCATE(PAW%vtau)
+    If (ASSOCIATED(PAW%tvtau)) DEALLOCATE(PAW%tvtau)
     If (ASSOCIATED(PAW%nhatv)) DEALLOCATE(PAW%nhatv)
     If (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
     If (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)

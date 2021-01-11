@@ -75,13 +75,26 @@ CONTAINS
     !call flush_unit(std_out)
     !arg=Potwk%rv   !no longer used
     arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
-    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,3000,1.d-11,1.d-16,.true.)
+    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,1000,1.d-11,1.d-16,.true.)
     !write(std_out,*) 'in ldagga before Doand '; call flush_unit(std_out)
     !write(std_out,*) arg(1),arg(2)
     CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
 
     SCFwk%iter=AC%CurIter
     SCFwk%delta=AC%res
+
+    if (needvtau) then      !!  stabilize vtau
+    do i=1,5        
+       CALL Get_KinCoul(Gridwk,Potwk,Orbitwk,SCFwk)
+       CALL Get_EXC(Gridwk,Potwk,Orbitwk,SCFwk)
+       arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
+       CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+       write(STD_OUT,*) 'Completed vtau iter ', i,AC%res
+    Enddo   
+    endif
+    SCFwk%iter=AC%CurIter
+    SCFwk%delta=AC%res
+
 
     CALL Report_LDAGGA_functions(scftype)
 
@@ -195,8 +208,9 @@ CONTAINS
        Potwk%rv=w+tmpPot%rvn
        Potwk%rvh=tmpPot%rvh
        Potwk%rvx=tmpPot%rvx
-       if (needvtau) Potwk%vtau=0.5d0*tmpPot%vtau+0.5d0*Potwk%vtau
-          !   needed to stabilize calculation -- may need adjustments
+    !!!! The following destabilizes the calculation -- taken out for now   
+    !!!!   if (needvtau) Potwk%vtau=0.5d0*tmpPot%vtau+0.5d0*Potwk%vtau
+    !!!!     !   needed to stabilize calculation -- may need adjustments
        Orbitwk%wfn=tmpOrbit%wfn
        If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
        Orbitwk%eig=tmpOrbit%eig

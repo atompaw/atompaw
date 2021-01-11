@@ -4282,15 +4282,11 @@ End subroutine resettcore
         dv=dv+dvx
       endif
 
-!! testing
-      open(1001,file='testvlocagain',form='formatted')
       rat=0.d0
       DO i=2,n
          PAW%vloc(i)=(PAW%rveff(i)-dv(i))/r(i)
          IF (i>=irc) rat=rat+ABS(PAW%vloc(i))
-         write(1001,'(1p,10e15.7)') Grid%r(i),PAW%vloc(i),PAW%rveff(i),dv(i),rat
       ENDDO
-      close(1001)
       WRITE(STD_OUT,*) 'Error in vloc -- ',rat
       call extrapolate(Grid,PAW%vloc)
 

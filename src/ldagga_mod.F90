@@ -63,13 +63,28 @@ CONTAINS
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
     Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
 
+      SCFwk%iter=0
+      SCFwk%delta=0
+
     !arg=Potwk%rv   !no longer used
-    arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
-    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
-    
-    CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
-    SCFwk%iter=AC%CurIter
-    SCFwk%delta=AC%res
+
+    if(needvtau.and.counter==0) then     ! first converge without vtau
+      needvtau=.false.      
+      arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
+      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+      CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+      WRITE(STD_OUT,*) 'Finished Anderson Mix without vtau', en1 ,' success = ', success
+      SCFwk%iter=AC%CurIter
+      SCFwk%delta=AC%res
+      counter=1
+      needvtau=.true.
+    Endif  
+
+      arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
+      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+      CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+      SCFwk%iter=SCFwk%iter+AC%CurIter
+      SCFwk%delta=AC%res
 
     CALL Report_LDAGGA_functions(scftype)
 

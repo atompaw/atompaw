@@ -561,7 +561,11 @@ CONTAINS
        elseif (libxc_isgga()) then
         allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
         grad=0.d0;gradmag=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
-        call derivative(Grid,tmpd,grad,1,n)
+        do i=1,n
+           tmpv(i)=ddlog(tmpd(i))
+        enddo   
+        call derivative(Grid,tmpv,grad,1,n)
+        grad(1:n)=grad(1:n)*tmpd(1:n)     !  perhaps more accurate???
         gradmag=ABS(grad)
         call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,vxcgr=dfxcdgbg)
         gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)

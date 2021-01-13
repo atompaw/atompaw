@@ -49,7 +49,7 @@ MODULE pseudo
   INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3, KERKER_E=4, KERKER_P=5
   INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=6, SETVLOC=7, VPSMATCHNC=8, VPSMATCHNNC=9
 
-  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12, gausstol=1.d-4
+  REAL(8),PRIVATE, PARAMETER :: coretailtol=1.d-12
   INTEGER, PRIVATE :: coretailpoints=-1,besselopt=-1
   INTEGER, PRIVATE :: Projectorindex=-1,PSindex=-1,Orthoindex=-1,Vlocalindex=-1
   REAL(8), PRIVATE :: gaussparam=-1
@@ -3917,10 +3917,10 @@ End subroutine resettcore
       TYPE(PseudoInfo), INTENT(INOUT) :: PAW
       INTEGER, INTENT(IN) :: ifen
 
-      INTEGER :: nbase,l,ib,ic,io,n
+      INTEGER :: nbase,l,ib,ic,io
       REAL(8) :: x,y,occ
       TYPE(OrbitInfo), POINTER :: PSO
-      REAL(8), allocatable :: wij(:,:),d(:),td(:)
+      REAL(8), allocatable :: wij(:,:)
 
       PAW%oij=0
       PAW%dij=0
@@ -4230,7 +4230,6 @@ End subroutine resettcore
       do io=1,PAW%OCCWFN%norbit
          if (.not.PAW%OCCwfn%iscore(io)) then
             occ=PAW%OCCwfn%occ(io)
-            fac=PAW%OCCwfn%l(io)*(PAW%OCCwfn%l(io)+1)
             PAW%den=PAW%den+occ*PAW%OCCwfn%wfn(:,io)**2
             PAW%tden=PAW%tden+occ*PAW%TOCCwfn%wfn(:,io)**2
             CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &

@@ -1221,7 +1221,7 @@ CONTAINS
          CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &
 &                       PAW%OCCwfn%l(io),d)
          CALL taufromwfn(Grid,PAW%TOCCwfn%wfn(:,io), &
-&                       PAW%OCCwfn%l(io),td)
+&                       PAW%TOCCwfn%l(io),td)
          PAW%valetau=PAW%valetau+occ*d
          PAW%tvaletau=PAW%tvaletau+occ*td
       endif   

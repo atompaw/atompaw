@@ -43,6 +43,7 @@ CONTAINS
     REAL(8) :: en1,etxc,eex
     REAL(8), ALLOCATABLE :: arg(:)
     LOGICAL :: success
+    INTEGER :: counter=0
 
     Gridwk=>Gridin
     Orbitwk=>Orbitin
@@ -50,57 +51,32 @@ CONTAINS
     FCwk=>FCin
     SCFwk=>SCFin
 
-    !write(std_out,*) 'in ldagga '; call flush_unit(std_out)
-    n=Gridwk%n     ;!write(std_out,*) 'n ', n; call flush_unit(std_out)
+   
+    n=Gridwk%n 
     ALLOCATE(arg(n))
 
-    !write(std_out,*) 'Before exch'; call flush_unit(std_out)
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
 &       tau=Orbitwk%tau,vtau=Potwk%vtau)
     
-    !open(1001,file='testpot',form='formatted')
-    !do i=1,n
-    !   write(1001,'(1p,50e15.6)') Gridwk%r(i),Orbitwk%den(i),Potwk%rvx(i), &
-&   !    Orbitwk%tau(i),Potwk%vtau(i)
-    !enddo
-    !close(1001)
-    !stop
-               
 
     Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
     Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
 
-    !write(std_out,*) 'in ldagga before arg ',Potwk%v0,Potwk%v0p; 
-    !call flush_unit(std_out)
     !arg=Potwk%rv   !no longer used
     arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
-    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,1000,1.d-11,1.d-16,.true.)
-    !write(std_out,*) 'in ldagga before Doand '; call flush_unit(std_out)
-    !write(std_out,*) arg(1),arg(2)
+    CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+    
     CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
-
     SCFwk%iter=AC%CurIter
     SCFwk%delta=AC%res
-
-    if (needvtau) then      !!  stabilize vtau
-    do i=1,5        
-       CALL Get_KinCoul(Gridwk,Potwk,Orbitwk,SCFwk)
-       CALL Get_EXC(Gridwk,Potwk,Orbitwk,SCFwk)
-       arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
-       CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
-       write(STD_OUT,*) 'Completed vtau iter ', i,AC%res
-    Enddo   
-    endif
-    SCFwk%iter=AC%CurIter
-    SCFwk%delta=AC%res
-
 
     CALL Report_LDAGGA_functions(scftype)
 
     CALL FreeAnderson(AC)
     WRITE(STD_OUT,*) 'Finished Anderson Mix', en1 ,' success = ', success
     DEALLOCATE(arg)
+    counter=counter+1
   END SUBROUTINE LDAGGA_SCF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -208,8 +184,9 @@ CONTAINS
        Potwk%rv=w+tmpPot%rvn
        Potwk%rvh=tmpPot%rvh
        Potwk%rvx=tmpPot%rvx
-    !!!! The following destabilizes the calculation -- taken out for now   
+       if (needvtau) Potwk%vtau=tmpPot%vtau
     !!!!   if (needvtau) Potwk%vtau=0.5d0*tmpPot%vtau+0.5d0*Potwk%vtau
+    !!!!   if (needvtau) Potwk%vtau=0.1d0*tmpPot%vtau+0.9d0*Potwk%vtau
     !!!!     !   needed to stabilize calculation -- may need adjustments
        Orbitwk%wfn=tmpOrbit%wfn
        If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
@@ -247,10 +224,10 @@ CONTAINS
     INTEGER :: k,n
 
     n=Grid%n
-    write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
+    !write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
     CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex,&
 &       tau=Orbit%tau,vtau=Pot%vtau)
-    write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
+    !write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
 
     SCF%eexc=eex
     etot = SCF%ekin+SCF%estatic+SCF%eexc

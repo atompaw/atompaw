@@ -1117,7 +1117,8 @@ end function libxc_nspin
 #if defined HAVE_LIBXC
 
 !---- Local variables
- real(8),parameter :: tol=1.d-14
+ !real(8),parameter :: tol=1.d-14
+ real(8) :: tol  ! set to machine_zero below
 
  integer :: ii,ipts,izero
  logical :: is_lda,is_gga,is_mgga,needs_laplacian
@@ -1136,8 +1137,9 @@ end function libxc_nspin
 
 !------------------------------------------------------------------
 !---- Executable code
-
  if (.not.libxc_constants_initialized) call libxc_constants_load()
+
+ tol=machine_zero
 
  is_lda=libxc_islda()
  is_gga=libxc_isgga()

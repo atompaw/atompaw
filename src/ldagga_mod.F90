@@ -1,6 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  This module contains the following active subroutines:
 !     LDAGGA_SCF, LDAGGASub, Get_EXC, Get_FCEXC, Report_LDAGGA_functions
+!         fixdensity
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -44,6 +45,7 @@ CONTAINS
     REAL(8), ALLOCATABLE :: arg(:)
     LOGICAL :: success
     INTEGER :: counter=0
+    CHARACTER(132) :: exctypesave
 
     Gridwk=>Gridin
     Orbitwk=>Orbitin
@@ -54,6 +56,39 @@ CONTAINS
    
     n=Gridwk%n 
     ALLOCATE(arg(n))
+
+    if(needvtau.and.counter==0) then     ! first converge LDA  works better
+   !  if(needvtau.and.counter==0) then     ! first converge GGA-PBE
+      needvtau=.false.      
+      exctypesave=exctype
+      exctype="LDA-PW"
+      !exctype="GGA-PBE"
+      call initexch
+      CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
+&       tau=Orbitwk%tau,vtau=Potwk%vtau)
+      arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
+      Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
+      CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
+      Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
+      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+      CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+
+      WRITE(STD_OUT,*) 'Anderson Mix with LDA',AC%res ,' iter = ',AC%CurIter
+      !WRITE(STD_OUT,*) 'Anderson Mix with GGA',AC%res ,' iter = ',AC%CurIter
+      OPEN (unit=1001,file='potinitLDA',form='formatted')
+      !OPEN (unit=1001,file='potinitGGA',form='formatted')
+      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau  '      
+      DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i)
+      ENDDO
+      CLOSE(1001)
+      CALL FreeAnderson(AC)
+      counter=1
+      needvtau=.true.
+      exctype=exctypesave
+      call initexch
+    Endif  
 
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
 &       tau=Orbitwk%tau,vtau=Potwk%vtau)
@@ -67,18 +102,6 @@ CONTAINS
       SCFwk%delta=0
 
     !arg=Potwk%rv   !no longer used
-
-    if(needvtau.and.counter==0) then     ! first converge without vtau
-      needvtau=.false.      
-      arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
-      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
-      CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
-      WRITE(STD_OUT,*) 'Finished Anderson Mix without vtau', en1 ,' success = ', success
-      SCFwk%iter=AC%CurIter
-      SCFwk%delta=AC%res
-      counter=1
-      needvtau=.true.
-    Endif  
 
       arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
       CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
@@ -175,6 +198,9 @@ CONTAINS
 
     !write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
+
+    CALL Fixdensity(Gridwk,tmpOrbit%den)
+    
     !write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
@@ -220,6 +246,72 @@ CONTAINS
 
   END SUBROUTINE  LDAGGASub
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !   For reasons that are not completely clear, the electron
+  !    density near the origin occasionally becomes erratic
+  !    this routine checks and fixes this behavior for r<0.01 bohr
+  !  SUBROUTINE fixdensity(Grid,den)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE fixdensity(Grid,den)
+    TYPE (GridInfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(INOUT) :: den(:)
+
+    REAL(8), ALLOCATABLE :: tmpd(:),dum(:),grad(:)
+    INTEGER :: n,i,j,k
+    REAL(8) :: fpi,con,a,b
+    REAL(8), parameter :: range=0.01d0, tol=0.01d0
+    LOGICAL :: problem
+    INTEGER :: counter=0
+
+    fpi=4*pi
+    n=Grid%n
+    allocate(tmpd(n),dum(n),grad(n))
+
+       tmpd=0
+       DO i=2,n
+          tmpd(i)=den(i)/(fpi*(Grid%r(i)**2))
+       ENDDO
+       CALL extrapolate(Grid,tmpd)
+       do i=1,n
+         dum(i)=ddlog(abs(tmpd(i)))
+       enddo  
+       call derivative(Grid,dum,grad,1,n)
+
+       problem=.false.; j=0
+       do i=2,n
+          if (Grid%r(i)>range) exit
+          if (abs(grad(i)-grad(i-1))>tol) then
+            problem=.true.
+            j=i      
+            exit
+          endif
+       enddo  
+
+       if (problem) then
+         write(std_out,*) 'density problem   #', counter      
+         k=0
+         do i=j,n
+          if (Grid%r(i)>range) exit
+          if (abs(grad(i)-grad(i-1))<tol) then
+            k=i      
+            exit
+          endif
+         enddo  
+         write(std_out,*) 'Resetting density for < ', k,Grid%r(k)
+         con=(Grid%r(k+2)*dum(k+1)-Grid%r(k+1)*dum(k+2))/(Grid%r(k+2)-Grid%r(k+1))
+         a=(dum(k+1)-dum(k+2))/(Grid%r(k+2)-Grid%r(k+1))
+         write(std_out,*) 'con, a ', con,a
+         con=fpi*exp(con)
+         do i=1,k+2
+           den(i)=con*exp(-a*Grid%r(i))*(Grid%r(i)**2)
+         enddo
+        ! do i=1,n
+        !   write(5000+counter,'(1p,10e15.7)') Grid%r(i),den(i),tmpd(i),dum(i),grad(i)      
+        ! enddo  
+       endif  
+         counter=counter+1
+    deallocate(tmpd,dum,grad)
+  END SUBROUTINE fixdensity
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! Get_EXC

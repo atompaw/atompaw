@@ -2618,7 +2618,7 @@ End subroutine resettcore
     write(std_out,*) 'tvtau exc texc ', exc, texc
 
   open(1001,file='testvtau',form='formatted')
-  write(1001,*)'r        den      tildeden         tau       tildetau   rvxc                trvxc        vtau        tvtau '
+  write(1001,*)'#r        den      tildeden         tau       tildetau   rvxc                trvxc        vtau        tvtau '
      do i=1,Grid%n
         write(1001,'(1p, 50e17.7)') Grid%r(i),locald(i),localtd(i) &
 &          ,dp(i),ddp(i),vxc(i),tvxc(i),PAW%vtau(i),PAW%tvtau(i)                

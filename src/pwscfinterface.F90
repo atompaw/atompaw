@@ -464,29 +464,46 @@ Module PWscfInterface
    CHARACTER(50), INTENT(OUT) :: qeform,shortqe
    Logical, INTENT(OUT) :: OK
 
+   qeform='XC functional not compatible with atompaw2UPF!' 
+   shortqe='XC functional not recognised!' 
    OK=.false.
 
-   if (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PW') then
+   if (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PW' .OR. &
+&      TRIM(libxcform)=='XC_LDA_C+XC_LDA_X_PW' .OR. &
+&      TRIM(libxcform)=='LDA_X+LDA_C_PW' .OR. &
+&      TRIM(libxcform)=='LDA_C+LDA_X_PW') then
        qeform='SLA PW NOGX NOGC'
        shortqe='LDA-PW'
        OK=.true.
        return
-   elseif (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PZ') then
+   elseif (TRIM(libxcform)=='XC_LDA_X+XC_LDA_C_PZ' .OR. &
+&          TRIM(libxcform)=='XC_LDA_C+XC_LDA_X_PZ' .OR. &
+&          TRIM(libxcform)=='LDA_X+LDA_C_PZ' .OR. &
+&          TRIM(libxcform)=='LDA_C+LDA_X_PZ') then
        qeform='SLA PZ NOGX NOGC'
        shortqe='LDA-PZ'
        OK=.true.
        return
-   elseif (TRIM(libxcform)=='XC_GGA_X_PBE_SOL+XC_GGA_C_PBE_SOL') then
+   elseif (TRIM(libxcform)=='XC_GGA_X_PBE_SOL+XC_GGA_C_PBE_SOL' .OR. &
+&          TRIM(libxcform)=='XC_GGA_C_PBE_SOL+XC_GGA_X_PBE_SOL' .OR. &
+&          TRIM(libxcform)=='GGA_X_PBE_SOL+GGA_C_PBE_SOL' .OR. &
+&          TRIM(libxcform)=='GGA_C_PBE_SOL+GGA_X_PBE_SOL') then
        qeform='SLA PW PSX PSC' 
        shortqe='GGA-PBESOL'
        OK=.true.
        return
-   elseif (TRIM(libxcform)=='XC_GGA_X_PBE+XC_GGA_C_PBE') then
+   elseif (TRIM(libxcform)=='XC_GGA_X_PBE+XC_GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='XC_GGA_C_PBE+XC_GGA_X_PBE' .OR. &
+&          TRIM(libxcform)=='GGA_X_PBE+GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='GGA_C_PBE+GGA_X_PBE') then
        qeform='SLA PW PBX PBC' 
        shortqe='GGA-PBE'
        OK=.true.
        return
-   elseif (TRIM(libxcform)=='XC_GGA_X_WC+XC_GGA_C_PBE') then
+   elseif (TRIM(libxcform)=='XC_GGA_X_WC+XC_GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='XC_GGA_C_WC+XC_GGA_X_PBE' .OR. &
+&          TRIM(libxcform)=='GGA_X_WC+GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='GGA_C_WC+GGA_X_PBE') then
        qeform='SLA PW WCX PBC' 
        shortqe='GGA-WC'
        OK=.true.

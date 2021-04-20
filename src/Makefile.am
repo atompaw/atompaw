@@ -60,7 +60,7 @@ atp_built_srcs = \
   pkginfo.f90
 
 # Libraries to install
-noinst_lib_LTLIBRARIES = libatompaw.la
+noinst_LTLIBRARIES = libatompaw.la
 libatompaw_la_SOURCES = $(atp_srcs) atompaw_lib.F90
 nodist_libatompaw_la_SOURCES = $(atp_built_srcs)
 #libatompaw_la_LDFLAGS = -version-info 0:0:0

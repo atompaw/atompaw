@@ -49,6 +49,9 @@ CONTAINS
 
     allocate(dum(n))
 
+    !!! testing
+    write (STD_OUT,*) ' in Updatewfn   needvtau ', needvtau
+
     Pot%rv=rvin+Pot%rvn(1:n)
     dum=rvin
     if (needvtau) dum(1)=dum(1)-Pot%rvx(1)
@@ -81,6 +84,7 @@ CONTAINS
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
        ELSE IF (needvtau) THEN
+         write(std_out,*) 'about to call boundked ', nz,emin      
          Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             l,nroot,emin,ierr,OK)
        ELSE
@@ -310,15 +314,23 @@ CONTAINS
          !&  Orbit%np(io),Orbit%l(io),&
          !&  Orbit%occ(io),Orbit%eig(io)
          eone=eone+Orbit%occ(io)*Orbit%eig(io)
-         IF (counter>1.and..not.present(noalt)) THEN
+         IF (counter>1.and..not.present(noalt).and..not.needvtau) THEN
             CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
          ELSE
-            CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+            !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+            x=integrator(Grid,Orbit%otau(:,io))
          ENDIF
          ekin=ekin+Orbit%occ(io)*x
        endif
     ENDDO
 
+    write(std_out,*) 'KinCoul check ekin ', ekin,integrator(Grid,Orbit%tau)
+!    if (needvtau) then
+!       do i=2,Grid%n
+!           write(500+counter,'(1p,3e20.9)') Grid%r(i),Orbit%tau(i) &
+!&                        , Orbit%den(i)/(Grid%r(i)**2)                   
+!       enddo
+!    endif
     SCF%eone=eone
     SCF%ekin=ekin
     SCF%ecoul=ecoul
@@ -365,8 +377,9 @@ CONTAINS
        IF (Orbit%occ(io).GT.small) THEN
           If(Orbit%iscore(io)) THEN
             If (firsttime==0) then
-              If(present(noalt)) then
-                  CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              If(present(noalt).or.needvtau) then
+                  !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+                   x=integrator(Grid,Orbit%otau(:,io))
               else
                   CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
               endif
@@ -378,8 +391,9 @@ CONTAINS
               FC%valeden(:)=FC%valeden(:)+ &
 &              Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
              ENDIF         
-              If(present(noalt)) then
-                  CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              If(present(noalt).or.needvtau) then
+                  !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+                  x=integrator(Grid,Orbit%otau(:,io))
               else
                   CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
               endif

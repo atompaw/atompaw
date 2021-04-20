@@ -9,7 +9,7 @@
 !         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
 !         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
 !         gramschmidt, Milne, midrange_numerov, getwfnfromcfdsol,
-!         taufromwfn
+!         taufromwfn,cfdsoliter
 !  This module contains the following functions, most of which are active:
 !       usingloggrid, overint, integrator, overlap, FindGridIndex,
 !         secondderiv, firstderiv, Gsecondderiv, Gfirstderiv, gridindex,
@@ -1478,6 +1478,7 @@ CONTAINS
        STOP
     ENDIF
     isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
+    !write(std_out,*) 'cdfsol   isgn ', isgn
     IF ( isgn .EQ. + 1 ) THEN
        IF ( jj1 .LE. 5 .OR. jj2 .GT. mesh ) THEN
           WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
@@ -1555,8 +1556,166 @@ CONTAINS
        fb(1) = tmpz(2,1,j) * yy(1,j) + tmpz(2,2,j) * yy(2,j)
     ENDDO
 
+    !write(std_out,*) 'in cdfsol  writing wfn '
+    !do j=jj1,jj2
+    !write(std_out,'(i10,1p,2e15.7)') j,yy(1,j),yy(2,j)
+    !enddo
+
     DEALLOCATE(tmpz)
   END SUBROUTINE cfdsol
+
+
+  ! Subroutine from David Vanderbilt's USPS code, modified by Marc
+  !     Torrent and Francois Jollet, further modified by NAWH
+  !   Modified 4/3/2021 by NAWH to iterate corrector step
+  !===========================================================================
+  !      subroutine cfdsoliter(zz,yy,jj1,jj2,mesh)
+  !===========================================================================
+
+  !     routine for solving coupled first order differential equations
+  !
+  !      d yy(x,1)
+  !      ---------   =  zz(x,1,1) * yy(x,1) + zz(x,1,2) * yy(x,2)
+  !         dx
+  !
+  !      d yy(x,2)
+  !      ---------   =  zz(x,2,1) * yy(x,1) + zz(x,2,2) * yy(x,2)
+  !         dx
+  !
+  !
+  !     using fifth order predictor corrector algorithm
+  !
+  !     routine integrates from jj1 to jj2 and can cope with both cases
+  !     jj1 < jj2 and jj1 > jj2.  first five starting values of yy must
+  !     be provided by the calling program.
+
+  SUBROUTINE cfdsoliter(Grid,zz,yy,jj1,jj2)
+    TYPE(gridinfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN):: zz(:,:,:)
+    REAL(8), INTENT(INOUT):: yy(:,:)
+    INTEGER, INTENT(IN)  :: jj1,jj2
+
+
+    REAL(8):: fa(0:5),fb(0:5),abp(1:5),amc(0:4),yprev(2),ycorr(2)
+    INTEGER :: isgn,i,j,ip,mesh,k
+    INTEGER, PARAMETER :: CORRITER=5
+    REAL(8):: arp,brp
+    REAL(8), ALLOCATABLE :: tmpz(:,:,:)
+    REAL(8), PARAMETER :: verylarge=10.d0, smallenough=1.d-5
+    REAL(8) :: scale,small
+
+    mesh=SIZE(yy(2,:))
+    !write(std_out,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
+    IF (SIZE(zz(2,2,:))/=mesh) THEN
+       WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
+       STOP
+    ENDIF
+    isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
+    !write(std_out,*) 'cdfsol   isgn ', isgn
+    IF ( isgn .EQ. + 1 ) THEN
+       IF ( jj1 .LE. 5 .OR. jj2 .GT. mesh ) THEN
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+          CALL EXIT(1)
+       ENDIF
+    ELSEIF ( isgn .EQ. - 1 ) THEN
+       IF ( jj1 .GE. ( mesh - 4 ) .OR. jj2 .LT. 1 ) THEN
+          WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+          CALL EXIT(1)
+       ENDIF
+    ELSE
+       WRITE(STD_OUT,10) isgn,jj1,jj2,mesh
+    ENDIF
+
+10  FORMAT(' ***error in subroutine difsol',/,&
+         &' isgn =',i2,' jj1 =',i5,' jj2 =',i5,' mesh =',i5,&
+         &' are not allowed')
+
+    ALLOCATE(tmpz(2,2,mesh))
+    tmpz=zz
+
+    DO i=1,2
+       DO j=1,2
+          tmpz(i,j,:)=tmpz(i,j,:)*Grid%h
+          if (Grid%TYPE==loggrid) tmpz(i,j,1:mesh)=tmpz(i,j,1:mesh)*Grid%drdu(1:mesh)
+       ENDDO
+    ENDDO
+
+    abp(1) = 1901.d0 / 720.d0
+    abp(2) = -1387.d0 / 360.d0
+    abp(3) = 109.d0 / 30.d0
+    abp(4) = -637.d0 / 360.d0
+    abp(5) = 251.d0 / 720.d0
+    amc(0) = 251.d0 / 720.d0
+    amc(1) = 323.d0 / 360.d0
+    amc(2) = -11.d0 / 30.d0
+    amc(3) = 53.d0 / 360.d0
+    amc(4) = -19.d0 / 720.d0
+
+    DO j = 1,5
+       ip = jj1 - isgn * j
+       fa(j) = tmpz(1,1,ip) * yy(1,ip) + tmpz(1,2,ip) * yy(2,ip)
+       fb(j) = tmpz(2,1,ip) * yy(1,ip) + tmpz(2,2,ip) * yy(2,ip)
+    ENDDO
+
+    DO j = jj1,jj2,isgn
+       arp = yy(1,j-isgn)
+       brp = yy(2,j-isgn)
+       IF (ABS(arp)>verylarge.OR.brp>verylarge) THEN
+          scale=1.d0/(ABS(arp)+ABS(brp))
+          arp=arp*scale
+          brp=brp*scale
+          fa(:)=fa(:)*scale; fb(:)=fb(:)*scale
+          yy=yy*scale
+       ENDIF
+       DO  i = 1,5
+          arp = arp + DBLE(isgn) * abp(i) * fa(i)
+          brp = brp + DBLE(isgn) * abp(i) * fb(i)
+       ENDDO
+
+       fa(0) = tmpz(1,1,j) * arp + tmpz(1,2,j) * brp
+       fb(0) = tmpz(2,1,j) * arp + tmpz(2,2,j) * brp
+
+       yprev(1) = arp
+       yprev(2) = brp
+       ycorr(1) = yy(1,j-isgn)
+       ycorr(2) = yy(2,j-isgn)
+       DO  i = 1,4,1
+             ycorr(1) = ycorr(1) + DBLE(isgn) * amc(i) * fa(i)
+             ycorr(2) = ycorr(2) + DBLE(isgn) * amc(i) * fb(i)
+       ENDDO
+
+       DO k=1,CORRITER
+          yy(1,j)=ycorr(1) + DBLE(isgn) * amc(0) * fa(0)
+          yy(2,j)=ycorr(2) + DBLE(isgn) * amc(0) * fb(0)
+          small=abs(yprev(1))+abs(yprev(2))
+          small=(abs(yprev(1)-yy(1,j))+abs(yprev(2)-yy(2,j)))/small
+          !write(std_out,*)'correct: ',j,k,small
+          if(small.le.smallenough) exit
+          !!! warning no longer printed
+          !if (k==CORRITER) then
+          !   write(std_out,*) 'Warning from cfdsol corr ',j,k,small     
+          !endif   
+          yprev(1)= yy(1,j)
+          yprev(2)= yy(2,j)
+          fa(0) = tmpz(1,1,j) * yprev(1) + tmpz(1,2,j) * yprev(2)
+          fb(0) = tmpz(2,1,j) * yprev(1) + tmpz(2,2,j) * yprev(2)
+       ENDDO 
+
+       DO i = 5,2,-1
+          fa(i) = fa(i-1)
+          fb(i) = fb(i-1)
+       ENDDO
+       fa(1) = tmpz(1,1,j) * yy(1,j) + tmpz(1,2,j) * yy(2,j)
+       fb(1) = tmpz(2,1,j) * yy(1,j) + tmpz(2,2,j) * yy(2,j)
+    ENDDO
+
+    !write(std_out,*) 'in cdfsol  writing wfn '
+    !do j=jj1,jj2
+    !write(std_out,'(i10,1p,2e15.7)') j,yy(1,j),yy(2,j)
+    !enddo
+
+    DEALLOCATE(tmpz)
+  END SUBROUTINE cfdsoliter
 
 
    subroutine getwfnfromcfdsol(start,finish,yy,wfn)
@@ -1608,11 +1767,11 @@ CONTAINS
     REAL(8):: arp,brp
     REAL(8), ALLOCATABLE :: tmpz(:,:,:),ff1(:),ff2(:)
 
-    write(std_out,*) 'inhomocfdsol '; call flush_unit(std_out)
+    !write(std_out,*) 'inhomocfdsol '; call flush_unit(std_out)
 
     mesh=SIZE(yy(2,:))
-    write (6,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
-    call flush_unit(std_out)
+    !write (6,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
+    !call flush_unit(std_out)
     IF (SIZE(zz(2,2,:))/=mesh.or.SIZE(ff(2,:))/=mesh) THEN
        WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
        STOP
@@ -1709,7 +1868,7 @@ CONTAINS
        fb(1) = tmpz(2,1,j) * yy(1,j) + tmpz(2,2,j) * yy(2,j) + ff2(j)
     ENDDO
 
-    write(std_out,*) 'completed inhomocdfsol '; call flush_unit(std_out)
+    !write(std_out,*) 'completed inhomocdfsol '; call flush_unit(std_out)
 
     DEALLOCATE(tmpz,ff1,ff2)
   END SUBROUTINE inhomocfdsol
@@ -2328,9 +2487,12 @@ CONTAINS
       INTEGER :: i,nodes
       nodes=0
 
+
       do i=start+1,finish
          if (wfn(i)*wfn(i-1)<0.d0) nodes=nodes+1
-         if (PRESENT(filter).and.(abs(wfn(i))+abs(wfn(i-1)))<filter) exit
+         if (PRESENT(filter)) then
+           If((abs(wfn(i))+abs(wfn(i-1)))<filter) exit
+         endif  
       enddo
 
       countnodes=nodes
@@ -2547,11 +2709,10 @@ CONTAINS
     n=Grid%n
     allocate(pbr(n),dpdr(n))
     fac=l*(l+1)
-    dpdr=0.d0;pbr=0.d0
+    dpdr=0.d0;pbr=0.d0;otau=0.d0
     pbr(2:n)=wfn(2:n)/Grid%r(2:n)
-    CALL derivative(Grid,pbr,dpdr,2,n)
     CALL extrapolate(Grid,pbr)
-    CALL extrapolate(Grid,dpdr)
+    CALL derivative(Grid,pbr,dpdr,1,n)
     otau(:)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
     deallocate(pbr,dpdr)
 

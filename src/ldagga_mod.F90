@@ -84,6 +84,7 @@ CONTAINS
       ENDDO
       CLOSE(1001)
       CALL FreeAnderson(AC)
+      write(STD_OUT,*) 'Completed initial iteration ' ; call flush_unit(std_out)
       counter=1
       needvtau=.true.
       exctype=exctypesave
@@ -92,6 +93,16 @@ CONTAINS
 
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
 &       tau=Orbitwk%tau,vtau=Potwk%vtau)
+     !!! testing
+     if (needvtau) then
+      OPEN (unit=1001,file='potinitRSCAN',form='formatted')
+      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau '      
+      DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i),&
+&         Potwk%rvx(i),Orbitwk%den(i),Orbitwk%tau(i),Potwk%vtau(i)
+      ENDDO
+      CLOSE(1001)
+      endif 
     
 
     Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
@@ -204,7 +215,7 @@ CONTAINS
     !write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
-    dum(1:n)=tmpPot%rvh+tmpPot%rvx-w(1:n)
+    dum(1:n)=tmpPot%rvh(1:n)+tmpPot%rvx(1:n)-w(1:n)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     residue=dum
     err=Dot_Product(residue,residue)
@@ -234,8 +245,41 @@ CONTAINS
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
        Orbitwk%otau=tmpOrbit%otau
+       Orbitwk%tau=tmpOrbit%tau
        Orbitwk%deltatau=tmpOrbit%deltatau
        Call One_electron_energy_Report(Orbitwk,std_out)
+       !!! testing
+       if(needvtau.and.fcount==0) then
+      OPEN (unit=1001,file='potwithkedR2SCAN',form='formatted')
+      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
+      DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
+      ENDDO
+      CLOSE(1001)
+      fcount=fcount+1
+      endif
+       if(needvtau.and.fcount==1) then
+      OPEN (unit=1001,file='potwithkedR2SCAN1',form='formatted')
+      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
+      DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
+      ENDDO
+      CLOSE(1001)
+      fcount=fcount+1
+      endif
+       if(needvtau.and.fcount==2) then
+      OPEN (unit=1001,file='potwithkedR2SCAN2',form='formatted')
+      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
+      DO i = 1,n
+       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
+      ENDDO
+      CLOSE(1001)
+      fcount=fcount+1
+      endif
+    !!! end testing
     ENDIF
 
 

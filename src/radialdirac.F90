@@ -219,7 +219,7 @@ CONTAINS
 
     call wfnDinit(Grid,kappa,wfn,lwfn,istart)
     call prepareforcfdsolD(Grid,1,istart,nr,kappa,wfn,lwfn,yy,zz)
-    call cfdsol(Grid,zz,yy,istart,nr)
+    call cfdsoliter(Grid,zz,yy,istart,nr)
     call getwfnfromcfdsolD(1,nr,yy,wfn,lwfn)
     nodes=countnodes(2,nr,wfn)
     !
@@ -329,7 +329,7 @@ CONTAINS
     !
     !start outward integration
     call prepareforcfdsolD(Grid,1,istart,n,kappa,p1,lp1,yy,zz)
-    call cfdsol(Grid,zz,yy,istart,n)
+    call cfdsoliter(Grid,zz,yy,istart,n)
     call getwfnfromcfdsolD(1,n,yy,p1,lp1)
     node=countnodes(2,n,p1)
 
@@ -370,14 +370,14 @@ CONTAINS
           match=max(match,10); match=min(match,n-20)
           call wfnDasym(Grid,p2,lp2,energy,iend)
           call prepareforcfdsolD(Grid,n-iend,n,n,kappa,p2,lp2,yy,zz)
-          call cfdsol(Grid,zz,yy,n-iend,match)
+          call cfdsoliter(Grid,zz,yy,n-iend,match)
           call getwfnfromcfdsolD(match,n,yy,p2,lp2)
           match=match+6
           rin=lp2(match)/p2(match)
 
           call wfnDinit(Grid,l,p1,lp1,istart)
           call prepareforcfdsolD(Grid,1,istart,n,kappa,p1,lp1,yy,zz)
-          call cfdsol(Grid,zz,yy,istart,match+6)
+          call cfdsoliter(Grid,zz,yy,istart,match+6)
           call getwfnfromcfdsolD(1,match+6,yy,p1,lp1)
           node= countnodes(2,match+6,p1)
 

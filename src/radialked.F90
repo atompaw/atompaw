@@ -50,12 +50,19 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Set_Pot
+!    Version with polynomial fitting of vtau for 0<=r<=0.001
+!       and corresponding reseting ov oneplusvtau and dvtaudr in that range
+!       NAWH   4/6/2021
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    Subroutine Set_Pot(Grid,Pot)
      Type(GridInfo), INTENT(IN) :: Grid
      TYPE(PotentialInfo), INTENT(IN) :: Pot
 
-     INTEGER :: i,n
+     INTEGER :: i,j,k,n,nfit
+     REAL(8),parameter ::  smallr=0.001d0
+     INTEGER, parameter :: order=4
+     REAL(8) :: A(4,4),X(4),B(4),xx,xxx
+
 
      n=Grid%n
 
@@ -65,10 +72,76 @@ CONTAINS
 
 
      oneplusvtau=0.d0;   dvtaudr=0.d0
-     oneplusvtau=1.d0+Pot%vtau
 
-     call derivative(Grid,Pot%vtau,dvtaudr)
+     nfit=0
+     do i=1,n
+         if (Grid%r(i).le.smallr) then
+             nfit=i
+         else
+             exit
+         endif     
+     enddo    
+     !x write(std_out,*) 'In Set_Pot   nfit ', nfit
+     if (nfit.le.5) then
+        write(std_out,*) 'Program stopping because nfit too small '
+        stop
+     endif     
+
+     A=0.d0;B=0.d0;X=0.d0;
+     do i=1,nfit   
+        do j=1,order
+          if (j==1) then
+            xx=1
+          else
+            xx=(Grid%r(i)/smallr)**(j-1)
+          endif  
+          B(j)=B(j)+Pot%vtau(i)*xx
+          do k=1,j
+             if (k==1) then
+               xxx=xx
+             else
+               xxx=xx*(Grid%r(i)/smallr)**(k-1)
+             endif  
+             A(j,k)=A(j,k)+xxx
+             if (k<j) A(k,j)=A(k,j)+xxx
+          enddo   
+        enddo
+     enddo  
+
+     call SolveAXeqB(order,A,B)
+
+     !x write(std_out,*) 'completed SolveAXeqB ',B(1:order)
+     k=max(10,nfit/2)
+     !x write(std_out,*) 'Resetting vtau for first ',k,'  points'
+
+     xx=1.d0/smallr
+     do j=2,order
+        B(j)=B(j)*xx
+        xx=xx/smallr
+     enddo   
+     !x write(std_out,*) 'mod B: ',B(1:order)
+     do i=1,nfit
+        xx=B(1);xxx=0.d0
+        do j=2,order
+           xx=xx+B(j)*(Grid%r(i))**(j-1)
+           xxx=xxx+(j-1)*B(j)*(Grid%r(i))**(j-2)
+        enddo
+        !x write(std_out,'(i10,1p,5e15.7)')i,Grid%r(i),pot%vtau(i),xx,(pot%vtau(i)-xx),xxx
+        if(i.le.k) then 
+           pot%vtau(i)=xx
+           dvtaudr(i)=xxx
+        endif   
+     enddo   
+
+
+     oneplusvtau=1.d0+Pot%vtau
+     call derivative(Grid,Pot%vtau,dvtaudr,k-1,n)
      zxc=Pot%rvx(1)
+
+     write(std_out,*) 'In set_pot ', oneplusvtau(1),dvtaudr(1),zxc
+     !x do i=1,k+8
+        !x write(std_out,'(i10,1p,3e15.7)') i,Grid%r(i),oneplusvtau(i),dvtaudr(i)
+     !x enddo
 
    END Subroutine Set_Pot
 
@@ -95,13 +168,15 @@ CONTAINS
     wfn=0; lwfn=0
     c1=-(2*nz-zxc+l*t1)/(2*(l+1)*(oneplusvtau(1)))
 
+    !x write(std_out,*)' wfnkedinit for l ',l,energy;call flush_unit(std_out)
     istart=6
     do i=1,istart
        rr=Grid%r(i)
        wfn(i)=1+rr*c1
        lwfn(i)=(rr**l)*((l+1)*wfn(i)+rr*(c1))
-       lwfn(i)=oneplusvtau(i)*lwfn(i)
+       lwfn(i)=(t0+t1*rr)*lwfn(i)
        wfn(i)=wfn(i)*(rr**(l+1))
+       !x write(std_out,'(i10,1p,10e15.7)') i,rr,wfn(i)/rr,lwfn(i),t0+t1*rr-oneplusvtau(i)
     enddo
 
   End SUBROUTINE wfnkedinit
@@ -123,27 +198,30 @@ CONTAINS
     REAL(8),INTENT(INOUT) :: wfn(:),lwfn(:)
     INTEGER, INTENT(OUT) :: istart
 
-    REAL(8) :: rr,c1,c2,p0
+    REAL(8) :: rr,c1,c2,p0,t0,t1
     INTEGER :: i,j,n
 
-    !write(std_out,*) 'in wfnkedinitinhomo ', l; call flush_unit(std_out)
+    write(std_out,*) 'in wfnkedinitinhomo ', l; call flush_unit(std_out)
+    write(std_out,*) 'May not be correct '
     wfn=0; lwfn=0
+    t0=oneplusvtau(1);t1=dvtaudr(1)
    !!  assume proj(r) -- r**(l=1)*p0  for r-->0;  determine p0
     lwfn(2:8)=proj(2:8)/Grid%r(2:8)
     call extrapolate(Grid,lwfn)
     p0=lwfn(1)
     lwfn=0
     !write(std_out,*) 'p0   ',p0; call flush_unit(std_out)
-    c2=-p0/((oneplusvtau(1))*(4*l+6))
+    c2=-p0/(t0*(4*l+6))
     istart=6
     do i=1,istart
        rr=Grid%r(i)
        wfn(i)=c2*(rr**(l+3))
        lwfn(i)=(l+3)*c2*(rr**(l+2))
-       lwfn(i)=oneplusvtau(i)*lwfn(i)
+       lwfn(i)=(t0+t1*rr)*lwfn(i)
+       !x write(std_out,*) i,rr,wfn(i),lwfn(i); call flush_unit(std_out)
     enddo
 
-    !write(std_out,*) 'finished init'; call flush_unit(std_out)
+    !x write(std_out,*) 'finished init'; call flush_unit(std_out)
   End SUBROUTINE wfnkedinitinhomo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -245,7 +323,7 @@ CONTAINS
 
     call wfnkedinit(Grid,l,Pot%nz,Pot%v0,energy,wfn,lwfn,istart)
     call setupforcfdsol(Grid,Pot%rv,1,istart,nr,l,energy,wfn,lwfn,yy,zz)
-    call cfdsol(Grid,zz,yy,istart,nr)
+    call cfdsoliter(Grid,zz,yy,istart,nr)
     call getwfnfromcfdsol(1,nr,yy,wfn)
     nodes=countnodes(2,nr,wfn)
     !
@@ -304,7 +382,7 @@ CONTAINS
           stop
        endif
 
-       write(std_out,*) ' after Set_Pot '; call flush_unit(std_out)
+       !x write(std_out,*) ' after Set_Pot '; call flush_unit(std_out)
     lwfn=0;zz=0;yy=0;ff=0
 
  
@@ -313,7 +391,7 @@ CONTAINS
     ff(2,:)=-proj(:)
     write(std_out,*) 'before inhomcfdsol '; call flush_unit(std_out)
     call inhomocfdsol(Grid,zz,yy,ff,istart,nr)
-    write(std_out,*) 'after inhomcfdsol '; call flush_unit(std_out)
+    !x write(std_out,*) 'after inhomcfdsol '; call flush_unit(std_out)
     call getwfnfromcfdsol(1,nr,yy,wfn)
     !
     !
@@ -328,7 +406,7 @@ CONTAINS
 !  SUBROUTINE Boundked(Grid,Pot,eig,wfn,l,nroot,emin,ierr,success)
 !******************************************************************
   SUBROUTINE Boundked(Grid,Pot,eig,wfn,l,nroot,emin,ierr,success)
-    !  pgm to solve radial scalar relativistic equation for nroot bound state
+    !  pgm to solve  meta gga radial equation for nroot bound state
     !    energies and wavefunctions for angular momentum l
     !    with potential rv/r, given in uniform linear or log mesh of n points
     !  nz=nuclear charge
@@ -401,18 +479,30 @@ CONTAINS
     IF (nz>0.001d0) convrez=convre*nz
     ierr=0
 
-    write(std_out,*) 'z , l = ',nz,l
+    write(std_out,*) 'z , l = ',nz,l; call flush_unit(std_out)
     ! check how many roots expected by integration outward at
     !   energy = 0
     energy = 0
     call Set_Pot(Grid,Pot)
-    lwfn=0;zz=0;yy=0;
+    p1=0;lwfn=0;zz=0;yy=0;
     call wfnkedinit(Grid,l,Pot%nz,Pot%v0,energy,p1,lwfn,istart)
+    !x write(std_out,*) ' after wfnkedinit ', istart
     !
     !start outward integration
     call setupforcfdsol(Grid,Pot%rv,1,istart,n,l,energy,p1,lwfn,yy,zz)
-    call cfdsol(Grid,zz,yy,istart,n)
+    write(std_out,*) ' after setupfocfdsol ', istart,energy
+    call cfdsoliter(Grid,zz,yy,istart,n)
+    !x do i=1,istart+5
+    !x    write(std_out,'(i10,1p20e15.7)') i,Grid%r(i),yy(1,i),zz(2,1,i)
+    !x enddo
+
     call getwfnfromcfdsol(1,n,yy,p1)
+    !x write(std_out,*) 'afterwfnfromcfdsol';call flush_unit(std_out)
+    open(1001,file='initwfn',form='formatted')
+     do i=1,n
+         write(1001,*) i,yy(1,i),p1(i)
+         enddo
+     close(1001)
     node=countnodes(2,n,p1)
 
     write(std_out,*) ' nodes at e=0  ', node
@@ -453,18 +543,18 @@ CONTAINS
           match=max(match,10); match=min(match,n-20)
           call wfnkedasym(Grid,p2,lwfn,energy,iend)
           call setupforcfdsol(Grid,Pot%rv,n-iend,n,n,l,energy,p2,lwfn,yy,zz)
-          call cfdsol(Grid,zz,yy,n-iend,match)
+          call cfdsoliter(Grid,zz,yy,n-iend,match)
           call getwfnfromcfdsol(match,n,yy,p2)
           match=match+6
-          rin=yy(2,match)/p2(match)
+          rin=Gfirstderiv(Grid,match,p2)/p2(match)
 
           call wfnkedinit(Grid,l,Pot%nz,Pot%v0,energy,p1,lwfn,istart)
           call setupforcfdsol(Grid,Pot%rv,1,istart,n,l,energy,p1,lwfn,yy,zz)
-          call cfdsol(Grid,zz,yy,istart,match+6)
+          call cfdsoliter(Grid,zz,yy,istart,match+6)
           call getwfnfromcfdsol(1,match+6,yy,p1)
           node= countnodes(2,match+6,p1)
 
-          rout=yy(2,match)/p1(match)
+          rout=Gfirstderiv(Grid,match,p1)/p1(match)
           ! check whether node = (iroot-1)
           !   not enough nodes -- raise energy
           IF (node.LT.iroot-1) THEN
@@ -593,7 +683,7 @@ CONTAINS
      INTEGER, INTENT(IN) :: i1,i2,n,l
      REAL(8), INTENT(IN) :: energy
      REAL(8), INTENT(IN) :: wfn(:),lwfn(:),rv(:)
-     REAL(8), INTENT(OUT) :: yy(:,:),zz(:,:,:)
+     REAL(8), INTENT(INOUT) :: yy(:,:),zz(:,:,:)
 
      INTEGER :: i
      REAL(8) :: x
@@ -603,10 +693,9 @@ CONTAINS
       yy(1,i1:i2)=wfn(i1:i2)
       yy(2,i1:i2)=lwfn(i1:i2)
 
-      do  i=2,n
-       zz(1,1,i)=0.d0
+      do  i=1,n
        zz(1,2,i)=1.d0/oneplusvtau(i)
-       if(i==0) then
+       if(i==1) then
          zz(2,1,i)=0.d0
        else  
          zz(2,1,i)=oneplusvtau(i)*x/(Grid%r(i)*Grid%r(i))+&

@@ -70,8 +70,10 @@ Contains
    REAL(8), INTENT(IN) :: etain
    REAL(8) :: o
 
+   write(std_out,*) 'r2scan calculation with eta ', etain
    eta=etain   
-   o=cx1*2*cx2+3*cx3+4*cx4+5*cx5+6*cx6+7*cx7
+   o=cx1+2*cx2+3*cx3+4*cx4+5*cx5+6*cx6+7*cx7
+   write(std_out,*) 'r2scan check C2' , o*k0
    C2Ceta = (20.d0/27.d0 + (5*eta)/3.d0)*o*k0
 !!!!!  C2Ceta = (20.d0/27.d0 + (5*eta)/3.d0)*(-0.162742d0)
  END SUBROUTINE r2scaninit

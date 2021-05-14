@@ -522,12 +522,12 @@ CONTAINS
        enddo
        ! convert to Rydberg units
        exci=2*exci
-       vtau=2*vtau
+       !!!wrong -- dimensionless vtau=2*vtau
        dexcdn=2*dexcdn
-       dexcds=2*dexcds  
+       dexcds=4*dexcds       !extra factor of two due to sigma=grad**2
        rvxc=0.d0
        rvxc=dexcdn
-       dum(1:n)=2*dexcds(1:n)
+       dum(1:n)=dexcds(1:n)
        call derivative(Grid,dum,dum1,1,n)
        dum(2:n)=2*dum(2:n)/(Grid%r(2:n))
        call extrapolate(Grid,dum)
@@ -604,9 +604,12 @@ CONTAINS
           tmpl(2:n)=tmpl(2:n)+2.d0*grad(2:n)/Grid%r(2:n)
           call extrapolate(Grid,tmpl)
         endif  
+!!!  Note: libxc_getvxc in libxc_mod.F90 takes care of Ry<->Ha conversion 
           call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,lrho=tmpl, &
 &            tau=tmpt,vxcgr=dfxcdgbg,vxclrho=dgxcdl,vxctau=tmpvt)
           gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+     
+
           call derivative(Grid,gxc,dgxcdr,1,n)
           tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
         if(libxc_needs_laplacian()) then

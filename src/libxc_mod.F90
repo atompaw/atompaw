@@ -1323,7 +1323,8 @@ end function libxc_nspin
 
 !   Additional output in case of meta-GGA
     if (is_mgga.and.present(vxctau)) then
-      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2.d0*vtau(1:nsp) ! From Ha to Ry
+!!!wrong -- dimensionless      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2.d0*vtau(1:nsp) ! From Ha to Ry
+     vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+vtau(1:nsp) !no conversion 
     end if
     if (is_mgga.and.present(vxclrho)) then
       vxclrho(ipts,1:nsp)=vxclrho(ipts,1:nsp)+2.d0*vlrho(1:nsp) ! From Ha to Ry

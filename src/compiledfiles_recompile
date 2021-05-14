@@ -1,8 +1,0 @@
-#!/bin/tcsh
-
-'cp' -f ../Makefile .
-'cp' -f ../graphatom.inc .
-
-'cp' -f ../*.f90 .
-make
-make graphatom

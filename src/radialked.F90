@@ -51,7 +51,7 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Set_Pot
 !    Version with polynomial fitting of vtau for 0<=r<=0.001
-!       and corresponding reseting ov oneplusvtau and dvtaudr in that range
+!       and corresponding reseting of oneplusvtau and dvtaudr in that range
 !       NAWH   4/6/2021
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    Subroutine Set_Pot(Grid,Pot)
@@ -498,11 +498,11 @@ CONTAINS
 
     call getwfnfromcfdsol(1,n,yy,p1)
     !x write(std_out,*) 'afterwfnfromcfdsol';call flush_unit(std_out)
-    open(1001,file='initwfn',form='formatted')
-     do i=1,n
-         write(1001,*) i,yy(1,i),p1(i)
-         enddo
-     close(1001)
+    !open(1001,file='initwfn',form='formatted')
+    ! do i=1,n
+    !     write(1001,*) i,yy(1,i),p1(i)
+    !     enddo
+    ! close(1001)
     node=countnodes(2,n,p1)
 
     write(std_out,*) ' nodes at e=0  ', node
@@ -563,7 +563,7 @@ CONTAINS
              ifac=9
              !   too many nodes -- lower energy
           ELSEIF (node.GT.iroot-1) THEN
-             IF (energy.LE.emin) THEN
+             IF (energy.LT.emin) THEN
                 ierr=ierr+9*(10**(iroot-1))
                 write(std_out,*) 'boundked error -- emin too high',node,iroot-1,l,nz,emin,energy
                 do i=2,n

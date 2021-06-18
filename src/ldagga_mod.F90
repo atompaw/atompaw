@@ -85,17 +85,15 @@ CONTAINS
       CLOSE(1001)
       CALL FreeAnderson(AC)
       write(STD_OUT,*) 'Completed initial iteration ' ; call flush_unit(std_out)
-      counter=1
       needvtau=.true.
       exctype=exctypesave
       call initexch
-    Endif  
 
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
 &       tau=Orbitwk%tau,vtau=Potwk%vtau)
      !!! testing
      if (needvtau) then
-      OPEN (unit=1001,file='potinitRSCAN',form='formatted')
+      OPEN (unit=1001,file='potinitR2SCAN0',form='formatted')
       WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau '      
       DO i = 1,n
        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i),&
@@ -103,7 +101,11 @@ CONTAINS
       ENDDO
       CLOSE(1001)
       endif 
+      counter=1
+    Endif  
     
+    CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
+&       tau=Orbitwk%tau,vtau=Potwk%vtau)
 
     Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
     CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
@@ -221,6 +223,18 @@ CONTAINS
     err=Dot_Product(residue,residue)
     write(STD_OUT,*) 'in LDAGGASub   err ', err;call flush_unit(STD_OUT)
     
+ !!   if(needvtau.and.err>1.d-5) then
+ !!       do i=1,n
+ !!         write(500+fcount,'(1p,5e15.7)') Gridwk%r(i),w(i),residue(i)
+ !!       enddo
+ !!       close(500+fcount)
+ !!       fcount=fcount+1
+ !!       if (AC%CurIter==1000) then
+ !!         write(std_out,*) 'Iteration 1000 -- try to stabilize'
+ !!         w=tmpPot%rvh+tmpPot%rvx
+ !!       endif       
+ !!    endif
+
    if(frozencorecalculation) then
      Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
      CALL Get_FCEXC(SCFwk)
@@ -390,6 +404,9 @@ CONTAINS
     dum=0
     !write(std_out,*) 'before dum'; call flush_unit(std_out)
     dum(2:n)=Pot%rvx(2:n)*Orbit%den(2:n)/Grid%r(2:n)
+    if (needvtau) then
+       dum=dum+Orbit%tau*Pot%vtau       !Kinetic energy correction    
+    endif   
     !write(std_out,*) 'after dum'; call flush_unit(std_out)
     !write(std_out,*) SCF%eone;call flush_unit(std_out)
     !write(std_out,*) SCF%ecoul;call flush_unit(std_out)

@@ -35,6 +35,7 @@ MODULE input_dataset_mod
    INTEGER      :: atomic_charge    ! Atomic charge
    LOGICAL :: scalarrelativistic    ! Flag activating the scalar relativistic scheme
    LOGICAL :: diracrelativistic     ! Flag activating the Dirac relativistic scheme
+   LOGICAL :: usespline             ! Flag for using splinesolver for lda/gga
    LOGICAL :: finitenucleus         ! Flag activating finite nucleus model
    INTEGER :: finitenucleusmodel    ! Option for the finite nucleus model
    LOGICAL :: HFpostprocess         ! Option for the post-processing of Hartree-Fock
@@ -231,6 +232,7 @@ CONTAINS
  INTEGER :: ii,io,nadd,norb,nval,nbl,nn,ik,kk
  INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,itau
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
+ INTEGER :: ispline
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
  CHARACTER(200) :: inputline,inputword
@@ -323,6 +325,7 @@ CONTAINS
    WRITE(STD_OUT,*) ' further optionally (space) "nonrelativistic/scalarrelativistic/diracrelativistic" keyword'
    WRITE(STD_OUT,*) ' further optionally (space) "point-nucleus/finite-nucleus" keyword'
    WRITE(STD_OUT,*) ' further optionally (space) "loggrid/lineargrid" keyword if appropriate'
+   WRITE(STD_OUT,*) ' further optionally (space) "splineinterp" keyword to use splinesolver for lda/gga'
    WRITE(STD_OUT,*) '   Note: "loggridv4" puts more points near origin'
    WRITE(STD_OUT,*) ' further optionally n (number of grid points)'
    WRITE(STD_OUT,*) '                       r_max (max. grid radius)'
@@ -345,6 +348,7 @@ CONTAINS
 !Retrieve keyword indexes
  ilin=0;ilin=0;ilog=0;ilogv4=0;inrl=0;iscl=0;ipnt=0;ifin=0
  ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0;ibd=0;idirac=0
+ ispline=0
  ilin=INDEX(exchangecorrelationandgridline,'LINEARGRID')
  ilog=INDEX(exchangecorrelationandgridline,'LOGGRID')
  ilogv4=INDEX(exchangecorrelationandgridline,'LOGGRIDV4')
@@ -359,12 +363,14 @@ CONTAINS
  ilcex=INDEX(exchangecorrelationandgridline,'LOCALIZEDCOREEXCHANGE')
  ifixz=INDEX(exchangecorrelationandgridline,'FIXED_ZERO')
  itau=INDEX(exchangecorrelationandgridline,'WTAU')
+ ispline=INDEX(exchangecorrelationandgridline,'SPLINEINTERP')
  igrid=max(ilin,ilog)  !This line may need attention....
  irelat=max(inrl,iscl) !This line may need attention....
 
 !Treat simple logical variables
  dataset%scalarrelativistic=(iscl>0.and.inrl==0)
  dataset%diracrelativistic=(idirac>0.and.inrl==0)
+ dataset%usespline=(ispline>0.and.inrl==0)
  dataset%finitenucleus=(ifin>0.and.ipnt==0)
  dataset%BDsolve=(ibd>0)
  dataset%HFpostprocess=(ihfpp>0)

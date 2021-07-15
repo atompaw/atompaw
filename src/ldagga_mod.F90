@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  This module contains the following active subroutines:
-!     LDAGGA_SCF, LDAGGASub, Get_EXC, Get_FCEXC, Report_LDAGGA_functions
-!         fixdensity
+!     LDAGGA_SCF, LDAGGASub, Get_EXC, Get_FCEXC, Report_LDAGGA_functions,
+!          DENITERSub
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -75,33 +75,34 @@ CONTAINS
 
       WRITE(STD_OUT,*) 'Anderson Mix with LDA',AC%res ,' iter = ',AC%CurIter
       !WRITE(STD_OUT,*) 'Anderson Mix with GGA',AC%res ,' iter = ',AC%CurIter
-      OPEN (unit=1001,file='potinitLDA',form='formatted')
-      !OPEN (unit=1001,file='potinitGGA',form='formatted')
-      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau  '      
-      DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i)
-      ENDDO
-      CLOSE(1001)
+!!!      OPEN (unit=1001,file='potinitLDA',form='formatted')
+!!!      !OPEN (unit=1001,file='potinitGGA',form='formatted')
+!!!      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau  '      
+!!!      DO i = 1,n
+!!!       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+!!!&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i)
+!!!      ENDDO
+!!!      CLOSE(1001)
       CALL FreeAnderson(AC)
       write(STD_OUT,*) 'Completed initial iteration ' ; call flush_unit(std_out)
       needvtau=.true.
       exctype=exctypesave
       call initexch
-
-    CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
-&       tau=Orbitwk%tau,vtau=Potwk%vtau)
-     !!! testing
-     if (needvtau) then
-      OPEN (unit=1001,file='potinitR2SCAN0',form='formatted')
-      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau '      
-      DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i),&
-&         Potwk%rvx(i),Orbitwk%den(i),Orbitwk%tau(i),Potwk%vtau(i)
-      ENDDO
-      CLOSE(1001)
-      endif 
       counter=1
+
+!!!    CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
+!!!&       tau=Orbitwk%tau,vtau=Potwk%vtau)
+!!!     !!! testing
+!!!     if (needvtau) then
+!!!      OPEN (unit=1001,file='potinitR2SCAN0',form='formatted')
+!!!      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau '      
+!!!      DO i = 1,n
+!!!       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i),Potwk%rvh(i),&
+!!!&         Potwk%rvx(i),Orbitwk%den(i),Orbitwk%tau(i),Potwk%vtau(i)
+!!!      ENDDO
+!!!      CLOSE(1001)
+!!!      endif 
+!!!      counter=1
     Endif  
     
     CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
@@ -114,14 +115,24 @@ CONTAINS
       SCFwk%iter=0
       SCFwk%delta=0
 
-    !arg=Potwk%rv   !no longer used
-
-      arg=Potwk%rvh+Potwk%rvx   ! iterating only on electronic part of pot
       CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
-      CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+      If (needvtau) then
+         arg=Orbitwk%den   ! iterating on density
+         CALL DoAndersonMix(AC,arg,en1,DENITERsub,success)
+         !!!!   evaluate vxc and vtau on universal grid
+         !!!!    because it may be bumpy at intermediate range from spline
+         !!!!     evaluation
+         CALL exch(Gridwk,Orbitwk%den,Potwk%rvx,etxc,eex,&
+&           tau=Orbitwk%tau,vtau=Potwk%vtau)
+         Potwk%rv=Potwk%rvn+Potwk%rvh+Potwk%rvx   
+      else   
+         arg=Potwk%rvh+Potwk%rvx  ! iterating only on electronic part of pot
+         CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
+      endif   
       SCFwk%iter=SCFwk%iter+AC%CurIter
       SCFwk%delta=AC%res
 
+      WRITE(STD_OUT,*) 'Anderson Mix ',success,AC%res ,' iter = ',AC%CurIter
     CALL Report_LDAGGA_functions(scftype)
 
     CALL FreeAnderson(AC)
@@ -144,7 +155,7 @@ CONTAINS
     INTEGER :: i,j,k,n,io,nw
     REAL(8),ALLOCATABLE :: dum(:)
     REAL(8) :: x
-    INTEGER:: fcount=0
+    INTEGER:: fcount=0,dcount=0
     TYPE (OrbitInfo) :: tmpOrbit
     TYPE (PotentialInfo) :: tmpPot
 
@@ -161,10 +172,14 @@ CONTAINS
     CALL CopyPot(Potwk,tmpPot)
 
     CALL Updatewfn(Gridwk,tmpPot,tmpOrbit,w,success)
+    write(std_out,*) 'completed updatewfn with success ', success
     !tmpPot%rv=w         ! no longer used
       If (.not.success) then   !  attempt to stablize solution
               !   probably needs rethinking....
           write(std_out,*) 'Current eigs', (Orbitwk%eig(io),io=1,Orbitwk%norbit)
+          write(std_out,*) 'Eigensolver failed and recovery algorithm is not worthy -- program stopping' 
+          stop
+   
           j=n
           x=Orbitwk%eig(1)
           if (Orbitwk%norbit>1) then
@@ -209,12 +224,13 @@ CONTAINS
        WRITE(STD_OUT,*) 'Bad luck in Sub'
     ENDIF
 
-    !write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
+    write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
 
-    CALL Fixdensity(Gridwk,tmpOrbit%den)
+    !CALL Fixdensity(Gridwk,tmpOrbit%den)
     
-    !write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
+    write(std_out,*) 'in LDAGGAsub before EXC'; call flush_unit(std_out)
+    write(std_out,*)  'Check tau ', integrator(Gridwk,tmpOrbit%tau)
     CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     dum(1:n)=tmpPot%rvh(1:n)+tmpPot%rvx(1:n)-w(1:n)
@@ -222,7 +238,11 @@ CONTAINS
     residue=dum
     err=Dot_Product(residue,residue)
     write(STD_OUT,*) 'in LDAGGASub   err ', err;call flush_unit(STD_OUT)
-    
+!!    write(std_out,*) 'write out residue ', 5000+dcount
+!!    do i=1,n
+!!       write(5000+dcount,'(1P,10E15.7)') Gridwk%r(i),tmpPot%rvh(i),tmpPot%rvx(i),w(i),residue(i)
+!!    enddo
+ !!   close(5000+dcount);dcount=dcount+1   
  !!   if(needvtau.and.err>1.d-5) then
  !!       do i=1,n
  !!         write(500+fcount,'(1p,5e15.7)') Gridwk%r(i),w(i),residue(i)
@@ -273,26 +293,6 @@ CONTAINS
       CLOSE(1001)
       fcount=fcount+1
       endif
-       if(needvtau.and.fcount==1) then
-      OPEN (unit=1001,file='potwithkedR2SCAN1',form='formatted')
-      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
-      DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
-      ENDDO
-      CLOSE(1001)
-      fcount=fcount+1
-      endif
-       if(needvtau.and.fcount==2) then
-      OPEN (unit=1001,file='potwithkedR2SCAN2',form='formatted')
-      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
-      DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
-      ENDDO
-      CLOSE(1001)
-      fcount=fcount+1
-      endif
     !!! end testing
     ENDIF
 
@@ -304,72 +304,135 @@ CONTAINS
 
   END SUBROUTINE  LDAGGASub
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !   For reasons that are not completely clear, the electron
-  !    density near the origin occasionally becomes erratic
-  !    this routine checks and fixes this behavior for r<0.01 bohr
-  !  SUBROUTINE fixdensity(Grid,den)
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE fixdensity(Grid,den)
-    TYPE (GridInfo), INTENT(IN) :: Grid
-    REAL(8), INTENT(INOUT) :: den(:)
 
-    REAL(8), ALLOCATABLE :: tmpd(:),dum(:),grad(:)
-    INTEGER :: n,i,j,k
-    REAL(8) :: fpi,con,a,b
-    REAL(8), parameter :: range=0.01d0, tol=0.01d0
-    LOGICAL :: problem
-    INTEGER :: counter=0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!  DENITERSub	-- w is the electron density
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE DENITERSub(w,energy,residue,err,success,update)
+    REAL(8), INTENT(INOUT) :: w(:)
+    REAL(8), INTENT(OUT) :: energy
+    REAL(8), INTENT(OUT) :: residue(:)
+    REAL(8), INTENT(OUT) :: err
+    LOGICAL, INTENT(OUT) :: success
+    LOGICAL, INTENT(IN) :: update
 
-    fpi=4*pi
-    n=Grid%n
-    allocate(tmpd(n),dum(n),grad(n))
+    INTEGER :: i,j,k,n,io,nw
+    REAL(8),ALLOCATABLE :: dum(:)
+    REAL(8) :: x,y
+    INTEGER:: fcount=0,dcount=0
+    TYPE (OrbitInfo) :: tmpOrbit
+    TYPE (PotentialInfo) :: tmpPot
 
-       tmpd=0
-       DO i=2,n
-          tmpd(i)=den(i)/(fpi*(Grid%r(i)**2))
+    n=Gridwk%n
+    nw=SIZE(w)
+    if(n/=nw) then
+      write(std_out,*) 'problem in DENITERsub n,nw', n,nw
+      stop
+    endif
+    ALLOCATE(dum(nw),stat=i)
+    IF (i/=0) THEN
+        WRITE(6,*) 'Error in DENITERsub allocation' ,nw
+        STOP
+    ENDIF
+
+    CALL CopyOrbit(Orbitwk,tmpOrbit)
+    CALL CopyPot(Potwk,tmpPot)
+
+    !  w enters subroutine as next iteration density
+    !  It needs to be renormalized 
+    !  tmpPot%rvh, tmpPot%rvx,  tmpPot%vtau need to be generated 
+
+    x=integrator(Gridwk,w)
+    write(std_out,*) 'In DENITERsub norm(m) adjust ', x,Potwk%q
+    w=w*tmpPot%q/x
+    call  poisson(Gridwk,x,w,tmpPot%rvh,y)
+    write(std_out,*) 'after poisson  q,ecoul ',x,y
+    call exch(Gridwk,w,tmpPot%rvx,x,y,tau=tmpOrbit%tau,vtau=tmpPot%vtau)
+    write(std_out,*) 'after exch   exvct, eexc ',x,y
+    tmpPot%rv=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx
+    tmpOrbit%den=w
+
+    CALL Updatewfnwden(Gridwk,tmpPot,tmpOrbit,w,success)
+    write(std_out,*) 'completed updatewfnwden with success ', success
+
+    !if FC core calc , restore core info backinto tmpOrbit
+
+    IF(frozencorecalculation) THEN
+       DO io = 1 , Orbitwk%norbit
+          IF(Orbitwk%iscore(io)) THEN
+             tmpOrbit%eig(io)=Orbitwk%eig(io)
+             tmpOrbit%wfn(:,io)=Orbitwk%wfn(:,io)
+             if(diracrelativistic) tmpOrbit%lwfn(:,io)=Orbitwk%lwfn(:,io)
+             tmpOrbit%otau(:,io)=Orbitwk%otau(:,io)
+          ENDIF
        ENDDO
-       CALL extrapolate(Grid,tmpd)
-       do i=1,n
-         dum(i)=ddlog(abs(tmpd(i)))
-       enddo  
-       call derivative(Grid,dum,grad,1,n)
+    ENDIF
 
-       problem=.false.; j=0
-       do i=2,n
-          if (Grid%r(i)>range) exit
-          if (abs(grad(i)-grad(i-1))>tol) then
-            problem=.true.
-            j=i      
-            exit
-          endif
-       enddo  
+    IF (.NOT.success) THEN
+       WRITE(STD_OUT,*) 'Bad luck in Sub'
+    ENDIF
 
-       if (problem) then
-         write(std_out,*) 'density problem   #', counter      
-         k=0
-         do i=j,n
-          if (Grid%r(i)>range) exit
-          if (abs(grad(i)-grad(i-1))<tol) then
-            k=i      
-            exit
-          endif
-         enddo  
-         write(std_out,*) 'Resetting density for < ', k,Grid%r(k)
-         con=(Grid%r(k+2)*dum(k+1)-Grid%r(k+1)*dum(k+2))/(Grid%r(k+2)-Grid%r(k+1))
-         a=(dum(k+1)-dum(k+2))/(Grid%r(k+2)-Grid%r(k+1))
-         write(std_out,*) 'con, a ', con,a
-         con=fpi*exp(con)
-         do i=1,k+2
-           den(i)=con*exp(-a*Grid%r(i))*(Grid%r(i)**2)
-         enddo
-        ! do i=1,n
-        !   write(5000+counter,'(1p,10e15.7)') Grid%r(i),den(i),tmpd(i),dum(i),grad(i)      
-        ! enddo  
-       endif  
-         counter=counter+1
-    deallocate(tmpd,dum,grad)
-  END SUBROUTINE fixdensity
+    CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
+
+    write(std_out,*)  'Check tau ', integrator(Gridwk,tmpOrbit%tau)
+    CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
+    dum(1:n)=tmpOrbit%den(1:n)-w(1:n)
+    residue=dum
+    err=Dot_Product(residue,residue)
+    write(STD_OUT,*) 'in DENITERSub   err ', err;call flush_unit(STD_OUT)
+!!!    write(std_out,*) 'write out residue ', 5000+dcount
+!!!    do i=1,n
+!!!       write(5000+dcount,'(1P,10E15.7)') Gridwk%r(i),tmpPot%rvh(i),tmpPot%rvx(i),w(i),residue(i)
+!!!    enddo
+!!!    close(5000+dcount);dcount=dcount+1   
+
+   if(frozencorecalculation) then
+     Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
+     CALL Get_FCEXC(SCFwk)
+     energy=SCFwk%evale
+     CALL Total_FCEnergy_Report(SCFwk,STD_OUT)
+   else
+     energy=SCFwk%etot
+     CALL Total_Energy_Report(SCFwk,STD_OUT)
+   endif
+
+
+    IF (update) THEN
+       Potwk%rv=tmpPot%rv
+       Potwk%rvh=tmpPot%rvh
+       Potwk%rvx=tmpPot%rvx
+       if (needvtau) Potwk%vtau=tmpPot%vtau
+       Orbitwk%wfn=tmpOrbit%wfn
+       If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
+       Orbitwk%eig=tmpOrbit%eig
+       !Orbitwk%den=tmpOrbit%den
+       Orbitwk%den=w
+       Orbitwk%otau=tmpOrbit%otau
+       Orbitwk%tau=tmpOrbit%tau
+       Orbitwk%deltatau=tmpOrbit%deltatau
+       Call One_electron_energy_Report(Orbitwk,std_out)
+!!!       !!! testing
+!!!       if(needvtau.and.fcount==0) then
+!!!      OPEN (unit=1001,file='potwithkedR2SCAN',form='formatted')
+!!!      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
+!!!      DO i = 1,n
+!!!       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+!!!&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
+!!!      ENDDO
+!!!      CLOSE(1001)
+!!!      fcount=fcount+1
+!!!      endif
+!!!    !!! end testing
+    ENDIF
+
+
+    CALL DestroyOrbit(tmpOrbit)
+    CALL DestroyPot(tmpPot)
+    DEALLOCATE (dum)
+
+  END SUBROUTINE  DENITERSub
+
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! Get_EXC
@@ -385,14 +448,15 @@ CONTAINS
     TYPE(SCFInfo), INTENT(OUT) :: SCF
 
     REAL(8) :: eex,etot,etxc
-    REAL(8), ALLOCATABLE :: dum(:)
+    REAL(8), ALLOCATABLE :: dum(:),dum1(:)
     INTEGER :: k,n
 
     n=Grid%n
-    !write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
+    write(std_out,*) 'In Get_EXC', n; call flush_unit(std_out)
+    write(std_out,*) 'In Get_EXC check ekin', integrator(Grid,Orbit%tau)
     CALL exch(Grid,Orbit%den,Pot%rvx,etxc,eex,&
 &       tau=Orbit%tau,vtau=Pot%vtau)
-    !write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
+    write(std_out,*) 'After exch', etxc,eex; call flush_unit(std_out)
 
     SCF%eexc=eex
     etot = SCF%ekin+SCF%estatic+SCF%eexc
@@ -400,22 +464,24 @@ CONTAINS
     WRITE(STD_OUT,*) '    Total                    :  ',etot
 
     !write(std_out,*) 'before allocate'; call flush_unit(std_out)
-    ALLOCATE(dum(n))
-    dum=0
+    ALLOCATE(dum(n),dum1(n))
+    dum=0;dum1=0
     !write(std_out,*) 'before dum'; call flush_unit(std_out)
     dum(2:n)=Pot%rvx(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     if (needvtau) then
        dum=dum+Orbit%tau*Pot%vtau       !Kinetic energy correction    
+       dum1=Orbit%tau*Pot%vtau
     endif   
-    !write(std_out,*) 'after dum'; call flush_unit(std_out)
-    !write(std_out,*) SCF%eone;call flush_unit(std_out)
-    !write(std_out,*) SCF%ecoul;call flush_unit(std_out)
-    !write(std_out,*) eex;call flush_unit(std_out)
-    !write(std_out,*) integrator(Grid,dum);call flush_unit(std_out)
+    write(std_out,*) 'after dum'; call flush_unit(std_out)
+    write(std_out,*) 'one',SCF%eone;call flush_unit(std_out)
+    write(std_out,*) 'coul',SCF%ecoul;call flush_unit(std_out)
+    write(std_out,*) 'exc',eex;call flush_unit(std_out)
+    write(std_out,*) 'DC',integrator(Grid,dum);call flush_unit(std_out)
+    write(std_out,*) 'vt',integrator(Grid,dum1);call flush_unit(std_out)
     WRITE(STD_OUT,*) '    Total   (DC form)        :  ',&
 &        SCF%eone-SCF%ecoul+eex-integrator(Grid,dum)
     call flush_unit(std_out)
-    DEALLOCATE(dum)
+    DEALLOCATE(dum,dum1)
   END SUBROUTINE Get_EXC
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

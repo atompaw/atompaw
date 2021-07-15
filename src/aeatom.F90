@@ -22,6 +22,9 @@ MODULE AEatom
   USE hf_mod
   USE ldagga_mod
   USE input_dataset_mod
+  USE radialked
+  USE splinesolver
+
   
   IMPLICIT NONE
 
@@ -78,6 +81,14 @@ CONTAINS
 !   Relativistic, point-nucleus, HF data (from input dataset)
     scalarrelativistic=input_dataset%scalarrelativistic
     diracrelativistic=input_dataset%diracrelativistic
+    usespline=input_dataset%usespline
+    !! checking --
+    if ((scalarrelativistic.or.diracrelativistic).and.usespline) then
+       write(std_out,*) 'Requested splinesolver for relativistic calculation'
+       write(std_out,*) 'This has not been yet programmed '     
+       write(std_out,*) ' Resetting to finite difference solvers '
+       usespline=.false.
+    endif   
     HFpostprocess=input_dataset%HFpostprocess
     finitenucleus=input_dataset%finitenucleus
     AEPot%finitenucleusmodel=input_dataset%finitenucleusmodel
@@ -374,7 +385,12 @@ CONTAINS
     CALL InitSCF(AESCF)
     IF (scalarrelativistic) CALL Allocate_Scalar_Relativistic(Grid)
     IF (diracrelativistic)  CALL Allocate_Dirac_Relativistic(Grid)
-    IF (needvtau) CALL Allocate_ked(Grid)
+    IF (needvtau) then
+            CALL Allocate_ked(Grid)
+            usespline=.true.
+    endif        
+
+    if(usespline) CALL initsplinesolver(Grid)
 
     write(std_out,*) 'Finish SCFatom_Init' ; call flush_unit(std_out)
 

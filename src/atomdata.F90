@@ -77,6 +77,7 @@ MODULE atomdata
   LOGICAL :: diracrelativistic
   LOGICAL :: shapetcore
   LOGICAL :: needvtau
+  LOGICAL :: usespline
   LOGICAL :: BDsolve
   LOGICAL :: finitenucleus
   LOGICAL :: gaussianshapefunction,besselshapefunction

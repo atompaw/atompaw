@@ -9,7 +9,7 @@
 !         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
 !         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
 !         gramschmidt, Milne, midrange_numerov, getwfnfromcfdsol,
-!         taufromwfn,cfdsoliter
+!         taufromwfn,cfdsoliter,initgridwithn
 !  This module contains the following functions, most of which are active:
 !       usingloggrid, overint, integrator, overlap, FindGridIndex,
 !         secondderiv, firstderiv, Gsecondderiv, Gfirstderiv, gridindex,
@@ -2423,6 +2423,68 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE InitGrid
+
+  !******************************************************************
+  ! subroutine initgridwithn(Grid,type,n,r0,h)
+  !******************************************************************
+  SUBROUTINE initgridwithn(Grid,type,n,r0,h)
+    TYPE (GridInfo), INTENT(INOUT) :: Grid
+    INTEGER, INTENT(IN) :: type,n       !type=1 lin,2 log
+    REAL(8), INTENT(IN) :: r0,h
+
+    INTEGER :: i
+
+
+
+    IF (type==loggrid) THEN
+       Grid%h=h
+       Grid%r0=r0
+       Grid%type=loggrid
+       Grid%ishift=5
+       Grid%n=n
+       ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
+       IF (i/=0) THEN
+          WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
+          STOP
+       ENDIF
+       DO i=1,n
+          Grid%r(i)=r0*(EXP(Grid%h*(i-1))-1)
+          Grid%drdu(i)=r0*EXP(Grid%h*(i-1))
+          Grid%pref(i)=r0*EXP(Grid%h*(i-1)/2.d0)
+          Grid%rr02(i)=(Grid%r(i)+r0)**2
+       ENDDO
+       Grid%range=Grid%r(n)
+       WRITE(STD_OUT,*) 'InitGridwithn: -- logarithmic ',n, h,Grid%range,r0
+
+    ELSEIF (type==lineargrid) THEN
+       Grid%h=h
+       Grid%r0=0.d0
+       Grid%type=lineargrid
+       Grid%ishift=25
+       Grid%n=n
+       ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
+       IF (i/=0) THEN
+          WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
+          STOP
+       ENDIF
+       DO i=1,n
+          Grid%r(i)=(Grid%h*(i-1))
+          Grid%drdu(i)=1.d0
+          Grid%pref(i)=1.d0
+          Grid%rr02(i)=1.d0
+       ENDDO
+       Grid%range=Grid%r(n)
+       WRITE(STD_OUT,*) 'InitGridwithn: -- linear ',n, h,Grid%range,r0
+       ELSE
+          write(std_out,*) 'error in initgridwithn -- type =',type    
+          stop
+    ENDIF
+
+  END SUBROUTINE initgridwithn
+
+
+
+
 
   !******************************************************************
   ! subroutine destroygrid(Grid)

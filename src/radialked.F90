@@ -73,75 +73,76 @@ CONTAINS
 
      oneplusvtau=0.d0;   dvtaudr=0.d0
 
-     nfit=0
-     do i=1,n
-         if (Grid%r(i).le.smallr) then
-             nfit=i
-         else
-             exit
-         endif     
-     enddo    
-     !x write(std_out,*) 'In Set_Pot   nfit ', nfit
-     if (nfit.le.5) then
-        write(std_out,*) 'Program stopping because nfit too small '
-        stop
-     endif     
-
-     A=0.d0;B=0.d0;X=0.d0;
-     do i=1,nfit   
-        do j=1,order
-          if (j==1) then
-            xx=1
-          else
-            xx=(Grid%r(i)/smallr)**(j-1)
-          endif  
-          B(j)=B(j)+Pot%vtau(i)*xx
-          do k=1,j
-             if (k==1) then
-               xxx=xx
-             else
-               xxx=xx*(Grid%r(i)/smallr)**(k-1)
-             endif  
-             A(j,k)=A(j,k)+xxx
-             if (k<j) A(k,j)=A(k,j)+xxx
-          enddo   
-        enddo
-     enddo  
-
-     call SolveAXeqB(order,A,B)
-
-     !x write(std_out,*) 'completed SolveAXeqB ',B(1:order)
-     k=max(10,nfit/2)
-     !x write(std_out,*) 'Resetting vtau for first ',k,'  points'
-
-     xx=1.d0/smallr
-     do j=2,order
-        B(j)=B(j)*xx
-        xx=xx/smallr
-     enddo   
-     !x write(std_out,*) 'mod B: ',B(1:order)
-     do i=1,nfit
-        xx=B(1);xxx=0.d0
-        do j=2,order
-           xx=xx+B(j)*(Grid%r(i))**(j-1)
-           xxx=xxx+(j-1)*B(j)*(Grid%r(i))**(j-2)
-        enddo
-        !x write(std_out,'(i10,1p,5e15.7)')i,Grid%r(i),pot%vtau(i),xx,(pot%vtau(i)-xx),xxx
-        if(i.le.k) then 
-           pot%vtau(i)=xx
-           dvtaudr(i)=xxx
-        endif   
-     enddo   
+!!!! Hopefully the following code is no longer needed     
+!     nfit=0
+!     do i=1,n
+!         if (Grid%r(i).le.smallr) then
+!             nfit=i
+!         else
+!             exit
+!         endif     
+!     enddo    
+!     !x write(std_out,*) 'In Set_Pot   nfit ', nfit
+!     if (nfit.le.5) then
+!        write(std_out,*) 'Program stopping because nfit too small '
+!        stop
+!     endif     
+!
+!     A=0.d0;B=0.d0;X=0.d0;
+!     do i=1,nfit   
+!        do j=1,order
+!          if (j==1) then
+!            xx=1
+!          else
+!            xx=(Grid%r(i)/smallr)**(j-1)
+!          endif  
+!          B(j)=B(j)+Pot%vtau(i)*xx
+!          do k=1,j
+!             if (k==1) then
+!               xxx=xx
+!             else
+!               xxx=xx*(Grid%r(i)/smallr)**(k-1)
+!             endif  
+!             A(j,k)=A(j,k)+xxx
+!             if (k<j) A(k,j)=A(k,j)+xxx
+!          enddo   
+!        enddo
+!     enddo  
+!
+!     call SolveAXeqB(order,A,B)
+!
+!     !x write(std_out,*) 'completed SolveAXeqB ',B(1:order)
+!     k=max(10,nfit/2)
+!     !x write(std_out,*) 'Resetting vtau for first ',k,'  points'
+!
+!     xx=1.d0/smallr
+!     do j=2,order
+!        B(j)=B(j)*xx
+!        xx=xx/smallr
+!     enddo   
+!     !x write(std_out,*) 'mod B: ',B(1:order)
+!     do i=1,nfit
+!        xx=B(1);xxx=0.d0
+!        do j=2,order
+!           xx=xx+B(j)*(Grid%r(i))**(j-1)
+!           xxx=xxx+(j-1)*B(j)*(Grid%r(i))**(j-2)
+!        enddo
+!        !x write(std_out,'(i10,1p,5e15.7)')i,Grid%r(i),pot%vtau(i),xx,(pot%vtau(i)-xx),xxx
+!        if(i.le.k) then 
+!           pot%vtau(i)=xx
+!           dvtaudr(i)=xxx
+!        endif   
+!     enddo   
 
 
      oneplusvtau=1.d0+Pot%vtau
-     call derivative(Grid,Pot%vtau,dvtaudr,k-1,n)
+     call derivative(Grid,Pot%vtau,dvtaudr)
      zxc=Pot%rvx(1)
 
-     write(std_out,*) 'In set_pot ', oneplusvtau(1),dvtaudr(1),zxc
-     !x do i=1,k+8
-        !x write(std_out,'(i10,1p,3e15.7)') i,Grid%r(i),oneplusvtau(i),dvtaudr(i)
-     !x enddo
+!     write(std_out,*) 'In set_pot ', oneplusvtau(1),dvtaudr(1),zxc
+!     !x do i=1,k+8
+!        !x write(std_out,'(i10,1p,3e15.7)') i,Grid%r(i),oneplusvtau(i),dvtaudr(i)
+!     !x enddo
 
    END Subroutine Set_Pot
 

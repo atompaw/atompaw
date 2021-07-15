@@ -14,6 +14,8 @@ PROGRAM graphatom
   USE aeatom
   USE atomdata
   USE graphatom_report
+  USE radialked
+  USE splinesolver
 
   IMPLICIT NONE
 
@@ -72,6 +74,7 @@ PROGRAM graphatom
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (diracrelativistic) CALL deallocate_Dirac_Relativistic
   if (needvtau) CALL deallocate_ked
+  if (needvtau) CALL deallocatesplinesolver
   CALL input_dataset_free()
 
 END PROGRAM graphatom

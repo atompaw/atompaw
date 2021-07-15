@@ -237,6 +237,10 @@ CONTAINS
        WRITE(ifen,*) 'Non-relativistic calculation'
     ENDIF
 
+    IF (usespline) THEN
+            WRITE(ifen,*) 'Splinesolver used for bound states'     
+    ENDIF
+
     IF (key=='AE'.OR.key=='NC') &
 &        WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
     IF (key=='FC'.OR.key=='SC') &

@@ -47,6 +47,7 @@ atp_srcs = \
   r2scanmod.F90 \
   radialdirac.F90 \
   radialked.F90 \
+  splinesolver.F90 \
   radialsr.F90 \
   report_mod.F90 \
   abinitinterface.F90 \
@@ -90,7 +91,8 @@ aeatom.$(LTOBJEXT): atomdata.$(LTOBJEXT) excor.$(LTOBJEXT) exx_mod.$(LTOBJEXT) \
 	general_mod.$(LTOBJEXT) globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	radialdirac.$(LTOBJEXT) radialked.$(LTOBJEXT) radialsr.$(LTOBJEXT) \
 	hf_mod.$(LTOBJEXT) ldagga_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+	input_dataset_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT) \
+	splinesolver.$(LTOBJEXT)
 
 anderson_driver.$(LTOBJEXT): globalmath.$(LTOBJEXT) io_tools.$(LTOBJEXT)
 
@@ -105,7 +107,7 @@ atompaw_prog.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) atompaw_report.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
 	abinitinterface.$(LTOBJEXT) pwscfinterface.$(LTOBJEXT) xmlinterface.$(LTOBJEXT) \
 	pkginfo.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	io_tools.$(LTOBJEXT)
+	io_tools.$(LTOBJEXT) radialked.$(LTOBJEXT) splinesolver.$(LTOBJEXT)
 
 atompaw_report.$(LTOBJEXT): atomdata.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
@@ -135,13 +137,14 @@ fock.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) globalmath.$(LTOBJEXT
 
 general_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) numerov_mod.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) radialdirac.$(LTOBJEXT) \
-	radialked.$(LTOBJEXT) radialsr.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+	radialked.$(LTOBJEXT) radialsr.$(LTOBJEXT) io_tools.$(LTOBJEXT) \
+	splinesolver.$(LTOBJEXT)
 
 globalmath.$(LTOBJEXT): io_tools.$(LTOBJEXT)
 
 graphatom.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) graphatom_report.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	io_tools.$(LTOBJEXT)
+	io_tools.$(LTOBJEXT) radialked.$(LTOBJEXT) splinesolver.$(LTOBJEXT)
 
 graphatom_report.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) \
 	gridmod.$(LTOBJEXT) report_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT)
@@ -205,6 +208,10 @@ radialked.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 
 radialsr.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	atomdata.$(LTOBJEXT) io_tools.$(LTOBJEXT)
+
+splinesolver.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
+	search_sort.$(LTOBJEXT) io_tools.$(LTOBJEXT) excor.$(LTOBJEXT) \
+	interpolation_mod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 
 report_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) excor.$(LTOBJEXT)
 

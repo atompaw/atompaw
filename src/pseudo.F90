@@ -4209,7 +4209,7 @@ End subroutine resettcore
       REAL(8) :: h,qeff,tq,rat,q00,ecoul,etxc,eexc,occ,fac
       INTEGER :: n,i,irc,io,nbase,ib,ic
       REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:)
-      REAL(8), allocatable :: t(:),vt(:)
+      REAL(8), allocatable :: t(:),vt(:),vthat(:)
 
       CALL FillHat(Grid,PAW)
 
@@ -4243,7 +4243,7 @@ End subroutine resettcore
       deallocate(d)
 
       allocate(d(n),dv(n),dvx(n),STAT=i)
-      allocate(t(n),vt(n))       
+      allocate(t(n),vt(n),vthat(n))       
       if (i/=0) stop 'Error (1) in allocating  arrays in findvlocfromveff'
 
       d=PAW%tden+PAW%tcore
@@ -4326,7 +4326,7 @@ End subroutine resettcore
 !     Compute Vxc(tcore+tDEN+hatDEN)
       d=PAW%tcore+PAW%tden+tq*PAW%hatden
         t=PAW%tcoretau+PAW%tvaletau
-        CALL exch(Grid,d,vv,etxc,eexc,tau=t,vtau=vt)
+        CALL exch(Grid,d,vv,etxc,eexc,tau=t,vtau=vthat)
 
 !     Store Vxc(tcore+tDEN)-Vxc(tcore+tDEN+hatDEN)
       do i=2,n
@@ -4368,14 +4368,15 @@ End subroutine resettcore
       enddo   
 
       open(123,file='compare.abinit', form='formatted')
+      write(123,*) '#r    veff      vloc(B)        vloc(K)        vloc(Ab) vtau(Kresse)'
       do i=2,n
-         write(123,'(1p,5e16.7)') r(i),PAW%rveff(i)/r(i),&
-&             PAW%vloc(i),PAW%abinitvloc(i),PAW%abinitnohat(i)
+         write(123,'(1p,6e16.7)') r(i),PAW%rveff(i)/r(i),&
+&             PAW%vloc(i),PAW%abinitvloc(i),PAW%abinitnohat(i),vthat(i)
       enddo
       close(123)
 
       deallocate(v,vv)
-      deallocate(d,dv,dvx)
+      deallocate(d,dv,dvx,vt,vthat)
 
     END SUBROUTINE FindVlocfromVeff
 

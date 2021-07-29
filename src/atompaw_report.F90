@@ -247,10 +247,12 @@ CONTAINS
      CLOSE(ifout)
 
      OPEN(ifout,file='potential', form='formatted')
+        WRITE(ifout,*) 'r   rveffall       rveffpseudo         rveffKresse'
      DO i=1,n
         IF (ABS(PAW%AErefrv(i))<machine_zero) PAW%AErefrv(i)=0
         IF (ABS(PAW%rveff(i))<machine_zero) PAW%rveff(i)=0
-        WRITE(ifout,'(1p,1e15.7,1p,3e25.17)')Grid%r(i),PAW%AErefrv(i),PAW%rveff(i)
+        IF (ABS(PAW%Krveff(i))<machine_zero) PAW%Krveff(i)=0
+        WRITE(ifout,'(1p,1e15.7,1p,4e25.17)')Grid%r(i),PAW%AErefrv(i),PAW%rveff(i),PAW%Krveff(i)
      ENDDO
      CLOSE(ifout)
 

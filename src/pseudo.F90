@@ -709,7 +709,7 @@ CONTAINS
     REAL(8) :: AAAA(match-1,match-1),BBBB(match-1)
     INTEGER, PARAMETER :: niter=5000
     REAL(8), PARAMETER :: small=1.0d-9
-    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),dp(:),ddp(:)
+    REAL(8), ALLOCATABLE :: wfn(:),p(:),dum(:),aux(:),Kaux(:),v(:),dp(:),ddp(:)
     REAL(8), POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
     LOGICAL :: normcons
@@ -727,7 +727,7 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(n),p(n),dum(n),aux(n),dp(n),ddp(n),stat=ok)
+    ALLOCATE(VNC(n),wfn(n),p(n),dum(n),aux(n),dp(n),ddp(n),Kaux(n),v(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(std_out,*) 'Error in VPSmatch  -- in allocating wfn,p', n,ok
        STOP
@@ -765,6 +765,8 @@ CONTAINS
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
+       Kaux=0.d0
+       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)   ! Kresse form
     endif     
     OPEN(88,file='NNC',form='formatted')
     !
@@ -779,8 +781,12 @@ CONTAINS
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
 &                +aux(i)*(dp(i)+l/r(i))                       
+               v(i)=e+(1.d0+PAW%Ktvtau(i))*(ddp(i)+ &
+&                dp(i)*(dp(i)+2*(l+1)/r(i))) &
+&                +Kaux(i)*(dp(i)+l/r(i))                       
        else        
                VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
+               v(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
        endif
                dum(i)=(r(i)**(l+1))*EXP(p(i))
     ENDDO
@@ -790,10 +796,13 @@ CONTAINS
     WRITE(STD_OUT,*) 'check norm ',C0,S
 
     VNC(irc:n)=rv(irc:n)/r(irc:n)
+    v(irc:n)=rv(irc:n)/r(irc:n)
     PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+    PAW%Krveff(1:n)=v(1:n)*r(1:n)
 
+    write(88,*) '#r   wfn and stuff   VPS(B)    r*VPS(B)    r*VPS(K)   r*v' 
     DO  i=1,n
-       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),rv(i)
+       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),PAW%Krveff(i),rv(i)
     ENDDO
     CLOSE(88)
     
@@ -845,10 +854,12 @@ CONTAINS
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
+       Kaux=0.d0
+       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
     endif     
     OPEN(88,file='NC',form='formatted')
     !
-    VNC=0;p=0;dp=0;ddp=0
+    VNC=0;p=0;dp=0;ddp=0;v=0
     
     DO  i=2,nr
        x=(r(i))**2
@@ -859,8 +870,12 @@ CONTAINS
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
 &                +aux(i)*(dp(i)+l/r(i))                       
+               v(i)=e+(1.d0+PAW%Ktvtau(i))*(ddp(i)+ &
+&                dp(i)*(dp(i)+2*(l+1)/r(i))) &
+&                +Kaux(i)*(dp(i)+l/r(i))                       
        else        
                VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
+               v(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
        endif
                dum(i)=(r(i)**(l+1))*EXP(Coef0+p(i))
     ENDDO
@@ -869,10 +884,13 @@ CONTAINS
     WRITE(std_out,*) 'check norm ',C0,S
 
     VNC(irc:n)=rv(irc:n)/r(irc:n)
+    v(irc:n)=rv(irc:n)/r(irc:n)
     PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+    PAW%Krveff(1:n)=v(1:n)*r(1:n)
 
+    write(88,*) '#r   wfn and stuff   VPS(B)    r*VPS(B)    r*VPS(K)   r*v' 
     DO  i=1,n
-       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),rv(i)
+       WRITE(88,'(1p,50e15.7)') r(i),dum(i),wfn(i),VNC(i),PAW%rveff(i),PAW%Krveff(i),rv(i)
     ENDDO
     CLOSE(88)
     
@@ -882,7 +900,7 @@ CONTAINS
          write(std_out,*) 'Failed to converged norm-conserving VPS '
          stop
     endif     
-    DEALLOCATE(VNC,wfn,p,dp,ddp,dum,aux)
+    DEALLOCATE(VNC,wfn,p,dp,ddp,dum,aux,Kaux,v)
   END SUBROUTINE VPSmatch
 
 
@@ -2585,11 +2603,12 @@ End subroutine resettcore
 
     INTEGER :: i,j,k,l
     REAL(8), allocatable :: dp(:),ddp(:),vxc(:),tvxc(:),locald(:),localtd(:)
+    REAL(8), allocatable :: Ktvxc(:),Kd(:)
     REAL(8) :: fac,exc,texc,sum,tsum
     REAL(8), parameter :: small=1.d-5
 
     allocate(dp(Grid%n),ddp(Grid%n),vxc(Grid%n),tvxc(Grid%n))
-    allocate(locald(Grid%n),localtd(Grid%n))
+    allocate(locald(Grid%n),localtd(Grid%n),Ktvxc(Grid%n),Kd(Grid%n))
 
     locald=PAW%core
     localtd=PAW%tcore
@@ -2617,11 +2636,24 @@ End subroutine resettcore
 
     write(std_out,*) 'tvtau exc texc ', exc, texc
 
+! Kresse form    
+    Kd=locald-PAW%core-localtd+PAW%tcore
+    sum=integrator(Grid,Kd)
+
+    write(std_out,*) 'compensation charge in Ktvtau ', sum
+    Kd=localtd+sum*PAW%hatden
+
+     CALL exch(Grid,Kd,Ktvxc,tsum,texc,&
+&       tau=ddp,vtau=PAW%Ktvtau)
+
+
+
   open(1001,file='pseudovtau',form='formatted')
-  write(1001,*)'#r        den      tildeden         tau       tildetau   rvxc                trvxc        vtau        tvtau '
+  write(1001,*)'#r  den    tildeden   Kd    tau    tildetau   rvxc    trvxc    Krtvxc    vtau     tvtau     Ktvtau'
      do i=1,Grid%n
-        write(1001,'(1p, 50e17.7)') Grid%r(i),locald(i),localtd(i) &
-&          ,dp(i),ddp(i),vxc(i),tvxc(i),PAW%vtau(i),PAW%tvtau(i)                
+        write(1001,'(1p, 50e17.7)') Grid%r(i),locald(i),localtd(i),Kd(i) &
+&       ,dp(i),ddp(i),vxc(i),tvxc(i),Ktvxc(i),PAW%vtau(i),PAW%tvtau(i)  &
+&       ,PAW%Ktvtau(i)
     enddo
  close(1001)
 
@@ -2633,7 +2665,7 @@ End subroutine resettcore
  close(1001)
 
 
-    deallocate(dp,ddp,vxc,tvxc,locald,localtd)
+    deallocate(dp,ddp,vxc,tvxc,locald,localtd,Kd,Ktvxc)
   END SUBROUTINE calculate_tvtau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -4198,6 +4230,7 @@ End subroutine resettcore
     END SUBROUTINE logderiv
 
 
+
     !  Assumes prior call to SUBROUTINE calculate_tvtau
     !  which now fills PAW%tden and PAW%ttau
     SUBROUTINE FindVlocfromVeff(Grid,Orbit,PAW)
@@ -4375,11 +4408,32 @@ End subroutine resettcore
       enddo
       close(123)
 
+!!!!   Unscreen Kresse pseudopotential
+      d=PAW%den-PAW%tden
+      tq=integrator(Grid,d,1,irc)
+      write(std_out,*) ' abinit tq = ', tq
+
+!     Compute VH(tDEN+hatDEN)
+      d=PAW%tden+tq*PAW%hatden
+      CALL poisson(Grid,q00,d,v,rat)
+
+!     Compute Vxc(tcore+tDEN+hatDEN)
+      d=PAW%tcore+PAW%tden+tq*PAW%hatden
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,vv,etxc,eexc,tau=t,vtau=vthat)
+
+     PAW%Kunscreen=PAW%Krveff-v-vv
+      open(123,file='Kressepot.dat',form='formatted')
+      write(123,*)'#r   AErefrv      Krveff      Har    vxc    Unscreened  Ktvt'
+      do i=1,n
+        write(123,'(1p,8e16.7)') r(i),PAW%AErefrv(i),PAW%Krveff(i), &
+&        v(i),vv(i),PAW%Kunscreen(i),vthat(i),PAW%Ktvtau(i)
+     enddo
+     close(123)     
       deallocate(v,vv)
       deallocate(d,dv,dvx,vt,vthat)
 
     END SUBROUTINE FindVlocfromVeff
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !   SCFPAW
 !     It is assumed that the new configuration involves only occupation

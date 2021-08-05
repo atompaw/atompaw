@@ -7,7 +7,7 @@
 !     interpfunc, cubspl (from de Boor) ,specialinterp,checkrange
 !     binterpfunc -- a special version of interpfunc that assumes
 !     cubspl is called first -- used for setting boundary values
-! 
+!     lininterfunc also added 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -22,6 +22,11 @@ Module interpolation_mod
 
    CONTAINS
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!           
+!    cubic spline interpolation for nin>2
+!    linear interpolation for nin=2
+!    error end if rout points are not within range of rin
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!           
    SUBROUTINE interpfunc(nin,rin,fin,nout,rout,fout)
      INTEGER, INTENT(IN) :: nin,nout
      REAL(8), INTENT(IN) :: rin(:),fin(:),rout(:)
@@ -29,24 +34,35 @@ Module interpolation_mod
 
      REAL(8), ALLOCATABLE :: c(:,:)
      INTEGER :: i,j,nacount=0
-     REAL(8) :: x
+     REAL(8) :: x,s
      LOGICAL :: leftin,lefton,leftout,rightin,righton,rightout
 
      !  check if grid is within interpolation range
      call checkrange(rin(1),rout(1),leftin,lefton,leftout)
-     call checkrange(rout(nin),rin(nin),rightin,righton,rightout)
+     call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in interpfunc ',rin(1),rout(1),rin(nin),rout(nout)
       stop
      endif
 
+     fout=0
+
+     ! linear interpolation if nin=2
+     if (nin==2) then
+       s=(fin(2)-fin(1))/(rin(2)-rin(1))      
+       do i=1,nout
+          fout(i)=fin(1)+(rout(i)-rin(1))*s
+       enddo   
+       return
+     endif  
+
+
      allocate(c(4,nin))
 
      c=0;
-     c(1,:)=fin(:)
-     call cubspl(rin,c,nin,0,0)
+     c(1,1:nin)=fin(1:nin) !;write(6,*) 'in interpfunc c ', nin;call flush_unit(6)
+     call cubspl(rin,c,nin,0,0)    !; write(6,*) 'after cubspl';call flush_unit(6)
 
-     fout=0
 
      do i=1,nout
         do j=1,nin-1
@@ -76,6 +92,9 @@ Module interpolation_mod
      deallocate(c)
    END SUBROUTINE interpfunc
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+!  Not well tested
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
    SUBROUTINE binterpfunc(c,nin,rin,fin,nout,rout,fout)
      REAL(8), INTENT(IN) :: c(:,:)   !input from cubicspl
      INTEGER, INTENT(IN) :: nin,nout
@@ -88,7 +107,7 @@ Module interpolation_mod
 
      !  check if grid is within interpolation range
      call checkrange(rin(1),rout(1),leftin,lefton,leftout)
-     call checkrange(rout(nin),rin(nin),rightin,righton,rightout)
+     call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in binterpfunc ',rin(1),rout(1),rin(nin),rout(nout)
       stop
@@ -109,7 +128,9 @@ Module interpolation_mod
      enddo
 
    END SUBROUTINE binterpfunc
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  cubspl
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !! from webpage
 !!   http://pages.cs.wisc.edu/~deboor/pgs/cubspl.f
 !!   Transformed into fortran 90 and REAL(8)
@@ -282,7 +303,7 @@ subroutine specialinterp(l,nin,rin,yin,MMin,nout,rout,yout,ypout)
     yout=0;ypout=0
      !  check if grid is within interpolation range
      call checkrange(rin(1),rout(1),leftin,lefton,leftout)
-     call checkrange(rout(nin),rin(nin),rightin,righton,rightout)
+     call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in specialint ',rin(1),rout(1),rin(nin),rout(nout)
       stop
@@ -320,4 +341,47 @@ subroutine specialinterp(l,nin,rin,yin,MMin,nout,rout,yout,ypout)
       endif
       outofbounds=.true.      
   end subroutine  checkrange
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!           
+!    linear interpolation for nin=2
+!    error end if rout points are not within range of rin
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!           
+   SUBROUTINE lininterpfunc(nin,rin,fin,nout,rout,fout)
+     INTEGER, INTENT(IN) :: nin,nout
+     REAL(8), INTENT(IN) :: rin(:),fin(:),rout(:)
+     REAL(8), INTENT(INOUT) :: fout(:)
+
+     REAL(8), ALLOCATABLE :: c(:,:)
+     INTEGER :: i,j,nacount=0
+     REAL(8) :: x,s
+     LOGICAL :: leftin,lefton,leftout,rightin,righton,rightout
+
+     !  check if grid is within interpolation range
+     call checkrange(rin(1),rout(1),leftin,lefton,leftout)
+     call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
+     if (leftout.or.rightout) then
+      write(std_out,*) 'Grid error in lininterpfunc ',rin(1),rout(1),rin(nin),rout(nout)
+      stop
+     endif
+
+     fout=0
+
+     ! linear interpolation 
+
+     do i=1,nout
+        do j=1,nin-1
+          call checkrange(rin(j),rout(i),leftin,lefton,leftout)
+          call checkrange(rout(i),rin(j+1),rightin,righton,rightout)
+           if ((leftin.or.lefton).and.(rightin.or.righton)) then
+              x=rout(i)-rin(j)
+              s=(fin(j+1)-fin(j))/(rin(j+1)-rin(j))      
+              fout(i)=fin(j)+x*s
+              exit
+           endif
+        enddo
+     enddo
+
+   END SUBROUTINE lininterpfunc
+
 END Module interpolation_mod

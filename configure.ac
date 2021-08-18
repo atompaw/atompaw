@@ -51,7 +51,8 @@ EOF
 # Initialize Automake
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE(1.10)
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
+#AM_CONFIG_HEADER([config.h])
 
                     # ------------------------------------ #
 
@@ -235,8 +236,9 @@ AC_MSG_NOTICE([FCFLAGS  = ${FCFLAGS}])
 AC_MSG_NOTICE([LDFLAGS  = ${LDFLAGS}])
 AC_MSG_NOTICE([LIBS     = ${LIBS}])
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
   Makefile
   src/Makefile
   src/pkginfo.f90
 ])
+AC_OUTPUT

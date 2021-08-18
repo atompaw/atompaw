@@ -2534,26 +2534,60 @@ CONTAINS
 !    input radial wfn and output its kinetic energy density
 !     note that total wavefunction is wfn/r * Ylm
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
-  SUBROUTINE taufromwfn(Grid,wfn,l,otau)
+  SUBROUTINE taufromwfn(Grid,wfn,l,energy,rv,otau)
     TYPE(GridInfo), INTENT(IN) :: Grid
-    REAL(8), INTENT(IN) :: wfn(:)
+    REAL(8), INTENT(IN) :: wfn(:),rv(:),energy
     INTEGER, INTENT(IN) :: l
     REAL(8), INTENT(OUT) :: otau(:)
 
+    LOGICAL,PARAMETER :: from_e=.false.
     INTEGER :: n,i
     REAL(8) :: fac
-    REAL(8), allocatable:: pbr(:),dpdr(:)
+    REAL(8), allocatable:: pbr(:),dpdr(:),d2pdr(:)
 
     n=Grid%n
-    allocate(pbr(n),dpdr(n))
     fac=l*(l+1)
-    dpdr=0.d0;pbr=0.d0
-    pbr(2:n)=wfn(2:n)/Grid%r(2:n)
-    CALL derivative(Grid,pbr,dpdr,2,n)
-    CALL extrapolate(Grid,pbr)
-    CALL extrapolate(Grid,dpdr)
-    otau(:)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
-    deallocate(pbr,dpdr)
+
+!   Note: Psi(r) = Yl.Wfn(r)/r
+!           Tau(r) given in Rydberg units
+
+!   Note: there are several kinetic energy formulas
+!         differing by something*Laplacian(rho(r))
+
+    IF (.not.from_e) THEN
+!     Standard tau formula:
+!     4pir^2* Tau(r) = [r.d/dr(Wfn/r)]^2 + l(l+1) [Wfn/r]^2
+      allocate(pbr(n),dpdr(n))
+      dpdr=0.d0;pbr=0.d0
+      pbr(2:n)=wfn(2:n)/Grid%r(2:n)
+      CALL derivative(Grid,pbr,dpdr,2,n)
+      otau(2:n)=(Grid%r(2:n)*dpdr(2:n))**2 + fac*pbr(2:n)**2
+      CALL extrapolate(Grid,otau) ; if (l>0) otau(1)=0.d0
+      deallocate(pbr,dpdr)
+
+    ELSEIF (from_e) THEN
+!     For testing purpose:
+!     Another formula for the kinetic energy density
+!     4pir^2* Tau(r) = [Eigenvalue - Veff(r)]*Wfn^2
+      otau(2:n)=(energy-rv(2:n)/Grid%r(2:n))*wfn(2:n)**2
+
+    ELSE
+!     Another one:
+!     From energy + correction
+      allocate(pbr(n),dpdr(n),d2pdr(n))
+      pbr(2:n)=wfn(2:n)/Grid%r(2:n)
+      CALL derivative(Grid,pbr,dpdr,2,n)
+      otau(2:n)=dpdr(2:n)**2 *Grid%r(2:n)**2
+      d2pdr(2:n)=pbr(2:n)**2
+      call derivative(Grid,d2pdr,dpdr,2,n)
+      call derivative(Grid,dpdr,d2pdr,2,n)
+      d2pdr(2:n)=d2pdr(2:n)+2.*dpdr(2:n)/Grid%r(2:n)
+      otau(2:n)=0.5d0*d2pdr(2:n)*Grid%r(2:n)**2 &
+&              +(energy-rv(2:n)/Grid%r(2:n))*wfn(2:n)**2
+      otau(2:n)=otau(2:n) + fac*pbr(2:n)**2
+      CALL extrapolate(Grid,otau) ; if (l>0) otau(1)=0.d0
+      deallocate(pbr,dpdr,d2pdr)
+    ENDIF
 
     call filter(n,otau,machine_zero)
  END SUBROUTINE taufromwfn  

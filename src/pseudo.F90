@@ -43,7 +43,7 @@ MODULE pseudo
   INTEGER,PRIVATE,PARAMETER :: BLOECHL=1, VANDERBILT=2, CUSTOM=3, MODRRKJ=7, HFPROJ=8
   INTEGER,PRIVATE,PARAMETER :: BLOECHLPS=0, POLYNOM=1, POLYNOM2=2, RRKJ=3
   INTEGER,PRIVATE,PARAMETER :: VANDERBILTORTHO=0, GRAMSCHMIDTORTHO=1
-  INTEGER,PRIVATE,PARAMETER :: SVDORTHO=2
+  INTEGER,PRIVATE,PARAMETER :: SVDORTHO=2, HFORTHO=-13
   INTEGER,PRIVATE,PARAMETER :: MTROULLIER=1, ULTRASOFT=2, BESSEL=3, KERKER_E=4, KERKER_P=5
   INTEGER,PRIVATE,PARAMETER :: HARTREE_FOCK=4, SETVLOC=5
 
@@ -132,7 +132,7 @@ CONTAINS
    IF (input_dataset%ortho_type==ORTHO_TYPE_GRAMSCHMIDT) Orthoindex=GRAMSCHMIDTORTHO
    IF (input_dataset%ortho_type==ORTHO_TYPE_VANDERBILT) Orthoindex=VANDERBILTORTHO
    IF (input_dataset%ortho_type==ORTHO_TYPE_SVD) Orthoindex=SVDORTHO
-   IF (input_dataset%ortho_type==ORTHO_TYPE_HF) Orthoindex=-13
+   IF (input_dataset%ortho_type==ORTHO_TYPE_HF) Orthoindex=HFORTHO
 
    write(PAW%Proj_description,'("Projector type:")')
    if (PSindex==BLOECHLPS) then
@@ -164,6 +164,10 @@ CONTAINS
    else if (Orthoindex==SVDORTHO) then
     PAW%orthogonalization_scheme='svd'
     write(PAW%Proj_description,'(a," + SVD ortho.")') &
+&         trim(PAW%Proj_description)
+   else if (Orthoindex==HFORTHO) then
+    PAW%orthogonalization_scheme='hartree-fock'
+    write(PAW%Proj_description,'(a," + HF ortho.")') &
 &         trim(PAW%Proj_description)
    end if
 

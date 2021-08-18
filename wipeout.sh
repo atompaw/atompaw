@@ -58,6 +58,6 @@ echo "done."
 
 # Remove distribution files
 echo "Removing distribution files..."
-chmod -Rf u+w atompaw-[0-9].[0-9].[0-9]*
+chmod -Rf u+w atompaw-[0-9].[0-9].[0-9]* > /dev/null 2>&1
 rm -rf atompaw-[0-9].[0-9].[0-9]*
 echo "done."

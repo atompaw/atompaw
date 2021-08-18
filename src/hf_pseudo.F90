@@ -67,7 +67,7 @@ CONTAINS
        rc=input_dataset%basis_func_rc(ib)
        thisrc=FindGridIndex(Grid,rc)
        thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
-       rc=r(thisrc)
+       rc=r(thisrc) ; PAW%rcio(ib)=rc
        WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
        WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
        IF (thisrc<3.OR.thisrc>irc.OR.thisrc>lng-3) THEN

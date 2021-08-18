@@ -113,8 +113,10 @@ PROGRAM atompaw
     Call Report_Pseudobasis(Grid,PAW,ifen)
 
     Call Set_PAW_MatrixElements(Grid,PAW,ifen)
-    CALL logderiv(Grid,FCPot,PAW)
-    CALL ftprod(Grid)
+    If (TRIM(FCorbit%exctype)/='HF') then
+      CALL logderiv(Grid,FCPot,PAW)
+      CALL ftprod(Grid)
+    endif
 
     CALL FindVlocfromVeff(Grid,FCOrbit,PAW)
     CALL Report_Pseudopotential(Grid,PAW)

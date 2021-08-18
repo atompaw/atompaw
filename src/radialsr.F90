@@ -410,7 +410,7 @@ CONTAINS
              ifac=9
              !   too many nodes -- lower energy
           ELSEIF (node.GT.iroot-1) THEN
-             IF (energy.LE.emin) THEN
+             IF (energy.LE.emin-1.d-10) THEN
                 ierr=ierr+9*(10**(iroot-1))
                 WRITE(STD_OUT,*) 'boundsr error -- emin too high',l,nz,emin,energy
                 do i=2,n

@@ -61,6 +61,6 @@ automake --add-missing --copy
 touch -r src/Makefile.in src/Makefile.timestamp
 sed -i -e 's/\$(PROGRAMS) \$(LTLIBRARIES)/\$(LTLIBRARIES) \$(PROGRAMS)/g' src/Makefile.in
 touch -r src/Makefile.timestamp src/Makefile.in
-rm -f src/Makefile.timestamp src/Makefile.in-e
+rm -rf src/Makefile.timestamp src/Makefile.in-e  # *-e file is created on Mac only
 
 echo "done."

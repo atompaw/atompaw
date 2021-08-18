@@ -184,9 +184,11 @@ CONTAINS
        Potwk%rvx=tmpPot%rvx
 
        Orbitwk%wfn=tmpOrbit%wfn
-       If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
+       Orbitwk%otau=tmpOrbit%otau
        Orbitwk%eig=tmpOrbit%eig
        Orbitwk%den=tmpOrbit%den
+       Orbitwk%tau=tmpOrbit%tau
+       If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
 
        Call One_electron_energy_Report(Orbitwk,std_out)
     ENDIF

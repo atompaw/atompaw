@@ -94,6 +94,8 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
   atp_libxc_found="unknown"
 
   list_dirs="empty /opt/local /usr/local /opt/etsf /usr / /Library/libxc /usr/local/libxc ${LIBXC_ROOT} ${LIBXC_DIR} ${LIBXC_PREFIX}"
+  
+  #We shouldnt use this (literals are encouraged)
   list_headers="xc.h xc_funcs.h"
   list_funcs="xc_func_init xc_func_end"
 
@@ -118,8 +120,8 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
     AC_MSG_NOTICE([...LibXC: trying with command-line options])
 
 #   Headers
-    ATP_LIBXC_RESET_HEADERS_CACHE(${list_headers})
-    ATP_LIBXC_RESET_HEADERS_CACHE(${list_funcs})
+    ATP_LIBXC_RESET_HEADERS_CACHE([${list_headers}])
+    ATP_LIBXC_RESET_HEADERS_CACHE([${list_funcs}])
     if test "x${with_libxc_incs}" != "x" -o "x${with_libxc_prefix}" != "x"; then
       CPPFLAGS="";LDFLAGS="";LIBS=""
       if test "x${with_libxc_incs}" != "x"; then
@@ -127,8 +129,10 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
       else
         CPPFLAGS="-I${with_libxc_prefix}/include"
       fi
-      AC_CHECK_HEADERS(${list_headers},[atp_libxc_headers_ok="yes"],
-                                       [atp_libxc_headers_ok="no"])
+      AC_CHECK_HEADERS([xc.h xc_funcs.h],[atp_libxc_headers_ok="yes"],
+                                         [atp_libxc_headers_ok="no"])
+#     AC_CHECK_HEADERS([${list_headers}],[atp_libxc_headers_ok="yes"],
+#                                        [atp_libxc_headers_ok="no"])
       if test "${atp_libxc_headers_ok}" = "yes"; then
         with_libxc_incs="${CPPFLAGS}"
       else
@@ -174,8 +178,8 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
 #     Loop over dirs
 	  for with_libxc_prefix in ${list_dirs}; do
 		CPPFLAGS="";LDFLAGS="";LIBS=""
-		ATP_LIBXC_RESET_HEADERS_CACHE(${list_headers})
-		ATP_LIBXC_RESET_LIBS_CACHE(${list_funcs})
+		ATP_LIBXC_RESET_HEADERS_CACHE([${list_headers}])
+		ATP_LIBXC_RESET_LIBS_CACHE([${list_funcs}])
 
 #       Current environment
 		if test "x${with_libxc_prefix}" = "xempty"; then
@@ -183,8 +187,10 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
 
 #         Headers
 		  CPPFLAGS="";LDFLAGS="-lxc";LIBS="-lxc"
-		  AC_CHECK_HEADERS(${list_headers},[atp_libxc_headers_ok="yes"],
-                                           [atp_libxc_headers_ok="no"])
+		  AC_CHECK_HEADERS([xc.h xc_funcs.h],[atp_libxc_headers_ok="yes"],
+                                             [atp_libxc_headers_ok="no"])
+#	      AC_CHECK_HEADERS([${list_headers}],[atp_libxc_headers_ok="yes"],
+#                                            [atp_libxc_headers_ok="no"])
 
 #         Libraries
 		  if test "${atp_libxc_headers_ok}" = "yes"; then
@@ -204,7 +210,8 @@ AC_DEFUN([ATP_LIBXC_SEARCH],[
 			CPPFLAGS="-I${with_libxc_prefix}/include"
 		  fi
 		  atp_libxc_headers_ok="yes"
-		  AC_CHECK_HEADERS(${list_headers},[],[atp_libxc_headers_ok="no"])
+#		  AC_CHECK_HEADERS([${list_headers}],[],[atp_libxc_headers_ok="no"])
+		  AC_CHECK_HEADERS([xc.h xc_funcs.h],[],[atp_libxc_headers_ok="no"])
 
 #         Libraries
 		  if test "${atp_libxc_headers_ok}" = "yes"; then

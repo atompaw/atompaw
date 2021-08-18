@@ -24,7 +24,7 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
-  !      Given new potential rvin, generate new Orbit%wfn,Orbit%eig,Pot%den
+  !      Given new potential rvin, generate new Orbit%wfn,Orbit%eig,Orbit%otau
   !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
@@ -195,6 +195,12 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !Update otau according to wfn
+    DO io=1,Orbit%norbit
+      CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
+&                     Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
+    ENDDO
+
     deallocate(dum)
 
   END SUBROUTINE Updatewfn
@@ -231,7 +237,8 @@ CONTAINS
 
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
-         CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+         CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
+&                        Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
          xocc=Orbit%occ(io)
          DO i=1,Grid%n
             Orbit%tau(i)=Orbit%tau(i)+xocc*Orbit%otau(i,io)
@@ -244,6 +251,7 @@ CONTAINS
          ENDDO
        ENDIF
     ENDDO
+
     !Kinetic energy density is in Ry (no need of 1/2 factor)
     !Orbit%tau=0.5d0*Orbit%tau
 
@@ -377,7 +385,8 @@ CONTAINS
             Orbit%den(:)=Orbit%den(:)+ &
 &           Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
           ENDIF         
-          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
+&                         Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
           Orbit%tau(:)=Orbit%tau(:)+ Orbit%occ(io)*Orbit%otau(:,io)
           SCF%eone=SCF%eone+Orbit%occ(io)*Orbit%eig(io)
        ENDIF

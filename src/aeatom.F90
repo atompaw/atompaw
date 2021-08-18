@@ -121,6 +121,7 @@ CONTAINS
       ColleSalvetti=.TRUE.
     ELSE IF (TRIM(input_dataset%exctype)=='HF'.or.&
 &            TRIM(input_dataset%exctype)=='HFV') THEN
+      CALL initexch
     ELSE
       CALL initexch
     ENDIF

@@ -26,6 +26,7 @@ MODULE excor
   INTEGER, PRIVATE, PARAMETER :: GGA_PBE=16
   INTEGER, PRIVATE, PARAMETER :: GGA_PBESOL=18
   INTEGER, PRIVATE, PARAMETER :: LIBXC=-1
+  INTEGER, PRIVATE, PARAMETER :: NO_XC=-100
 
   ! Parameters for the Perdew-Wang (PRB 45,13244 (1992)) LDA correlation
   REAL(8), PRIVATE, PARAMETER :: AA=0.0310907d0
@@ -93,6 +94,9 @@ CONTAINS
        mu=musol
        beta=betsol
        betabygamm=beta/gamm
+    CASE('HF')
+       itype = NO_XC
+       WRITE(STD_OUT,*) 'No XC'
     END SELECT
     WRITE(STD_OUT,*)
 

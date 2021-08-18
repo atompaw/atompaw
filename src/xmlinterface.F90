@@ -1104,8 +1104,8 @@ Module XMLInterface
  dum(2:meshsz)=sqr4pi*FC%coreden(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
  call extrapolate(Grid,dum(1:meshsz))
  call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
- WRITE(unit_xml,'("<ae_core_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%icoremesh),mesh_data%icoremesh,match_on_splgrid(PAW%rc_core)
+ WRITE(unit_xml,'("<ae_core_density grid=""",a,i1,""">")') &
+& gridt(mesh_data%icoremesh),mesh_data%icoremesh
  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</ae_core_density>")')
  dum(2:meshsz)=sqr4pi*PAW%tcore(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
@@ -1116,33 +1116,20 @@ Module XMLInterface
  WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
  WRITE(unit_xml,'("</pseudo_core_density>")')
 
-!Valence density
- meshsz=mesh_data%meshsz(mesh_data%ivalemesh)
- meshsz_aux=merge(nsplgrid,mesh_size(mesh_data%ivalemesh),extra1)
- meshst_aux=mesh_start(mesh_data%ivalemesh)
- dum(2:meshsz)=sqr4pi*PAW%tden(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
- call extrapolate(Grid,dum(1:meshsz))
- call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
- rad=maxval(PAW%rcio(1:PAW%nbase))
- WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
-& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,match_on_splgrid(rad)
- WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
- WRITE(unit_xml,'("</pseudo_valence_density>")')
-
 !Kinetic energy core densities
-!Temporarily not available in scalar relativistic
- if (.not.scalarrelativistic) then
+!Available in scalar relativistic (although approximate)
+ if (.true.) then
   meshsz=mesh_data%meshsz(mesh_data%itaumesh)
   meshsz_aux=merge(nsplgrid,mesh_size(mesh_data%itaumesh),extra1)
   meshst_aux=mesh_start(mesh_data%itaumesh)
-  dum(2:meshsz)= sqr4pi*FC%coretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
+  dum(2:meshsz)= half*sqr4pi*FC%coretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
   call extrapolate(Grid,dum(1:meshsz))
   call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<ae_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
 &  gridt(mesh_data%itaumesh),mesh_data%itaumesh,match_on_splgrid(PAW%rc_core)
   WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
   WRITE(unit_xml,'("</ae_core_kinetic_energy_density>")')
-  dum(2:meshsz)= sqr4pi*PAW%tcoretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
+  dum(2:meshsz)= half*sqr4pi*PAW%tcoretau(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
   call extrapolate(Grid,dum(1:meshsz))
   call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
   WRITE(unit_xml,'("<pseudo_core_kinetic_energy_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
@@ -1156,6 +1143,19 @@ Module XMLInterface
 &   '  Will not be present in the XML dataset.',&
 &   '  This is temporary, sorry!'
  end if
+
+!Valence density
+ meshsz=mesh_data%meshsz(mesh_data%ivalemesh)
+ meshsz_aux=merge(nsplgrid,mesh_size(mesh_data%ivalemesh),extra1)
+ meshst_aux=mesh_start(mesh_data%ivalemesh)
+ dum(2:meshsz)=sqr4pi*PAW%tden(2:meshsz)/(4*pi*Grid%r(2:meshsz)**2)
+ call extrapolate(Grid,dum(1:meshsz))
+ call interp_and_filter(dum(1:meshsz),dum_aux(1:meshsz_aux))
+ rad=maxval(PAW%rcio(1:PAW%nbase))
+ WRITE(unit_xml,'("<pseudo_valence_density grid=""",a,i1,""" rc=""",f19.16,""">")') &
+& gridt(mesh_data%ivalemesh),mesh_data%ivalemesh,match_on_splgrid(rad)
+ WRITE(unit_xml,'(3(1x,es23.16))') (dum_aux(ii),ii=meshst_aux,meshsz_aux)
+ WRITE(unit_xml,'("</pseudo_valence_density>")')
 
 !Vbare potential
  meshsz=mesh_data%meshsz(mesh_data%ivbaremesh)

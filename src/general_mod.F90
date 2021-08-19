@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  This module contains the following active subroutines:
 !      Updatewfn, Get_KinCoul, Get_FCKinCoul, Get_Nuclearpotential,
-!         ORTHONORMALIZE, ADJUSTSIGN
+!         ORTHONORMALIZE, ADJUSTSIGN, Updatewfnwden
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -16,7 +16,9 @@ MODULE general_mod
   USE globalmath
   USE gridmod
   USE radialDirac
+  USE radialked
   USE radialsr
+  USE splinesolver
 
   IMPLICIT NONE
 
@@ -26,6 +28,7 @@ CONTAINS
   !  SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
   !      Given new potential rvin, generate new Orbit%wfn,Orbit%eig,Orbit%otau
   !
+  !       note that rvin=rvh+rvx
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE Updatewfn(Grid,Pot,Orbit,rvin,success)
     TYPE (GridInfo), INTENT(INOUT) :: Grid
@@ -47,8 +50,12 @@ CONTAINS
 
     allocate(dum(n))
 
-    Pot%rv=rvin
-    dum=rvin-Pot%rvn
+    !!! testing
+    !write (STD_OUT,*) ' in Updatewfn   needvtau ', needvtau
+
+    Pot%rv=rvin+Pot%rvn(1:n)
+    dum=rvin
+    if (needvtau) dum(1)=dum(1)-Pot%rvx(1)
     CALL zeropot(Grid,dum,Pot%v0,Pot%v0p)
     IF (ABS(Pot%v0)> 1.d6) Pot%v0=0
     IF (ABS(Pot%v0p)> 1.d6) Pot%v0p=0
@@ -57,6 +64,8 @@ CONTAINS
             Pot%v0=Pot%v0+Pot%Nv0
             Pot%v0p=Pot%v0p+Pot%Nv0p
     Endif        
+    
+    if(usespline) call initpotforsplinesolver(Grid,Pot,Orbit%den,Orbit%tau)
 
     !  solve for bound states of Schroedinger equation
     !
@@ -77,6 +86,12 @@ CONTAINS
           kappa=-1     
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+!         write(std_out,*) 'about to call boundked ', nz,emin      
+!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
           CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
@@ -104,9 +119,19 @@ CONTAINS
           emin=-nz*nz/4.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+          If (usespline) THEN     
+             Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          ELSE
+             CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+          ENDIF  
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -131,9 +156,19 @@ CONTAINS
        emin=-nz*nz/9.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+          If (usespline) THEN     
+             Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          ELSE
+             CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+          ENDIF  
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -158,9 +193,19 @@ CONTAINS
        emin=-nz*nz/16.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+       ELSE IF (needvtau) THEN
+!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+          If (usespline) THEN     
+             Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          ELSE
+             CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+          ENDIF  
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -185,10 +230,19 @@ CONTAINS
        emin=-nz*nz/25.d0-0.5d0
           Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
 &             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
-
+       ELSE IF (needvtau) THEN
+!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+          If (usespline) THEN     
+             Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          ELSE
+             CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+          ENDIF  
        ENDIF
        IF (.NOT.OK) THEN
           success=.FALSE.
@@ -231,27 +285,29 @@ CONTAINS
        STOP
     ENDIF
 
-    !update density
+    !update density   and tau
 !   Note that kinetic energy density (tau) is in Rydberg units
     Orbit%den=0.d0;Orbit%tau=0.d0
 
     DO io=1,Orbit%norbit
        IF (Orbit%occ(io).GT.small) THEN
-         CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
-&                        Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
+         DO i=1,Grid%n      
+            IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
+            IF (diracrelativistic) then
+              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
+            ENDIF
+         ENDDO   
+         if (.not.usespline) CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
          xocc=Orbit%occ(io)
          DO i=1,Grid%n
             Orbit%tau(i)=Orbit%tau(i)+xocc*Orbit%otau(i,io)
-            IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
             Orbit%den(i)=Orbit%den(i)+xocc*(Orbit%wfn(i,io)**2)
             IF (diracrelativistic) then
-              IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
               Orbit%den(i)=Orbit%den(i)+xocc*((Orbit%lwfn(i,io))**2)
             ENDIF
          ENDDO
        ENDIF
     ENDDO
-
     !Kinetic energy density is in Ry (no need of 1/2 factor)
     !Orbit%tau=0.5d0*Orbit%tau
 
@@ -264,6 +320,7 @@ CONTAINS
     Orbit%den(1:n)=Orbit%den(1:n)*rescale
     Orbit%tau(1:n)=Orbit%tau(1:n)*rescale
     WRITE(STD_OUT,*) 'rescaled qcal = ', integrator(Grid,Orbit%den), Pot%q
+    WRITE(STD_OUT,*) 'rescaled ekin = ', integrator(Grid,Orbit%tau)
 
 !   Determine difference with tauW (Weizsaker)       
     fpi=4*pi
@@ -287,37 +344,38 @@ CONTAINS
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+ecoul
 
-    !WRITE(STD_OUT,*) ' n  l     occupancy       energy'
+    WRITE(STD_OUT,*) ' n  l     occupancy       energy'
     ekin=0.0d0 ; if (frozencorecalculation) ekin=SCF%corekin
     eone=0.0d0
     DO io=1,Orbit%norbit
        if(.not.frozencorecalculation &
 &          .or.frozencorecalculation.and.(.not.Orbit%iscore(io))) then
-         !WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') &
-         !&  Orbit%np(io),Orbit%l(io),&
-         !&  Orbit%occ(io),Orbit%eig(io)
+         WRITE(STD_OUT,'(i2,1x,i2,4x,1p,2e15.7)') &
+         &  Orbit%np(io),Orbit%l(io),&
+         &  Orbit%occ(io),Orbit%eig(io)
          eone=eone+Orbit%occ(io)*Orbit%eig(io)
-         IF (counter>1.and..not.present(noalt)) THEN
+         IF (counter>1.and..not.present(noalt).and..not.needvtau) THEN
             CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
          ELSE
-            CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+            !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+            x=integrator(Grid,Orbit%otau(:,io))
+            write(std_out,*) 'ekin contr ', x
          ENDIF
          ekin=ekin+Orbit%occ(io)*x
        endif
     ENDDO
 
+    write(std_out,*) 'KinCoul check ekin ', ekin,integrator(Grid,Orbit%tau)
+!    if (needvtau) then
+!       do i=2,Grid%n
+!           write(500+counter,'(1p,3e20.9)') Grid%r(i),Orbit%tau(i) &
+!&                        , Orbit%den(i)/(Grid%r(i)**2)                   
+!       enddo
+!    endif
     SCF%eone=eone
     SCF%ekin=ekin
     SCF%ecoul=ecoul
     counter=counter+1
-
-!    write(std_out,*) 'completed Get_KinCoul for counter',counter-1
-!    OPEN(4000+counter,form='formatted')
-!    DO i = 1,n
-!       WRITE(4000+counter,'(1p,50e15.7)') Grid%r(i), &
-!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
-!    ENDDO
-!    CLOSE(4000+counter)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_KinCoul
@@ -360,8 +418,9 @@ CONTAINS
        IF (Orbit%occ(io).GT.small) THEN
           If(Orbit%iscore(io)) THEN
             If (firsttime==0) then
-              If(present(noalt)) then
-                  CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              If(present(noalt).or.needvtau) then
+                  !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+                   x=integrator(Grid,Orbit%otau(:,io))
               else
                   CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
               endif
@@ -373,8 +432,9 @@ CONTAINS
               FC%valeden(:)=FC%valeden(:)+ &
 &              Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
              ENDIF         
-              If(present(noalt)) then
-                  CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+              If(present(noalt).or.needvtau) then
+                  !CALL kinetic(Grid,Orbit%wfn(:,io),Orbit%l(io),x)
+                  x=integrator(Grid,Orbit%otau(:,io))
               else
                   CALL altkinetic(Grid,Orbit%wfn(:,io),Orbit%eig(io),Pot%rv,x)
               endif
@@ -385,8 +445,7 @@ CONTAINS
             Orbit%den(:)=Orbit%den(:)+ &
 &           Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
           ENDIF         
-          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
-&                         Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
+          if(.not.usespline)CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
           Orbit%tau(:)=Orbit%tau(:)+ Orbit%occ(io)*Orbit%otau(:,io)
           SCF%eone=SCF%eone+Orbit%occ(io)*Orbit%eig(io)
        ENDIF
@@ -395,6 +454,7 @@ CONTAINS
     write(std_out,*) 'electron density integral',integrator(Grid,Orbit%den) 
 
     write(std_out,*) 'eone = ', SCF%eone
+    write(std_out,*) 'check ekin ', integrator(Grid,Orbit%tau)
 
     if (firsttime==0) SCF%corekin=tc
     firsttime=firsttime+1
@@ -426,14 +486,6 @@ CONTAINS
     dum(2:n)=Pot%rvn(2:n)*Orbit%den(2:n)/Grid%r(2:n)
     SCF%estatic=integrator(Grid,dum)+x
     SCF%ecoul=x
-
-!   write(std_out,*) 'completed Get_FCKinCoul for counter',firsttime-1
-!   OPEN(6000+firsttime,form='formatted')
-!   DO i = 1,n
-!     WRITE(STD_OUT000+firsttime,'(1p,50e15.7)') Grid%r(i), &
-!&           (Orbit%otau(i,j),j=1,Orbit%norbit)
-!   ENDDO
-!   CLOSE(6000+firsttime)
 
     DEALLOCATE(dum)
   END SUBROUTINE Get_FCKinCoul

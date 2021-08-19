@@ -46,6 +46,11 @@ CONTAINS
       if (have_libxc) then
         WRITE(ifen,*) 'Exchange-correlation type:'
         call libxc_print_func(ifen)
+        if(needvtau) then
+           WRITE(ifen,*) 'Full generalized Kohn-Sham equations solved'
+        else
+           WRITE(ifen,*) 'Conventional Kohn-Sham equations solved'
+        endif    
       else
         WRITE(ifen,*) 'Exchange-correlation type: LDA, Perdew-Wang correlation'
       end if
@@ -219,10 +224,10 @@ CONTAINS
      OPEN(ifout,file='density', form='formatted')
      WRITE(ifout,*) '#  r       coreden        valeden         tcoreden        tvaleden      nhatden'
      DO i=1,n
-        IF (PAW%core(i)<machine_zero) PAW%core(i)=0
-        IF (PAW%tcore(i)<machine_zero) PAW%tcore(i)=0
-        IF (PAW%den(i)<machine_zero) PAW%den(i)=0
-        IF (PAW%tden(i)<machine_zero) PAW%tden(i)=0
+        IF (abs(PAW%core(i))<machine_zero) PAW%core(i)=0
+        IF (abs(PAW%tcore(i))<machine_zero) PAW%tcore(i)=0
+        IF (abs(PAW%den(i))<machine_zero) PAW%den(i)=0
+        IF (abs(PAW%tden(i))<machine_zero) PAW%tden(i)=0
         IF (abs(PAW%nhatv(i))<machine_zero) PAW%nhatv(i)=0
         WRITE(ifout,'(1p,1e15.7,1p,5e25.17)') Grid%r(i),PAW%core(i),&
              PAW%den(i),PAW%tcore(i),PAW%tden(i),PAW%nhatv(i)
@@ -242,10 +247,12 @@ CONTAINS
      CLOSE(ifout)
 
      OPEN(ifout,file='potential', form='formatted')
+        WRITE(ifout,*) 'r   rveffall       rveffpseudo         rveffKresse'
      DO i=1,n
         IF (ABS(PAW%AErefrv(i))<machine_zero) PAW%AErefrv(i)=0
         IF (ABS(PAW%rveff(i))<machine_zero) PAW%rveff(i)=0
-        WRITE(ifout,'(1p,1e15.7,1p,3e25.17)')Grid%r(i),PAW%AErefrv(i),PAW%rveff(i)
+        IF (ABS(PAW%Krveff(i))<machine_zero) PAW%Krveff(i)=0
+        WRITE(ifout,'(1p,1e15.7,1p,4e25.17)')Grid%r(i),PAW%AErefrv(i),PAW%rveff(i),PAW%Krveff(i)
      ENDDO
      CLOSE(ifout)
 

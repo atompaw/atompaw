@@ -7,6 +7,10 @@
 #include "config.h"
 #endif
 
+#if defined (__INTEL_COMPILER)
+# USE IFPORT
+#endif
+
 MODULE io_tools
 
  IMPLICIT NONE
@@ -52,6 +56,7 @@ MODULE io_tools
 !**********************************************************************
  LOGICAL FUNCTION unit_isatty(unit)
    INTEGER,INTENT(in) :: unit
+   LOGICAL :: isatty
 #if defined HAVE_FC_ISATTY
      unit_isatty=isatty(unit)
 #else

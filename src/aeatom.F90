@@ -22,6 +22,9 @@ MODULE AEatom
   USE hf_mod
   USE ldagga_mod
   USE input_dataset_mod
+  USE radialked
+  USE splinesolver
+
   
   IMPLICIT NONE
 
@@ -78,6 +81,14 @@ CONTAINS
 !   Relativistic, point-nucleus, HF data (from input dataset)
     scalarrelativistic=input_dataset%scalarrelativistic
     diracrelativistic=input_dataset%diracrelativistic
+    usespline=input_dataset%usespline
+    !! checking --
+    if ((scalarrelativistic.or.diracrelativistic).and.usespline) then
+       write(std_out,*) 'Requested splinesolver for relativistic calculation'
+       write(std_out,*) 'This has not been yet programmed '     
+       write(std_out,*) ' Resetting to finite difference solvers '
+       usespline=.false.
+    endif   
     HFpostprocess=input_dataset%HFpostprocess
     finitenucleus=input_dataset%finitenucleus
     AEPot%finitenucleusmodel=input_dataset%finitenucleusmodel
@@ -110,6 +121,7 @@ CONTAINS
 
 !   Exchange-correlation/HF keyword (from input dataset)
     exctype=input_dataset%exctype
+    needvtau=input_dataset%needvtau
     localizedcoreexchange=input_dataset%localizedcoreexchange
     ColleSalvetti=.FALSE.
     IF (TRIM(input_dataset%exctype)=='EXX'.or.&
@@ -374,6 +386,12 @@ CONTAINS
     CALL InitSCF(AESCF)
     IF (scalarrelativistic) CALL Allocate_Scalar_Relativistic(Grid)
     IF (diracrelativistic)  CALL Allocate_Dirac_Relativistic(Grid)
+    IF (needvtau) then
+            CALL Allocate_ked(Grid)
+            usespline=.true.
+    endif        
+
+    if(usespline) CALL initsplinesolver(Grid)
 
     write(std_out,*) 'Finish SCFatom_Init' ; call flush_unit(std_out)
 
@@ -481,8 +499,8 @@ CONTAINS
     TYPE(PotentialInfo),INTENT(INOUT) :: Pot
     TYPE(OrbitInfo),INTENT(INOUT) :: Orbit
     INTEGER  :: i,io,ir,ip,l,nfix,np,kappa
-    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac
-    REAL(8),allocatable :: dpdr(:),pbr(:)
+    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac,fpi
+    REAL(8),allocatable :: d(:)
     INTEGER :: initialconfig=0
 
        IF (initialconfig/=0) STOP 'Error in aeatom -- Orbit_Init already called'
@@ -524,28 +542,19 @@ CONTAINS
        ENDDO
        endif
 
-
-
        ! check charge and rescale
-       allocate(dpdr(Grid%n),pbr(Grid%n))
        Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
-          dpdr=0.d0;pbr=0.d0
-          pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
-          CALL derivative(Grid,pbr,dpdr,2,Grid%n)
-          CALL extrapolate(Grid,pbr)
-          CALL extrapolate(Grid,dpdr)
-          l=Orbit%l(io)
-          fac=l*(l+1)
-          Orbit%otau(:,io)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
+          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
              Orbit%tau(ir)=Orbit%tau(ir)+xocc*Orbit%otau(ir,io)
              If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
-&                 xocc*((Orbit%lwfn(ir,io))**2)                     
+&                 xocc*((Orbit%lwfn(ir,io))**2)     
           ENDDO
        ENDDO
+
 !   Note that kinetic energy density (tau) is in Rydberg units
 !   Note that kinetic energy density is only correct for non-relativistic
 !               formulation
@@ -557,7 +566,23 @@ CONTAINS
        Orbit%den(1:Grid%n)=Orbit%den(1:Grid%n)*rescale
        Orbit%tau(1:Grid%n)=Orbit%tau(1:Grid%n)*rescale
 
-       deallocate(dpdr,pbr)
+! determine difference with tauW (Weizsaker)
+       allocate(d(Grid%n)); fpi=4*pi
+       d(2:Grid%n)=Orbit%den(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+       call extrapolate(Grid,d)
+       CALL derivative(Grid,d,Orbit%deltatau)
+       Do ir=1,Grid%n
+           if (d(ir)>machine_zero) then
+              Orbit%deltatau(ir)=0.25d0*(Orbit%deltatau(ir)**2)/d(ir)
+           else
+              Orbit%deltatau(ir)=0.d0
+           endif
+       enddo
+       d(2:Grid%n)=Orbit%tau(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+       call extrapolate(Grid,d)
+       Orbit%deltatau=d-Orbit%deltatau
+       deallocate(d)
+
        initialconfig=1
         write(std_out,*) 'completed Orbit_Init '; call flush_unit(std_out)
 
@@ -570,8 +595,8 @@ CONTAINS
     LOGICAL,INTENT(IN),OPTIONAL :: skip_reading
     INTEGER  :: i,io,jo,ir,ip,l,nfix,j,norbit_mod,np(5)
     LOGICAL :: read_new_occ
-    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac
-    REAL(8),allocatable :: dpdr(:),pbr(:)
+    REAL(8) :: en0,qcal,qf,rescale,z,small,zeff,xocc,fac,fpi
+    REAL(8),allocatable :: d(:)
     INTEGER, ALLOCATABLE :: orbit_mod_l(:),orbit_mod_n(:),orbit_mod_k(:)
     REAL(8), ALLOCATABLE :: orbit_mod_occ(:)
 
@@ -635,40 +660,45 @@ CONTAINS
        !  calculate initial charge density from stored wavefunctions
        !    also initial energies
        !
-       allocate(dpdr(Grid%n),pbr(Grid%n))
        Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
-          dpdr=0.d0;pbr=0.d0
-          pbr(2:Grid%n)=Orbit%wfn(2:Grid%n,io)/Grid%r(2:Grid%n)
-          CALL derivative(Grid,pbr,dpdr,2,Grid%n)
-          CALL extrapolate(Grid,pbr)
-          CALL extrapolate(Grid,dpdr)
-          l=Orbit%l(io)
-          fac=l*(l+1)
-          Orbit%otau(:,io)=(Grid%r(:)*dpdr(:))**2+fac*(pbr(:))**2
+          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
              Orbit%tau(ir)=Orbit%tau(ir)+xocc*Orbit%otau(ir,io)
              If (diracrelativistic) Orbit%den(ir)=Orbit%den(ir) + &
-&                 xocc*((Orbit%lwfn(ir,io))**2)                     
+&                 xocc*((Orbit%lwfn(ir,io))**2)     
           ENDDO
        ENDDO
+
 !   Note that kinetic energy density (tau) is in Rydberg units
 !   Note that kinetic energy density is only correct for non-relativistic
 !               formulation
-       !
-       !  check charge
-       !
        qcal=integrator(Grid,Orbit%den)
        qf=qcal
        !WRITE(STD_OUT,*) 'qcal electrons = ',qcal, electrons
-       !  rescale density
+       !rescale density
        rescale=electrons/qcal
-       Orbit%den=Orbit%den*rescale
-       Orbit%tau=Orbit%tau*rescale
+       Orbit%den(1:Grid%n)=Orbit%den(1:Grid%n)*rescale
+       Orbit%tau(1:Grid%n)=Orbit%tau(1:Grid%n)*rescale
 
-       deallocate(dpdr,pbr)
+! determine difference with tauW (Weizsaker)
+       allocate(d(Grid%n)); fpi=4*pi
+       d(2:Grid%n)=Orbit%den(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+       call extrapolate(Grid,d)
+       CALL derivative(Grid,d,Orbit%deltatau)
+       Do ir=1,Grid%n
+           if (d(ir)>machine_zero) then
+              Orbit%deltatau(ir)=0.25d0*(Orbit%deltatau(ir)**2)/d(ir)
+           else
+              Orbit%deltatau(ir)=0.d0
+           endif
+       enddo
+       d(2:Grid%n)=Orbit%tau(2:Grid%n)/(fpi*Grid%r(2:Grid%n)**2)
+       call extrapolate(Grid,d)
+       Orbit%deltatau=d-Orbit%deltatau
+       deallocate(d)
   END SUBROUTINE NC_Init
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -796,6 +826,7 @@ CONTAINS
        FC%valeden=0; FC%valetau=0
        DO io=1,Orbit%norbit
           IF (.NOT.Orbit%iscore(io)) THEN
+             CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))     
              xocc=Orbit%occ(io)
              DO ir=1,Grid%n
                 FC%valeden(ir)=FC%valeden(ir)+xocc*(Orbit%wfn(ir,io)**2)
@@ -869,18 +900,19 @@ CONTAINS
        IF (FCOrbit%iscore(io)) THEN
           FC%zcore=FC%zcore+FCOrbit%occ(io)
           FC%coreden=FC%coreden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
-          FC%coretau=FC%coretau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
           If (diracrelativistic) FC%coreden=FC%coreden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
-
+          CALL taufromwfn(Grid,FCOrbit%wfn(:,io),FCOrbit%l(io),FCOrbit%otau(:,io))
+          FC%coretau=FC%coretau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
        ENDIF
        IF (.NOT.FCOrbit%iscore(io)) THEN
 
           FC%zvale=FC%zvale+FCOrbit%occ(io)
           FC%valeden=FC%valeden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
-          FC%valetau=FC%valetau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
           If (diracrelativistic) FC%valeden=FC%valeden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
+          CALL taufromwfn(Grid,FCOrbit%wfn(:,io),FCOrbit%l(io),FCOrbit%otau(:,io))
+          FC%valetau=FC%valetau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
        ENDIF
     ENDDO
 

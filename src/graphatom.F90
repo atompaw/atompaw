@@ -14,6 +14,8 @@ PROGRAM graphatom
   USE aeatom
   USE atomdata
   USE graphatom_report
+  USE radialked
+  USE splinesolver
 
   IMPLICIT NONE
 
@@ -57,13 +59,11 @@ PROGRAM graphatom
          CALL SCFatom('NC',lotsofoutput)
          CALL Report_Graphatom('NC',Grid,AEOrbit,AEPot,AESCF)
        ELSE IF (i == 2) THEN
-         STOP 'Frozencore not yet programmed for input_dataset_mod '
          CALL SCFatom('SC',lotsofoutput)
          write(std_out,*) ' Finished SC in graphatom '; call flush_unit(std_out)
          CALL Report_Graphatom('FC',Grid,FCOrbit,FCPot,FCSCF)
          write(std_out,*) ' Finished SC report in graphatom '; call flush_unit(std_out)
        ELSE IF (i == 3) THEN
-         STOP 'Frozencore not yet programmed for input_dataset_mod '
          write(std_out,*) 'before FC in graphtom' ; call flush_unit(std_out)
          CALL SCFatom('FC',lotsofoutput)
          CALL Report_Graphatom('FC',Grid,FCOrbit,FCPot,FCSCF)
@@ -73,6 +73,8 @@ PROGRAM graphatom
 
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (diracrelativistic) CALL deallocate_Dirac_Relativistic
+  if (needvtau) CALL deallocate_ked
+  if (needvtau) CALL deallocatesplinesolver
   CALL input_dataset_free()
 
 END PROGRAM graphatom

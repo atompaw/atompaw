@@ -1117,7 +1117,8 @@ end function libxc_nspin
 #if defined HAVE_LIBXC
 
 !---- Local variables
- real(8),parameter :: tol=1.d-14
+ !real(8),parameter :: tol=1.d-14
+ real(8) :: tol  ! set to machine_zero below
 
  integer :: ii,ipts,izero
  logical :: is_lda,is_gga,is_mgga,needs_laplacian
@@ -1136,8 +1137,9 @@ end function libxc_nspin
 
 !------------------------------------------------------------------
 !---- Executable code
-
  if (.not.libxc_constants_initialized) call libxc_constants_load()
+
+ tol=machine_zero
 
  is_lda=libxc_islda()
  is_gga=libxc_isgga()
@@ -1321,7 +1323,8 @@ end function libxc_nspin
 
 !   Additional output in case of meta-GGA
     if (is_mgga.and.present(vxctau)) then
-      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2.d0*vtau(1:nsp) ! From Ha to Ry
+!!!wrong -- dimensionless      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2.d0*vtau(1:nsp) ! From Ha to Ry
+     vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+vtau(1:nsp) !no conversion 
     end if
     if (is_mgga.and.present(vxclrho)) then
       vxclrho(ipts,1:nsp)=vxclrho(ipts,1:nsp)+2.d0*vlrho(1:nsp) ! From Ha to Ry

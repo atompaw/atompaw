@@ -138,6 +138,7 @@ CONTAINS
     CALL FreeAnderson(AC)
     WRITE(STD_OUT,*) 'Finished Anderson Mix', en1 ,' success = ', success
     DEALLOCATE(arg)
+    counter=counter+1
   END SUBROUTINE LDAGGA_SCF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -166,6 +167,7 @@ CONTAINS
         STOP
     ENDIF
 
+
     CALL CopyOrbit(Orbitwk,tmpOrbit)
     CALL CopyPot(Potwk,tmpPot)
 
@@ -186,7 +188,7 @@ CONTAINS
 &                      x=Orbitwk%eig(io)
              enddo
           endif
-          write(std_out,*) x,1.d0/sqrt(abs(x))
+          !write(std_out,*) x,1.d0/sqrt(abs(x))
           x=1.d0/sqrt(abs(x))
           j=FindGridIndex(Gridwk,x)
           write(std_out,*) 'index', x,j,Gridwk%r(j)
@@ -222,7 +224,7 @@ CONTAINS
        WRITE(STD_OUT,*) 'Bad luck in Sub'
     ENDIF
 
-    write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
+    !write(std_out,*) 'in LDAGGAsub before Get'; call flush_unit(std_out)
     CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
 
     !CALL Fixdensity(Gridwk,tmpOrbit%den)
@@ -235,7 +237,33 @@ CONTAINS
     !write(std_out,*) 'after Get_EXC'; call flush_unit(std_out)
     residue=dum
     err=Dot_Product(residue,residue)
-    w=tmpPot%rvh+tmpPot%rvx+tmpPot%rvn
+    write(STD_OUT,*) 'in LDAGGASub   err ', err;call flush_unit(STD_OUT)
+!!    write(std_out,*) 'write out residue ', 5000+dcount
+!!    do i=1,n
+!!       write(5000+dcount,'(1P,10E15.7)') Gridwk%r(i),tmpPot%rvh(i),tmpPot%rvx(i),w(i),residue(i)
+!!    enddo
+ !!   close(5000+dcount);dcount=dcount+1   
+ !!   if(needvtau.and.err>1.d-5) then
+ !!       do i=1,n
+ !!         write(500+fcount,'(1p,5e15.7)') Gridwk%r(i),w(i),residue(i)
+ !!       enddo
+ !!       close(500+fcount)
+ !!       fcount=fcount+1
+ !!       if (AC%CurIter==1000) then
+ !!         write(std_out,*) 'Iteration 1000 -- try to stabilize'
+ !!         w=tmpPot%rvh+tmpPot%rvx
+ !!       endif       
+ !!    endif
+
+   if(frozencorecalculation) then
+     Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
+     CALL Get_FCEXC(SCFwk)
+     energy=SCFwk%evale
+     CALL Total_FCEnergy_Report(SCFwk,STD_OUT)
+   else
+     energy=SCFwk%etot
+     CALL Total_Energy_Report(SCFwk,STD_OUT)
+   endif
 
 
     IF (update) THEN
@@ -275,6 +303,135 @@ CONTAINS
     DEALLOCATE (dum)
 
   END SUBROUTINE  LDAGGASub
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!  DENITERSub	-- w is the electron density
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE DENITERSub(w,energy,residue,err,success,update)
+    REAL(8), INTENT(INOUT) :: w(:)
+    REAL(8), INTENT(OUT) :: energy
+    REAL(8), INTENT(OUT) :: residue(:)
+    REAL(8), INTENT(OUT) :: err
+    LOGICAL, INTENT(OUT) :: success
+    LOGICAL, INTENT(IN) :: update
+
+    INTEGER :: i,j,k,n,io,nw
+    REAL(8),ALLOCATABLE :: dum(:)
+    REAL(8) :: x,y
+    INTEGER:: fcount=0,dcount=0
+    TYPE (OrbitInfo) :: tmpOrbit
+    TYPE (PotentialInfo) :: tmpPot
+
+    n=Gridwk%n
+    nw=SIZE(w)
+    if(n/=nw) then
+      write(std_out,*) 'problem in DENITERsub n,nw', n,nw
+      stop
+    endif
+    ALLOCATE(dum(nw),stat=i)
+    IF (i/=0) THEN
+        WRITE(6,*) 'Error in DENITERsub allocation' ,nw
+        STOP
+    ENDIF
+
+    CALL CopyOrbit(Orbitwk,tmpOrbit)
+    CALL CopyPot(Potwk,tmpPot)
+
+    !  w enters subroutine as next iteration density
+    !  It needs to be renormalized 
+    !  tmpPot%rvh, tmpPot%rvx,  tmpPot%vtau need to be generated 
+
+    x=integrator(Gridwk,w)
+    write(std_out,*) 'In DENITERsub norm(m) adjust ', x,Potwk%q
+    w=w*tmpPot%q/x
+    call  poisson(Gridwk,x,w,tmpPot%rvh,y)
+    write(std_out,*) 'after poisson  q,ecoul ',x,y
+    call exch(Gridwk,w,tmpPot%rvx,x,y,tau=tmpOrbit%tau,vtau=tmpPot%vtau)
+    write(std_out,*) 'after exch   exvct, eexc ',x,y
+    tmpPot%rv=tmpPot%rvn+tmpPot%rvh+tmpPot%rvx
+    tmpOrbit%den=w
+
+    CALL Updatewfnwden(Gridwk,tmpPot,tmpOrbit,w,success)
+    write(std_out,*) 'completed updatewfnwden with success ', success
+
+    !if FC core calc , restore core info backinto tmpOrbit
+
+    IF(frozencorecalculation) THEN
+       DO io = 1 , Orbitwk%norbit
+          IF(Orbitwk%iscore(io)) THEN
+             tmpOrbit%eig(io)=Orbitwk%eig(io)
+             tmpOrbit%wfn(:,io)=Orbitwk%wfn(:,io)
+             if(diracrelativistic) tmpOrbit%lwfn(:,io)=Orbitwk%lwfn(:,io)
+             tmpOrbit%otau(:,io)=Orbitwk%otau(:,io)
+          ENDIF
+       ENDDO
+    ENDIF
+
+    IF (.NOT.success) THEN
+       WRITE(STD_OUT,*) 'Bad luck in Sub'
+    ENDIF
+
+    CALL Get_KinCoul(Gridwk,tmpPot,tmpOrbit,SCFwk)
+
+    write(std_out,*)  'Check tau ', integrator(Gridwk,tmpOrbit%tau)
+    CALL Get_EXC(Gridwk,tmpPot,tmpOrbit,SCFwk)
+    dum(1:n)=tmpOrbit%den(1:n)-w(1:n)
+    residue=dum
+    err=Dot_Product(residue,residue)
+    write(STD_OUT,*) 'in DENITERSub   err ', err;call flush_unit(STD_OUT)
+!!!    write(std_out,*) 'write out residue ', 5000+dcount
+!!!    do i=1,n
+!!!       write(5000+dcount,'(1P,10E15.7)') Gridwk%r(i),tmpPot%rvh(i),tmpPot%rvx(i),w(i),residue(i)
+!!!    enddo
+!!!    close(5000+dcount);dcount=dcount+1   
+
+   if(frozencorecalculation) then
+     Call Get_FCKinCoul(Gridwk,tmpPot,tmpOrbit,FCwk,SCFwk)
+     CALL Get_FCEXC(SCFwk)
+     energy=SCFwk%evale
+     CALL Total_FCEnergy_Report(SCFwk,STD_OUT)
+   else
+     energy=SCFwk%etot
+     CALL Total_Energy_Report(SCFwk,STD_OUT)
+   endif
+
+
+    IF (update) THEN
+       Potwk%rv=tmpPot%rv
+       Potwk%rvh=tmpPot%rvh
+       Potwk%rvx=tmpPot%rvx
+       if (needvtau) Potwk%vtau=tmpPot%vtau
+       Orbitwk%wfn=tmpOrbit%wfn
+       If(diracrelativistic)Orbitwk%lwfn=tmpOrbit%lwfn
+       Orbitwk%eig=tmpOrbit%eig
+       !Orbitwk%den=tmpOrbit%den
+       Orbitwk%den=w
+       Orbitwk%otau=tmpOrbit%otau
+       Orbitwk%tau=tmpOrbit%tau
+       Orbitwk%deltatau=tmpOrbit%deltatau
+       Call One_electron_energy_Report(Orbitwk,std_out)
+!!!       !!! testing
+!!!       if(needvtau.and.fcount==0) then
+!!!      OPEN (unit=1001,file='potwithkedR2SCAN',form='formatted')
+!!!      WRITE(1001,*) '#    r         rv               rvh           rvx       den    tau   vtau'      
+!!!      DO i = 1,n
+!!!       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+!!!&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),Potwk%vtau(i)
+!!!      ENDDO
+!!!      CLOSE(1001)
+!!!      fcount=fcount+1
+!!!      endif
+!!!    !!! end testing
+    ENDIF
+
+
+    CALL DestroyOrbit(tmpOrbit)
+    CALL DestroyPot(tmpPot)
+    DEALLOCATE (dum)
+
+  END SUBROUTINE  DENITERSub
+
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -357,33 +514,34 @@ CONTAINS
 
      write(std_out,*) 'in Report ', stuff; call flush_unit(std_out)
 
-    OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
-    WRITE(1001,*)'#    r         rv               rvh           rvx       den                  tau          vtau          deltatau '
-   
-    n=Gridwk%n
-    DO i = 1,n
-      if (frozencorecalculation) then
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
-&           Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),&
+    IF (frozencorecalculation) THEN
+      OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
+      WRITE(1001,'(2a)') &
+&         '#    r         rv               rvh           rvx       den',&
+&         '                  tau          vtau          deltatau '   
+      n=Gridwk%n
+      DO i = 1,n
+        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i),Potwk%rv(i), &
+&            Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),&
 &            Potwk%vtau(i),Orbitwk%deltatau(i)
-    ENDDO
+      ENDDO
+    ENDIF
     CLOSE(1001)
-    OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
-    if (.not.diracrelativistic) then
-    WRITE(1001,*) '#         r          wfn in order of s, p, d ... '
-    DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
-&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
-    ENDDO
-    endif
-    if (diracrelativistic) then
-    WRITE(1001,*) '#         r          wfn, lwfn in order of s, p-1/2, p+1/2 ... '
-    DO i = 1,n
-       WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
-&           (Orbitwk%wfn(i,j),Orbitwk%lwfn(i,j),j=1,Orbitwk%norbit)
-    ENDDO
-    endif
 
+    OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
+    IF (.not.diracrelativistic) THEN
+      WRITE(1001,'(a)') '#         r          wfn in order of s, p, d ... '
+      DO i = 1,n
+        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+      ENDDO
+    ELSE
+      WRITE(1001,'(a)') '#         r          wfn, lwfn in order of s, p-1/2, p+1/2 ... '
+      DO i = 1,n
+        WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
+&            (Orbitwk%wfn(i,j),Orbitwk%lwfn(i,j),j=1,Orbitwk%norbit)
+      ENDDO
+    ENDIF
     CLOSE(1001)
 
     counter=counter+1

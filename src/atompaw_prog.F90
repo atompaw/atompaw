@@ -193,7 +193,7 @@ PROGRAM atompaw
   if (scalarrelativistic) CALL deallocate_Scalar_Relativistic
   if (have_libxc) call libxc_end_func()
   if(needvtau) call Deallocate_ked
-  call deallocatesplinesolver
+  if (usespline) call deallocatesplinesolver
   Call input_dataset_free()
 
 END PROGRAM atompaw

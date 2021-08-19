@@ -93,8 +93,13 @@ CONTAINS
           Call Boundsplinesolver(Grid,l,nroot, &
 &            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
        ELSE
-          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+          If (usespline) THEN     
+             Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          ELSE
+             CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
 &              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+          ENDIF
        ENDIF
           IF (.NOT.OK) THEN
              success=.FALSE.
@@ -251,13 +256,242 @@ CONTAINS
 
     !Update otau according to wfn
     DO io=1,Orbit%norbit
-      CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),&
-&                     Orbit%eig(io),Pot%rv,Orbit%otau(:,io))
+      CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io), &
+&                     energy=Orbit%eig(io),rPot=Pot%rv)
     ENDDO
 
     deallocate(dum)
 
   END SUBROUTINE Updatewfn
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !  SUBROUTINE Updatewfnwden(Grid,Pot,Orbit,w,success)
+  !      Given new den and consistent Pot%rv
+  !      generate new Orbit%wfn,Orbit%eig,Orbit%otau
+  !
+  !      Orbit%den=w on input
+  !
+  !     only splinesolver works for now
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE Updatewfnwden(Grid,Pot,Orbit,w,success)
+    TYPE (GridInfo), INTENT(INOUT) :: Grid
+    TYPE (PotentialInfo), INTENT(INOUT) :: Pot
+    TYPE (OrbitInfo), INTENT(INOUT) :: Orbit
+    REAL(8), INTENT(IN) ::  w(:)    
+    LOGICAL :: success
+
+    INTEGER :: icount,i,j,k,n,it,start,np,ierr,nroot,s1,s2
+    INTEGER :: is,ip,id,jf,ig,io,l,nfix,ir,nzeff,jierr,nz,kappa
+    REAL(8) :: h,emin,zz
+    REAL(8), ALLOCATABLE :: dum(:)
+    LOGICAL :: OK
+
+    !!!since programmed only for splinesolver case, check
+    If (scalarrelativistic.or.diracrelativistic) then
+        write(std_out,*) 'Program Updatewfnwden not written '    
+        write(std_out,*) ' for relativistic solver -- error stop '
+        stop
+    ENDIF    
+    If (.not.usespline) THEN
+        write(std_out,*) 'Program Updatewfnwden only written '    
+        write(std_out,*) ' for usespline case -- error stop '
+        stop
+    ENDIF    
+
+    n=Grid%n; h=Grid%h;    nz=Pot%nz;   zz=Pot%zz
+    success=.TRUE.
+
+    allocate(dum(n))
+
+    call initpotforsplinesolver(Grid,Pot,Orbit%den,Orbit%tau)
+
+
+    !  solve for bound states of Schroedinger equation
+    !
+    icount=0
+    jierr=0
+    it=0
+    !  s states :
+    IF (Orbit%nps.GT.0) THEN
+       it=it+1
+       emin=-nz*nz-0.1d0
+       l=0
+       nroot=Orbit%nps
+       start=1;s1=start;s2=start+nroot-1
+!       IF (scalarrelativistic) THEN
+!          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+!       ELSE IF (diracrelativistic) THEN
+!          kappa=-1     
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!       ELSE IF (needvtau) THEN
+!!         write(std_out,*) 'about to call boundked ', nz,emin      
+!!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!!&             l,nroot,emin,ierr,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ELSE
+!!          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+!!&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ENDIF
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          IF (.NOT.OK) THEN
+             success=.FALSE.
+          ENDIF
+    ENDIF
+    !  p states :
+    IF (Orbit%npp.GT.1) THEN
+       it=it+1
+       emin=-nz*nz/4.d0-0.5d0
+       l=1
+       nroot=Orbit%npp-1
+       s1=s2+1;s2=s1+nroot-1
+!       IF (scalarrelativistic) THEN
+!          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+!       ELSE IF (diracrelativistic) THEN
+!          kappa=1     
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!          s1=s2+1;s2=s1+nroot-1
+!          kappa=-2     
+!          emin=-nz*nz/4.d0-0.5d0
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!       ELSE IF (needvtau) THEN
+!!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!!&             l,nroot,emin,ierr,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ELSE
+!!          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+!!&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ENDIF
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          IF (.NOT.OK) THEN
+             success=.FALSE.
+          ENDIF
+    ENDIF
+    !  d states :
+    IF (Orbit%npd.GT.2) THEN
+       it=it+1
+       emin=-nz*nz/9.d0-0.5d0
+       l=2
+       nroot=Orbit%npd-2
+       s1=s2+1;s2=s1+nroot-1
+!       IF (scalarrelativistic) THEN
+!          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+!       ELSE IF (diracrelativistic) THEN
+!          kappa=2     
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!          kappa=-3     
+!       s1=s2+1;s2=s1+nroot-1
+!       emin=-nz*nz/9.d0-0.5d0
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!       ELSE IF (needvtau) THEN
+!!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!!&             l,nroot,emin,ierr,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ELSE
+!!          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+!!&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ENDIF
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          IF (.NOT.OK) THEN
+             success=.FALSE.
+          ENDIF
+    ENDIF
+    !  f states :
+    IF (Orbit%npf.GT.3) THEN
+       it=it+1
+       emin=-nz*nz/16.d0-0.5d0
+       l=3
+       nroot=Orbit%npf-3
+       s1=s2+1;s2=s1+nroot-1
+!       IF (scalarrelativistic) THEN
+!          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+!       ELSE IF (diracrelativistic) THEN
+!          kappa=3     
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!          kappa=-4     
+!       s1=s2+1;s2=s1+nroot-1
+!       emin=-nz*nz/16.d0-0.5d0
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!       ELSE IF (needvtau) THEN
+!!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!!&             l,nroot,emin,ierr,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ELSE
+!!          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+!!&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ENDIF
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+          IF (.NOT.OK) THEN
+             success=.FALSE.
+          ENDIF
+    ENDIF
+    !  g states :
+    IF (Orbit%npg.GT.4) THEN
+       it=it+1
+       emin=-nz*nz/25.d0-0.5d0
+       l=4
+       nroot=Orbit%npg-4
+       s1=s2+1;s2=s1+nroot-1
+!       IF (scalarrelativistic) THEN
+!          Call Boundsr(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             l,nroot,emin,ierr,OK)
+!       ELSE IF (diracrelativistic) THEN
+!          kappa=4     
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!          kappa=-5     
+!       s1=s2+1;s2=s1+nroot-1
+!       emin=-nz*nz/25.d0-0.5d0
+!          Call BoundD(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!&             Orbit%lwfn(:,s1:s2),kappa,nroot,emin,ierr,OK)
+!       ELSE IF (needvtau) THEN
+!!         Call boundked(Grid,Pot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),&
+!!&             l,nroot,emin,ierr,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ELSE
+!!          CALL BoundNumerov(Grid,Pot%rv,Pot%v0,Pot%v0p,Pot%nz,&
+!!&              l,nroot,Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),BDsolve,OK)
+!          Call Boundsplinesolver(Grid,l,nroot, &
+!&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+!       ENDIF
+          Call Boundsplinesolver(Grid,l,nroot, &
+&            Orbit%eig(s1:s2),Orbit%wfn(:,s1:s2),Orbit%otau(:,s1:s2),OK)
+       IF (.NOT.OK) THEN
+          success=.FALSE.
+       ENDIF
+    ENDIF
+
+    deallocate(dum)
+
+  END SUBROUTINE Updatewfnwden
+
 
   SUBROUTINE Get_KinCoul(Grid,Pot,Orbit,SCF,noalt)
     !  program to calculate Kinetic energy and Coulomb Energies from Orbit%wfn
@@ -276,6 +510,7 @@ CONTAINS
     INTEGER :: counter=1
 
 
+
     n=Grid%n; h=Grid%h
     small=small0
 
@@ -285,11 +520,12 @@ CONTAINS
        STOP
     ENDIF
 
-    !update density   and tau
+!   Update density and tau
 !   Note that kinetic energy density (tau) is in Rydberg units
     Orbit%den=0.d0;Orbit%tau=0.d0
 
     DO io=1,Orbit%norbit
+
        IF (Orbit%occ(io).GT.small) THEN
          DO i=1,Grid%n      
             IF (ABS(Orbit%wfn(i,io))<machine_zero)Orbit%wfn(i,io)=0
@@ -297,8 +533,11 @@ CONTAINS
               IF (ABS(Orbit%lwfn(i,io))<machine_zero)Orbit%lwfn(i,io)=0
             ENDIF
          ENDDO   
-         if (.not.usespline) CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+         IF (.not.usespline) &
+&          CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io), &
+&                                     energy=Orbit%eig(io),rPot=Pot%rv)
          xocc=Orbit%occ(io)
+
          DO i=1,Grid%n
             Orbit%tau(i)=Orbit%tau(i)+xocc*Orbit%otau(i,io)
             Orbit%den(i)=Orbit%den(i)+xocc*(Orbit%wfn(i,io)**2)
@@ -308,6 +547,7 @@ CONTAINS
          ENDDO
        ENDIF
     ENDDO
+
     !Kinetic energy density is in Ry (no need of 1/2 factor)
     !Orbit%tau=0.5d0*Orbit%tau
 
@@ -445,7 +685,9 @@ CONTAINS
             Orbit%den(:)=Orbit%den(:)+ &
 &           Orbit%occ(io)*((Orbit%lwfn(:,io))**2)
           ENDIF         
-          if(.not.usespline)CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+          IF(.not.usespline) &
+&           CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io), &
+&                           energy=Orbit%eig(io),rPot=Pot%rv)
           Orbit%tau(:)=Orbit%tau(:)+ Orbit%occ(io)*Orbit%otau(:,io)
           SCF%eone=SCF%eone+Orbit%occ(io)*Orbit%eig(io)
        ENDIF
@@ -719,4 +961,3 @@ CONTAINS
 !
 
 END  MODULE general_mod
-

@@ -545,7 +545,8 @@ CONTAINS
        ! check charge and rescale
        Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
-          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+          CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io),&
+&                         energy=Orbit%eig(io),rPot=Pot%rv)
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
@@ -662,7 +663,8 @@ CONTAINS
        !
        Orbit%den=0.d0;Orbit%tau=0.d0
        DO io=1,Orbit%norbit
-          CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))
+          CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io), &
+&                         energy=Orbit%eig(io),rPot=Pot%rv)
           xocc=Orbit%occ(io)
           DO ir=1,Grid%n
              Orbit%den(ir)=Orbit%den(ir)+xocc*(Orbit%wfn(ir,io)**2)
@@ -826,7 +828,8 @@ CONTAINS
        FC%valeden=0; FC%valetau=0
        DO io=1,Orbit%norbit
           IF (.NOT.Orbit%iscore(io)) THEN
-             CALL taufromwfn(Grid,Orbit%wfn(:,io),Orbit%l(io),Orbit%otau(:,io))     
+             CALL taufromwfn(Orbit%otau(:,io),Grid,Orbit%wfn(:,io),Orbit%l(io), &
+&                            energy=Orbit%eig(io),rPot=Pot%rv)     
              xocc=Orbit%occ(io)
              DO ir=1,Grid%n
                 FC%valeden(ir)=FC%valeden(ir)+xocc*(Orbit%wfn(ir,io)**2)
@@ -902,16 +905,17 @@ CONTAINS
           FC%coreden=FC%coreden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
           If (diracrelativistic) FC%coreden=FC%coreden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
-          CALL taufromwfn(Grid,FCOrbit%wfn(:,io),FCOrbit%l(io),FCOrbit%otau(:,io))
+          CALL taufromwfn(FCOrbit%otau(:,io),Grid,FCOrbit%wfn(:,io),FCOrbit%l(io), &
+&                         energy=FCOrbit%eig(io),rPot=FCPot%rv)
           FC%coretau=FC%coretau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
        ENDIF
        IF (.NOT.FCOrbit%iscore(io)) THEN
-
           FC%zvale=FC%zvale+FCOrbit%occ(io)
           FC%valeden=FC%valeden+FCOrbit%occ(io)*(FCOrbit%wfn(:,io))**2
           If (diracrelativistic) FC%valeden=FC%valeden + &
 &                 FCOrbit%occ(io)*((FCOrbit%lwfn(:,io))**2)
-          CALL taufromwfn(Grid,FCOrbit%wfn(:,io),FCOrbit%l(io),FCOrbit%otau(:,io))
+          CALL taufromwfn(FCOrbit%otau(:,io),Grid,FCOrbit%wfn(:,io),FCOrbit%l(io), &
+&                         energy=FCOrbit%eig(io),rPot=FCPot%rv)
           FC%valetau=FC%valetau+FCOrbit%occ(io)*FCOrbit%otau(:,io)
        ENDIF
     ENDDO

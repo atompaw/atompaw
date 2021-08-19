@@ -1218,10 +1218,8 @@ CONTAINS
          PAW%tkin=PAW%tkin+occ*x
          PAW%den=PAW%den+occ*(PAW%OCCWFN%wfn(:,io))**2
          PAW%tden=PAW%tden+occ*(PAW%TOCCWFN%wfn(:,io))**2
-         CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &
-&                       PAW%OCCwfn%l(io),d)
-         CALL taufromwfn(Grid,PAW%TOCCwfn%wfn(:,io), &
-&                       PAW%TOCCwfn%l(io),td)
+         CALL taufromwfn(d,Grid,PAW%OCCwfn%wfn(:,io),PAW%OCCwfn%l(io))
+         CALL taufromwfn(td,Grid,PAW%TOCCwfn%wfn(:,io),PAW%TOCCwfn%l(io))
          PAW%valetau=PAW%valetau+occ*d
          PAW%tvaletau=PAW%tvaletau+occ*td
       endif   

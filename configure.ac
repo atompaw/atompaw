@@ -28,9 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!- Version ${PACKAGE_VERSION} - 4/2021 - NH,MT added self-consistent MGGA (beta)
-#!- Version ${PACKAGE_VERSION} - 11/2020 - MT,FJ added LDA-1/2 potential
+!--- Version ${PACKAGE_VERSION} - 04/2021 - NH,MT added self-consistent MGGA (beta)
 EOF
+#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT,FJ added LDA-1/2 potential
 #!--- Version ${PACKAGE_VERSION} - 11/2020 - MT introduce std I/O variables
 #!--- Version ${PACKAGE_VERSION} - 11/2020 - MT change input reading design
 #!--- Version ${PACKAGE_VERSION} - 06/2019 - MT,FJ,NH overlap>0, core kinetic

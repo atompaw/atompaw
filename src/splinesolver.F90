@@ -89,8 +89,13 @@ CONTAINS
    END SUBROUTINE initsplinesolver
 
    SUBROUTINE deallocatesplinesolver
-      deallocate(u,pref,rr1,rr2)
-      deallocate(srv,svtau,soneplusvt)
+      if (allocated(u)) deallocate(u)
+      if (allocated(pref)) deallocate(pref)
+      if (allocated(rr1)) deallocate(rr1)
+      if (allocated(rr2)) deallocate(rr2)
+      if (allocated(srv)) deallocate(srv)
+      if (allocated(svtau)) deallocate(svtau)
+      if (allocated(soneplusvt)) deallocate(soneplusvt)
       call destroygrid(Grids)
 
       if(needvtau) then
@@ -149,7 +154,7 @@ CONTAINS
           svtau=0.d0;sdvt=0.d0
       endif
 
-  END   SUBROUTINE initpotforsplinesolver
+  END SUBROUTINE initpotforsplinesolver
 
   SUBROUTINE Boundsplinesolver(Grid,l,neig,eig,wfn,otau,OK)
       Type(GridInfo), INTENT(IN) :: Grid
@@ -309,7 +314,7 @@ CONTAINS
           otau(:,m)=x*otau(:,m)
           x=sqrt(x)
           wfn(:,m)=x*wfn(:,m)    ! should be normalized now
-         ! call taufromwfn(Grid,wfn(:,m),l,dum)    ! testing
+         ! call taufromwfn(dum,Grid,wfn(:,m),l)    ! testing
 
          ! do i=1,Grid%n
          !    write(500+icount,'(1p,4e16.8)') Grid%r(i),wfn(i,m),otau(i,m),dum(i)

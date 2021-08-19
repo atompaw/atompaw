@@ -2624,8 +2624,8 @@ End subroutine resettcore
       if (PAW%occ(i).gt.small) then
          locald=locald+PAW%occ(i)*(PAW%phi(:,i)**2)
          localtd=localtd+PAW%occ(i)*(PAW%tphi(:,i)**2)
-         CALL taufromwfn(Grid,PAW%phi(:,i),PAW%l(i),dp)
-         CALL taufromwfn(Grid,PAW%tphi(:,i),PAW%l(i),ddp)
+         CALL taufromwfn(dp,Grid,PAW%phi(:,i),PAW%l(i))
+         CALL taufromwfn(ddp,Grid,PAW%tphi(:,i),PAW%l(i))
          PAW%valetau=PAW%valetau+PAW%occ(i)*dp
          PAW%tvaletau=PAW%tvaletau+PAW%occ(i)*ddp
       endif   
@@ -4269,11 +4269,9 @@ End subroutine resettcore
             occ=PAW%OCCwfn%occ(io)
             PAW%den=PAW%den+occ*PAW%OCCwfn%wfn(:,io)**2
             PAW%tden=PAW%tden+occ*PAW%TOCCwfn%wfn(:,io)**2
-            CALL taufromwfn(Grid,PAW%OCCwfn%wfn(:,io), &
-&                    PAW%OCCwfn%l(io),d)
+            CALL taufromwfn(d,Grid,PAW%OCCwfn%wfn(:,io),PAW%OCCwfn%l(io))
             PAW%valetau=PAW%valetau+occ*d
-            CALL taufromwfn(Grid,PAW%TOCCwfn%wfn(:,io), &
-&                    PAW%TOCCwfn%l(io),d)
+            CALL taufromwfn(d,Grid,PAW%TOCCwfn%wfn(:,io),PAW%TOCCwfn%l(io))
             PAW%tvaletau=PAW%tvaletau+occ*d
           endif
       enddo

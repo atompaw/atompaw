@@ -470,12 +470,15 @@ CONTAINS
  IF (has_to_print) THEN
    WRITE(STD_OUT,'(3x,2a)')     "Scalar-relativistic calculation : ",MERGE("YES"," NO",dataset%scalarrelativistic)
    WRITE(STD_OUT,'(3x,2a)')     "Dirac-relativistic calculation  : ",MERGE("YES"," NO",dataset%diracrelativistic)
+   IF (dataset%usespline) THEN
+     WRITE(STD_OUT,'(3x,a)')    "    - Use a spline solver"
+   END IF
+   WRITE(STD_OUT,'(3x,2a)')     "Exchange-correlation functional : ",TRIM(dataset%exctype)
+   WRITE(STD_OUT,'(3x,3a)')     " (mGGA kinetic energy functional : ",MERGE("YES"," NO",dataset%needvtau),")"
    WRITE(STD_OUT,'(3x,2a)')     "Finite-nucleus calculation      : ",MERGE("YES"," NO",dataset%finitenucleus)
    IF (dataset%finitenucleus) THEN
      WRITE(STD_OUT,'(3x,a,i0)') "    - Finite-nucleus model      : ",dataset%finitenucleusmodel
    END IF
-   WRITE(STD_OUT,'(3x,2a)')     "Exchange-correlation functional : ",TRIM(dataset%exctype)
-   WRITE(STD_OUT,'(3x,2a)')     "mGGA kinetic energy functional  : ",MERGE("YES"," NO",dataset%needvtau)
    WRITE(STD_OUT,'(3x,2a)')     "Block-Davidson calculation      : ",MERGE("YES"," NO",dataset%BDsolve)
    WRITE(STD_OUT,'(3x,2a)')     "Grid type                       : ",TRIM(dataset%gridkey)
    WRITE(STD_OUT,'(3x,a,i0)')   "Grid size                       : ",dataset%gridpoints
@@ -963,7 +966,7 @@ END IF
 &    WRITE(STD_OUT,'(3x,a)') "Compensation charge shape function : BESSEL"
    IF (INDEX(inputline,'CORETOL')>0) &
 &    WRITE(STD_OUT,'(3x,a,es9.3)') "Core tolerance for Hartree-Fock : ",dataset%hf_coretol
-   WRITE(STD_OUT,'(3x,a)') "Smooth tcore shape (no negative nhat) : ",MERGE("YES"," NO",dataset%shapetcore)
+   WRITE(STD_OUT,'(3x,2a)') "Smooth tcore shape (no negative nhat) : ",MERGE("YES"," NO",dataset%shapetcore)
  END IF
 
 

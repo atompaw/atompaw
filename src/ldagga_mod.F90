@@ -133,6 +133,7 @@ CONTAINS
       SCFwk%delta=AC%res
 
       WRITE(STD_OUT,*) 'Anderson Mix ',success,AC%res ,' iter = ',AC%CurIter
+      write(std_out,*) 'line 136 ldagga ', scftype; call flush_unit(std_out)
     CALL Report_LDAGGA_functions(scftype)
 
     CALL FreeAnderson(AC)
@@ -177,9 +178,14 @@ CONTAINS
       If (.not.success) then   !  attempt to stablize solution
               !   probably needs rethinking....
           write(std_out,*) 'Current eigs', (Orbitwk%eig(io),io=1,Orbitwk%norbit)
-          write(std_out,*) 'Eigensolver failed and recovery algorithm is not worthy -- program stopping' 
-          stop
-   
+          
+!!!!!!!!!!!!!!!!!!!    The following code was taken out --
+!!!!   but is apparently needed
+!!!!
+!!!!          write(std_out,*) 'Eigensolver failed and recovery algorithm is not worthy -- program stopping' 
+!!!!          stop
+!!!!!!!!!!!!!!!!!!    end of  modification
+
           j=n
           x=Orbitwk%eig(1)
           if (Orbitwk%norbit>1) then
@@ -511,6 +517,7 @@ CONTAINS
     CHARACTER(4) :: stuff
 
     CALL mkname(counter,stuff)
+    n=Gridwk%n
 
      write(std_out,*) 'in Report ', stuff; call flush_unit(std_out)
 
@@ -525,27 +532,34 @@ CONTAINS
 &            Potwk%rvh(i),Potwk%rvx(i),Orbitwk%den(i), Orbitwk%tau(i),&
 &            Potwk%vtau(i),Orbitwk%deltatau(i)
       ENDDO
+      CLOSE(1001)
     ENDIF
-    CLOSE(1001)
 
-    OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
     IF (.not.diracrelativistic) THEN
+      OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
       WRITE(1001,'(a)') '#         r          wfn in order of s, p, d ... '
+!      write(std_out,*) 'line 539 in ldagga ',Orbitwk%norbit;call flush_unit(std_out)
       DO i = 1,n
         WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
 &           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+!      write(std_out,*) 'line 544 in ldagga ',i;call flush_unit(std_out)
       ENDDO
-    ELSE
+      CLOSE(1001)
+!      write(std_out,*) 'line 547 in ldagga ',Orbitwk%norbit;call flush_unit(std_out)
+    ELSEIF (diracrelativistic) THEN
+      OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
       WRITE(1001,'(a)') '#         r          wfn, lwfn in order of s, p-1/2, p+1/2 ... '
       DO i = 1,n
         WRITE(1001,'(1p,50e15.7)') Gridwk%r(i), &
 &            (Orbitwk%wfn(i,j),Orbitwk%lwfn(i,j),j=1,Orbitwk%norbit)
       ENDDO
+      CLOSE(1001)
     ENDIF
-    CLOSE(1001)
+!      write(std_out,*) 'line 556 in ldagga ',Orbitwk%norbit;call flush_unit(std_out)
 
     counter=counter+1
 
   END SUBROUTINE Report_LDAGGA_functions
 
 END MODULE ldagga_mod
+

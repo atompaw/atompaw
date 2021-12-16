@@ -521,7 +521,7 @@ CONTAINS
 
      write(std_out,*) 'in Report ', stuff; call flush_unit(std_out)
 
-    IF (frozencorecalculation) THEN
+    !IF (frozencorecalculation) THEN
       OPEN (unit=1001,file='pot'//sub//TRIM(stuff),form='formatted')
       WRITE(1001,'(2a)') &
 &         '#    r         rv               rvh           rvx       den',&
@@ -533,7 +533,7 @@ CONTAINS
 &            Potwk%vtau(i),Orbitwk%deltatau(i)
       ENDDO
       CLOSE(1001)
-    ENDIF
+    !ENDIF
 
     IF (.not.diracrelativistic) THEN
       OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')

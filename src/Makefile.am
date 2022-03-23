@@ -112,7 +112,7 @@ atompaw_prog.$(LTOBJEXT): globalmath.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
 atompaw_report.$(LTOBJEXT): atomdata.$(LTOBJEXT) fock.$(LTOBJEXT) \
 	globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) pseudo.$(LTOBJEXT) \
 	pseudodata.$(LTOBJEXT) libxc_mod.$(LTOBJEXT) tools_mod.$(LTOBJEXT) \
-	io_tools.$(LTOBJEXT)
+	io_tools.$(LTOBJEXT) splinesolver.$(LTOBJEXT)
 
 blockdavidson_mod.$(LTOBJEXT): globalmath.$(LTOBJEXT) search_sort.$(LTOBJEXT) \
 	 tools_mod.$(LTOBJEXT) io_tools.$(LTOBJEXT)
@@ -213,7 +213,8 @@ splinesolver.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
 	search_sort.$(LTOBJEXT) io_tools.$(LTOBJEXT) excor.$(LTOBJEXT) \
 	interpolation_mod.$(LTOBJEXT) atomdata.$(LTOBJEXT)
 
-report_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) excor.$(LTOBJEXT)
+report_mod.$(LTOBJEXT): atomdata.$(LTOBJEXT) gridmod.$(LTOBJEXT) \
+	excor.$(LTOBJEXT) splinesolver.$(LTOBJEXT)
 
 search_sort.$(LTOBJEXT):
 

@@ -15,6 +15,7 @@ MODULE  atompaw_report
   USE fock
   USE globalmath
   USE gridmod
+  USE splinesolver
   USE pseudo
   USE pseudodata
   USE libxc_mod
@@ -78,6 +79,7 @@ CONTAINS
     END SELECT
 
     CALL reportgrid(Grid,ifen)
+    if (usespline) CALL splinereport(ifen)
     IF (scalarrelativistic) THEN
        if (finitenucleus) then
          WRITE(ifen,*) 'Scalar relativistic calculation -- finite nucleus'

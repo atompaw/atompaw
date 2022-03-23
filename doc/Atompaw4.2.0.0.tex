@@ -1,0 +1,457 @@
+\documentclass[11pt]{article}
+\usepackage{url}
+\special{papersize=8.5in,11in} \pagestyle{plain}
+\setlength{\oddsidemargin}{0in} \setlength{\evensidemargin}{0in}
+\setlength{\textwidth}{6.5in} \setlength{\parindent}{0in}
+\setlength{\parskip}{0.2in} \setlength{\topmargin}{-0.2in}
+\setlength{\headsep}{0in} \setlength{\headheight}{0in}
+\setlength{\textheight}{9.5in} \setlength{\jot}{0.2in}
+
+
+
+
+\begin{document}
+
+\begin{center}
+{{{\bf{Notes for 4.2.0.0 version of {\textsc{atompaw}} code.}}}} \\
+{N. A. W. Holzwarth, Wake Forest University, Winston-Salem, NC. \\
+ \today}
+\end{center}
+
+In the \textsc{atompaw} Release 4.2.0.0, several changes from
+earlier versions have been introduced.    
+
+\begin{itemize}
+\item Marc Torrent constructed a new module {\verb+input_dataset_mod.F90+}
+which now takes care of all of the input and stores the relevant
+parameters in a datastructure.
+\item Natalie Holzwarth implemented the capability for graphatom
+to self-consistently solve the Dirac equation.   At the moment, this
+capability is not yet integrated into the atompaw and PAW
+formalism.
+\item Natalie Holzwarth, Marc Torrent, and Michel C\^{o}t\'{e} 
+completed a reasonable version of the code to converge the
+generalized Kohn-Sham equations for meta-GGA functionals including
+the kinetic energy density.     This came with a ``splinesolver"
+algorithm for the self-consistent radial equations that replaces
+the inward and outward integrations to find bound state 
+radial wavefunctions.    The splinesolver is used by default
+for meta-GGA functionals, but can be requested for other 
+functionals.   Some of the pseudoization schemes have been
+adopted for developing self-consistent PAW datasets appropriate
+for meta-GGA functionals within the generalized Kohn-Sham approach.
+Details of this implementation are published -- PRB (2022).
+\end{itemize}
+
+
+
+With these changes come new options for the input files for
+\textsc{graphatom} and \textsc{atompaw}.
+
+
+Some examples input data for \textsc{graphatom} and their
+corresponding summary output [Atom].GA and input data for
+\textsc{atompaw} and the corresponding summary output [Atom] are as follows.
+
+\fbox{Example 1: \textsc{graphatom} input for Si -- LDA, non-relativistic}
+\begin{verbatim}
+Si 14
+LDA-PW loggrid    2001
+3 3 0 0 0 0
+3 1 2
+0 0 0
+END
+
+####Si.GA####
+ Completed calculations for Si
+ Perdew-Wang LDA -- PRB 45, 13244 (1992)
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+ Non-relativistic calculation
+   AEatom converged in          28  iterations
+     for nz =  14
+     delta  =    4.0395229093591495E-017
+
+ Orbital energies
+ n  l     occupancy            energy
+ 1  0      2.0000000E+00 -1.3036860E+02
+ 2  0      2.0000000E+00 -1.0149628E+01
+ 3  0      2.0000000E+00 -7.9623458E-01
+ 2  1      6.0000000E+00 -7.0293986E+00
+ 3  1      2.0000000E+00 -3.0661972E-01
+
+  Total energy
+     Total                    :    -576.38746219636232     
+######################################
+\end{verbatim}
+
+
+\fbox{Example 2: \textsc{graphatom} input for Si -- LDA, non-relativistic,
+using splinesolver}
+\begin{verbatim}
+Si 14
+LDA-PW splineinterp  splr00.1d0  splns600 loggrid    2001
+3 3 0 0 0 0
+3 1 2
+0 0 0
+END
+
+###Si.GA###
+ Completed calculations for Si
+ Perdew-Wang LDA -- PRB 45, 13244 (1992)
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+ Splinesolver used for bound states
+Splinesolver method used for bound states
+Splinesolver grid parameters r0 and ns:
+   0.10000      600
+ Non-relativistic calculation
+   AEatom converged in          23  iterations
+     for nz =  14
+     delta  =    2.2774037112883901E-016
+
+ Orbital energies
+ n  l     occupancy            energy
+ 1  0      2.0000000E+00 -1.3037233E+02
+ 2  0      2.0000000E+00 -1.0149191E+01
+ 3  0      2.0000000E+00 -7.9616715E-01
+ 2  1      6.0000000E+00 -7.0296405E+00
+ 3  1      2.0000000E+00 -3.0664292E-01
+
+  Total energy
+     Total                    :    -576.38791341463855     
+#########################################
+\end{verbatim}
+
+
+\fbox{Example 3: \textsc{graphatom} input for Si -- r2SCAN01, non-relativistic,
+using generalized Kohn-Sham}
+\begin{verbatim}
+Si 14
+WTAU XC_MGGA_X_R2SCAN01+XC_MGGA_C_R2SCAN01 splr00.1d0  splns600 loggrid 2001
+3 3 0 0 0 0
+3 1 2
+0 0 0
+END
+
+###Si.GA###
+ Completed calculations for Si
+ Using Libxc -- XC_MGGA_X_R2SCAN01+XC_MGGA_C_R2SCAN01
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+ Splinesolver used for bound states
+Splinesolver method used for bound states
+Splinesolver grid parameters r0 and ns:
+   0.10000      600
+ Non-relativistic calculation
+   AEatom converged in          19  iterations
+     for nz =  14
+     delta  =    3.9767450008378184E-017
+
+ Orbital energies
+ n  l     occupancy            energy
+ 1  0      2.0000000E+00 -1.3175185E+02
+ 2  0      2.0000000E+00 -1.0501811E+01
+ 3  0      2.0000000E+00 -8.1811500E-01
+ 2  1      6.0000000E+00 -7.1862608E+00
+ 3  1      2.0000000E+00 -3.0245126E-01
+
+  Total energy
+     Total                    :    -578.62529162965529     
+########################################
+\end{verbatim}
+
+
+
+\fbox{Example 4: \textsc{graphatom} input for Si -- Dirac equation}
+\begin{verbatim}
+Si 14
+LDA-PW diracrelativistic loggrid    2001
+3 3 0 0 0 0
+3 1 -2  0.d0
+3 1  1  2.d0
+0 0 0  0
+END
+
+###Si.GA
+ Completed calculations for Si
+ Perdew-Wang LDA -- PRB 45, 13244 (1992)
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+ Dirac-relativistic calculation
+   AEatom converged in          31  iterations
+     for nz =  14
+     delta  =    8.7051691277235455E-017
+
+ Orbital energies
+ n   kappa   l   occupancy            energy
+ 1 -1   0      2.0000000E+00 -1.3070214E+02
+ 2 -1   0      2.0000000E+00 -1.0194340E+01
+ 3 -1   0      2.0000000E+00 -7.9837677E-01
+ 2  1   1      2.0000000E+00 -7.0556273E+00
+ 3  1   1      2.0000000E+00 -3.0662229E-01
+ 2 -2   1      4.0000000E+00 -7.0081090E+00
+ 3 -2   1      0.0000000E+00 -3.0422316E-01
+
+  Total energy
+     Total                    :    -578.91322954391410     
+############################################
+\end{verbatim}
+
+\fbox{Example 5: \textsc{atompaw} input for Si -- r2SCAN01, non-relativistic,
+using generalized Kohn-Sham}
+\begin{verbatim}
+Si 14
+WTAU XC_MGGA_X_R2SCAN01+XC_MGGA_C_R2SCAN01 splr00.1d0 splns600 loggrid 2001
+3 3 0 0 0 0
+3 1 2
+0 0 0
+c
+c
+v
+c
+v
+2
+1.7   1.5   1.7    1.7
+y
+14
+n
+y
+14
+n
+y
+2
+y
+12
+n
+MODRRKJ VANDERBILTORTHO  Besselshape
+3 0   VPSMATCHNC
+1.7
+1.7
+1.7
+1.7
+1.7
+1.7
+ABINITOUT
+default
+XMLOUT
+default
+PWSCFOUT
+UPFDX  0.0125d0   UPFXMIN   -7.d0     UPFZMESH 14.d0
+PWPAWOUT
+END
+
+###Si#####
+ Completed calculations for Si
+ Exchange-correlation type:
+Exchange functional (LibXC):
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 8208 (2020)
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 9248 (2020)
+Correlation functional (LibXC):
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 8208 (2020)
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 9248 (2020)
+ Full generalized Kohn-Sham equations solved
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+Splinesolver method used for bound states
+Splinesolver grid parameters r0 and ns:
+   0.10000      600
+ Non-relativistic calculation
+   AEatom converged in          19  iterations
+     for nz =  14.00
+     delta  =    3.9767450008378184E-017
+  All Electron Orbital energies:         
+  n  l     occupancy       energy
+ 1  0      2.0000000E+00 -1.3175185E+02
+ 2  0      2.0000000E+00 -1.0501811E+01
+ 3  0      2.0000000E+00 -8.1811500E-01
+ 2  1      6.0000000E+00 -7.1862608E+00
+ 3  1      2.0000000E+00 -3.0245126E-01
+
+  Total energy
+     Total                    :    -578.62529162965529     
+ Completed calculations for Si
+ Exchange-correlation type:
+Exchange functional (LibXC):
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 8208 (2020)
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 9248 (2020)
+Correlation functional (LibXC):
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 8208 (2020)
+  J. W. Furness, A. D. Kaplan, J. Ning, J. P. Perdew, and J. Sun, J. Phys. Chem. Lett. 11, 9248 (2020)
+ Full generalized Kohn-Sham equations solved
+  Radial integration grid is logarithmic 
+r0 =   4.3309254E-04 h =   6.0632956E-03   n =      2001 rmax =   8.0000000E+01
+Splinesolver method used for bound states
+Splinesolver grid parameters r0 and ns:
+   0.10000      600
+ Non-relativistic calculation
+   SCatom converged in           8  iterations
+     for nz =  14.00
+     delta  =    9.9941022151552512E-017
+   Valence Electron Orbital energies:         
+  n  l     occupancy       energy
+ 3  0      2.0000000E+00 -8.1811472E-01
+ 3  1      2.0000000E+00 -3.0245141E-01
+
+  Total energy
+     Total                    :    -578.62527041729822     
+     Valence                  :    -46.479751073168650     
+  paw parameters: 
+       lmax =            2
+         rc =    1.7016270216702749     
+        irc =         1366
+   rc_shape =    1.5072490061787436     
+    rc_vloc =    1.7016270216702749     
+    rc_core =    1.7016270216702749     
+ Sequence of dataset construction steps modified for mGGA
+ Only projectors from Vanderbilt scheme available
+ Vloc: VPS match (norm-conservation) with l= 3;e=   0.0000E+00
+ Projector type: modified RKKJ projectors + Vanderbilt ortho.
+ Bessel compensation charge shape zeroed at   1.5072E+00
+
+Number of basis functions     6
+ No.   n    l      Energy         Cp coeff         Occ
+    1    3    0 -8.1811472E-01  3.4456771E+00  2.0000000E+00
+    2  999    0  1.4000000E+01  1.0928984E-01  0.0000000E+00
+    3    3    1 -3.0245141E-01  7.7138408E+00  2.0000000E+00
+    4  999    1  1.4000000E+01  2.3344063E-01  0.0000000E+00
+    5  999    2  2.0000000E+00 -4.9695966E-01  0.0000000E+00
+    6  999    2  1.2000000E+01 -2.2394019E-01  0.0000000E+00
+ Completed diagonalization of ovlp with info =        0
+  
+ Eigenvalues of overlap operator (in the basis of projectors):
+    1        1.70014131E-01
+    2        1.05637034E+00
+    3        1.68670242E+00
+    4        1.10551313E+01
+    5        2.25209551E+01
+    6        2.73898074E+01
+  
+  Summary of PAW energies
+        Total valence energy       -46.479751063306111     
+          Smooth energy             11.559261831969753     
+          One center               -58.039012895275860     
+          Smooth kinetic            2.4995956007877114     
+          Vloc energy             -0.91305325877548571     
+          Smooth exch-corr         -2.2202015931524510     
+          One-center xc            -39.215909951163795     
+################
+\end{verbatim}
+
+
+\begin{center}
+	{\bf{Some details of input file options}}
+
+
+\end{center}	
+
+
+\begin{itemize}
+	\item[{\bf{Line 1}}]   This line contains two inputs only, separated
+		with  space(s):   [Atomic symbol (a2)]    [Atomic number (i3)]
+	\item[{\bf{Line 2}}]   This line is very complicated, starting with
+		the exchange-correlation functional and followed by formalism
+		and grid information.  The input is not case sensitive.
+
+		The exchange-correlation functional can be one of several
+		in-house routines or can reference libxc subroutines.
+
+		The following keywords reference in-house routines:
+		\begin{itemize}
+			\item \verb+LDA-PW+
+			\item \verb+GGA-PBE+
+			\item \verb+GGA-PBESOL+
+			\item \verb+HF+
+			\item \verb+MGGA-R2SCAN-001+ -- Original r2SCAN (generalized Kohn-Sham equations)
+			\item \verb+MGGA-R2SCAN-01+ -- Modified r2SCAN (generalized Kohn-Sham equations)
+		\end{itemize}
+		
+		The following examples illustrate the syntax  used to access the libxc
+		 routines using
+		the names assigned on the libxc webpage
+		\url{https://www.tddft.org/programs/libxc/functionals/}, each optionally
+		prepended with  ``\verb+XC_+''.
+		\begin{itemize}
+			\item PBESOL:  \verb^GGA_X_PBE_SOL+GGA_C_PBE_SOL^
+			\item r2SCAN01 (partial): \verb^XC_MGGA_X_R2SCAN01+XC_MGGA_C_R2SCAN01^\\
+			   Note that in this case, only $V_{xc}(r)$ will be used in
+			   the Kohn-Sham formulation.
+			\item r2SCAN01 (complete): 
+			\verb^WTAU XC_MGGA_X_R2SCAN01+XC_MGGA_C_R2SCAN01^\\
+			   Note that in this case, the keyword ``WTAU'' means that the kinetic
+			   energy density will be used and the generalized Kohn-Sham equations
+			    will be solved self-consistently.
+		\end{itemize}
+		
+		
+		The remainder of line 2 controls the formalism (if not Kohn-Sham or
+		generalized Kohn-Sham), the discretization grid, splinesolver parameters,
+		and additional features.  The order of these entries are not important.
+		Some of these are as follows:
+		\begin{itemize}
+		\item SCALARRELATIVISTIC --   Solve Harmon and Koelling scalar relativistic
+		  equations  (does not work with generalized Kohn-Sham (meta-GGA))
+		\item DIRACRELATIVISTIC  -- Solve Dirac equations for upper and lower 
+		  radial wavefunctions (does not work with generalized Kohn-Sham (meta-GGA)
+		  and only implemented for graphatom)
+		\item SPLINEINTERP SPLR0xxxx  SPLNSnnnn -- Use splinesolver algorithm
+		  to solve self-consistent Kohn-Sham or generalized  Kohn-Sham equations.
+		  This is the default  for meta-GGA calculations, but the SPLINEINTERP 
+		  keyword enables the splinesolver algorithm for other exchange-correlation
+		  functionals. SPLR0xxxx, where xxxx is a real number (with or without
+		  a space) allows for the adjustment of the $r0$ parameter of the spline
+		  grid for values other than the default of $0.1d0$.
+		    SPLNSnnnn, where nnnn is an integer (with or without
+		  a space) allows for the adjustment of the $ns$ parameter of the spline
+		  grid for values other than the default of $400$.
+		\item LOGGRID  nnnn   --  Set the main discretization grid for the
+		  calculation.   For example,  LOGGRID 2001 seems to work well in most cases.
+		\end{itemize}
+		
+	\item[{\bf{Line 3}}]	$n_0$    $n_1$    $n_2$     $n_3$   $n_4$     $n_5$ \\
+	Here $n_l$ represents the maximum principal quantum for each occupied or
+	partially occupied shell $l$ or 0 if the shell $l$ is not relevant. For example, \\
+	\verb# 4 4 3 0 0 0 #\\
+	represents the configuration $1s^22s^23s^24s^22p^63p^64p^63d^{10}$, or the
+	ground state of Kr.
+	\item[{\bf{Line 4}}]
+	The following information concerns line 4 and possibly several lines following.
+	\begin{itemize}
+	\item For non-relativistic or scalar relativistic calculations,  the following
+	lines list \\
+	$n \;\;  l \;\; $   occ  \\
+	for each partially occupied shell, ending with the line
+	\verb^ 0  0  0 ^ \\
+	For example, for Kr, line 4 reads\\
+	 \verb^ 0  0  0 ^ \\
+	 For Cu in the configuration  $1s^22s^23s^24s^12p^63p^64p^03d^{10}$,
+	 lines 4, 5, and 6 read\\
+	  \verb^ 4  0  1 ^ \\
+	   \verb^ 4  1  0 ^ \\
+	    \verb^ 0  0  0 ^ \\
+	\item For Dirac equation calculations, the following lines list \\
+	$n \;\;  l \;\; \kappa  \;\;$ occ \\
+	for each partially occupied shell, ending with the line
+	\verb^ 0  0  0  0^ \\
+		For example, for Kr, line 4 reads\\
+	 \verb^ 0  0  0  0 ^ \\
+	 For Cu in the configuration  $1s^22s^23s^24s^12p^63p^64p^03d^{10}$,
+	 lines 4, 5, 6, and 7 read\\
+	  \verb^ 4  0 -1  1.d0 ^ \\
+	   \verb^ 4  1  1  0.d0 ^ \\
+	    \verb^ 4  1 -2  0.d0 ^ \\
+	    \verb^ 0  0  0    0^ \\
+	    Note that for each shell $l \kappa$,   the maximum occupancy is
+	    $2|\kappa|$.   Also note that $\kappa$ is related to the total 
+	    angular momentum quantum number $j$ according to
+	     $\kappa = \pm \left(j+\frac{1}{2} \right)$.
+	  \end{itemize}
+	
+	    
+\end{itemize}
+The remaining lines of the input file are very similar to older versions of
+the code.
+
+
+
+\end{document}

@@ -60,6 +60,8 @@ atp_xmpl_srcs = \
 atp_doc_srcs = \
 	doc/atompaw-usersguide.pdf \
 	doc/atompaw-usersguide.doc \
+	doc/Atompaw4.2.0.0.pdf \
+	doc/Atompaw4.2.0.0.tex \
 	doc/ATOMPAW_Explore_Userguide.pdf \
 	doc/ATOMPAW_Explore_Userguide.odt \
 	doc/exploresetup/ParameterExplore.cpp \

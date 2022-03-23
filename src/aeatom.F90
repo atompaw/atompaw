@@ -391,7 +391,7 @@ CONTAINS
             usespline=.true.
     endif        
 
-    if(usespline) CALL initsplinesolver(Grid)
+    if(usespline) CALL initsplinesolver(Grid,input_dataset%splns,input_dataset%splr0)
 
     write(std_out,*) 'Finish SCFatom_Init' ; call flush_unit(std_out)
 

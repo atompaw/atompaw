@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !    This module contains the following active subroutines:
 !      initsplinesolver,deallocatesplinesolver,initpotforsplinesolver
-!        Boundsplinesolver
+!        Boundsplinesolver,splinereport
 ! 07/11/2021 -- NAWH
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -52,14 +52,17 @@ CONTAINS
 !      Gridf
 !  Setup local private grid  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   SUBROUTINE initsplinesolver(Grid)
+   SUBROUTINE initsplinesolver(Grid,splns,splr0)
       Type(GridInfo), INTENT(IN) :: Grid       !Input universal grid
-
+      INTEGER, INTENT(IN) :: splns  !spline grid
+      REAL(8), INTENT(IN) :: splr0  !spline r0
       INTEGER :: i,nf
       REAL(8) :: hf,x
 
-      r0=0.1d0    ! 0.1 seems to be a good idea
-      ns=400      ! seems to be good enough
+      !r0=0.1d0    ! 0.1 seems to be a good idea
+      !ns=400      ! seems to be good enough
+      r0=splr0
+      ns=splns
       h=log(1.d0+Grid%r(Grid%n)/r0)/ns
       call initgridwithn(Grids,2,ns+1,r0,h)  !local loggrid
 
@@ -329,4 +332,14 @@ CONTAINS
       deallocate(F1,F2,S,E,V)
 
   end SUBROUTINE Boundsplinesolver
+
+
+  SUBROUTINE splinereport(unit)
+     INTEGER, INTENT(IN) :: unit
+
+     WRITE(unit,'(a)') 'Splinesolver method used for bound states'
+     WRITE(unit,'(a)') 'Splinesolver grid parameters r0 and ns:'
+     WRITE(unit,'(f10.5, i9)') r0,ns     
+
+  END SUBROUTINE splinereport        
 END MODULE splinesolver

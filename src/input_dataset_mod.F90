@@ -36,6 +36,8 @@ MODULE input_dataset_mod
    LOGICAL :: scalarrelativistic    ! Flag activating the scalar relativistic scheme
    LOGICAL :: diracrelativistic     ! Flag activating the Dirac relativistic scheme
    LOGICAL :: usespline             ! Flag for using splinesolver for lda/gga
+   INTEGER :: splns=400             ! Spline interpolation grid length
+   REAL(8) :: splr0=0.1d0           ! Spline interpolation r0 value
    LOGICAL :: finitenucleus         ! Flag activating finite nucleus model
    INTEGER :: finitenucleusmodel    ! Option for the finite nucleus model
    LOGICAL :: HFpostprocess         ! Option for the post-processing of Hartree-Fock
@@ -232,11 +234,12 @@ CONTAINS
  INTEGER :: ii,io,nadd,norb,nval,nbl,nn,ik,kk
  INTEGER :: ilin,ilog,inrl,iscl,ipnt,ifin,iend,ihfpp,ilcex,itau
  INTEGER :: igrid,irelat,ilogder,ilogv4,ibd,idirac,ifixz,ll,nstart
- INTEGER :: ispline
+ INTEGER :: ispline,isplr0,isplns
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
  CHARACTER(200) :: inputline,inputword
- CHARACTER(128) :: exchangecorrelationandgridline
+ !CHARACTER(128) :: exchangecorrelationandgridline
+ CHARACTER(256) :: exchangecorrelationandgridline
  CHARACTER(1) :: CHR
  REAL(8) :: x1,x2
  INTEGER :: basis_add_l(nbasis_add_max)
@@ -331,6 +334,8 @@ CONTAINS
    WRITE(STD_OUT,*) '                       r_max (max. grid radius)'
    WRITE(STD_OUT,*) '                       r_match (exact value of r(n))'
    WRITE(STD_OUT,*) ' further optionally (space) "logderivrange" keyword'
+   WRITE(STD_OUT,*) ' further optionally (space) "splr0xxx" to change default initial spline pt'
+   WRITE(STD_OUT,*) ' further optionally (space) "splnsxxx" to change default spline grid'
    WRITE(STD_OUT,*) '  further optionally emin (minimum energy for log. deriv. plot)'
    WRITE(STD_OUT,*) '                     emax (maximum energy for log. deriv. plot)'
    WRITE(STD_OUT,*) '                     ne   (#  of energies for log. deriv. plot)'
@@ -340,15 +345,16 @@ CONTAINS
 !Read full line
  READ(input_unit,'(a)') exchangecorrelationandgridline
  IF (has_to_echo) WRITE(ecunit,'(a)') TRIM(exchangecorrelationandgridline)
- CALL eliminate_comment(inputline)
+ CALL eliminate_comment(exchangecorrelationandgridline)
 
  CALL Uppercase(exchangecorrelationandgridline)
  exchangecorrelationandgridline=trim(exchangecorrelationandgridline)
 
+
 !Retrieve keyword indexes
  ilin=0;ilin=0;ilog=0;ilogv4=0;inrl=0;iscl=0;ipnt=0;ifin=0
  ihfpp=0;ilcex=0;igrid=0;irelat=0;ilogder=0;ibd=0;idirac=0
- ispline=0
+ ispline=0;isplr0=0;isplns=0
  ilin=INDEX(exchangecorrelationandgridline,'LINEARGRID')
  ilog=INDEX(exchangecorrelationandgridline,'LOGGRID')
  ilogv4=INDEX(exchangecorrelationandgridline,'LOGGRIDV4')
@@ -364,13 +370,15 @@ CONTAINS
  ifixz=INDEX(exchangecorrelationandgridline,'FIXED_ZERO')
  itau=INDEX(exchangecorrelationandgridline,'WTAU')
  ispline=INDEX(exchangecorrelationandgridline,'SPLINEINTERP')
+ isplr0=INDEX(exchangecorrelationandgridline,'SPLR0')
+ isplns=INDEX(exchangecorrelationandgridline,'SPLNS')
  igrid=max(ilin,ilog)  !This line may need attention....
  irelat=max(inrl,iscl) !This line may need attention....
 
 !Treat simple logical variables
  dataset%scalarrelativistic=(iscl>0.and.inrl==0)
  dataset%diracrelativistic=(idirac>0.and.inrl==0)
- dataset%usespline=(ispline>0.and.inrl==0)
+ dataset%usespline=(itau>0.or.ispline>0.and.inrl==0)
  dataset%finitenucleus=(ifin>0.and.ipnt==0)
  dataset%BDsolve=(ibd>0)
  dataset%HFpostprocess=(ihfpp>0)
@@ -384,6 +392,14 @@ CONTAINS
    IF (CHR=="4") dataset%finitenucleusmodel=4      
    IF (CHR=="5") dataset%finitenucleusmodel=5      
  END IF  
+
+!Treat possible changes to spline grid
+  if (isplr0>0) then
+    READ(exchangecorrelationandgridline(isplr0+5:),*) dataset%splr0
+  end if
+  if (isplns>0) then
+    READ(exchangecorrelationandgridline(isplns+5:),*) dataset%splns
+  end if
 
 !Treat grid data
  dataset%gridkey='LINEAR'
@@ -403,7 +419,7 @@ CONTAINS
    dataset%gridmatch=v4logrange
  END IF
  IF (igrid>0) THEN
-   iend=128
+   iend=256
    IF (irelat >igrid.and.irelat-1 <iend) iend=irelat -1
    IF (ilogder>igrid.and.ilogder-1<iend) iend=ilogder-1
    IF (ibd>igrid.and.ibd-1<iend) iend=ibd-1
@@ -435,7 +451,7 @@ CONTAINS
  dataset%maxlogderiv=logder_max
  dataset%nlogderiv=logder_pts
  IF (ilogder>0) THEN
-   iend=128
+   iend=256
    IF (igrid >ilogder.and.igrid-1 <iend) iend=igrid -1
    IF (irelat>ilogder.and.irelat-1<iend) iend=irelat-1
    inputline=""
@@ -484,6 +500,10 @@ CONTAINS
    WRITE(STD_OUT,'(3x,a,i0)')   "Grid size                       : ",dataset%gridpoints
    WRITE(STD_OUT,'(3x,a,f7.3)') "Grid maximum value              : ",dataset%gridrange
    WRITE(STD_OUT,'(3x,a,f7.3)') "Grid imposed value              : ",dataset%gridmatch
+   if(dataset%usespline) then
+   WRITE(STD_OUT,'(3x,a,f7.3,2x,i0)') "Spline grid r0, ns              :",&
+&      dataset%splr0,dataset%splns
+   endif
    WRITE(STD_OUT,'(3x,a,i0)')   "Log. derivative, number of pts  : ",dataset%nlogderiv
    WRITE(STD_OUT,'(3x,a,f7.3)') "Log. derivative, min. energy    : ",dataset%minlogderiv
    WRITE(STD_OUT,'(3x,a,f7.3)') "Log. derivative, max. energy    : ",dataset%maxlogderiv

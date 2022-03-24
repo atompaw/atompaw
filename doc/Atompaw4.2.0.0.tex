@@ -6,6 +6,7 @@
 \setlength{\parskip}{0.2in} \setlength{\topmargin}{-0.2in}
 \setlength{\headsep}{0in} \setlength{\headheight}{0in}
 \setlength{\textheight}{9.5in} \setlength{\jot}{0.2in}
+\usepackage{amsmath}
 
 
 
@@ -404,6 +405,13 @@ Number of basis functions     6
 		    SPLNSnnnn, where nnnn is an integer (with or without
 		  a space) allows for the adjustment of the $ns$ parameter of the spline
 		  grid for values other than the default of $400$.
+                  Note that setting $ns>400$ typically increases
+                  the computation time because in the current version
+                  of the code, all of the eigenvalues/eigenvectors
+                  of the $n_s \times n_s$ matrix $\boldsymbol{\Lambda}$ are
+                  calculated in each self-consistent cycle to
+                  find the all-electron radial functions of the 
+                  bound states. 
 		\item LOGGRID  nnnn   --  Set the main discretization grid for the
 		  calculation.   For example,  LOGGRID 2001 seems to work well in most cases.
 		\end{itemize}

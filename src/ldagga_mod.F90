@@ -41,11 +41,14 @@ CONTAINS
     TYPE(SCFInfo),TARGET :: SCFin
 
     INTEGER :: n,i,j
-    REAL(8) :: en1,etxc,eex
+    REAL(8) :: en1,etxc,eex,x,y
     REAL(8), ALLOCATABLE :: arg(:)
     LOGICAL :: success
     INTEGER :: counter=0
     CHARACTER(132) :: exctypesave
+
+    REAL(8), parameter  :: seterr=1.d-11,settoosmall=1.d-16
+    REAL(8), parameter  :: seterrmg=1.d-9,settoosmallmg=1.d-10
 
     Gridwk=>Gridin
     Orbitwk=>Orbitin
@@ -70,7 +73,7 @@ CONTAINS
       Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
       CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
       Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
-      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,seterr,settoosmall,.true.)
       CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
 
       WRITE(STD_OUT,*) 'Anderson Mix with LDA',AC%res ,' iter = ',AC%CurIter
@@ -115,7 +118,13 @@ CONTAINS
       SCFwk%iter=0
       SCFwk%delta=0
 
-      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,1.d-11,1.d-16,.true.)
+      If (needvtau) then
+         x=seterrmg; y=settoosmallmg
+      else     
+         x=seterr; y=settoosmall
+      endif   
+
+      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,x,y,.true.)
       If (needvtau) then
          arg=Orbitwk%den   ! iterating on density
          CALL DoAndersonMix(AC,arg,en1,DENITERsub,success)

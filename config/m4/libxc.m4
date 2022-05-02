@@ -70,7 +70,7 @@ AC_DEFUN([ATP_LIBXC_CHECK],[
 
   FCFLAGS="${atp_saved_FCFLAGS}"
   LDFLAGS="${atp_saved_LDFLAGS}"
-  LIBSS="${atp_saved_LIBS}"
+  LIBS="${atp_saved_LIBS}"
 
   if test "${atp_libxc_ok}" = "yes"; then
     AC_DEFINE([HAVE_LIBXC],1,[Define to 1 if you want to use LibXC.])

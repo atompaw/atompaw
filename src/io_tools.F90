@@ -7,11 +7,14 @@
 #include "config.h"
 #endif
 
+MODULE io_tools
+
+!  Changed 5/23/2022 by NAWH following suggestion by J. Zwanziger
+
 #if defined (__INTEL_COMPILER)
-# USE IFPORT
+ USE IFPORT
 #endif
 
-MODULE io_tools
 
  IMPLICIT NONE
 

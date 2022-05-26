@@ -73,7 +73,8 @@ CONTAINS
       Potwk%rv=Potwk%rvh+Potwk%rvx-Potwk%rvx(1)
       CALL zeropot(Gridwk,Potwk%rv,Potwk%v0,Potwk%v0p)
       Potwk%rv=Potwk%rv+Potwk%rvn+Potwk%rvx(1)
-      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,seterr,settoosmall,.true.)
+      !CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,seterr,settoosmall,.true.)
+      CALL InitAnderson_dr(AC,6,5,n,0.2d0,1.d3,2000,seterr,settoosmall,.true.)
       CALL DoAndersonMix(AC,arg,en1,LDAGGAsub,success)
 
       WRITE(STD_OUT,*) 'Anderson Mix with LDA',AC%res ,' iter = ',AC%CurIter
@@ -124,7 +125,9 @@ CONTAINS
          x=seterr; y=settoosmall
       endif   
 
-      CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,x,y,.true.)
+      !CALL InitAnderson_dr(AC,6,5,n,0.5d0,1.d3,2000,x,y,.true.)
+!!! note that NewMix=0.2 seems to be more stable than 0.5 NAWH 5-2022      
+      CALL InitAnderson_dr(AC,6,5,n,0.2d0,1.d3,2000,x,y,.true.)
       If (needvtau) then
          arg=Orbitwk%den   ! iterating on density
          CALL DoAndersonMix(AC,arg,en1,DENITERsub,success)
@@ -142,7 +145,13 @@ CONTAINS
       SCFwk%delta=AC%res
 
       WRITE(STD_OUT,*) 'Anderson Mix ',success,AC%res ,' iter = ',AC%CurIter
-      write(std_out,*) 'line 136 ldagga ', scftype; call flush_unit(std_out)
+!!!      write(std_out,*) 'line 136 ldagga ', scftype; call flush_unit(std_out)
+       if (AC%res>1.d0) then
+          WRITE(STD_OUT,*) 'Sadly the program has not converged.'
+          WRITE(STD_OUT,*) 'Consider trying splineinterp '     
+          CALL FLUSH_UNIT(STD_OUT)
+          STOP
+       endif   
     CALL Report_LDAGGA_functions(scftype)
 
     CALL FreeAnderson(AC)

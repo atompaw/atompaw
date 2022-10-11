@@ -161,11 +161,11 @@ CONTAINS
 
      nbase=PAW%nbase;irc=PAW%irc;n=Grid%n
      WRITE(ifen,'(/"Number of basis functions ",i5)') nbase
-     WRITE(ifen,*)'No.   n    l      Energy         Cp coeff         Occ'
+     WRITE(ifen,*)'No.    n nodes    l      Energy         Cp coeff         Occ'
 
 
      DO io=1,nbase
-        WRITE(ifen,'(3i5,1p,3e15.7)') io,PAW%np(io),PAW%l(io),PAW%eig(io),&
+        WRITE(ifen,'(4i5,1p,3e15.7)') io,PAW%np(io),PAW%nodes(io),PAW%l(io),PAW%eig(io),&
           PAW%ck(io),PAW%occ(io)
         CALL mkname(io,flnm)
         OPEN(ifout,file='wfn'//TRIM(flnm),form='formatted')

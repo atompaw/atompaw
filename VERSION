@@ -1,1 +1,1 @@
-!--- Version 4.2.0.1 - 05/2022 - correction for intel compatibility thanks to JZ and NH added some self-consistency corrections
+!--- Version 4.2.0.2 - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1

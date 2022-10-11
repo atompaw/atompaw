@@ -35,7 +35,7 @@ Module PWscfInterface
      INTEGER :: i,j,k,l,n,m,io,jo,llmin,llmax,number_of_wfc,nn,ok, ncore
      CHARACTER(132) :: inputfileline,stuff
      CHARACTER(4) :: s1,s2,s3,s4
-     CHARACTER(1), parameter :: label(4) = 'SDPF'
+     CHARACTER(1), parameter :: label(4) = (/'S','P','D','F'/)
      REAL(8) :: x,y,z,q
      REAL(8) :: upfdx,upfxmin,upfzmesh,upfrange
      INTEGER :: upfmesh,upfirc,ifinput=11
@@ -211,7 +211,7 @@ Module PWscfInterface
       WRITE(1001,'("             z_valence=""",f6.3,"""")')FC%zvale
       WRITE(1001,'("             l_max=""",i1,"""")') PAW%lmax
       WRITE(1001,'("             l_max_rho=""",i1,"""")') 2*PAW%lmax
-      WRITE(1001,'("             mesh_size=""",i6,"""")') n-1
+      WRITE(1001,'("             mesh_size=""",i6,"""")') upfmesh
       WRITE(1001,'("             number_of_wfc=""",i6,"""")') PAW%nbase
       WRITE(1001,'("             number_of_proj=""",i2,"""")')PAW%nbase
       WRITE(1001,'("                                    /> ")')
@@ -249,10 +249,14 @@ Module PWscfInterface
       WRITE(1001,'("<PP_NONLOCAL> ")')
       do io=1,PAW%nbase
         call mkname(io,s1)  ; inputfileline=' <PP_BETA.'//TRIM(s1)
-        WRITE(1001,&
-&       '((a)," type=""real"" size=""",i6,""" angular_momentum=""",i1,&
-&       """ columns=""3"" cutoff_radius_index=""",i6,""" norm_conserving_radius=""",F12.6,""">")')&
-&           TRIM(inputfileline),upfmesh,PAW%l(io),upfirc, Grid%r(PAW%irc)
+        i=PAW%l(io)+1
+        j=PAW%np(io); if(j==999) j=0
+        WRITE(1001,'((a)," type=""real"" size=""",i6,""" angular_momentum=""",&
+&          i1,""" columns=""3"" cutoff_radius_index=""",i6,&
+&          """ norm_conserving_radius=""",F12.6,""" label= """,i1,a,""">")') &
+&          TRIM(inputfileline),upfmesh,PAW%l(io),upfirc,Grid%r(PAW%irc),&
+&          j,label(i)    
+
             upff=0;call interpfunc(n,Grid%r,PAW%otp(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
             upff(upfirc+1:upfmesh)=0.d0
@@ -322,11 +326,15 @@ Module PWscfInterface
       WRITE(1001,'("<PP_PSWFC> ")')
       j=0
       do io=1,PAW%nbase
+            if (PAW%occ(io).lt.1.d-7) cycle
             j=j+1
+            i=PAW%l(io)+1
             call mkname(j,s1)  ; inputfileline=' <PP_CHI.'//TRIM(s1)
             WRITE(1001, '((a)," type=""real"" size=""",i6,""" l=""",i1,&
-&             """ occupation=""",f7.4,""" columns=""3"">")')&
-&           TRIM(inputfileline),upfmesh, PAW%l(io),PAW%occ(io)
+&             """ occupation=""",f7.4,""" columns=""3"" label= """,&
+&           i1,a,""">")')&
+&           TRIM(inputfileline),upfmesh, PAW%l(io),PAW%occ(io),&
+&           PAW%np(io),label(i)     
             upff=0;call interpfunc(n,Grid%r,PAW%otphi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)
@@ -339,14 +347,18 @@ Module PWscfInterface
       enddo
       WRITE(1001,'("                             </PP_PSWFC> ")')
 
-      !!! Note number_of_wfc is ambiguous in PWscf code.   For now,
+      !!! Note number_of_wfc in PWscf code is
       !!!    set to the same as the number of basis functions
       WRITE(1001,'("<PP_FULL_WFC number_of_wfc=""",i2,""">")')PAW%nbase
       do io=1,PAW%nbase
+        i=PAW%l(io)+1
+        k=PAW%np(io); if(k==999) k=0
         call mkname(io,s1)  ; inputfileline=' <PP_AEWFC.'//TRIM(s1)
         WRITE(1001, '((a)," type=""real"" size=""",i6,&
-&       """ l=""",i1,""" columns=""3"">")')&
-&           TRIM(inputfileline),upfmesh,PAW%l(io)
+&       """ l=""",i1,""" columns=""3"" label= """,&
+&           i1,a,""">")')&
+&           TRIM(inputfileline),upfmesh,PAW%l(io),  &
+&           k,label(i)     
             upff=0;call interpfunc(n,Grid%r,PAW%ophi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
 ! doesn't seem like a good idea      upff(upfirc+1:upfmesh)=0.d0
@@ -360,10 +372,14 @@ Module PWscfInterface
       enddo
 
       do io=1,PAW%nbase
+        i=PAW%l(io)+1
+        k=PAW%np(io); if(k==999) k=0
         call mkname(io,s1)  ; inputfileline=' <PP_PSWFC.'//TRIM(s1)
         WRITE(1001, '((a)," type=""real"" size=""",i6,&
-&       """ l=""",i1,""" columns=""3"">")')&
-&           TRIM(inputfileline),upfmesh,PAW%l(io)
+&       """ l=""",i1,""" columns=""3"" label= """,&
+&           i1,a,""">")')&
+&           TRIM(inputfileline),upfmesh,PAW%l(io),  &
+&           k,label(i)     
             upff=0;call interpfunc(n,Grid%r,PAW%otphi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
 !!-- doen't seem like a good idea            upff(upfirc+1:upfmesh)=0.d0

@@ -324,17 +324,15 @@ Module PWscfInterface
       WRITE(1001,'("                                   </PP_NONLOCAL> ")')
 
       WRITE(1001,'("<PP_PSWFC> ")')
-      j=0
       do io=1,PAW%nbase
-            if (PAW%occ(io).lt.1.d-7) cycle
-            j=j+1
             i=PAW%l(io)+1
-            call mkname(j,s1)  ; inputfileline=' <PP_CHI.'//TRIM(s1)
+            k=PAW%np(io); if(k==999) k=0
+            call mkname(io,s1)  ; inputfileline=' <PP_CHI.'//TRIM(s1)
             WRITE(1001, '((a)," type=""real"" size=""",i6,""" l=""",i1,&
 &             """ occupation=""",f7.4,""" columns=""3"" label= """,&
 &           i1,a,""">")')&
 &           TRIM(inputfileline),upfmesh, PAW%l(io),PAW%occ(io),&
-&           PAW%np(io),label(i)     
+&           k,label(i)     
             upff=0;call interpfunc(n,Grid%r,PAW%otphi(:,io),upfmesh,upfr,upff)
             call filter(upfmesh,upff,machine_zero)
             WRITE(1001,'(1p,3e25.17)') (upff(i),i=1,upfmesh)

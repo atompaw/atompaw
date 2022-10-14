@@ -21,7 +21,6 @@ AC_INIT([AtomPAW],[4.2.0.2],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
-:q
 AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 
 # Regenerate the VERSION file

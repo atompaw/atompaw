@@ -2,7 +2,7 @@
 #
 # Makefile for the AtomPAW package
 #
-# Copyright (C) 2010 Yann Pouillon
+# Copyright (C) 2010-2022 Yann Pouillon, Marc Torrent
 #
 # This file is part of the AtomPAW software package. For license information,
 # please see the COPYING file in the top-level directory of the source
@@ -26,8 +26,10 @@ EXTRA_DIST = \
 	README \
 	config/m4/ax_f90_module_extension.m4 \
 	config/m4/fortran.m4 \
+	config/m4/fortran_c_bindings.m4 \
 	config/m4/information.m4 \
 	config/m4/linalg.m4 \
+	config/m4/libxc.m4 \
 	config/m4/optimizations.m4 \
 	config/m4/workarounds.m4
  

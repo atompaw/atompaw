@@ -949,11 +949,12 @@ end function libxc_family_from_id
 !------------------------------------------------------------------
 !---- Executable code
 
-#if defined HAVE_FC_ISO_C_BINDING
+#if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
  xcid_c=int(xcid,kind=C_INT)
  libxc_is_hybrid_from_id =(xc_func_is_hybrid_from_id(xcid_c)==1)
 #else
- libxc_is_hybrid_from_id = .false. if (.false.) write(std_out,*) xcid
+ libxc_is_hybrid_from_id = .false.
+ if (.false.) write(std_out,*) xcid
 #endif
 
 end function libxc_is_hybrid_from_id

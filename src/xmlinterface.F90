@@ -1298,7 +1298,7 @@ Module XMLInterface
 &     PAW%XCORECORE/2 
 
 !Lamb shielding
- WRITE(unit_xml,'("<Lamb shielding=""", 1x,es23.16,"""/>")') &
+ WRITE(unit_xml,'("<lamb_shielding shielding=""", 1x,es23.16,"""/>")') &
 &     PAW%lambshielding
 
 ! Input file

@@ -123,7 +123,7 @@ PROGRAM atompaw
     CALL FindVlocfromVeff(Grid,FCOrbit,PAW)
     CALL Report_Pseudopotential(Grid,PAW)
 
-    CALL SPMatrixElements(Grid,FCPot,FC,PAW)
+    CALL SPMatrixElements(FCOrbit,Grid,FCPot,FC,PAW)
     CALL Report_pseudo_energies(PAW,6)
     CALL Report_pseudo_energies(PAW,ifen)
   else

@@ -805,7 +805,8 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !   Fill stored matrix elements and calculate atomic energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE SPMatrixElements(Grid,Pot,FC,PAW)
+  SUBROUTINE SPMatrixElements(AEOrbit,Grid,Pot,FC,PAW)
+    TYPE(OrbitInfo), INTENT(IN)     :: AEOrbit
     TYPE(GridInfo) , INTENT(IN):: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
     TYPE(FCInfo), INTENT(IN) :: FC
@@ -816,6 +817,8 @@ CONTAINS
     REAL(8), ALLOCATABLE :: arg(:),dum(:),rh(:),trh(:),d(:),td(:),wij(:,:)
     REAL(8) :: x,y,z,rr,occ
     REAL(8) :: Qcore,tQcore
+    REAL(8) :: lmb,lmb_tot
+    REAL(8),PARAMETER :: fcconst = 0.0072973525628
     LOGICAL :: even
 
     n=Grid%n ; irc=PAW%irc; lr=min(irc+20,n) ; nbase=PAW%nbase
@@ -873,6 +876,20 @@ CONTAINS
          ENDIF
        ENDDO
     ENDDO
+
+    ! Lamb shielding
+    ! \alpha^2/3 * \sum_core <\psi|1/r|\psi>
+    ! each orbital just given by its L value, occ is 2*(2L+1) 
+    ! there are 2L+1 M orbitals and each contains 2 electrons
+    ! \alpha is the fine structure constant
+    lmb_tot = 0.0d0
+    do ib=1,AEOrbit%norbit
+      if (AEOrbit%iscore(ib)) then
+        CALL lamb(Grid,AEOrbit%wfn(:,ib),lmb)
+        lmb_tot = lmb_tot + lmb*AEOrbit%occ(ib)
+      end if
+    end do
+    PAW%lambshielding = lmb_tot*fcconst**2/3.0d0
 
     ! Average equivalent terms
     DO ib=1,nbase

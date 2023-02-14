@@ -5,7 +5,7 @@
 !         shifted_forward_numerov, inhomogeneous_numerov, inhomo_bound_numerov,
 !         inhomo_numerov_coeff, inhomo_numerov_SVD, inhomo_numerov_SVD_bv,
 !         inhomo_numerov_SVD_bvm, inhomo_bv_numerov, backward_numerov,
-!         cfdsol, mod_backward_numerov, kinetic, kinetic_ij, deltakinetic_ij,
+!         cfdsol, mod_backward_numerov, lamb, kinetic, kinetic_ij, deltakinetic_ij,
 !         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
 !         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
 !         gramschmidt, Milne, midrange_numerov, getwfnfromcfdsol,
@@ -1927,6 +1927,37 @@ CONTAINS
     DEALLOCATE(a,b,p)
 
   END SUBROUTINE mod_backward_numerov
+
+  !******************************************************************
+  !  subroutine lamb(Grid,wfn,lmb)
+  !       calculates expectation value of 1/r for wfn
+  !        with orbital angular momentum l
+  !        wfn == r*radialwfn in Schroedinger Equation
+  !        assumes wfn=(constant)*r^(l+1) at small r
+  !*****************************************************************
+  SUBROUTINE lamb(Grid,wfn,lmb)
+    TYPE (GridInfo), INTENT(IN) :: Grid
+    REAL(8), INTENT(IN) :: wfn(:)
+    REAL(8), INTENT(OUT) :: lmb
+
+    REAL(8), ALLOCATABLE :: arg(:)
+    INTEGER :: i,n
+
+    n=Grid%n
+
+    ALLOCATE(arg(n),stat=i)
+
+    arg=0
+    DO i=2,n
+       arg(i)=((wfn(i))**2)/Grid%r(i)
+    ENDDO
+
+    lmb=integrator(Grid,arg)
+
+    DEALLOCATE(arg)
+  END SUBROUTINE lamb
+
+ 
   !******************************************************************
   !  subroutine kinetic(Grid,wfn,l,ekin)
   !       calculates expectation value of kinetic energy for wfn

@@ -1297,6 +1297,10 @@ Module XMLInterface
  WRITE(unit_xml,'("<exact_exchange core-core=""", 1x,es23.16,"""/>")') &
 &     PAW%XCORECORE/2 
 
+!Lamb shielding
+ WRITE(unit_xml,'("<Lamb shielding=""", 1x,es23.16,"""/>")') &
+&     PAW%lambshielding
+
 ! Input file
  WRITE(unit_xml,'("<!-- Program:  atompaw - input data follows: ")')
  WRITE(unit_xml,'(a)') trim(input_string)

@@ -47,7 +47,8 @@ MODULE pseudodata
      REAL(8), POINTER :: rVf(:),rtVf(:),g(:,:)
      REAL(8), POINTER :: Kij(:,:),Vfij(:,:),mLij(:,:,:),DR(:,:,:,:,:)
      REAL(8), POINTER :: DRVC(:,:,:),TXVC(:,:)   ! now output for DFT also
-     REAL(8) :: XCORECORE    ! output for DFT
+     REAL(8) :: lambshielding    
+     REAL(8) :: XCORECORE     ! output for DFT
      INTEGER, POINTER :: valencemap(:)   ! valencemap({occ. states})={basis}
      Type(OrbitInfo), POINTER :: OCCwfn
      Type(OrbitInfo), POINTER :: TOCCwfn
@@ -100,6 +101,7 @@ MODULE pseudodata
       PAW%AErefrv=0.d0;PAW%rvx=0.d0;PAW%trvx=0.d0
       PAW%den=0.d0;PAW%tden=0.d0;PAW%core=0.d0;PAW%tcore=0.d0
       PAW%XCORECORE=0.d0;PAW%nhatv=0.d0
+      PAW%lambshielding=0.d0
       PAW%coretau=0.d0;PAW%tcoretau=0.d0
       PAW%valetau=0.d0;PAW%tvaletau=0.d0
       PAW%vtau=0.d0;PAW%tvtau=0.d0

@@ -5,7 +5,7 @@
 !         shifted_forward_numerov, inhomogeneous_numerov, inhomo_bound_numerov,
 !         inhomo_numerov_coeff, inhomo_numerov_SVD, inhomo_numerov_SVD_bv,
 !         inhomo_numerov_SVD_bvm, inhomo_bv_numerov, backward_numerov,
-!         cfdsol, mod_backward_numerov, invr, kinetic, kinetic_ij, deltakinetic_ij,
+!         cfdsol, mod_backward_numerov, expinvr, kinetic, kinetic_ij, deltakinetic_ij,
 !         altkinetic, reportgrid, findh, findh_given_r0, findh_worse,
 !         InitGrid, DestroyGrid, NullifyGrid, ClassicalTurningPoint,
 !         gramschmidt, Milne, midrange_numerov, getwfnfromcfdsol,

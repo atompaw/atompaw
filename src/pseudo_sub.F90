@@ -471,8 +471,8 @@ CONTAINS
     ENDIF
     dum=0
     DO i=2,irc
-      dum(i)=(PAW%eig(ic)-PAW%AErefrv(i)/Grid%r(i))*PAW%ophi(i,ib)*PAW%ophi(i,ic)
-!     dum(i)=PAW%ophi(i,ib)*PAW%Kop(i,ic)
+!      dum(i)=(PAW%eig(ic)-PAW%AErefrv(i)/Grid%r(i))*PAW%ophi(i,ib)*PAW%ophi(i,ic)
+      dum(i)=PAW%ophi(i,ib)*PAW%Kop(i,ic)        !Corrected 6/6/2023 Thanks to MT
     ENDDO
     CALL derivative(Grid,PAW%otphi(:,ic),tdel1)
     CALL derivative(Grid,tdel1,tdel2)
@@ -805,8 +805,8 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !   Fill stored matrix elements and calculate atomic energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE SPMatrixElements(AEOrbit,Grid,Pot,FC,PAW)
-    TYPE(OrbitInfo), INTENT(IN)     :: AEOrbit
+  SUBROUTINE SPMatrixElements(Grid,Orbit,Pot,FC,PAW)
+    TYPE(OrbitInfo), INTENT(IN)     :: Orbit
     TYPE(GridInfo) , INTENT(IN):: Grid
     TYPE(PotentialInfo), INTENT(IN) :: Pot
     TYPE(FCInfo), INTENT(IN) :: FC

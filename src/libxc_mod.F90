@@ -541,7 +541,7 @@ end function libxc_getid_fromName
 !!
 !! INPUTS
 !!  id(2)= libXC id(s) a XC functional
-!!  nsp=number of psin component
+!!  nsp=number of spin components
 !!
 !!=================================================================
  subroutine libxc_init_func(id,nsp)
@@ -591,7 +591,8 @@ end function libxc_getid_fromName
    if (xc_func%id<=0) cycle
 
 !  Get XC functional family
-   libxc_funcs%family=libxc_family_from_id(xc_func%id)
+   !libxc_funcs%family=libxc_family_from_id(xc_func%id)  !NAWH replaced 6/9/2023
+   xc_func%family=libxc_family_from_id(xc_func%id) 
 !   Live dangerously
 !   if (xc_func%family/=XC_FAMILY_LDA .and. &
 !&      xc_func%family/=XC_FAMILY_GGA .and. &
@@ -604,6 +605,7 @@ end function libxc_getid_fromName
 !     stop
 !   end if
 
+    !write(std_out,*) 'xc_func%family ', ii,xc_func%family
 #if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
 
 !  Allocate functional
@@ -636,6 +638,7 @@ end function libxc_getid_fromName
    xc_func%has_kxc=(iand(flags,XC_FLAGS_HAVE_KXC)>0)
    xc_func%needs_laplacian=(iand(flags,XC_FLAGS_NEEDS_LAPLACIAN)>0)
 
+    !write(std_out,*) 'xc_func%needs_laplacian ', ii,xc_func%needs_laplacian
 !  Retrieve parameters for hybrid functionals
    xc_func%is_hybrid=(xc_func_is_hybrid_from_id(xc_func%id)==1)
    if (xc_func%is_hybrid) then
@@ -897,6 +900,9 @@ end function libxc_family_from_id
  libxc_needs_laplacian = .false.
 
  libxc_needs_laplacian = (any(libxc_funcs(:)%needs_laplacian))
+
+ !write(std_out,*) 'in libxc_needs_laplacian ', libxc_funcs(:)%needs_laplacian
+ !write(std_out,*)  'libxc_needs_laplacian = ',libxc_needs_laplacian
 
  end function libxc_needs_laplacian
 

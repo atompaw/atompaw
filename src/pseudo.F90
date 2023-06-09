@@ -1335,9 +1335,12 @@ CONTAINS
       irc=PAW%irc_core
       rc=PAW%rc_core
 
-      !CALL smoothcore(Grid,coreden,PAW%tcore) 
-      CALL smoothpower(Grid,2,coreden,PAW%tcore) 
-
+      ! changed 6/6/2023 by NAWH to original smoothcore if .not.needtau
+      If(.not.needvtau) then
+              CALL smoothcore(Grid,coreden,PAW%tcore) 
+      else        
+              CALL smoothpower(Grid,2,coreden,PAW%tcore) 
+      endif
       PAW%core=coreden
 
   ! Find coretailpoints

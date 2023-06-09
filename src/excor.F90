@@ -550,43 +550,16 @@ CONTAINS
        deallocate(grad,sigma,dexcdn,dexcds)
        deallocate(tmpd,tmpv,exci,tmpt,dum,dum1)
     ELSE IF (itype==LIBXC.and.have_libxc) then !!!!! External LibXC library !!!!!
+       !write(std_out,*)    'libxc  case in exch -- islda isgga ismgga', libxc_islda(),libxc_isgga(), libxc_ismgga()
+!! 6/9/2023 NAWH changed the order of the if statements to accomodate the possibility of multiple
+!!       types for exchange and correlation which can be accomodated properly by the order: ismgga, isgga, islda
        allocate(tmpd(n),tmpv(n),exci(n),tmpt(n))
        tmpd=0.d0; tmpv=0.d0; exci=0.d0;tmpt=0.d0
        tmpd(2:n)=den(2:n)/(fpi*(Grid%r(2:n)**2))
        call extrapolate(Grid,tmpd)
-       if (libxc_islda()) then
-        call libxc_getvxc(n,exci,tmpv,1,tmpd)
-        do i=1,n
-           if (isnan(tmpv(i)).or.abs(tmpv(i)).lt.machine_zero) tmpv(i)=0.d0
-           if (isnan(exci(i)).or.abs(exci(i)).lt.machine_zero) exci(i)=0.d0
-           if (isnan(tmpd(i)).or.abs(tmpd(i)).lt.machine_zero) tmpd(i)=0.d0
-        enddo
 
-       elseif (libxc_isgga()) then
-        allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
-        grad=0.d0;gradmag=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
-        do i=1,n
-           tmpv(i)=ddlog(tmpd(i))
-        enddo   
-        call derivative(Grid,tmpv,grad,1,n)
-        grad(1:n)=grad(1:n)*tmpd(1:n)     !  perhaps more accurate???
-        gradmag=ABS(grad)
-        call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,vxcgr=dfxcdgbg)
-        gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
-        call derivative(Grid,gxc,dgxcdr,1,n)
-        tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
-        call extrapolate(Grid,tmpv)
-        deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
-        do i=1,n
-           if (isnan(tmpv(i)).or.abs(tmpv(i)).lt.machine_zero) tmpv(i)=0.d0
-           if (isnan(exci(i)).or.abs(exci(i)).lt.machine_zero) exci(i)=0.d0
-           if (isnan(tmpd(i)).or.abs(tmpd(i)).lt.machine_zero) tmpd(i)=0.d0
-        enddo
-
-       elseif (libxc_ismgga()) then
-        !write(std_out,*) '  atompaw not yet available for mgga -- stop '
-        !call flush_unit(std_out)
-        !stop       
+       if (libxc_ismgga()) then
+        !write(std_out,*) 'found libxc_ismgga '; call flush_unit(std_out)
         allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
         grad=0.d0;gradmag=0.d0;gxc=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
         tmpv=0.d0
@@ -602,6 +575,7 @@ CONTAINS
         !   Prepare kinetic energy input tau -- used for most mgga
            tmpt(2:n)=tau(2:n)/(fpi*(Grid%r(2:n)**2))
            call extrapolate(Grid,tmpt)
+        !write(std_out,*) 'what is laplacian ',  libxc_needs_laplacian (); call flush_unit(std_out)
         if(libxc_needs_laplacian()) then
            write(STD_OUT,*) 'Needs laplacian '; call flush_unit(STD_OUT)
           call derivative(Grid,grad,tmpl,1,n)
@@ -632,6 +606,36 @@ CONTAINS
            if (isnan(vtau(i)).or.abs(vtau(i)).lt.machine_zero) vtau(i)=0.d0
            if (isnan(tmpd(i)).or.abs(tmpd(i)).lt.machine_zero) tmpd(i)=0.d0
         enddo
+
+       elseif (libxc_isgga()) then
+        allocate(grad(n),gradmag(n),gxc(n),dgxcdr(n),dfxcdgbg(n))
+        grad=0.d0;gradmag=0.d0;dgxcdr=0.d0;dfxcdgbg=0.d0
+        do i=1,n
+           tmpv(i)=ddlog(tmpd(i))
+        enddo   
+        call derivative(Grid,tmpv,grad,1,n)
+        grad(1:n)=grad(1:n)*tmpd(1:n)     !  perhaps more accurate???
+        gradmag=ABS(grad)
+        call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,vxcgr=dfxcdgbg)
+        gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+        call derivative(Grid,gxc,dgxcdr,1,n)
+        tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
+        call extrapolate(Grid,tmpv)
+        deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
+        do i=1,n
+           if (isnan(tmpv(i)).or.abs(tmpv(i)).lt.machine_zero) tmpv(i)=0.d0
+           if (isnan(exci(i)).or.abs(exci(i)).lt.machine_zero) exci(i)=0.d0
+           if (isnan(tmpd(i)).or.abs(tmpd(i)).lt.machine_zero) tmpd(i)=0.d0
+        enddo
+
+       elseif (libxc_islda()) then
+        call libxc_getvxc(n,exci,tmpv,1,tmpd)
+        do i=1,n
+           if (isnan(tmpv(i)).or.abs(tmpv(i)).lt.machine_zero) tmpv(i)=0.d0
+           if (isnan(exci(i)).or.abs(exci(i)).lt.machine_zero) exci(i)=0.d0
+           if (isnan(tmpd(i)).or.abs(tmpd(i)).lt.machine_zero) tmpd(i)=0.d0
+        enddo
+
        else
            write(std_out,*) 'unknown libxc family -- need to work harder '
            stop        

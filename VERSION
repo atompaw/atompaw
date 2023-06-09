@@ -1,1 +1,1 @@
-!--- Version 4.2.0.2 - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1
+!--- Version 4.2.0.3 - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor

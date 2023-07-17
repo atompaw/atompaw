@@ -2215,7 +2215,9 @@ subroutine get_xc_data(xctype,xcname)
    xctype="GGA"
    xcname="PBESOL"
  else if (have_libxc) then
-   if (libxc_isgga()) then
+   if (libxc_ismgga()) then
+     xctype="MGGA"
+   else if (libxc_isgga()) then
      xctype="GGA"
    else
      xctype="LDA"

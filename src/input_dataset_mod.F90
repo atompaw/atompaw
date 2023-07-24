@@ -71,6 +71,7 @@ MODULE input_dataset_mod
    REAL(8) :: rc_shap=0.d0          ! PAW basis: cut-off radius of the compensation charge shape function
    REAL(8) :: rc_vloc=0.d0          ! PAW basis: matching radius for the local potential
    REAL(8) :: rc_core=0.d0          ! PAW basis: matching radius for the pseudo-core density
+   LOGICAL :: coreshapemod=.false.  ! Optional alternative shape for tcoreden and tcoretau
    INTEGER :: nbasis                ! PAW basis : number of basis functions
    INTEGER :: nbasis_add            ! PAW basis: number of additional basis functions (unbound states)
    INTEGER,ALLOCATABLE :: basis_add_l(:)      ! PAW basis: l number for the additional basis func.
@@ -678,7 +679,7 @@ END IF
 !=== Cut-off radii
 
  IF (has_to_ask) THEN
-   WRITE(STD_OUT,*) 'Enter rc [and possibly: rc_shape, rc_vloc, rc_core]'
+   WRITE(STD_OUT,*) 'Enter rc [and possibly: rc_shape, rc_vloc, rc_core and coreshapemod]'
  END IF
 
  READ(STD_IN,'(a)') inputline
@@ -733,6 +734,14 @@ END IF
    WRITE(STD_OUT,'(3x,a,f7.4)') "Compens. shape func radius : ",dataset%rc_shap
  END IF
 
+ !Optional flag for coreshapemod (perhaps useful for r2SCAN functional)
+   CALL Uppercase(inputline)
+   if (INDEX(inputline,'CORESHAPEMOD')>0) then
+           dataset%coreshapemod=.true.
+           IF (has_to_print) THEN
+             WRITE(STD_OUT,'(3x,a,f7.4)') "Using alt core shape form    "
+           ENDIF  
+   endif
 
 !------------------------------------------------------------------
 !=== Additional basis functions

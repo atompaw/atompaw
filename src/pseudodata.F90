@@ -23,7 +23,7 @@ MODULE pseudodata
      CHARACTER(132) :: Vloc_description
      CHARACTER(132) :: Proj_description
      CHARACTER(132) :: Comp_description
-     LOGICAL :: multi_rc,poscorenhat
+     LOGICAL :: multi_rc,poscorenhat,tcoreshapeexp
      REAL(8) :: rc,rc_shap,rc_vloc,rc_core,energyoflmax,gausslength
      REAL(8), POINTER :: rcio(:)
      REAL(8), POINTER :: vloc(:),abinitvloc(:),abinitnohat(:)
@@ -71,6 +71,7 @@ MODULE pseudodata
 !     Initialize logical variables
       PAW%multi_rc=.false.
       PAW%poscorenhat=.true.
+      PAW%tcoreshapeexp=.false.
       CALL DestroyPAW(PAW)
 !     Compute initial size of basis
       n=Grid%n

@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.2.0.3],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.2.0.4],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,8 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
+!--- Version ${PACKAGE_VERSION} - 7/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
 EOF
+#!--- Version ${PACKAGE_VERSION} - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
 #!--- Version ${PACKAGE_VERSION} - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1
 #!--- Version ${PACKAGE_VERSION} - 05/2022 - correction for intel compatibility thanks to JZ and NH added some self-consistency corrections
 #!--- Version ${PACKAGE_VERSION} - 03/2022 - NH,MT added self-consistent MGGAplus other features

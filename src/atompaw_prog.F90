@@ -103,11 +103,11 @@ PROGRAM atompaw
   endif
 
   if(.not.diracrelativistic) then
-    CALL SetPAWOptions1(ifen,Grid)
     CALL InitPAW(PAW,Grid,FCOrbit)
+    CALL SetPAWOptions1(ifen,Grid)
     CALL setbasis(Grid,FCPot,FCOrbit)
     Call setcoretail(Grid,FC%coreden)
-    Call setttau(Grid,FC%coretau)
+    Call setttau(Grid,FC%coreden,FC%coretau)
     If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
     If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
     Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,OK)

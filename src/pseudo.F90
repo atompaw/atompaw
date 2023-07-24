@@ -9,7 +9,7 @@
 !        logderiv, FindVlocfromVeff, SCFPAW, PAWIter_LDA, exploreparms,
 !        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
 !        Check_overlap_of_projectors
-!        smoothcore, smoothtau, setttau , calculate_tvtau
+!        smoothcore, smoothtau, smoothexpcore, setttau , calculate_tvtau
 !        resettcore
 !
 ! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
@@ -95,6 +95,14 @@ CONTAINS
    WRITE(STD_OUT,*) ' adjusted rc_vloc  ',PAW%rc_vloc
    WRITE(STD_OUT,*) ' adjusted rc_core  ',PAW%rc_core
   endif
+  
+  if(input_dataset%coreshapemod) then
+     PAW%tcoreshapeexp=.true.
+     WRITE(STD_OUT,*) ' Using modified core shape functions'
+  endif   
+          
+
+
   WRITE(ifen,*) ' paw parameters: '
   WRITE(ifen,*) '      lmax = ',PAW%lmax
   WRITE(ifen,*) '        rc = ',PAW%rc
@@ -1323,6 +1331,58 @@ CONTAINS
 
   END SUBROUTINE smoothpower
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+! SUBROUTINE smoothexpcore
+!    program to take all electron coreden and coretau
+!      and return simplified tcoreden and tcoretau in form r^2* C*exp(-alpha*r)
+!                                                    for r>rc
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    SUBROUTINE smoothexpcore(Grid,coredenin,coretauin,tcoredenout,tcoretauout)
+      TYPE(GridInfo), INTENT(IN) :: Grid
+      REAL(8), INTENT(IN) :: coredenin(:),coretauin(:)
+      REAL(8), INTENT(INOUT) :: tcoredenout(:),tcoretauout(:)
+
+      INTEGER :: i,j,k,n,irc
+      REAL(8) :: x,rc,rc1,alpha,term1,term2,const
+
+      tcoredenout=coredenin
+      tcoretauout=coretauin
+      n=Grid%n
+      irc=PAW%irc_core
+      rc=Grid%r(irc)
+      rc1=Grid%r(irc-1)
+      term1=tcoredenout(irc)/((rc**2))
+      term2=tcoredenout(irc-1)/((rc1**2))
+      x=(Grid%r(irc)-Grid%r(irc-1))
+      alpha=-log(term1/term2)/x
+      const=0.5d0*(term1*exp(alpha*rc)+term2*exp(alpha*rc1))
+      write(std_out,*) 'smoothexpcore -- den ', irc,rc,const,alpha
+      do i=1,irc-1
+       tcoredenout(i)=(Grid%r(i)**2)*const*exp(-alpha*Grid%r(i))
+      enddo 
+      term1=tcoretauout(irc)/((rc**2))
+      term2=tcoretauout(irc-1)/((rc1**2))
+      x=(Grid%r(irc)-Grid%r(irc-1))
+      alpha=-log(term1/term2)/x
+      const=0.5d0*(term1*exp(alpha*rc)+term2*exp(alpha*rc1))
+      write(std_out,*) 'smoothexpcore -- tau ', irc,rc,const,alpha
+      do i=1,irc-1
+       tcoretauout(i)=(Grid%r(i)**2)*const*exp(-alpha*Grid%r(i))
+      enddo 
+
+      open(1001,file='smoothexpcore.dat',form='formatted')
+      write(1001,*) 'r             coreden           tcoreden          coretau       tcoretau'       
+      do i=1,n
+        write(1001,'(1p,50e16.7)') Grid%r(i),coredenin(i),tcoredenout(i),coretauin(i),tcoretauout(i)
+      enddo   
+      close(1001)
+
+
+    END SUBROUTINE smoothexpcore         
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! SUBROUTINE setcoretail(Grid,coreden)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     SUBROUTINE setcoretail(Grid,coreden)
       TYPE(GridInfo), INTENT(IN) :: Grid
       REAL(8), INTENT(IN) :: coreden(:)
@@ -1336,9 +1396,10 @@ CONTAINS
       rc=PAW%rc_core
 
       ! changed 6/6/2023 by NAWH to original smoothcore if .not.needtau
+      !!  changed again for possible alternate coreshape
       If(.not.needvtau) then
               CALL smoothcore(Grid,coreden,PAW%tcore) 
-      else        
+      else if (.not.PAW%tcoreshapeexp) then       
               CALL smoothpower(Grid,2,coreden,PAW%tcore) 
       endif
       PAW%core=coreden
@@ -1413,14 +1474,19 @@ CONTAINS
      deallocate(d,g)
 End subroutine resettcore    
 
-    SUBROUTINE setttau(Grid,coretau)
+    SUBROUTINE setttau(Grid,coreden,coretau)
       TYPE(GridInfo), INTENT(IN) :: Grid
-      REAL(8), INTENT(IN) :: coretau(:)
+      REAL(8), INTENT(IN) :: coreden(:),coretau(:)
       REAL(8) :: sqr4pi
 
       write(std_out,*) 'in setttau '
       !CALL smoothtau(Grid,coretau,PAW%tcoretau) 
-      CALL smoothpower(Grid,4,coretau,PAW%tcoretau) 
+
+      if (PAW%tcoreshapeexp) then
+        CALL smoothexpcore(Grid,coreden,coretau,PAW%tcore,PAW%tcoretau)     
+      else        
+        CALL smoothpower(Grid,4,coretau,PAW%tcoretau) 
+      endif
 
       PAW%coretau=coretau
       write(std_out,*) 'completed setttau'
@@ -4925,7 +4991,7 @@ End subroutine resettcore
         Call InitPAW(PAW,Grid,FCOrbit)
         CALL setbasis(Grid,FCPot,FCOrbit)
         Call setcoretail(Grid,FC%coreden)
-        Call setttau(Grid,FC%coretau)
+        Call setttau(Grid,FC%coreden,FC%coretau)
         If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
         If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
         Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,success)

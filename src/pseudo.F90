@@ -2860,9 +2860,12 @@ End subroutine resettcore
       enddo   
     close(1001)  
     do io=1,nbase
-       write(std_out,*) 'For basis ', io, ' projector error ',SUM(abs(PAW%tp(irc_vloc:n,io)))
-       PAW%tp(irc_vloc+1:n,io)=0.d0
-       PAW%otp(irc_vloc+1:n,io)=0.d0
+!wrong       write(std_out,*) 'For basis ', io, ' projector error ',SUM(abs(PAW%tp(irc_vloc:n,io)))
+       write(std_out,*) 'For basis ', io, ' projector error ',SUM(abs(PAW%tp(irc:n,io)))
+!wrong       PAW%tp(irc_vloc+1:n,io)=0.d0
+       PAW%tp(irc+1:n,io)=0.d0
+!wong       PAW%otp(irc_vloc+1:n,io)=0.d0
+       PAW%otp(irc+1:n,io)=0.d0
     enddo
   deallocate(VNC,aux,f,d,dd)
   END SUBROUTINE makeprojectors_vtau

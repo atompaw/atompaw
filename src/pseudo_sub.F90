@@ -99,7 +99,7 @@ CONTAINS
 
     !***************************************************************
     ! SUBROUTINE EvaluateTp
-    !   Inverts 5x5 matrix used  by troullier subroutine
+    !   Inverts 6x6 matrix used  by troullier subroutine
     !***************************************************************
     SUBROUTINE EvaluateTp(l,A,B,C,D,F,coef)
       INTEGER, INTENT(IN) :: l

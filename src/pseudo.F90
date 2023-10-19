@@ -10,7 +10,7 @@
 !        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
 !        Check_overlap_of_projectors
 !        smoothcore, smoothtau, smoothexpcore, setttau , calculate_tvtau
-!        resettcore
+!        resettcore, VPSmatch
 !
 ! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -333,9 +333,10 @@ CONTAINS
      CALL calculate_tvtau(Grid)
      !Set pseudoptentials     
      IF (Vlocalindex==MTROULLIER.and.(TRIM(Orbit%exctype)/='HF')) then
-       WRITE(STD_OUT,*) 'TROULLIER PS not available for MGGA '
-       WRITE(STD_OUT,*) ' calling VPSmatch with norm conservation instead '     
-       CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
+       !!!WRITE(STD_OUT,*) 'TROULLIER PS not available for MGGA '
+       !!!WRITE(STD_OUT,*) ' calling VPSmatch with norm conservation instead '     
+       !!!CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
+       CALL troullier(Grid,Pot,PAW,l,e)
      ENDIF         
      IF (Vlocalindex==VPSMATCHNNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.false.)
      IF (Vlocalindex==VPSMATCHNC) CALL VPSmatch(Grid,Pot,PAW,l,e,.true.)
@@ -371,6 +372,154 @@ CONTAINS
           endif
        enddo
      END SUBROUTINE StoreTOCCWFN
+!!!##  !***************************************************************
+!!!##  ! SUBROUTINE troullier(lmax,Grid,Pot)
+!!!##  !  Creates  screened norm-conserving pseudopotential following
+!!!##  !    approach of N. Troullier and J. L. Martins, PRB 43, 1993 (1991)
+!!!##  !    Uses p(r)=a0+f(r); f(r)=SUMm(Coef(m)*r^(2*m), where
+!!!##  !          m=1,2..6
+!!!##  !    Psi(r) = r^(l+1)*exp(p(r))
+!!!##  !***************************************************************
+!!!##  SUBROUTINE Troullier(Grid,Pot,PAW,l,e)
+!!!##    TYPE(Gridinfo), INTENT(IN) :: Grid
+!!!##    TYPE(Potentialinfo), INTENT(IN) :: Pot
+!!!##    TYPE(Pseudoinfo), INTENT(INOUT) ::  PAW
+!!!##    INTEGER,INTENT(IN) :: l
+!!!##    REAL(8),INTENT(IN) :: e
+!!!##
+!!!##    REAL(8), ALLOCATABLE :: VNC(:)
+!!!##    REAL(8) :: A0,A,B,B0,C,C0,D,F,S
+!!!##    REAL(8) :: Coef(6),Coef0,Coef0old
+!!!##    REAL(8) :: h,rc,delta,x,pp,dpp,ddpp,dddpp,ddddpp
+!!!##    REAL(8) :: gam,bet
+!!!##    INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
+!!!##    INTEGER, PARAMETER :: niter=5000
+!!!##    REAL(8), PARAMETER :: small=1.0d-9
+!!!##    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),extra1(:),extra2(:)
+!!!##    REAL(8), POINTER :: r(:),rv(:)
+!!!##    CHARACTER(132) :: line
+!!!##
+!!!##    n=Grid%n
+!!!##    h=Grid%h
+!!!##    r=>Grid%r
+!!!##    rv=>Pot%rv
+!!!##    nr=min(PAW%irc_vloc+10,n)
+!!!##    irc=PAW%irc_vloc
+!!!##    rc=PAW%rc_vloc
+!!!##
+!!!##    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),extra1(nr),extra2(nr),stat=ok)
+!!!##    IF (ok /=0) THEN
+!!!##       WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
+!!!##       STOP
+!!!##    ENDIF
+!!!##
+!!!##    !write(std_out,*) ' Troullier ', n,nr,irc
+!!!##    !call flush_unit(std_out)
+!!!##    if (scalarrelativistic) then
+!!!##       CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+!!!##    else if (needvtau) then
+!!!##       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
+!!!##    else
+!!!##       CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
+!!!##    endif
+!!!##
+!!!##    IF (wfn(irc)<0) wfn=-wfn
+!!!##    dum(1:irc)=(wfn(1:irc)**2)
+!!!##    S=integrator(Grid,dum(1:irc),1,irc)
+!!!##    A0=LOG(wfn(irc)/(rc**(l+1)))
+!!!##    B0=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
+!!!##    C0=rc*(rv(irc)-rc*e)-B0*(B0+2*l+2)
+!!!##    D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B0*C0-2*(l+1)*(C0-B0)
+!!!##    F=rc*(2*rv(irc)-rc*(2*Gfirstderiv(Grid,irc,rv) &
+!!!##&        -rc*Gsecondderiv(Grid,irc,rv)))+&
+!!!##&        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
+!!!##
+!!!##    WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
+!!!##
+!!!##    delta=1.d10
+!!!##    iter=0
+!!!##    Coef0=0
+!!!##
+!!!##    DO WHILE(delta>small.AND.iter<=niter)
+!!!##       iter=iter+1
+!!!##       A=A0-Coef0
+!!!##       B=B0
+!!!##       C=C0
+!!!##       CALL EvaluateTp(l,A,B,C,D,F,coef)
+!!!##
+!!!##       dum=0
+!!!##       DO  i=1,irc
+!!!##          x=(r(i)/rc)**2
+!!!##          p(i)=x*(Coef(1)+x*(Coef(2)+x*(Coef(3)+&
+!!!##&              x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+!!!##          dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
+!!!##       ENDDO
+!!!##       Coef0old=Coef0
+!!!##
+!!!##       x=integrator(Grid,dum(1:irc),1,irc)
+!!!##       Coef0=(LOG(S/x))/2
+!!!##
+!!!##       delta=ABS(Coef0-Coef0old)
+!!!##       !WRITE(STD_OUT,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+!!!##    ENDDO
+!!!##
+!!!##    WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+!!!##    WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
+!!!##    !
+!!!##    ! Now  calculate VNC
+!!!##    extra1=0.d0;extra2=0.d0
+!!!##    if (needvtau) then
+!!!##       aux=0.d0
+!!!##       call derivative(Grid,PAW%tvtau,aux,1,nr)
+!!!##       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1) = ',aux(1)
+!!!##       WRITE(STD_OUT,*) ' Resetting aux(1) to 0 '
+!!!##       aux(1)=0.d0 
+!!!##    endif     
+!!!##    OPEN(88,file='NC',form='formatted')
+!!!##    write(88,*) '# rc = ',r(irc)
+!!!##    !
+!!!##    VNC=0.d0;extra1=0.d0;extra2=0.d0
+!!!##    DO  i=2,nr
+!!!##       x=(r(i)/rc)**2
+!!!##       p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
+!!!##&           x*(Coef(3)+x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+!!!##       dpp=2*r(i)/(rc**2)*(Coef(1)+x*(2*Coef(2)+x*(3*Coef(3)+&
+!!!##&           x*(4*Coef(4)+x*(5*Coef(5)+x*6*Coef(6))))))
+!!!##       ddpp=(1/(rc**2))*(2*Coef(1)+x*(12*Coef(2)+x*(30*Coef(3)+&
+!!!##&           x*(56*Coef(4)+x*(90*Coef(5)+x*132*Coef(6))))))
+!!!##       dddpp=(r(i)/rc**4)*(24*Coef(2)+x*(120*Coef(3)+x*(336*Coef(4)+&
+!!!##&           x*(720*Coef(5)+x*1320*Coef(6)))))
+!!!##       ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
+!!!##&           x*(5040*Coef(5)+x*11880*Coef(6))))))
+!!!##       IF (i==irc) THEN
+!!!##          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
+!!!##          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
+!!!##          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
+!!!##          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
+!!!##       ENDIF
+!!!##       extra1(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+!!!##       if (needvtau) then
+!!!##               extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
+!!!##!               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
+!!!##!&                +aux(i)*(dpp+l/r(i))                       
+!!!##                VNC(i)=extra1(i)+extra2(i)
+!!!##       else        
+!!!##!               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+!!!##                VNC(i)=extra1(i)
+!!!##       endif
+!!!##               dum(i)=(r(i)**(l+1))*EXP(p(i))
+!!!##       WRITE(88,'(1p,7e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i)
+!!!##    ENDDO
+!!!##    CLOSE(88)
+!!!##    x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+!!!##    WRITE(STD_OUT,*) 'check norm ',x,S
+!!!##
+!!!##    VNC(irc:n)=rv(irc:n)/r(irc:n)
+!!!##    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+!!!##
+!!!##    DEALLOCATE(VNC,wfn,p,dum,aux)
+!!!##  END SUBROUTINE troullier
+
   !***************************************************************
   ! SUBROUTINE troullier(lmax,Grid,Pot)
   !  Creates  screened norm-conserving pseudopotential following
@@ -378,6 +527,8 @@ CONTAINS
   !    Uses p(r)=a0+f(r); f(r)=SUMm(Coef(m)*r^(2*m), where
   !          m=1,2..6
   !    Psi(r) = r^(l+1)*exp(p(r))
+  !    modified 10/12/2023 by NAWH to accomodate possible metaGGA
+  !    Further modified to set dtvtau(r)/dr for 10 grid points at origin
   !***************************************************************
   SUBROUTINE Troullier(Grid,Pot,PAW,l,e)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -394,7 +545,8 @@ CONTAINS
     INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
     INTEGER, PARAMETER :: niter=5000
     REAL(8), PARAMETER :: small=1.0d-9
-    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:)
+    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),extra1(:),extra2(:)
+    REAL(8), ALLOCATABLE :: pote(:),dpote(:),ddpote(:),logvtau(:),dlogvtau(:),ddlogvtau(:),dddlogvtau(:)
     REAL(8), POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
 
@@ -406,7 +558,8 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),extra1(nr),extra2(nr),stat=ok)
+    ALLOCATE(pote(nr),dpote(nr),ddpote(nr),logvtau(nr),dlogvtau(nr),ddlogvtau(nr),dddlogvtau(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
        STOP
@@ -427,11 +580,26 @@ CONTAINS
     S=integrator(Grid,dum(1:irc),1,irc)
     A0=LOG(wfn(irc)/(rc**(l+1)))
     B0=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
-    C0=rc*(rv(irc)-rc*e)-B0*(B0+2*l+2)
-    D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B0*C0-2*(l+1)*(C0-B0)
-    F=rc*(2*rv(irc)-rc*(2*Gfirstderiv(Grid,irc,rv) &
-&        -rc*Gsecondderiv(Grid,irc,rv)))+&
+    pote=0.d0;pote(2:nr)=rv(2:nr)/r(2:nr)-e
+    if (needvtau) pote(1:nr)=pote(1:nr)/(1.d0+Pot%vtau(1:nr))
+    logvtau=0.d0;dlogvtau=0.d0;ddlogvtau=0.d0;dddlogvtau=0.d0
+    if (needvtau) then  !   find logvtau terms and their derivatives
+       logvtau(1:nr)=LOG(1.d0+Pot%vtau(1:nr))     
+       call derivative(Grid,logvtau,dlogvtau,1,nr)
+       call derivative(Grid,dlogvtau,ddlogvtau,1,nr)
+       call derivative(Grid,ddlogvtau,dddlogvtau,1,nr)
+    endif
+    C0=rc*rc*pote(irc)-B0*(B0+2*l+2)-rc*dlogvtau(irc)*(B0+l)
+    D=rc*rc*rc*Gfirstderiv(Grid,irc,pote)-2*B0*C0-2*(l+1)*(C0-B0)
+    if (needvtau) then
+        D=D-rc*rc*ddlogvtau(irc)*(B0+l)-rc*dlogvtau(irc)*(C0-l)    
+    endif
+    F=rc*rc*rc*rc*Gsecondderiv(Grid,irc,pote)+&
 &        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
+    if (needvtau) then
+        F=F-rc*rc*rc*dddlogvtau(irc)*(B0+l)-2*rc*rc*ddlogvtau(irc)*(C0-l) &
+&           -rc*dlogvtau(irc)*(D+2*l)                
+    endif
 
     WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
 
@@ -466,13 +634,18 @@ CONTAINS
     WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
     !
     ! Now  calculate VNC
+    extra1=0.d0;extra2=0.d0
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
+       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1:10) = ',aux(1:10)
+       WRITE(STD_OUT,*) ' Resetting aux(1:10) to 0 '
+       aux(1:10)=0.d0 
     endif     
     OPEN(88,file='NC',form='formatted')
+    write(88,*) '# rc = ',r(irc)
     !
-    VNC=0
+    VNC=0.d0;extra1=0.d0;extra2=0.d0
     DO  i=2,nr
        x=(r(i)/rc)**2
        p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
@@ -491,14 +664,15 @@ CONTAINS
           WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
           WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
        ENDIF
+       extra1(i)=ddpp+dpp*(dpp+2*(l+1)/r(i))
        if (needvtau) then
-               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
-&                +aux(i)*(dpp+l/r(i))                       
+               extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
+                VNC(i)=e+extra1(i)+extra2(i)
        else        
-               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+                VNC(i)=e+extra1(i)
        endif
                dum(i)=(r(i)**(l+1))*EXP(p(i))
-       WRITE(88,'(1p,5e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i)
+       WRITE(88,'(1p,7e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i)
     ENDDO
     CLOSE(88)
     x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
@@ -507,7 +681,8 @@ CONTAINS
     VNC(irc:n)=rv(irc:n)/r(irc:n)
     PAW%rveff(1:n)=VNC(1:n)*r(1:n)
 
-    DEALLOCATE(VNC,wfn,p,dum,aux)
+    DEALLOCATE(VNC,wfn,p,dum,aux,extra1,extra2)
+    DEALLOCATE(pote,dpote,ddpote,logvtau,dlogvtau,ddlogvtau,dddlogvtau)
   END SUBROUTINE troullier
 
   !***************************************************************
@@ -701,6 +876,7 @@ CONTAINS
   !      defaults to no norm conservation
   !  Note this program assumes that wfn keeps the same sign for
   !    all matching points r(irc-match+1)....r(irc)
+  !   Modified 10/18/2023 by NAWH to ensure zero slope for tvtau near r=0
   !***************************************************************
   SUBROUTINE VPSmatch(Grid,Pot,PAW,l,e,NC)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -712,7 +888,7 @@ CONTAINS
 
     REAL(8), ALLOCATABLE :: VNC(:)
     REAL(8) :: A0,A,B,B0,C,C0,D,F,S
-    REAL(8) :: Coef(6),Coef0,Coef0old
+    REAL(8) :: Coef(6),Coef0,Coef0old,corr
     REAL(8) :: h,rc,delta,x
     REAL(8) :: gam,bet
     INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
@@ -779,6 +955,12 @@ CONTAINS
        call derivative(Grid,PAW%tvtau,aux,1,nr)
        Kaux=0.d0
        call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)   ! Kresse form
+
+       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+       write(std_out,*) 'reset to zero'
+       aux(1:10)=0.d0; Kaux(1:10)=0.d0
+
     endif     
     OPEN(88,file='NNC',form='formatted')
     !
@@ -855,9 +1037,9 @@ CONTAINS
            ENDDO
            C0=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
            WRITE(std_out,*) 'check norm ',C0,S
-           Coef0=0.5d0*log(S/C0)
-       delta=ABS(Coef0-Coef0old)
-       WRITE(std_out,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+           corr=0.5d0*log(S/C0);Coef0=Coef0+corr
+           delta=ABS(Coef0-Coef0old)
+           WRITE(std_out,'(" VNC: iter Coef0 delta",i5,1p,3e15.7)') iter,Coef0,delta,corr
     ENDDO
     WRITE(std_out,*) '  VNC converged in ', iter,'  iterations'
     WRITE(std_out,*) '  Coefficients  -- ', Coef0,BBBB(1:match-1)
@@ -868,6 +1050,12 @@ CONTAINS
        call derivative(Grid,PAW%tvtau,aux,1,nr)
        Kaux=0.d0
        call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+
+       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+       write(std_out,*) 'reset to zero'
+       aux(1:10)=0.d0; Kaux(1:10)=0.d0
+
     endif     
     OPEN(88,file='NC',form='formatted')
     !

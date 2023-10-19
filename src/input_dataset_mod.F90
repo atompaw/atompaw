@@ -1107,12 +1107,13 @@ END IF
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_POLY) &
 &    WRITE(STD_OUT,'(7x,a,4(1x,i0))') "Local pseudopotential type : KERKER POLY, powers=",&
 &          dataset%vloc_kerker_power(1:4)
-   IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.AND.dataset%needvtau) THEN
-     WRITE(STD_OUT,'(7x,a)') 'NOTE: MTROULLIER Vloc not available for mGGA!'
-     WRITE(STD_OUT,'(7x,a)') '      Calling VPSmatch with norm conservation instead.'
-     dataset%vloc_type=VLOC_TYPE_VPSMATCHNC
-     WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : VPS MATCHNC"
-   END IF
+!!!!!!!! removed by NAWH 10-09-2023
+!!!   IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.AND.dataset%needvtau) THEN
+!!!     WRITE(STD_OUT,'(7x,a)') 'NOTE: MTROULLIER Vloc not available for mGGA!'
+!!!     WRITE(STD_OUT,'(7x,a)') '      Calling VPSmatch with norm conservation instead.'
+!!!     dataset%vloc_type=VLOC_TYPE_VPSMATCHNC
+!!!     WRITE(STD_OUT,'(7x,a)') "Local pseudopotential type : VPS MATCHNC"
+!!!   END IF
  END IF
 
 

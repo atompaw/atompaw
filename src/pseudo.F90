@@ -685,6 +685,185 @@ CONTAINS
     DEALLOCATE(pote,dpote,ddpote,logvtau,dlogvtau,ddlogvtau,dddlogvtau)
   END SUBROUTINE troullier
 
+!++  !***************************************************************
+!++  ! SUBROUTINE kerker(lmax,Grid,Pot)
+!++  !  Creates  screened norm-conserving pseudopotential following
+!++  !    approach of G. P. Kerker, J. Phys. C. 13,L189-L194 (1980)
+!++  !    Uses p(r)=a0+f(r); f(r)=SUMi(Coef(i)*r^m(i)), where m(i)
+!++  !          are input powers
+!++  !    Psi(r) = r^(l+1)*exp(p(r)) if PStype = EXPF
+!++  !    Psi(r) = r^(l+1)*(p(r))    if PStype = POLY
+!++  !    Note that this subroutine may not be called in this
+!++  !      version of ATOMPAW ...
+!++  !***************************************************************
+!++  SUBROUTINE kerker(Grid,Pot,PAW)
+!++    TYPE(Gridinfo), INTENT(IN) :: Grid
+!++    TYPE(Potentialinfo), INTENT(IN) :: Pot
+!++    TYPE(Pseudoinfo), INTENT(INOUT) ::  PAW
+!++
+!++    REAL(8), ALLOCATABLE :: VNC(:)
+!++    REAL(8) :: A0,A,B,C,D,S,Coef(4),Coef0,Coef0old
+!++    REAL(8) :: h,e,rc,delta,x,pp,dpp,ddpp,dddpp
+!++    REAL(8) :: gam,bet
+!++    INTEGER :: i,j,k,n,iter,nr,nodes,irc,l,ok,m(4),wavetype
+!++    INTEGER, PARAMETER :: EXPF=1, POLY=2
+!++    INTEGER, PARAMETER :: niter=5000
+!++    REAL(8), PARAMETER :: small=1.0d-12
+!++    CHARACTER(10) :: vtype
+!++    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:)
+!++    REAL(8), POINTER :: r(:),rv(:)
+!++
+!++    !Read data from input dataset
+!++    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) wavetype=EXPF
+!++    IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_POLY) wavetype=POLY
+!++    l=input_dataset%vloc_l ; e=input_dataset%vloc_ene
+!++    m(1:4)=input_dataset%vloc_kerker_power(1:4)
+!++
+!++    n=Grid%n
+!++    n=Grid%n
+!++    h=Grid%h
+!++    r=>Grid%r
+!++    rv=>Pot%rv
+!++    nr=min(PAW%irc_vloc+10,n)
+!++    irc=PAW%irc_vloc
+!++    rc=PAW%rc_vloc
+!++    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),stat=ok)
+!++    IF (ok /=0) THEN
+!++       WRITE(STD_OUT,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
+!++       STOP
+!++    ENDIF
+!++
+!++    if (scalarrelativistic) then
+!++       CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+!++    else if (needvtau) then
+!++       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
+!++    else
+!++       CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
+!++    endif
+!++
+!++
+!++
+!++    IF (wfn(irc)<0) wfn=-wfn
+!++    dum(1:irc)=(wfn(1:irc)**2)
+!++    S=integrator(Grid,dum(1:irc),1,irc)
+!++    IF (wavetype==EXPF) THEN
+!++       A0=LOG(wfn(irc)/(rc**(l+1)))
+!++       B=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
+!++       C=rc*(rv(irc)-rc*e)-B*(B+2*l+2)
+!++       D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B*C-2*(l+1)*(C-B)
+!++    ENDIF
+!++
+!++    IF (wavetype==POLY) THEN
+!++       A0=(wfn(irc)/(rc**(l+1)))
+!++       B=(rc*Gfirstderiv(Grid,irc,wfn))/(rc**(l+1))-(l+1)*A0
+!++       C=rc*(rv(irc)-rc*e)*A0-2*(l+1)*B
+!++       D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))*A0+2*(l+1)*(B-C)+&
+!++&           rc*(rv(irc)-rc*e)*B
+!++    ENDIF
+!++
+!++
+!++    WRITE(STD_OUT,*) 'In kerker -- matching parameters',S,A0,B,C,D
+!++
+!++    delta=1.d10
+!++    iter=0
+!++    Coef0=0
+!++
+!++    DO WHILE(delta>small.AND.iter<=niter)
+!++       iter=iter+1
+!++       A=A0-Coef0
+!++       CALL EvaluateP(m,A,B,C,D,Coef)
+!++
+!++       dum=0
+!++       DO  i=1,irc
+!++          x=(r(i)/rc)
+!++          p(i)=(x**m(1))*Coef(1)+(x**m(2))*Coef(2)+(x**m(3))*Coef(3)+(x**m(4))*Coef(4)
+!++          IF (wavetype==EXPF)dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
+!++          IF (wavetype==POLY)dum(i)=(wfn(i))**2-((r(i)**(l+1))*(p(i)))**2
+!++       ENDDO
+!++       Coef0old=Coef0
+!++       IF (wavetype==EXPF) THEN
+!++          x=integrator(Grid,dum(1:irc),1,irc)
+!++          Coef0=(LOG(S/x))/2
+!++       ENDIF
+!++       IF (wavetype==POLY) THEN
+!++          gam=(2*l+3)*integrator(Grid,dum(1:irc),1,irc)/(rc**(2*l+3))
+!++          bet=(2*l+3)*(Coef(1)/(2*l+3+m(1))+Coef(2)/(2*l+3+m(2))+&
+!++&              Coef(3)/(2*l+3+m(3))+Coef(4)/(2*l+3+m(4)))
+!++          !WRITE(STD_OUT,'("VNC: iter -- bet,gam = ",i5,1p,4e15.7)') iter,bet,gam
+!++          x=bet**2+gam
+!++          Coef0old=Coef0
+!++          IF (x<0.d0) THEN
+!++             WRITE(STD_OUT,*) 'Warning in Kerker subroutine x = ',x
+!++               Coef0=Coef0+0.1*A0
+!++            ELSE
+!++               Coef0=SQRT(x)-bet
+!++            ENDIF
+!++         ENDIF
+!++         delta=ABS(Coef0-Coef0old)
+!++         !WRITE(STD_OUT,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
+!++      ENDDO
+!++
+!++      WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+!++      WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:4)
+!++      !
+!++      ! Now  calculate VNC
+!++    if (needvtau) then
+!++       aux=0.d0
+!++       call derivative(Grid,PAW%tvtau,aux,1,nr)
+!++    endif     
+!++      OPEN(88,file='NC',form='formatted')
+!++      !
+!++      VNC=0
+!++      DO  i=1,nr
+!++         x=(r(i)/rc)
+!++         p(i)=Coef0+(x**m(1))*Coef(1)+(x**m(2))*Coef(2)+&
+!++&             (x**m(3))*Coef(3)+(x**m(4))*Coef(4)
+!++         dpp=(m(1)*(x**(m(1)-1))*Coef(1)+m(2)*(x**(m(2)-1))*Coef(2)+&
+!++&             m(3)*(x**(m(3)-1))*Coef(3)+m(4)*(x**(m(4)-1))*Coef(4))/rc
+!++         ddpp=(m(1)*(m(1)-1)*(x**(m(1)-2))*Coef(1)+&
+!++&             m(2)*(m(2)-1)*(x**(m(2)-2))*Coef(2)+&
+!++&             m(3)*(m(3)-1)*(x**(m(3)-2))*Coef(3)+&
+!++&             m(4)*(m(4)-1)*(x**(m(4)-2))*Coef(4))/(rc**2)
+!++         dddpp=(m(1)*(m(1)-1)*(m(1)-2)*(x**(m(1)-3))*Coef(1)+&
+!++&             m(2)*(m(2)-1)*(m(2)-2)*(x**(m(2)-3))*Coef(2)+&
+!++&             m(3)*(m(3)-1)*(m(3)-2)*(x**(m(3)-3))*Coef(3)+&
+!++&             m(4)*(m(4)-1)*(m(4)-2)*(x**(m(4)-3))*Coef(4))/(rc**3)
+!++         IF (i==irc) THEN
+!++            WRITE(STD_OUT,*) 'check  dp ', dpp,  B/rc
+!++            WRITE(STD_OUT,*) 'check ddp ', ddpp, C/rc**2
+!++            WRITE(STD_OUT,*) 'check dddp', dddpp,  D/rc**3
+!++         ENDIF
+!++         IF (wavetype==EXPF) THEN
+!++           if (needvtau) then
+!++               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
+!++&                +aux(i)*(dpp+l/r(i))                       
+!++           else        
+!++               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+!++           endif
+!++            dum(i)=(r(i)**(l+1))*EXP(p(i))
+!++         ENDIF
+!++         IF (wavetype==POLY) THEN
+!++           if (needvtau) then
+!++               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+2*(l+1)*dpp/r(i))/p(i) &
+!++&                +aux(i)*(dpp/p(i)+l/r(i))                       
+!++           else        
+!++               VNC(i)=e+(ddpp+2*(l+1)*dpp/r(i))/p(i)
+!++           endif
+!++            dum(i)=(r(i)**(l+1))*(p(i))
+!++         ENDIF
+!++         WRITE(88,'(1p,5e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i)
+!++      ENDDO
+!++      CLOSE(88)
+!++      x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+!++      WRITE(STD_OUT,*) 'check norm ',x,S
+!++
+!++      VNC(irc:n)=rv(irc:n)/r(irc:n)
+!++      PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+!++
+!++      DEALLOCATE(VNC,wfn,p,dum,aux)
+!++    END SUBROUTINE kerker
+!++ 
+
   !***************************************************************
   ! SUBROUTINE kerker(lmax,Grid,Pot)
   !  Creates  screened norm-conserving pseudopotential following
@@ -695,6 +874,8 @@ CONTAINS
   !    Psi(r) = r^(l+1)*(p(r))    if PStype = POLY
   !    Note that this subroutine may not be called in this
   !      version of ATOMPAW ...
+  !  Modified 10/25/2023 by NAWH hopefully for compatibility
+  !   with meta-GGA
   !***************************************************************
   SUBROUTINE kerker(Grid,Pot,PAW)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -712,6 +893,7 @@ CONTAINS
     CHARACTER(10) :: vtype
     REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:)
     REAL(8), POINTER :: r(:),rv(:)
+    REAL(8), ALLOCATABLE :: pote(:),dpote(:),ddpote(:),logvtau(:),dlogvtau(:),ddlogvtau(:),dddlogvtau(:)
 
     !Read data from input dataset
     IF (input_dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) wavetype=EXPF
@@ -728,6 +910,7 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
     ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),stat=ok)
+    ALLOCATE(pote(nr),dpote(nr),ddpote(nr),logvtau(nr),dlogvtau(nr),ddlogvtau(nr),dddlogvtau(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
        STOP
@@ -746,20 +929,56 @@ CONTAINS
     IF (wfn(irc)<0) wfn=-wfn
     dum(1:irc)=(wfn(1:irc)**2)
     S=integrator(Grid,dum(1:irc),1,irc)
+       pote=0.d0;pote(2:nr)=rv(2:nr)/r(2:nr)-e
+       if (needvtau) pote(1:nr)=pote(1:nr)/(1.d0+Pot%vtau(1:nr))
+       logvtau=0.d0;dlogvtau=0.d0;ddlogvtau=0.d0;dddlogvtau=0.d0
+       if (needvtau) then  !   find logvtau terms and their derivatives
+          logvtau(1:nr)=LOG(1.d0+Pot%vtau(1:nr))
+          call derivative(Grid,logvtau,dlogvtau,1,nr)
+          call derivative(Grid,dlogvtau,ddlogvtau,1,nr)
+          call derivative(Grid,ddlogvtau,dddlogvtau,1,nr)
+       endif
     IF (wavetype==EXPF) THEN
        A0=LOG(wfn(irc)/(rc**(l+1)))
        B=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
-       C=rc*(rv(irc)-rc*e)-B*(B+2*l+2)
-       D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B*C-2*(l+1)*(C-B)
+       C=rc*rc*pote(irc)-B*(B+2*l+2)-rc*dlogvtau(irc)*(B+l)
+       D=rc*rc*rc*Gfirstderiv(Grid,irc,pote)-2*B*C-2*(l+1)*(C-B)
+       if (needvtau) then
+           D=D-rc*rc*ddlogvtau(irc)*(B+l)-rc*dlogvtau(irc)*(C-l)
+       endif
     ENDIF
 
     IF (wavetype==POLY) THEN
        A0=(wfn(irc)/(rc**(l+1)))
        B=(rc*Gfirstderiv(Grid,irc,wfn))/(rc**(l+1))-(l+1)*A0
-       C=rc*(rv(irc)-rc*e)*A0-2*(l+1)*B
-       D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))*A0+2*(l+1)*(B-C)+&
-&           rc*(rv(irc)-rc*e)*B
+       C=rc*rc*pote(irc)*A0-B*(2*l+2)-rc*dlogvtau(irc)*(B+l*A0)
+       D=rc*rc*rc*Gfirstderiv(Grid,irc,pote)*A0+rc*rc*pote(irc)*B-2*(l+1)*(C-B)
+       if (needvtau) then
+           D=D-rc*rc*ddlogvtau(irc)*(B+l*A0)-rc*dlogvtau(irc)*(C+l*B-l*A0)
+       endif
     ENDIF
+
+
+    WRITE(STD_OUT,*) 'In kerker -- matching parameters',S,A0,B,C,D
+
+    delta=1.d10
+    iter=0
+    Coef0=0
+
+    DO WHILE(delta>small.AND.iter<=niter)
+       iter=iter+1
+       A=A0-Coef0
+       CALL EvaluateP(m,A,B,C,D,Coef)
+
+       dum=0
+       DO  i=1,irc
+          x=(r(i)/rc)
+          p(i)=(x**m(1))*Coef(1)+(x**m(2))*Coef(2)+(x**m(3))*Coef(3)+(x**m(4))*Coef(4)
+          IF (wavetype==EXPF)dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
+          IF (wavetype==POLY)dum(i)=(wfn(i))**2-((r(i)**(l+1))*(p(i)))**2
+       ENDDO
+       Coef0old=Coef0
+    ENDDO
 
 
     WRITE(STD_OUT,*) 'In kerker -- matching parameters',S,A0,B,C,D
@@ -797,8 +1016,8 @@ CONTAINS
                Coef0=Coef0+0.1*A0
             ELSE
                Coef0=SQRT(x)-bet
-            ENDIF
-         ENDIF
+          ENDIF
+       ENDIF
          delta=ABS(Coef0-Coef0old)
          !WRITE(STD_OUT,*) '  VNC: iter  Coef0  delta', iter,Coef0,delta
       ENDDO
@@ -810,6 +1029,8 @@ CONTAINS
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
+       write(std_out,*) ' In Kerker -- aux ', aux(1:10)
+       aux(1:10)=0.d0
     endif     
       OPEN(88,file='NC',form='formatted')
       !
@@ -862,7 +1083,6 @@ CONTAINS
 
       DEALLOCATE(VNC,wfn,p,dum,aux)
     END SUBROUTINE kerker
- 
 
   !***************************************************************
   ! SUBROUTINE VPSmatch(lmax,Grid,Pot,NC)
@@ -1524,6 +1744,7 @@ CONTAINS
 !    program to take all electron coreden and coretau
 !      and return simplified tcoreden and tcoretau in form r^2* C*exp(-alpha*r)
 !                                                    for r>rc
+!  Modified 10/20/2023 by NAWH to ensure Weizsacker form for tcoretau
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++
     SUBROUTINE smoothexpcore(Grid,coredenin,coretauin,tcoredenout,tcoretauout)
       TYPE(GridInfo), INTENT(IN) :: Grid
@@ -1532,10 +1753,12 @@ CONTAINS
 
       INTEGER :: i,j,k,n,irc
       REAL(8) :: x,rc,rc1,alpha,term1,term2,const
+      REAL(8), allocatable :: tmpd(:),grad(:),dum(:)
 
       tcoredenout=coredenin
       tcoretauout=coretauin
       n=Grid%n
+      allocate(tmpd(n),grad(n),dum(n))
       irc=PAW%irc_core
       rc=Grid%r(irc)
       rc1=Grid%r(irc-1)
@@ -1548,15 +1771,22 @@ CONTAINS
       do i=1,irc-1
        tcoredenout(i)=(Grid%r(i)**2)*const*exp(-alpha*Grid%r(i))
       enddo 
-      term1=tcoretauout(irc)/((rc**2))
-      term2=tcoretauout(irc-1)/((rc1**2))
-      x=(Grid%r(irc)-Grid%r(irc-1))
-      alpha=-log(term1/term2)/x
-      const=0.5d0*(term1*exp(alpha*rc)+term2*exp(alpha*rc1))
-      write(std_out,*) 'smoothexpcore -- tau ', irc,rc,const,alpha
+!!! Insert exactly Weizacker form into augmentation range  using
+!!!    same code as used in excor subroutines
+        tmpd(2:n)=tcoredenout(2:n)/(4*pi*(Grid%r(2:n)**2))
+        call extrapolate(Grid,tmpd)
+        do i=1,n
+           dum(i)=ddlog(tmpd(i))
+        enddo
+        call derivative(Grid,dum,grad,1,n)
+        grad(1:n)=grad(1:n)*tmpd(1:n)     ! perhaps more accurate???
       do i=1,irc-1
-       tcoretauout(i)=(Grid%r(i)**2)*const*exp(-alpha*Grid%r(i))
+         tcoretauout(i)=0.25d0*(4*pi*Grid%r(i)**2)*(grad(i)**2)/tmpd(i)        !!!Weizsacker form
       enddo 
+         write(std_out,*) ' in smoothexpcore -- checking tcoretau mismatch '
+           write(std_out,*) rc, tcoretauout(irc-1),coretauin(irc-1)
+        ! take average at last point before rc:
+          tcoretauout(irc-1)=0.5d0*(tcoretauout(irc-1)+coretauin(irc-1))
 
       open(1001,file='smoothexpcore.dat',form='formatted')
       write(1001,*) 'r             coreden           tcoreden          coretau       tcoretau'       
@@ -1564,6 +1794,7 @@ CONTAINS
         write(1001,'(1p,50e16.7)') Grid%r(i),coredenin(i),tcoredenout(i),coretauin(i),tcoretauout(i)
       enddo   
       close(1001)
+      deallocate(tmpd,grad,dum)
 
 
     END SUBROUTINE smoothexpcore         
@@ -1583,7 +1814,7 @@ CONTAINS
       irc=PAW%irc_core
       rc=PAW%rc_core
 
-      ! changed 6/6/2023 by NAWH to original smoothcore if .not.needtau
+      ! changed 6/6/2023 by NAWH to original smoothcore if .not.needvtau
       !!  changed again for possible alternate coreshape
       If(.not.needvtau) then
               CALL smoothcore(Grid,coreden,PAW%tcore) 

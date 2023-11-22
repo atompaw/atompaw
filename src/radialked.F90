@@ -202,8 +202,8 @@ CONTAINS
     REAL(8) :: rr,c1,c2,p0,t0,t1
     INTEGER :: i,j,n
 
-    write(std_out,*) 'in wfnkedinitinhomo ', l; call flush_unit(std_out)
-    write(std_out,*) 'May not be correct '
+    !!!write(std_out,*) 'in wfnkedinitinhomo ', l; call flush_unit(std_out)
+    !!!write(std_out,*) 'May not be correct '
     wfn=0; lwfn=0
     t0=oneplusvtau(1);t1=dvtaudr(1)
    !!  assume proj(r) -- r**(l=1)*p0  for r-->0;  determine p0
@@ -390,16 +390,16 @@ CONTAINS
     call wfnkedinitinhomo(Grid,l,proj,wfn,lwfn,istart)
     call setupforcfdsol(Grid,Pot%rv,1,istart,nr,l,energy,wfn,lwfn,yy,zz)
     ff(2,:)=-proj(:)
-    write(std_out,*) 'before inhomcfdsol '; call flush_unit(std_out)
+    !!!write(std_out,*) 'before inhomcfdsol '; call flush_unit(std_out)
     call inhomocfdsol(Grid,zz,yy,ff,istart,nr)
     !x write(std_out,*) 'after inhomcfdsol '; call flush_unit(std_out)
     call getwfnfromcfdsol(1,nr,yy,wfn)
     !
     !
 
-    write(std_out,*) 'completed unboundkedhomo'; call flush_unit(std_out)
+    !!!write(std_out,*) 'completed unboundkedhomo'; call flush_unit(std_out)
     deallocate(lwfn,yy,zz,ff)
-    write(std_out,*) 'completed unboundkedhomo'; call flush_unit(std_out)
+    !!!write(std_out,*) 'completed unboundkedhomo'; call flush_unit(std_out)
 
   END SUBROUTINE unboundkedinhomo
 

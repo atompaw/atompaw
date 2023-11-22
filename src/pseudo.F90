@@ -289,7 +289,7 @@ CONTAINS
    IF (.NOT.needvtau) THEN
 	 IF (Vlocalindex==MTROULLIER.and.Projectorindex/=HFPROJ) THEN
        CALL troullier(Grid,Pot,PAW,l,e)
-     ENDIF
+         ENDIF
 	 IF (Vlocalindex==MTROULLIER.and.Projectorindex==HFPROJ) THEN
 	   CALL make_hf_basis_only(Grid,Pot,PAW)
 	   CALL troullier_HF(Grid,Pot,PAW,l,e)
@@ -545,7 +545,7 @@ CONTAINS
     INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
     INTEGER, PARAMETER :: niter=5000
     REAL(8), PARAMETER :: small=1.0d-9
-    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),extra1(:),extra2(:)
+    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),Kaux(:),extra1(:),extra2(:),extra3(:)
     REAL(8), ALLOCATABLE :: pote(:),dpote(:),ddpote(:),logvtau(:),dlogvtau(:),ddlogvtau(:),dddlogvtau(:)
     REAL(8), POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
@@ -558,7 +558,7 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),extra1(nr),extra2(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),Kaux(nr),extra1(nr),extra2(nr),extra3(nr),stat=ok)
     ALLOCATE(pote(nr),dpote(nr),ddpote(nr),logvtau(nr),dlogvtau(nr),ddlogvtau(nr),dddlogvtau(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
@@ -634,18 +634,24 @@ CONTAINS
     WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
     !
     ! Now  calculate VNC
-    extra1=0.d0;extra2=0.d0
+    extra1=0.d0;extra2=0.d0;extra3=0.d0
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
        WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1:10) = ',aux(1:10)
        WRITE(STD_OUT,*) ' Resetting aux(1:10) to 0 '
        aux(1:10)=0.d0 
+       Kaux=0.d0
+       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+       WRITE(STD_OUT,*) 'In subroutine Troullier -- Kaux(1:10) = ',Kaux(1:10)
+       WRITE(STD_OUT,*) ' Resetting Kaux(1:10) to 0 '
+       Kaux(1:10)=0.d0 
     endif     
     OPEN(88,file='NC',form='formatted')
     write(88,*) '# rc = ',r(irc)
+    write(88,*) 'r    wfn    dum    VNC*r    rv    extra1*r    extra2*r    extra3*r   '
     !
-    VNC=0.d0;extra1=0.d0;extra2=0.d0
+    VNC=0.d0;extra1=0.d0;extra2=0.d0;extra3=0.d0
     DO  i=2,nr
        x=(r(i)/rc)**2
        p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
@@ -659,29 +665,32 @@ CONTAINS
        ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
 &           x*(5040*Coef(5)+x*11880*Coef(6))))))
        IF (i==irc) THEN
-          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
-          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
-          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
-          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
+          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc  ; call flush_unit(std_out)
+          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2; call flush_unit(std_out)
+          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3; call flush_unit(std_out)
+          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4; call flush_unit(std_out)
        ENDIF
        extra1(i)=ddpp+dpp*(dpp+2*(l+1)/r(i))
        if (needvtau) then
                extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
-                VNC(i)=e+extra1(i)+extra2(i)
+               extra3(i)=(1.d0+PAW%Ktvtau(i))*extra1(i)+Kaux(i)*(dpp+l/r(i))  !  Kresse form
+                VNC(i)=e+extra1(i)+extra2(i)   ! Bloechl form
        else        
                 VNC(i)=e+extra1(i)
        endif
                dum(i)=(r(i)**(l+1))*EXP(p(i))
-       WRITE(88,'(1p,7e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i)
+       WRITE(88,'(1p,9e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i),extra3(i)*r(i)
     ENDDO
     CLOSE(88)
     x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
-    WRITE(STD_OUT,*) 'check norm ',x,S
+    WRITE(STD_OUT,*) 'check norm ',x,S; call flush_unit(std_out)
 
-    VNC(irc:n)=rv(irc:n)/r(irc:n)
-    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+    PAW%rveff=rv
+    PAW%Krveff=rv
+    PAW%rveff(1:irc-1)=VNC(1:irc-1)*r(1:irc-1)
+    PAW%Krveff(1:irc-1)=extra3(1:irc-1)*r(1:irc-1)
 
-    DEALLOCATE(VNC,wfn,p,dum,aux,extra1,extra2)
+    DEALLOCATE(VNC,wfn,p,dum,aux,Kaux,extra1,extra2,extra3)
     DEALLOCATE(pote,dpote,ddpote,logvtau,dlogvtau,ddlogvtau,dddlogvtau)
   END SUBROUTINE troullier
 
@@ -1341,7 +1350,7 @@ CONTAINS
     INTEGER :: i,irc,n,nr,ok,nodes,i1,i2,i3,i4
     REAL(8) :: rc,x,y1,y2,y3,p0,p1,p2,p3,sgn
     REAL(8) :: b(4),c(4),d(4),amat(4,4)
-    REAL(8),ALLOCATABLE ::  VNC(:),wfn(:),aux(:)
+    REAL(8),ALLOCATABLE ::  VNC(:),wfn(:),aux(:),Kaux(:)
     REAL(8),POINTER :: r(:),rv(:)
     CHARACTER(132) :: line
 
@@ -1358,7 +1367,7 @@ CONTAINS
     irc=PAW%irc_vloc
     rc=PAW%rc_vloc
 
-    ALLOCATE(VNC(n),wfn(nr),aux(nr),stat=ok)
+    ALLOCATE(VNC(n),wfn(nr),aux(nr),Kaux(nr),stat=ok)
     IF (ok/=0) stop 'Error in uspseudo -- allocating arrays'
 
     if (scalarrelativistic) then
@@ -1412,6 +1421,14 @@ CONTAINS
     if (needvtau) then
        aux=0.d0
        call derivative(Grid,PAW%tvtau,aux,1,nr)
+       Kaux=0.d0
+       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+
+       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+       write(std_out,*) 'reset to zero'
+       aux(1:10)=0.d0; Kaux(1:10)=0.d0
+
     endif     
 
     PAW%rveff(1)=0.d0
@@ -1421,20 +1438,25 @@ CONTAINS
      if (needvtau) then
         PAW%rveff(i)=r(i)*(e+(dble(2*l+2)*c(1)/r(i)+c(1)**2+&
 &           c(2))*(1.d0+PAW%tvtau(i))+aux(i)*(c(1)+dble(l)/r(i)))
+        PAW%Krveff(i)=r(i)*(e+(dble(2*l+2)*c(1)/r(i)+c(1)**2+&
+&           c(2))*(1.d0+PAW%Ktvtau(i))+Kaux(i)*(c(1)+dble(l)/r(i)))
      else        
         PAW%rveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
+        PAW%Krveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
      endif
     ENDDO
     PAW%rveff(irc:n)=rv(irc:n)
+    PAW%Krveff(irc:n)=rv(irc:n)
 
 
     open(88,file='NNC',form='formatted')
+    write(88,*) '   r   rv(AE)    rps(B)        rps(K)  '
     do i=1,n
-       write(88,'(1p,50e16.7)') r(i),PAW%rveff(i),rv(i)
+       write(88,'(1p,50e16.7)') r(i),rv(i),PAW%rveff(i),PAW%Krveff(i)
     enddo
     close(88)   
 
-    DEALLOCATE(VNC,wfn,aux)
+    DEALLOCATE(VNC,wfn,aux,Kaux)
 
   END SUBROUTINE nonncps
 
@@ -4485,7 +4507,7 @@ End subroutine resettcore
       DEALLOCATE(wij)
 
       if (.not.Check_overlap_of_projectors(Grid,PAW,ifen)) then
-         write(std_out,*) "The overlap operator has at leat one negative eigenvalue!"
+         write(std_out,*) "The overlap operator has at least one negative eigenvalue!"
          write(std_out,*) "It might be not positive definite..."
          write(std_out,*) "Program is stopping."
          write(std_out,*) "This probably means that your projectors are too similar"

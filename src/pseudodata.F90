@@ -28,12 +28,12 @@ MODULE pseudodata
      REAL(8), POINTER :: rcio(:)
      REAL(8), POINTER :: vloc(:),abinitvloc(:),abinitnohat(:)
      REAL(8), POINTER :: rveff(:),AErefrv(:),rvx(:),trvx(:)
-     REAL(8), POINTER :: Ktvtau(:),Krveff(:),Kunscreen(:) ! Kresse form
+     REAL(8), POINTER :: Ktvtau(:),Kdtvtaudr(:),Krveff(:),Kunscreen(:) ! Kresse form
      REAL(8), POINTER :: projshape(:),hatshape(:),hatden(:),hatpot(:)
      REAL(8), POINTER :: den(:),tden(:),core(:),tcore(:),nhatv(:)
      REAL(8), POINTER :: coretau(:),tcoretau(:)
      REAL(8), POINTER :: valetau(:),tvaletau(:)
-     REAL(8), POINTER :: vtau(:),tvtau(:)
+     REAL(8), POINTER :: vtau(:),tvtau(:),dtvtaudr(:)
      INTEGER :: nbase,ncoreshell
      INTEGER, POINTER :: np(:),l(:),nodes(:),kappa(:)
      INTEGER, POINTER :: rng(:)       ! rng particularly of continuum states
@@ -93,8 +93,8 @@ MODULE pseudodata
 &        PAW%den(n),PAW%tden(n),PAW%core(n),PAW%tcore(n),&
 &        PAW%coretau(n),PAW%tcoretau(n),&
 &        PAW%valetau(n),PAW%tvaletau(n),&
-&        PAW%vtau(n),PAW%tvtau(n),&
-&        PAW%nhatv(n),PAW%Ktvtau(n),PAW%Krveff(n),PAW%Kunscreen(n),stat=ok)
+&        PAW%vtau(n),PAW%tvtau(n),PAW%dtvtaudr(n),&
+&        PAW%nhatv(n),PAW%Ktvtau(n),PAW%Kdtvtaudr(n),PAW%Krveff(n),PAW%Kunscreen(n),stat=ok)
       IF (ok/=0) STOP 'Allocation error 1 in InitPAW'
       PAW%projshape=0.d0;PAW%hatden=0.d0;PAW%hatpot=0.d0
       PAW%hatshape=0.d0;PAW%vloc=0.d0;PAW%rveff=0.d0
@@ -105,8 +105,8 @@ MODULE pseudodata
       PAW%lambshielding=0.d0
       PAW%coretau=0.d0;PAW%tcoretau=0.d0
       PAW%valetau=0.d0;PAW%tvaletau=0.d0
-      PAW%vtau=0.d0;PAW%tvtau=0.d0
-      PAW%Ktvtau=0.d0;PAW%Krveff=0.d0;PAW%Kunscreen=0.d0
+      PAW%vtau=0.d0;PAW%tvtau=0.d0;PAW%dtvtaudr=0.d0
+      PAW%Ktvtau=0.d0;PAW%Kdtvtaudr=0.d0;PAW%Krveff=0.d0;PAW%Kunscreen=0.d0
       ALLOCATE(PAW%phi(n,mxbase),PAW%tphi(n,mxbase),PAW%tp(n,mxbase),&
 &        PAW%ophi(n,mxbase),PAW%otphi(n,mxbase),PAW%otp(n,mxbase),&
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
@@ -167,6 +167,9 @@ MODULE pseudodata
     If (ASSOCIATED(PAW%tvaletau)) DEALLOCATE(PAW%tvaletau)
     If (ASSOCIATED(PAW%vtau)) DEALLOCATE(PAW%vtau)
     If (ASSOCIATED(PAW%tvtau)) DEALLOCATE(PAW%tvtau)
+    If (ASSOCIATED(PAW%dtvtaudr)) DEALLOCATE(PAW%dtvtaudr)
+    If (ASSOCIATED(PAW%Ktvtau)) DEALLOCATE(PAW%Ktvtau)
+    If (ASSOCIATED(PAW%Kdtvtaudr)) DEALLOCATE(PAW%Kdtvtaudr)
     If (ASSOCIATED(PAW%nhatv)) DEALLOCATE(PAW%nhatv)
     If (ASSOCIATED(PAW%np)) DEALLOCATE(PAW%np)
     If (ASSOCIATED(PAW%l)) DEALLOCATE(PAW%l)

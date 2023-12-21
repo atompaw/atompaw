@@ -185,7 +185,7 @@ paw_sub.$(LTOBJEXT): globalmath.$(LTOBJEXT) gridmod.$(LTOBJEXT)
 pkginfo.$(LTOBJEXT):
 
 pseudo.$(LTOBJEXT): globalmath.$(LTOBJEXT) atomdata.$(LTOBJEXT) aeatom.$(LTOBJEXT) \
-	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) \
+	excor.$(LTOBJEXT) exx_pseudo.$(LTOBJEXT) hf_pseudo.$(LTOBJEXT) gridmod..$(LTOBJEXT)\
 	numerov_mod.$(LTOBJEXT) paw_sub.$(LTOBJEXT) pseudodata.$(LTOBJEXT) \
 	pseudo_sub.$(LTOBJEXT) radialdirac.$(LTOBJEXT) radialsr.$(LTOBJEXT) \
 	radialked.$(LTOBJEXT) tools_mod.$(LTOBJEXT) input_dataset_mod.$(LTOBJEXT) \

@@ -479,7 +479,8 @@ CONTAINS
     aux=1.d0;auxp=0.d0
     if(needvtau) then
        aux=1.d0+PAW%tvtau
-       call derivative(Grid,PAW%tvtau,auxp)     
+!       call derivative(Grid,PAW%tvtau,auxp)     
+       auxp=PAW%dtvtaudr
     endif
     angm=l*(l+1)
     DO i=2,irc

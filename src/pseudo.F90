@@ -10,7 +10,7 @@
 !        EXPLORElogderiv, Report_PseudobasisRP, phase_unwrap
 !        Check_overlap_of_projectors
 !        smoothcore, smoothtau, smoothexpcore, setttau , calculate_tvtau
-!        resettcore, VPSmatch
+!        resettcore, VPSmatch, Smoothtvtau
 !
 ! 5/2018 phase_unwrap contributed by Casey Brock from Vanderbilt U. 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -27,6 +27,7 @@ MODULE pseudo
   USE aeatom
   USE excor
   USE exx_pseudo
+  USE gridmod 
   USE hf_pseudo
   USE numerov_mod
   USE paw_sub
@@ -331,6 +332,7 @@ CONTAINS
      ENDIF
      !Calculate PAW%vtau and PAW%tvtau     
      CALL calculate_tvtau(Grid)
+     CALL Smoothtvtau(Grid,PAW,0.001d0)
      !Set pseudoptentials     
      IF (Vlocalindex==MTROULLIER.and.(TRIM(Orbit%exctype)/='HF')) then
        !!!WRITE(STD_OUT,*) 'TROULLIER PS not available for MGGA '
@@ -372,153 +374,153 @@ CONTAINS
           endif
        enddo
      END SUBROUTINE StoreTOCCWFN
-!!!##  !***************************************************************
-!!!##  ! SUBROUTINE troullier(lmax,Grid,Pot)
-!!!##  !  Creates  screened norm-conserving pseudopotential following
-!!!##  !    approach of N. Troullier and J. L. Martins, PRB 43, 1993 (1991)
-!!!##  !    Uses p(r)=a0+f(r); f(r)=SUMm(Coef(m)*r^(2*m), where
-!!!##  !          m=1,2..6
-!!!##  !    Psi(r) = r^(l+1)*exp(p(r))
-!!!##  !***************************************************************
-!!!##  SUBROUTINE Troullier(Grid,Pot,PAW,l,e)
-!!!##    TYPE(Gridinfo), INTENT(IN) :: Grid
-!!!##    TYPE(Potentialinfo), INTENT(IN) :: Pot
-!!!##    TYPE(Pseudoinfo), INTENT(INOUT) ::  PAW
-!!!##    INTEGER,INTENT(IN) :: l
-!!!##    REAL(8),INTENT(IN) :: e
-!!!##
-!!!##    REAL(8), ALLOCATABLE :: VNC(:)
-!!!##    REAL(8) :: A0,A,B,B0,C,C0,D,F,S
-!!!##    REAL(8) :: Coef(6),Coef0,Coef0old
-!!!##    REAL(8) :: h,rc,delta,x,pp,dpp,ddpp,dddpp,ddddpp
-!!!##    REAL(8) :: gam,bet
-!!!##    INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
-!!!##    INTEGER, PARAMETER :: niter=5000
-!!!##    REAL(8), PARAMETER :: small=1.0d-9
-!!!##    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),extra1(:),extra2(:)
-!!!##    REAL(8), POINTER :: r(:),rv(:)
-!!!##    CHARACTER(132) :: line
-!!!##
-!!!##    n=Grid%n
-!!!##    h=Grid%h
-!!!##    r=>Grid%r
-!!!##    rv=>Pot%rv
-!!!##    nr=min(PAW%irc_vloc+10,n)
-!!!##    irc=PAW%irc_vloc
-!!!##    rc=PAW%rc_vloc
-!!!##
-!!!##    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),extra1(nr),extra2(nr),stat=ok)
-!!!##    IF (ok /=0) THEN
-!!!##       WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
-!!!##       STOP
-!!!##    ENDIF
-!!!##
-!!!##    !write(std_out,*) ' Troullier ', n,nr,irc
-!!!##    !call flush_unit(std_out)
-!!!##    if (scalarrelativistic) then
-!!!##       CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
-!!!##    else if (needvtau) then
-!!!##       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
-!!!##    else
-!!!##       CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
-!!!##    endif
-!!!##
-!!!##    IF (wfn(irc)<0) wfn=-wfn
-!!!##    dum(1:irc)=(wfn(1:irc)**2)
-!!!##    S=integrator(Grid,dum(1:irc),1,irc)
-!!!##    A0=LOG(wfn(irc)/(rc**(l+1)))
-!!!##    B0=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
-!!!##    C0=rc*(rv(irc)-rc*e)-B0*(B0+2*l+2)
-!!!##    D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B0*C0-2*(l+1)*(C0-B0)
-!!!##    F=rc*(2*rv(irc)-rc*(2*Gfirstderiv(Grid,irc,rv) &
-!!!##&        -rc*Gsecondderiv(Grid,irc,rv)))+&
-!!!##&        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
-!!!##
-!!!##    WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
-!!!##
-!!!##    delta=1.d10
-!!!##    iter=0
-!!!##    Coef0=0
-!!!##
-!!!##    DO WHILE(delta>small.AND.iter<=niter)
-!!!##       iter=iter+1
-!!!##       A=A0-Coef0
-!!!##       B=B0
-!!!##       C=C0
-!!!##       CALL EvaluateTp(l,A,B,C,D,F,coef)
-!!!##
-!!!##       dum=0
-!!!##       DO  i=1,irc
-!!!##          x=(r(i)/rc)**2
-!!!##          p(i)=x*(Coef(1)+x*(Coef(2)+x*(Coef(3)+&
-!!!##&              x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
-!!!##          dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
-!!!##       ENDDO
-!!!##       Coef0old=Coef0
-!!!##
-!!!##       x=integrator(Grid,dum(1:irc),1,irc)
-!!!##       Coef0=(LOG(S/x))/2
-!!!##
-!!!##       delta=ABS(Coef0-Coef0old)
-!!!##       !WRITE(STD_OUT,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
-!!!##    ENDDO
-!!!##
-!!!##    WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
-!!!##    WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
-!!!##    !
-!!!##    ! Now  calculate VNC
-!!!##    extra1=0.d0;extra2=0.d0
-!!!##    if (needvtau) then
-!!!##       aux=0.d0
-!!!##       call derivative(Grid,PAW%tvtau,aux,1,nr)
-!!!##       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1) = ',aux(1)
-!!!##       WRITE(STD_OUT,*) ' Resetting aux(1) to 0 '
-!!!##       aux(1)=0.d0 
-!!!##    endif     
-!!!##    OPEN(88,file='NC',form='formatted')
-!!!##    write(88,*) '# rc = ',r(irc)
-!!!##    !
-!!!##    VNC=0.d0;extra1=0.d0;extra2=0.d0
-!!!##    DO  i=2,nr
-!!!##       x=(r(i)/rc)**2
-!!!##       p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
-!!!##&           x*(Coef(3)+x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
-!!!##       dpp=2*r(i)/(rc**2)*(Coef(1)+x*(2*Coef(2)+x*(3*Coef(3)+&
-!!!##&           x*(4*Coef(4)+x*(5*Coef(5)+x*6*Coef(6))))))
-!!!##       ddpp=(1/(rc**2))*(2*Coef(1)+x*(12*Coef(2)+x*(30*Coef(3)+&
-!!!##&           x*(56*Coef(4)+x*(90*Coef(5)+x*132*Coef(6))))))
-!!!##       dddpp=(r(i)/rc**4)*(24*Coef(2)+x*(120*Coef(3)+x*(336*Coef(4)+&
-!!!##&           x*(720*Coef(5)+x*1320*Coef(6)))))
-!!!##       ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
-!!!##&           x*(5040*Coef(5)+x*11880*Coef(6))))))
-!!!##       IF (i==irc) THEN
-!!!##          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
-!!!##          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
-!!!##          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
-!!!##          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
-!!!##       ENDIF
-!!!##       extra1(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
-!!!##       if (needvtau) then
-!!!##               extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
-!!!##!               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
-!!!##!&                +aux(i)*(dpp+l/r(i))                       
-!!!##                VNC(i)=extra1(i)+extra2(i)
-!!!##       else        
-!!!##!               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
-!!!##                VNC(i)=extra1(i)
-!!!##       endif
-!!!##               dum(i)=(r(i)**(l+1))*EXP(p(i))
-!!!##       WRITE(88,'(1p,7e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i)
-!!!##    ENDDO
-!!!##    CLOSE(88)
-!!!##    x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
-!!!##    WRITE(STD_OUT,*) 'check norm ',x,S
-!!!##
-!!!##    VNC(irc:n)=rv(irc:n)/r(irc:n)
-!!!##    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
-!!!##
-!!!##    DEALLOCATE(VNC,wfn,p,dum,aux)
-!!!##  END SUBROUTINE troullier
+!!!!##  !***************************************************************
+!!!!##  ! SUBROUTINE troullier(lmax,Grid,Pot)
+!!!!##  !  Creates  screened norm-conserving pseudopotential following
+!!!!##  !    approach of N. Troullier and J. L. Martins, PRB 43, 1993 (1991)
+!!!!##  !    Uses p(r)=a0+f(r); f(r)=SUMm(Coef(m)*r^(2*m), where
+!!!!##  !          m=1,2..6
+!!!!##  !    Psi(r) = r^(l+1)*exp(p(r))
+!!!!##  !***************************************************************
+!!!!##  SUBROUTINE Troullier(Grid,Pot,PAW,l,e)
+!!!!##    TYPE(Gridinfo), INTENT(IN) :: Grid
+!!!!##    TYPE(Potentialinfo), INTENT(IN) :: Pot
+!!!!##    TYPE(Pseudoinfo), INTENT(INOUT) ::  PAW
+!!!!##    INTEGER,INTENT(IN) :: l
+!!!!##    REAL(8),INTENT(IN) :: e
+!!!!##
+!!!!##    REAL(8), ALLOCATABLE :: VNC(:)
+!!!!##    REAL(8) :: A0,A,B,B0,C,C0,D,F,S
+!!!!##    REAL(8) :: Coef(6),Coef0,Coef0old
+!!!!##    REAL(8) :: h,rc,delta,x,pp,dpp,ddpp,dddpp,ddddpp
+!!!!##    REAL(8) :: gam,bet
+!!!!##    INTEGER :: i,j,k,n,iter,nr,nodes,irc,ok,m,wavetype
+!!!!##    INTEGER, PARAMETER :: niter=5000
+!!!!##    REAL(8), PARAMETER :: small=1.0d-9
+!!!!##    REAL(8), ALLOCATABLE ::  wfn(:),p(:),dum(:),aux(:),extra1(:),extra2(:)
+!!!!##    REAL(8), POINTER :: r(:),rv(:)
+!!!!##    CHARACTER(132) :: line
+!!!!##
+!!!!##    n=Grid%n
+!!!!##    h=Grid%h
+!!!!##    r=>Grid%r
+!!!!##    rv=>Pot%rv
+!!!!##    nr=min(PAW%irc_vloc+10,n)
+!!!!##    irc=PAW%irc_vloc
+!!!!##    rc=PAW%rc_vloc
+!!!!##
+!!!!##    ALLOCATE(VNC(n),wfn(nr),p(nr),dum(nr),aux(nr),extra1(nr),extra2(nr),stat=ok)
+!!!!##    IF (ok /=0) THEN
+!!!!##       WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
+!!!!##       STOP
+!!!!##    ENDIF
+!!!!##
+!!!!##    !write(std_out,*) ' Troullier ', n,nr,irc
+!!!!##    !call flush_unit(std_out)
+!!!!##    if (scalarrelativistic) then
+!!!!##       CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
+!!!!##    else if (needvtau) then
+!!!!##       CALL unboundked(Grid,Pot,nr,l,e,wfn,nodes)
+!!!!##    else
+!!!!##       CALL unboundsch(Grid,Pot%rv,Pot%v0,Pot%v0p,nr,l,e,wfn,nodes)
+!!!!##    endif
+!!!!##
+!!!!##    IF (wfn(irc)<0) wfn=-wfn
+!!!!##    dum(1:irc)=(wfn(1:irc)**2)
+!!!!##    S=integrator(Grid,dum(1:irc),1,irc)
+!!!!##    A0=LOG(wfn(irc)/(rc**(l+1)))
+!!!!##    B0=(rc*Gfirstderiv(Grid,irc,wfn)/wfn(irc)-(l+1))
+!!!!##    C0=rc*(rv(irc)-rc*e)-B0*(B0+2*l+2)
+!!!!##    D=-rc*(rv(irc)-rc*Gfirstderiv(Grid,irc,rv))-2*B0*C0-2*(l+1)*(C0-B0)
+!!!!##    F=rc*(2*rv(irc)-rc*(2*Gfirstderiv(Grid,irc,rv) &
+!!!!##&        -rc*Gsecondderiv(Grid,irc,rv)))+&
+!!!!##&        4*(l+1)*(C0-B0)-2*(l+1)*D-2*C0**2-2*B0*D
+!!!!##
+!!!!##    WRITE(STD_OUT,*) 'In troullier -- matching parameters',S,A0,B0,C0,D,F
+!!!!##
+!!!!##    delta=1.d10
+!!!!##    iter=0
+!!!!##    Coef0=0
+!!!!##
+!!!!##    DO WHILE(delta>small.AND.iter<=niter)
+!!!!##       iter=iter+1
+!!!!##       A=A0-Coef0
+!!!!##       B=B0
+!!!!##       C=C0
+!!!!##       CALL EvaluateTp(l,A,B,C,D,F,coef)
+!!!!##
+!!!!##       dum=0
+!!!!##       DO  i=1,irc
+!!!!##          x=(r(i)/rc)**2
+!!!!##          p(i)=x*(Coef(1)+x*(Coef(2)+x*(Coef(3)+&
+!!!!##&              x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+!!!!##          dum(i)=((r(i)**(l+1))*EXP(p(i)))**2
+!!!!##       ENDDO
+!!!!##       Coef0old=Coef0
+!!!!##
+!!!!##       x=integrator(Grid,dum(1:irc),1,irc)
+!!!!##       Coef0=(LOG(S/x))/2
+!!!!##
+!!!!##       delta=ABS(Coef0-Coef0old)
+!!!!##       !WRITE(STD_OUT,'(" VNC: iter Coef0 delta",i5,1p,2e15.7)') iter,Coef0,delta
+!!!!##    ENDDO
+!!!!##
+!!!!##    WRITE(STD_OUT,*) '  VNC converged in ', iter,'  iterations'
+!!!!##    WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:6)
+!!!!##    !
+!!!!##    ! Now  calculate VNC
+!!!!##    extra1=0.d0;extra2=0.d0
+!!!!##    if (needvtau) then
+!!!!##       aux=0.d0
+!!!!##       call derivative(Grid,PAW%tvtau,aux,1,nr)
+!!!!##       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1) = ',aux(1)
+!!!!##       WRITE(STD_OUT,*) ' Resetting aux(1) to 0 '
+!!!!##       aux(1)=0.d0 
+!!!!##    endif     
+!!!!##    OPEN(88,file='NC',form='formatted')
+!!!!##    write(88,*) '# rc = ',r(irc)
+!!!!##    !
+!!!!##    VNC=0.d0;extra1=0.d0;extra2=0.d0
+!!!!##    DO  i=2,nr
+!!!!##       x=(r(i)/rc)**2
+!!!!##       p(i)=Coef0+x*(Coef(1)+x*(Coef(2)+&
+!!!!##&           x*(Coef(3)+x*(Coef(4)+x*(Coef(5)+x*Coef(6))))))
+!!!!##       dpp=2*r(i)/(rc**2)*(Coef(1)+x*(2*Coef(2)+x*(3*Coef(3)+&
+!!!!##&           x*(4*Coef(4)+x*(5*Coef(5)+x*6*Coef(6))))))
+!!!!##       ddpp=(1/(rc**2))*(2*Coef(1)+x*(12*Coef(2)+x*(30*Coef(3)+&
+!!!!##&           x*(56*Coef(4)+x*(90*Coef(5)+x*132*Coef(6))))))
+!!!!##       dddpp=(r(i)/rc**4)*(24*Coef(2)+x*(120*Coef(3)+x*(336*Coef(4)+&
+!!!!##&           x*(720*Coef(5)+x*1320*Coef(6)))))
+!!!!##       ddddpp=(1/(rc**4)*(24*Coef(2)+x*(360*Coef(3)+x*(1680*Coef(4)+&
+!!!!##&           x*(5040*Coef(5)+x*11880*Coef(6))))))
+!!!!##       IF (i==irc) THEN
+!!!!##          WRITE(STD_OUT,*) 'check  dp ', dpp,  B0/rc
+!!!!##          WRITE(STD_OUT,*) 'check ddp ', ddpp, C0/rc**2
+!!!!##          WRITE(STD_OUT,*) 'check dddp', dddpp, D/rc**3
+!!!!##          WRITE(STD_OUT,*) 'check ddddp', ddddpp, F/rc**4
+!!!!##       ENDIF
+!!!!##       extra1(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+!!!!##       if (needvtau) then
+!!!!##               extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
+!!!!##!               VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
+!!!!##!&                +aux(i)*(dpp+l/r(i))                       
+!!!!##                VNC(i)=extra1(i)+extra2(i)
+!!!!##       else        
+!!!!##!               VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
+!!!!##                VNC(i)=extra1(i)
+!!!!##       endif
+!!!!##               dum(i)=(r(i)**(l+1))*EXP(p(i))
+!!!!##       WRITE(88,'(1p,7e15.7)') r(i),wfn(i),dum(i),VNC(i)*r(i),rv(i),extra1(i)*r(i),extra2(i)*r(i)
+!!!!##    ENDDO
+!!!!##    CLOSE(88)
+!!!!##    x=overlap(Grid,dum(1:irc),dum(1:irc),1,irc)
+!!!!##    WRITE(STD_OUT,*) 'check norm ',x,S
+!!!!##
+!!!!##    VNC(irc:n)=rv(irc:n)/r(irc:n)
+!!!!##    PAW%rveff(1:n)=VNC(1:n)*r(1:n)
+!!!!##
+!!!!##    DEALLOCATE(VNC,wfn,p,dum,aux)
+!!!!##  END SUBROUTINE troullier
 
   !***************************************************************
   ! SUBROUTINE troullier(lmax,Grid,Pot)
@@ -528,7 +530,6 @@ CONTAINS
   !          m=1,2..6
   !    Psi(r) = r^(l+1)*exp(p(r))
   !    modified 10/12/2023 by NAWH to accomodate possible metaGGA
-  !    Further modified to set dtvtau(r)/dr for 10 grid points at origin
   !***************************************************************
   SUBROUTINE Troullier(Grid,Pot,PAW,l,e)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -635,18 +636,18 @@ CONTAINS
     !
     ! Now  calculate VNC
     extra1=0.d0;extra2=0.d0;extra3=0.d0
-    if (needvtau) then
-       aux=0.d0
-       call derivative(Grid,PAW%tvtau,aux,1,nr)
-       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1:10) = ',aux(1:10)
-       WRITE(STD_OUT,*) ' Resetting aux(1:10) to 0 '
-       aux(1:10)=0.d0 
-       Kaux=0.d0
-       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
-       WRITE(STD_OUT,*) 'In subroutine Troullier -- Kaux(1:10) = ',Kaux(1:10)
-       WRITE(STD_OUT,*) ' Resetting Kaux(1:10) to 0 '
-       Kaux(1:10)=0.d0 
-    endif     
+    !##    if (needvtau) then
+    !##       aux=0.d0
+    !##       call derivative(Grid,PAW%tvtau,aux,1,nr)
+    !##       WRITE(STD_OUT,*) 'In subroutine Troullier -- aux(1:10) = ',aux(1:10)
+    !##       WRITE(STD_OUT,*) ' Resetting aux(1:10) to 0 '
+    !##       aux(1:10)=0.d0 
+    !##       Kaux=0.d0
+    !##       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+    !##       WRITE(STD_OUT,*) 'In subroutine Troullier -- Kaux(1:10) = ',Kaux(1:10)
+    !##       WRITE(STD_OUT,*) ' Resetting Kaux(1:10) to 0 '
+    !##       Kaux(1:10)=0.d0 
+    !##    endif     
     OPEN(88,file='NC',form='formatted')
     write(88,*) '# rc = ',r(irc)
     write(88,*) 'r    wfn    dum    VNC*r    rv    extra1*r    extra2*r    extra3*r   '
@@ -672,8 +673,8 @@ CONTAINS
        ENDIF
        extra1(i)=ddpp+dpp*(dpp+2*(l+1)/r(i))
        if (needvtau) then
-               extra2(i)=PAW%tvtau(i)*extra1(i)+aux(i)*(dpp+l/r(i))
-               extra3(i)=(1.d0+PAW%Ktvtau(i))*extra1(i)+Kaux(i)*(dpp+l/r(i))  !  Kresse form
+               extra2(i)=PAW%tvtau(i)*extra1(i)+PAW%dtvtaudr(i)*(dpp+l/r(i))
+               extra3(i)=(1.d0+PAW%Ktvtau(i))*extra1(i)+PAW%Kdtvtaudr(i)*(dpp+l/r(i))  !  Kresse form
                 VNC(i)=e+extra1(i)+extra2(i)   ! Bloechl form
        else        
                 VNC(i)=e+extra1(i)
@@ -1035,12 +1036,12 @@ CONTAINS
       WRITE(STD_OUT,*) '  Coefficients  -- ', Coef0,Coef(1:4)
       !
       ! Now  calculate VNC
-    if (needvtau) then
-       aux=0.d0
-       call derivative(Grid,PAW%tvtau,aux,1,nr)
-       write(std_out,*) ' In Kerker -- aux ', aux(1:10)
-       aux(1:10)=0.d0
-    endif     
+      !##    if (needvtau) then
+      !##aux=0.d0
+      !##call derivative(Grid,PAW%tvtau,aux,1,nr)
+      !##write(std_out,*) ' In Kerker -- aux ', aux(1:10)
+      !##aux(1:10)=0.d0
+      !##endif     
       OPEN(88,file='NC',form='formatted')
       !
       VNC=0
@@ -1066,7 +1067,7 @@ CONTAINS
          IF (wavetype==EXPF) THEN
            if (needvtau) then
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+dpp*(dpp+2*(l+1)/r(i))) &
-&                +aux(i)*(dpp+l/r(i))                       
+&                +PAW%dtvtaudr(i)*(dpp+l/r(i))                       
            else        
                VNC(i)=e+ddpp+dpp*(dpp+2*(l+1)/r(i))
            endif
@@ -1075,7 +1076,7 @@ CONTAINS
          IF (wavetype==POLY) THEN
            if (needvtau) then
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddpp+2*(l+1)*dpp/r(i))/p(i) &
-&                +aux(i)*(dpp/p(i)+l/r(i))                       
+&                ++PAW%dtvtaudr(i)*(dpp/p(i)+l/r(i))                       
            else        
                VNC(i)=e+(ddpp+2*(l+1)*dpp/r(i))/p(i)
            endif
@@ -1105,7 +1106,6 @@ CONTAINS
   !      defaults to no norm conservation
   !  Note this program assumes that wfn keeps the same sign for
   !    all matching points r(irc-match+1)....r(irc)
-  !   Modified 10/18/2023 by NAWH to ensure zero slope for tvtau near r=0
   !***************************************************************
   SUBROUTINE VPSmatch(Grid,Pot,PAW,l,e,NC)
     TYPE(Gridinfo), INTENT(IN) :: Grid
@@ -1179,18 +1179,18 @@ CONTAINS
     write(std_out,*) 'Returned from SolveAXeqB in VPSmatch with Coefficients '
     write(std_out,'(1p,50e16.7)') (BBB(i),i=1,match)
     ! Now  calculate VNC
-    if (needvtau) then
-       aux=0.d0
-       call derivative(Grid,PAW%tvtau,aux,1,nr)
-       Kaux=0.d0
-       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)   ! Kresse form
-
-       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
-       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
-       write(std_out,*) 'reset to zero'
-       aux(1:10)=0.d0; Kaux(1:10)=0.d0
-
-    endif     
+    !##    if (needvtau) then
+    !##aux=0.d0
+    !##call derivative(Grid,PAW%tvtau,aux,1,nr)
+    !##Kaux=0.d0
+    !##call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)   ! Kresse form
+    !##
+    !##write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+    !##write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+    !##write(std_out,*) 'reset to zero'
+    !##aux(1:10)=0.d0; Kaux(1:10)=0.d0
+    !##
+    !##endif     
     OPEN(88,file='NNC',form='formatted')
     !
     VNC=0;p=0;dp=0;ddp=0;dum=0
@@ -1203,10 +1203,10 @@ CONTAINS
        if (needvtau) then
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
-&                +aux(i)*(dp(i)+l/r(i))                       
+&                +PAW%dtvtaudr(i)*(dp(i)+l/r(i))                       
                v(i)=e+(1.d0+PAW%Ktvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
-&                +Kaux(i)*(dp(i)+l/r(i))                       
+&                +PAW%Kdtvtaudr(i)*(dp(i)+l/r(i))                       
        else        
                VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
                v(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
@@ -1274,18 +1274,18 @@ CONTAINS
     WRITE(std_out,*) '  Coefficients  -- ', Coef0,BBBB(1:match-1)
     !
     ! Now  calculate VNC
-    if (needvtau) then
-       aux=0.d0
-       call derivative(Grid,PAW%tvtau,aux,1,nr)
-       Kaux=0.d0
-       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
-
-       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
-       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
-       write(std_out,*) 'reset to zero'
-       aux(1:10)=0.d0; Kaux(1:10)=0.d0
-
-    endif     
+    !##    if (needvtau) then
+    !##aux=0.d0
+    !##call derivative(Grid,PAW%tvtau,aux,1,nr)
+    !##Kaux=0.d0
+    !##call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+    !##
+    !##write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+    !##write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+    !##write(std_out,*) 'reset to zero'
+    !##aux(1:10)=0.d0; Kaux(1:10)=0.d0
+    !##
+    !##endif     
     OPEN(88,file='NC',form='formatted')
     !
     VNC=0;p=0;dp=0;ddp=0;v=0
@@ -1298,10 +1298,10 @@ CONTAINS
        if (needvtau) then
                VNC(i)=e+(1.d0+PAW%tvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
-&                +aux(i)*(dp(i)+l/r(i))                       
+&                +PAW%dtvtaudr(i)*(dp(i)+l/r(i))                       
                v(i)=e+(1.d0+PAW%Ktvtau(i))*(ddp(i)+ &
 &                dp(i)*(dp(i)+2*(l+1)/r(i))) &
-&                +Kaux(i)*(dp(i)+l/r(i))                       
+&                +PAW%Kdtvtaudr(i)*(dp(i)+l/r(i))                       
        else        
                VNC(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
                v(i)=e+ddp(i)+dp(i)*(dp(i)+2*(l+1)/r(i))
@@ -1418,18 +1418,18 @@ CONTAINS
     !write(std_out,*) 'Completed linsol with coefficients'
     !write(std_out,'(1p,10e15.7)') (b(i),i=1,4)
 
-    if (needvtau) then
-       aux=0.d0
-       call derivative(Grid,PAW%tvtau,aux,1,nr)
-       Kaux=0.d0
-       call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
-
-       write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
-       write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
-       write(std_out,*) 'reset to zero'
-       aux(1:10)=0.d0; Kaux(1:10)=0.d0
-
-    endif     
+    !##    if (needvtau) then
+    !##  aux=0.d0
+    !##  call derivative(Grid,PAW%tvtau,aux,1,nr)
+    !##  Kaux=0.d0
+    !##  call derivative(Grid,PAW%Ktvtau,Kaux,1,nr)
+    !##
+    !##  write(std_out,*) 'tvtau slope near origin -- Bloechl  ',aux(1:10) 
+    !##  write(std_out,*) 'tvtau slope near origin -- Kresse  ',Kaux(1:10) 
+    !##  write(std_out,*) 'reset to zero'
+    !##  aux(1:10)=0.d0; Kaux(1:10)=0.d0
+    !##
+    !##endif     
 
     PAW%rveff(1)=0.d0
     DO i=2,irc-1
@@ -1437,9 +1437,9 @@ CONTAINS
      c(2)=2.0d0*b(2)     +12.0d0*b(3)*r(i)**2+30.0d0*b(4)*r(i)**4
      if (needvtau) then
         PAW%rveff(i)=r(i)*(e+(dble(2*l+2)*c(1)/r(i)+c(1)**2+&
-&           c(2))*(1.d0+PAW%tvtau(i))+aux(i)*(c(1)+dble(l)/r(i)))
+&           c(2))*(1.d0+PAW%tvtau(i))++PAW%dtvtaudr(i)*(c(1)+dble(l)/r(i)))
         PAW%Krveff(i)=r(i)*(e+(dble(2*l+2)*c(1)/r(i)+c(1)**2+&
-&           c(2))*(1.d0+PAW%Ktvtau(i))+Kaux(i)*(c(1)+dble(l)/r(i)))
+&           c(2))*(1.d0+PAW%Ktvtau(i))++PAW%Kdtvtaudr(i)*(c(1)+dble(l)/r(i)))
      else        
         PAW%rveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
         PAW%Krveff(i)=r(i)*(e+dble(2*l+2)*c(1)/r(i)+c(1)**2+c(2))
@@ -3183,6 +3183,88 @@ End subroutine resettcore
   END SUBROUTINE calculate_tvtau
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  Smoothtvtau(Grid,PAW,range)
+!      In the range  of radii  0 .. range,
+!       consistently modify PAW%tvtau and PAW%Ktvtau to quadradic form
+!         so that derivatives  PAW%dtvtaudr and PAW%Kdtvtaudr are well behaved
+!         Call after calculate_tvtau
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  SUBROUTINE Smoothtvtau(Grid,PAW,range)
+    TYPE(GridInfo), INTENT(IN) :: Grid
+    TYPE(PseudoInfo), INTENT(INOUT) :: PAW
+    REAL(8) , INTENT(IN) :: range
+
+    INTEGER :: i,j,k,l,nrin
+    REAL(8), allocatable :: original(:),aux(:),Koriginal(:),Kaux(:)
+    REAL(8), allocatable :: Ktvxc(:),Kd(:)
+    REAL(8) :: fac,exc,texc,sum,tsum,rr,one,two,diff,Kdiff,ddiff,Kddiff,r1,r2,r3,r4,r5
+    REAL(8), parameter :: small=1.d-5
+
+    allocate(original(Grid%n),aux(Grid%n),Koriginal(Grid%n),Kaux(Grid%n))
+
+    j=0
+    do i=1,Grid%n
+       if (Grid%r(i)>range) exit
+       j=j+1
+    enddo
+    nrin=j
+     write(std_out,*) 'in smoothtvtau --  range, Grid%r(nrin) ' , nrin,  range, Grid%r(nrin)
+     r1=(Grid%r(nrin-2)/range)**2
+     r2=(Grid%r(nrin-1)/range)**2
+     r3=(Grid%r(nrin)/range)**2
+     r4=(Grid%r(nrin+1)/range)**2
+     r5=(Grid%r(nrin+2)/range)**2
+     one=(PAW%tvtau(1)+PAW%tvtau(2)+PAW%tvtau(3)+PAW%tvtau(4)+PAW%tvtau(5))/5
+     two=(PAW%tvtau(nrin-2)-one)/r1
+     two=two+(PAW%tvtau(nrin-1)-one)/r2
+     two=two+(PAW%tvtau(nrin)-one)/r3
+     two=two+(PAW%tvtau(nrin+1)-one)/r4
+     two=two+(PAW%tvtau(nrin+2)-one)/r5
+     two=two/5
+     write(std_out,*) 'in smoothtvtau --  tvtau -- one two  ', one,two
+     original(:)=PAW%tvtau(:)
+     call derivative(Grid,PAW%tvtau,aux)
+     PAW%dtvtaudr(:)=aux(:)
+     diff=0.d0; ddiff=0.d0
+     do i=1,nrin
+        PAW%tvtau(i)=one+two*(Grid%r(i)/range)**2
+        diff=diff+(PAW%tvtau(i)-original(i))**2
+        PAW%dtvtaudr(i)=2*two*(Grid%r(i)/range**2)
+        ddiff=ddiff+(PAW%dtvtaudr(i)-aux(i))**2
+     enddo
+     write(std_out,*) 'in smoothtvtau --  tvtau -- diff  ddiff ', diff,ddiff
+     one=(PAW%Ktvtau(1)+PAW%Ktvtau(2)+PAW%Ktvtau(3)+PAW%Ktvtau(4)+PAW%Ktvtau(5))/5
+     two=(PAW%Ktvtau(nrin-2)-one)/r1
+     two=two+(PAW%Ktvtau(nrin-1)-one)/r2
+     two=two+(PAW%Ktvtau(nrin)-one)/r3
+     two=two+(PAW%Ktvtau(nrin+1)-one)/r4
+     two=two+(PAW%Ktvtau(nrin+2)-one)/r5
+     two=two/5
+     write(std_out,*) 'in smoothtvtau --  Ktvtau -- one two  ', one,two
+     Koriginal(:)=PAW%Ktvtau(:)
+     call derivative(Grid,PAW%Ktvtau,Kaux)
+     PAW%Kdtvtaudr(:)=Kaux(:)
+     Kdiff=0.d0; Kddiff=0.d0
+     do i=1,nrin
+        PAW%Ktvtau(i)=one+two*(Grid%r(i)/range)**2
+        Kdiff=Kdiff+(PAW%Ktvtau(i)-Koriginal(i))**2
+        PAW%Kdtvtaudr(i)=2*two*(Grid%r(i)/range**2)
+        Kddiff=Kddiff+(PAW%Kdtvtaudr(i)-Kaux(i))**2
+     enddo
+     write(std_out,*) 'in smoothtvtau --  Ktvtau -- Kdiff  Kddiff ', Kdiff,Kddiff
+
+     open(1000,file='checktvtau',form='formatted')
+     write(1000,*) 'r        tvtau      original       dtvtaudr       aux '
+     do i=1,nrin+1
+        write(1000,'(1p,9e15.7)') Grid%r(i),PAW%tvtau(i),original(i),PAW%dtvtaudr(i),aux(i) &
+&             ,PAW%Ktvtau(i),Koriginal(i),PAW%Kdtvtaudr(i),Kaux(i)
+     enddo
+     close(1000)
+
+    deallocate(original,aux,Koriginal,Kaux)
+
+  END SUBROUTINE Smoothtvtau
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! makeprojectors_vtau
 !     Designed for MGGA case
 !     Needs PAW%rveff, PAW%tphi
@@ -3215,7 +3297,7 @@ End subroutine resettcore
     if (i/=0) stop 'allocation error in make_modrrkj'
     VNC(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,VNC)
-    call derivative(Grid,PAW%tvtau,aux)
+    !#call derivative(Grid,PAW%tvtau,aux)
  
     write(std_out,*) 'In program makeprojectors_vtau '; call flush_unit(std_out)
 ! Form unorthogonalized projectors
@@ -3230,7 +3312,7 @@ End subroutine resettcore
        call extrapolate(Grid,d)
        call extrapolate(Grid,dd)
        PAW%tp(:,io)=(PAW%eig(io)-VNC(:))*f(:)+&
-&                 (1.d0+PAW%tvtau(:))*dd(:)+aux(:)*d(:)
+&                 (1.d0+PAW%tvtau(:))*dd(:)+PAW%dtvtaudr(:)*d(:)
 !       do i=1,n
 !          write(100+io,'(1p,50e16.7)') Grid%r(i),f(i),d(i),dd(i),PAW%tp(i,io)
 !       enddo   

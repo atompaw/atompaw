@@ -28,8 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 7/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
+!--- Version ${PACKAGE_VERSION} - 01/2024 - MT &  NH several MGGA bug fixes
 EOF
+#!--- Version ${PACKAGE_VERSION} - 7/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
 #!--- Version ${PACKAGE_VERSION} - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
 #!--- Version ${PACKAGE_VERSION} - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1
 #!--- Version ${PACKAGE_VERSION} - 05/2022 - correction for intel compatibility thanks to JZ and NH added some self-consistency corrections

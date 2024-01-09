@@ -3199,8 +3199,12 @@ End subroutine resettcore
     REAL(8), allocatable :: Ktvxc(:),Kd(:)
     REAL(8) :: fac,exc,texc,sum,tsum,rr,one,two,diff,Kdiff,ddiff,Kddiff,r1,r2,r3,r4,r5
     REAL(8), parameter :: small=1.d-5
+    INTEGER :: times=-1
+    CHARACTER(4) :: stuff
 
     allocate(original(Grid%n),aux(Grid%n),Koriginal(Grid%n),Kaux(Grid%n))
+
+    times=times+1
 
     j=0
     do i=1,Grid%n
@@ -3208,6 +3212,7 @@ End subroutine resettcore
        j=j+1
     enddo
     nrin=j
+     write(std_out,*) 'in smoothetvtau -- times ', times
      write(std_out,*) 'in smoothtvtau --  range, Grid%r(nrin) ' , nrin,  range, Grid%r(nrin)
      r1=(Grid%r(nrin-2)/range)**2
      r2=(Grid%r(nrin-1)/range)**2
@@ -3253,7 +3258,8 @@ End subroutine resettcore
      enddo
      write(std_out,*) 'in smoothtvtau --  Ktvtau -- Kdiff  Kddiff ', Kdiff,Kddiff
 
-     open(1000,file='checktvtau',form='formatted')
+     call mkname(times,stuff)
+     open(1000,file='checktvtau'//TRIM(stuff),form='formatted')
      write(1000,*) 'r        tvtau      original       dtvtaudr       aux '
      do i=1,nrin+1
         write(1000,'(1p,9e15.7)') Grid%r(i),PAW%tvtau(i),original(i),PAW%dtvtaudr(i),aux(i) &
@@ -5027,6 +5033,18 @@ End subroutine resettcore
 &        v(i),vv(i),PAW%Kunscreen(i),vthat(i),PAW%Ktvtau(i)
      enddo
      close(123)     
+
+     write(std_out,*) 'Resmoothing tvtau and Ktvtau'
+     PAW%tvtau=vt
+     PAW%Ktvtau=vthat
+     Call Smoothtvtau(Grid,PAW,0.001d0)
+      open(123,file='Resmoothvtau.dat',form='formatted')
+      write(123,*)'#r    Blochl       Blochlsmooth         Kresse     Kressesmooth'
+      do i=1,n
+        write(123,'(1p,8e16.7)') r(i),vt(i),PAW%tvtau(i),vthat(i),PAW%Ktvtau(i)
+      enddo
+      close(123)     
+
       deallocate(v,vv)
       deallocate(d,dv,dvx,vt,vthat)
 

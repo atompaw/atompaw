@@ -1066,7 +1066,7 @@ Module ABINITInterface
  endif
 
 !--Check (pseudo-core + nhat) density is positive 
- if (.not.PAW%poscorenhat) then 
+ if (pshead%vlocopt==1.and..not.PAW%poscorenhat) then 
   write(std_out,'(/,2x,a)') 'Detected negative values for pseudo core + nhat'
   write(std_out,'(2x,a)')   '  which is incompatible with usexcnhat.'
   write(std_out,'(2x,a)')   'Please try reducing rc_core.'

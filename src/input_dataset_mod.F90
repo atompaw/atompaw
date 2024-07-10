@@ -238,9 +238,8 @@ CONTAINS
  INTEGER :: ispline,isplr0,isplns
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
- CHARACTER(200) :: inputline,inputword
- !CHARACTER(128) :: exchangecorrelationandgridline
- CHARACTER(256) :: exchangecorrelationandgridline
+ CHARACTER(300) :: inputline,inputword
+ CHARACTER(300) :: exchangecorrelationandgridline
  CHARACTER(1) :: CHR
  REAL(8) :: x1,x2
  INTEGER :: basis_add_l(nbasis_add_max)

@@ -54,6 +54,8 @@ module libxc_mod
  integer,public,save :: XC_FLAGS_HAVE_KXC        =  8
  integer,public,save :: XC_FLAGS_HAVE_LXC        = 16
  integer,public,save :: XC_FLAGS_NEEDS_LAPLACIAN = 32768
+ integer,public,save :: XC_FLAGS_NEEDS_TAU       = 65536
+ integer,public,save :: XC_FLAGS_ENFORCE_FHC     = 131072
  integer,public,save :: XC_EXCHANGE              =  0
  integer,public,save :: XC_CORRELATION           =  1
  integer,public,save :: XC_EXCHANGE_CORRELATION  =  2
@@ -77,6 +79,7 @@ module libxc_mod
  public :: libxc_islda             ! Return TRUE if the XC functional is LDA
  public :: libxc_isgga             ! Return TRUE if the XC functional is GGA
  public :: libxc_ismgga            ! Return TRUE if the XC functional is MGGA
+ public :: libxc_needs_tau         ! Return TRUE if the set of XC functional(s) uses KINETIC EN. DENSITY
  public :: libxc_needs_laplacian   ! Return TRUE if functional uses LAPLACIAN
  public :: libxc_ishybrid          ! Return TRUE if the XC functional is Hybrid
  public :: libxc_is_hybrid_from_id ! Return TRUE if a XC functional is hybrid, from its id
@@ -108,6 +111,7 @@ module libxc_mod
    logical  :: has_vxc         ! TRUE is vxc is available for the functional
    logical  :: has_fxc         ! TRUE is fxc is available for the functional
    logical  :: has_kxc         ! TRUE is kxc is available for the functional
+   logical  :: needs_tau       ! TRUE is functional needs kinetic energy density
    logical  :: needs_laplacian ! TRUE is functional needs laplacian of density
    logical  :: is_hybrid       ! TRUE is functional is a hybrid functional
    real(8) :: hyb_mixing       ! Hybrid functional: mixing factor of Fock contribution (default=0)
@@ -222,6 +226,22 @@ module libxc_mod
  end interface
 
  interface
+   subroutine xc_func_set_sig_threshold(xc_func,sigma_threshold) bind(C)
+     use, intrinsic :: iso_c_binding, only : C_DOUBLE,C_PTR
+     real(C_DOUBLE) :: sigma_threshold
+     type(C_PTR) :: xc_func
+   end subroutine xc_func_set_sig_threshold
+ end interface
+
+ interface
+   subroutine xc_func_set_enforce_fhc(xc_func,on_off) bind(C)
+     use, intrinsic :: iso_c_binding, only : C_INT,C_PTR
+     type(C_PTR) :: xc_func
+     integer(C_INT) :: on_off
+   end subroutine xc_func_set_enforce_fhc
+ end interface
+
+ interface
    integer(C_INT) function xc_func_is_hybrid_from_id(func_id) bind(C)
      use iso_c_binding, only : C_INT
      integer(C_INT),value :: func_id
@@ -248,11 +268,12 @@ module libxc_mod
 
  interface
    subroutine xc_get_flags_constants(xc_cst_flags_have_exc,xc_cst_flags_have_vxc, &
-&   xc_cst_flags_have_fxc,xc_cst_flags_have_kxc, &
-&   xc_cst_flags_have_lxc,xc_cst_flags_needs_laplacian) bind(C)
+&   xc_cst_flags_have_fxc,xc_cst_flags_have_kxc,xc_cst_flags_have_lxc, &
+&   xc_cxt_flags_needs_tau,xc_cxt_flags_needs_lapl,xc_cxt_flags_enforce_fhc) bind(C)
      use iso_c_binding, only : C_INT
      integer(C_INT) :: xc_cst_flags_have_exc,xc_cst_flags_have_vxc,xc_cst_flags_have_fxc, &
-&  xc_cst_flags_have_kxc,xc_cst_flags_have_lxc,xc_cst_flags_needs_laplacian
+&                      xc_cst_flags_have_kxc,xc_cst_flags_have_lxc, &
+&                      xc_cxt_flags_needs_tau,xc_cxt_flags_needs_lapl,xc_cxt_flags_enforce_fhc
    end subroutine xc_get_flags_constants
  end interface
 
@@ -542,20 +563,22 @@ end function libxc_getid_fromName
 !! INPUTS
 !!  id(2)= libXC id(s) a XC functional
 !!  nsp=number of spin components
+!!  [enforce_fhc]=optional flag controlling the enforcement of Fermi Hole Curvature (mGGA only)
 !!
 !!=================================================================
- subroutine libxc_init_func(id,nsp)
+ subroutine libxc_init_func(id,nsp,enforce_fhc)
 
  implicit none
  integer,intent(in)  :: id(2)
  integer,intent(in) :: nsp
+ logical,intent(in),optional :: enforce_fhc
 
 !---- Local variables
  integer :: ii
  type(libxc_functional_t),pointer :: xc_func
 #if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
  integer :: flags
- integer(C_INT) :: func_id_c,npar_c,nspin_c,success_c
+ integer(C_INT) :: fhc_c,func_id_c,npar_c,nspin_c,success_c
  real(C_DOUBLE) :: alpha_c,beta_c,omega_c
  real(C_DOUBLE) :: param_c(3)
  character(kind=C_CHAR,len=1),pointer :: strg_c
@@ -582,6 +605,7 @@ end function libxc_getid_fromName
    xc_func%has_vxc=.false.
    xc_func%has_fxc=.false.
    xc_func%has_kxc=.false.
+   xc_func%needs_tau=.false.
    xc_func%needs_laplacian=.false.
    xc_func%is_hybrid=.false.
    xc_func%hyb_mixing=0.d0
@@ -636,9 +660,17 @@ end function libxc_getid_fromName
    xc_func%has_vxc=(iand(flags,XC_FLAGS_HAVE_VXC)>0)
    xc_func%has_fxc=(iand(flags,XC_FLAGS_HAVE_FXC)>0)
    xc_func%has_kxc=(iand(flags,XC_FLAGS_HAVE_KXC)>0)
-   xc_func%needs_laplacian=(iand(flags,XC_FLAGS_NEEDS_LAPLACIAN)>0)
 
-    !write(std_out,*) 'xc_func%needs_laplacian ', ii,xc_func%needs_laplacian
+!  Retrieve/set parameters for metaGGA functionals
+   if (xc_func%family==XC_FAMILY_MGGA.or. &
+&      xc_func%family==XC_FAMILY_HYB_MGGA) then
+     xc_func%needs_tau=.true.;xc_func%needs_laplacian=.false.
+     if (XC_FLAGS_NEEDS_TAU>0) xc_func%needs_tau=(iand(flags,XC_FLAGS_NEEDS_TAU)>0)
+     if (XC_FLAGS_NEEDS_LAPLACIAN>0) xc_func%needs_laplacian=(iand(flags,XC_FLAGS_NEEDS_LAPLACIAN)>0)
+     fhc_c=int(0,kind=C_INT) ; if (present(enforce_fhc)) fhc_c=merge(int(1,kind=C_INT),int(0,kind=C_INT),enforce_fhc)
+     call xc_func_set_enforce_fhc(xc_func%conf,fhc_c)
+   end if
+
 !  Retrieve parameters for hybrid functionals
    xc_func%is_hybrid=(xc_func_is_hybrid_from_id(xc_func%id)==1)
    if (xc_func%is_hybrid) then
@@ -693,6 +725,7 @@ end function libxc_getid_fromName
    xc_func%has_vxc=.false.
    xc_func%has_fxc=.false.
    xc_func%has_kxc=.false.
+   xc_func%needs_tau=.false.
    xc_func%needs_laplacian=.false.
    xc_func%is_hybrid=.false.
    xc_func%hyb_mixing=0.d0
@@ -889,6 +922,35 @@ end function libxc_family_from_id
 
 
 !!=================================================================
+!! NAME
+!!  libxc_needs_tau
+!!
+!! FUNCTION
+!!  Return TRUE is LibXC functional needs kinetic energy density as input (mGGA)
+!!
+!!=================================================================
+ function libxc_needs_tau()
+
+ implicit none
+ logical :: libxc_needs_tau
+
+!------------------------------------------------------------------
+!---- Executable code
+
+ libxc_needs_tau = .false.
+ libxc_needs_tau = (any(libxc_funcs(:)%needs_tau))
+
+ end function libxc_needs_tau
+
+
+!!=================================================================
+!! NAME
+!!  libxc_needs_laplacian
+!!
+!! FUNCTION
+!!  Return TRUE is LibXC functional needs Laplacian as input (mGGA)
+!!
+!!=================================================================
  function libxc_needs_laplacian()
 
  implicit none
@@ -898,11 +960,7 @@ end function libxc_family_from_id
 !---- Executable code
 
  libxc_needs_laplacian = .false.
-
  libxc_needs_laplacian = (any(libxc_funcs(:)%needs_laplacian))
-
- !write(std_out,*) 'in libxc_needs_laplacian ', libxc_funcs(:)%needs_laplacian
- !write(std_out,*)  'libxc_needs_laplacian = ',libxc_needs_laplacian
 
  end function libxc_needs_laplacian
 
@@ -1103,7 +1161,7 @@ end function libxc_nspin
  real(8) :: tol  ! set to machine_zero below
 
  integer :: ii,ipts,izero
- logical :: is_lda,is_gga,is_mgga,needs_laplacian
+ logical :: is_lda,is_gga,is_mgga,needs_tau,needs_laplacian
  real(8),target :: exctmp
  real(8),target :: rhotmp(nsp),vxctmp(nsp),sigma(3),vsigma(3)
  real(8),target :: v2rho2(3),v2rhosigma(6),v2sigma2(6)
@@ -1126,7 +1184,8 @@ end function libxc_nspin
  is_lda=libxc_islda()
  is_gga=libxc_isgga()
  is_mgga=libxc_ismgga()
- needs_laplacian=libxc_needs_laplacian()
+ needs_tau=(libxc_needs_tau().and.present(tau))
+ needs_laplacian=(libxc_needs_laplacian().and.present(lrho))
 
 !Why?
  if (nsp==2.and.is_mgga) stop 'spin not available for mGGA!'
@@ -1136,9 +1195,14 @@ end function libxc_nspin
    write(std_out,'(2x,a)')   " GGA called without grho or vxcgr!"
    stop
  end if
+ if(needs_tau.and.(.not.present(tau))) then
+   write(std_out,'(/,2x,a)') "Error in libxc_getvxc:"
+   write(std_out,'(2x,a)')  " getvxc needs kinetic energy density!"
+   stop
+ endif
  if(needs_laplacian.and.(.not.present(lrho))) then
    write(std_out,'(/,2x,a)') "Error in libxc_getvxc:"
-   write(std_out,'(2x,a)')  " getvxc need Laplacian of density!"
+   write(std_out,'(2x,a)')  " getvxc needs Laplacian of density!"
    stop
  endif
 !Need to add more consistency tests
@@ -1233,12 +1297,15 @@ end function libxc_nspin
      if (ipts<=izero) then
          !AtomPAW passes tau (Ry) while LibXC needs tau (Ha)
        if (nsp==1) then
-         tautmp(1)=tau(ipts,1)/2.d0  ! From Ry to Ha units
-         lrhotmp(1)=0.d0
+         tautmp(1)=0.d0 ; lrhotmp(1)=0.d0
+         if (needs_tau) tautmp(1)=tau(ipts,1)/2.d0  ! From Ry to Ha units
          if (needs_laplacian) lrhotmp(1)=lrho(ipts,1)
        else
-         tautmp(1)= tau(ipts,1)/2.d0 ! From Ry to Ha units
-         tautmp(2)= tau(ipts,2)/2.d0 ! From Ry to Ha units
+         tautmp(1:2)=0.d0 ; lrhotmp(1:2)=0.d0
+         if (needs_tau) then
+           tautmp(1)= tau(ipts,1)/2.d0 ! From Ry to Ha units
+           tautmp(2)= tau(ipts,2)/2.d0 ! From Ry to Ha units
+         end if
          if (needs_laplacian) then
             lrhotmp(1)= lrho(ipts,1)
             lrhotmp(2)= lrho(ipts,2)
@@ -1246,7 +1313,7 @@ end function libxc_nspin
        end if
      else
        tautmp=0.d0
-       if (needs_laplacian) lrhotmp=0.d0
+       lrhotmp=0.d0
      end if
    end if
 
@@ -1304,11 +1371,10 @@ end function libxc_nspin
     end if
 
 !   Additional output in case of meta-GGA
-    if (is_mgga.and.present(vxctau)) then
-!!!wrong -- dimensionless      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+2.d0*vtau(1:nsp) ! From Ha to Ry
-     vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+vtau(1:nsp) !no conversion 
+    if (is_mgga.and.needs_tau.and.present(vxctau)) then
+      vxctau(ipts,1:nsp)=vxctau(ipts,1:nsp)+vtau(1:nsp) !no conversion 
     end if
-    if (is_mgga.and.present(vxclrho)) then
+    if (is_mgga.and.needs_laplacian.and.present(vxclrho)) then
       vxclrho(ipts,1:nsp)=vxclrho(ipts,1:nsp)+2.d0*vlrho(1:nsp) ! From Ha to Ry
     end if
 
@@ -1354,13 +1420,15 @@ end function libxc_nspin
   XC_FAMILY_HYB_GGA        = int(i7)
   XC_FAMILY_HYB_MGGA       = int(i8)
   XC_FAMILY_HYB_LDA        = int(i9)
-  call xc_get_flags_constants(i1,i2,i3,i4,i5,i6)
+  call xc_get_flags_constants(i1,i2,i3,i4,i5,i6,i7,i8)
   XC_FLAGS_HAVE_EXC        = int(i1)
   XC_FLAGS_HAVE_VXC        = int(i2)
   XC_FLAGS_HAVE_FXC        = int(i3)
   XC_FLAGS_HAVE_KXC        = int(i4)
   XC_FLAGS_HAVE_LXC        = int(i5)
-  XC_FLAGS_NEEDS_LAPLACIAN = int(i6)
+  XC_FLAGS_NEEDS_TAU       = int(i6)
+  XC_FLAGS_NEEDS_LAPLACIAN = int(i7)
+  XC_FLAGS_ENFORCE_FHC     = int(i8)
   call xc_get_kind_constants(i1,i2,i3,i4)
   XC_EXCHANGE              = int(i1)
   XC_CORRELATION           = int(i2)

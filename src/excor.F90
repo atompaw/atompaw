@@ -74,8 +74,8 @@ CONTAINS
         call libxc_init_func(id,1)
         itype = LIBXC
         WRITE(STD_OUT,*) 'Using Libxc -- ', TRIM(exctype) ; call flush_unit(std_out)
-        if(needvtau.and.(.not.libxc_ismgga())) then
-          WRITE(STD_OUT,*) 'Problem with XC functional choice -- need mgga form for vtau '   
+        if(needvtau.and.(.not.libxc_needs_tau())) then
+          WRITE(STD_OUT,*) 'Problem with XC functional choice -- need KE based mgga form for vtau '   
           WRITE(STD_OUT,*) '    Program stopping '
           stop
         endif    
@@ -573,21 +573,23 @@ CONTAINS
         allocate(tmpl(n),dgxcdl(n),tmpvt(n),dum(n),dum1(n))
         tmpl=0.d0; dgxcdl=0.d0;tmpvt=0.d0;dum=0.d0;dum1=0.d0
         !   Prepare kinetic energy input tau -- used for most mgga
+        if(libxc_needs_tau()) then
+           write(STD_OUT,*) 'Needs tau '; call flush_unit(STD_OUT)
            tmpt(2:n)=tau(2:n)/(fpi*(Grid%r(2:n)**2))
            call extrapolate(Grid,tmpt)
-        !write(std_out,*) 'what is laplacian ',  libxc_needs_laplacian (); call flush_unit(std_out)
+        end if
         if(libxc_needs_laplacian()) then
            write(STD_OUT,*) 'Needs laplacian '; call flush_unit(STD_OUT)
           call derivative(Grid,grad,tmpl,1,n)
           tmpl(2:n)=tmpl(2:n)+2.d0*grad(2:n)/Grid%r(2:n)
           call extrapolate(Grid,tmpl)
         endif  
-!!!  Note: libxc_getvxc in libxc_mod.F90 takes care of Ry<->Ha conversion 
-          call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,lrho=tmpl, &
+!!!     Note: libxc_getvxc in libxc_mod.F90 takes care of Ry<->Ha conversion 
+        call libxc_getvxc(n,exci,tmpv,1,tmpd,grho=gradmag,lrho=tmpl, &
 &            tau=tmpt,vxcgr=dfxcdgbg,vxclrho=dgxcdl,vxctau=tmpvt)
-          gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
-          call derivative(Grid,gxc,dgxcdr,1,n)
-          tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
+        gxc(1:n)=dfxcdgbg(1:n)*grad(1:n)
+        call derivative(Grid,gxc,dgxcdr,1,n)
+        tmpv(2:n)=tmpv(2:n)-dgxcdr(2:n)-2.d0*gxc(2:n)/Grid%r(2:n)
         if(libxc_needs_laplacian()) then
            write(STD_OUT,*) 'Needs laplacian '; call flush_unit(STD_OUT)
           dum=0.d0      
@@ -596,10 +598,10 @@ CONTAINS
           call derivative(Grid,dum,dum1,1,n)
           tmpv(2:n)=tmpv(2:n)+dum1(2:n)+2.d0*dum(2:n)/Grid%r(2:n)
         endif  
-          call extrapolate(Grid,tmpv)
-          if (needvtau) vtau=tmpvt
-          deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
-          deallocate(tmpl,dgxcdl,tmpvt,dum,dum1)
+        call extrapolate(Grid,tmpv)
+        if (needvtau) vtau=tmpvt
+        deallocate(grad,gradmag,gxc,dgxcdr,dfxcdgbg)
+        deallocate(tmpl,dgxcdl,tmpvt,dum,dum1)
         do i=1,n
            if (isnan(tmpv(i)).or.abs(tmpv(i)).lt.machine_zero) tmpv(i)=0.d0
            if (isnan(exci(i)).or.abs(exci(i)).lt.machine_zero) exci(i)=0.d0

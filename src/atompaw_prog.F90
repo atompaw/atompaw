@@ -124,8 +124,16 @@ PROGRAM atompaw
     CALL Report_Pseudopotential(Grid,PAW)
 
     CALL SPMatrixElements(Grid,FCOrbit,FCPot,FC,PAW)
-    CALL Report_pseudo_energies(PAW,6)
+    CALL Report_pseudo_energies(PAW,STD_OUT)
     CALL Report_pseudo_energies(PAW,ifen)
+    IF (.not.PAW%poscorenhat) then
+       write(std_out,'(/,2x,a)') 'Detected negative values for pseudo core + nhat'
+       write(std_out,'(2x,a)')   '  which may cause trouble '
+       write(std_out,'(2x,a)')   'Please try reducing rc_core and or adjusting compensation charge shape'
+       write(ifen,'(/,2x,a)') 'Detected negative values for pseudo core + nhat'
+       write(ifen,'(2x,a)')   '  which may cause trouble '
+       write(ifen,'(2x,a)')   'Please try reducing rc_core and or adjusting compensation charge shape'
+    ENDIF
   else
     write(STD_OUT,*) 'PAW pseudo routines need more work for dirac case!'
   endif

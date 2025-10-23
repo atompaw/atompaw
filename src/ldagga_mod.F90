@@ -551,6 +551,20 @@ CONTAINS
 &            Potwk%vtau(i),Orbitwk%deltatau(i)
       ENDDO
       CLOSE(1001)
+
+
+      OPEN (unit=1001,file='potdata'//sub//TRIM(stuff),form='formatted')
+      WRITE(1001,'(2a)') &
+&         '#    r         rv            rvx           vtau        den            tau ' 
+      WRITE(1001,'(a,2i10,1p,2e23.13)') '#',gridwk%type,gridwk%n,gridwk%r0,gridwk%h
+      n=Gridwk%n
+      DO i = 1,n
+        WRITE(1001,'(1p,50e23.13)') Gridwk%r(i),Potwk%rv(i),Potwk%rvx(i),&
+&            Potwk%vtau(i),Orbitwk%den(i), Orbitwk%tau(i)
+      ENDDO
+      CLOSE(1001)
+    !ENDIF
+
     !ENDIF
 
     IF (.not.diracrelativistic) THEN
@@ -564,6 +578,14 @@ CONTAINS
       ENDDO
       CLOSE(1001)
 !      write(std_out,*) 'line 547 in ldagga ',Orbitwk%norbit;call flush_unit(std_out)
+      OPEN (unit=1001,file='wfndata'//sub//TRIM(stuff),form='formatted')
+      WRITE(1001,'(a)') '#         r          wfn in order of s, p, d ... '
+      WRITE(1001,'(a,2i10,1p,2e23.13)') '#',gridwk%type,gridwk%n,gridwk%r0,gridwk%h
+      DO i = 1,n
+        WRITE(1001,'(1p,50e23.13)') Gridwk%r(i), &
+&           (Orbitwk%wfn(i,j),j=1,Orbitwk%norbit)
+      ENDDO
+      CLOSE(1001)
     ELSEIF (diracrelativistic) THEN
       OPEN (unit=1001,file='wfn'//sub//TRIM(stuff),form='formatted')
       WRITE(1001,'(a)') '#         r          wfn, lwfn in order of s, p-1/2, p+1/2 ... '

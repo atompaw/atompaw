@@ -39,7 +39,7 @@ Module XMLInterface
 
  private
 
- public :: Atompaw2XML
+ public :: Atompaw2XML,build_mesh_data,xmlprtcore
 
 !!=================================================================
 !! CONSTANTS
@@ -92,6 +92,8 @@ Module XMLInterface
 !!=================================================================
 !! STRUCTURED DATATYPES
 !!=================================================================
+
+public :: mesh_data_type
 
 !Definition of various radial meshes
  type mesh_data_type
@@ -166,7 +168,7 @@ Module XMLInterface
  type(OrbitInfo), intent(in)     :: AEOrbit
  type(PotentialInfo), intent(in) :: AEPot
  type (SCFInfo),  intent(in)     :: AESCF
- type(Pseudoinfo), intent(in)    :: PAW
+ type(Pseudoinfo), OPTIONAL, intent(in)    :: PAW
  type(FCInfo), intent(in)        :: FC
  type(GridInfo), intent(in)      :: Grid
 
@@ -1477,7 +1479,7 @@ Module XMLInterface
  type(OrbitInfo),intent(in) :: AEOrbit
  TYPE(Potentialinfo),intent(in) :: AEPot
  TYPE(Gridinfo),intent(in) :: Grid
- character(len=*),intent(in) :: input_string,author,comment
+ character(len=*), optional, intent(in) :: input_string,author,comment
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1908,7 +1910,7 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints,itau)
 
  type(mesh_data_type),intent(out) :: mesh_data
  type(GridInfo),intent(in) :: Grid
- integer,intent(in) :: irc,ivion,ivale,coretailpoints,itau
+ integer, optional, intent(in) :: irc,ivion,ivale,coretailpoints,itau
 
 !------------------------------------------------------------------
 !---- Local variables
@@ -1916,6 +1918,7 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints,itau)
 
  integer, parameter :: nmesh_max=10
  integer :: ii1
+ logical :: aeonly=.true.
 
 !------------------------------------------------------------------
 !---- Executable code
@@ -1937,21 +1940,41 @@ subroutine build_mesh_data(mesh_data,Grid,irc,ivion,ivale,coretailpoints,itau)
   mesh_data%log_step=zero
  end if
 
+ if (PRESENT(irc).and.PRESENT(ivion).and.PRESENT(ivale).and.PRESENT(coretailpoints).and.PRESENT(itau)) then
+    aeonly=.false.
+ endif    
+
 !Various mesh sizes
  if (usingloggrid(Grid)) then
   mesh_data%wav_meshsz=Grid%n
-  mesh_data%sph_meshsz=min(1+nint(log(one+Grid%r(irc)/mesh_data%rad_step)/mesh_data%log_step),mesh_data%wav_meshsz)
+  if (.not.aeonly) then
+   mesh_data%sph_meshsz=min(1+nint(log(one+Grid%r(irc)/mesh_data%rad_step)/mesh_data%log_step),mesh_data%wav_meshsz)
+  else  
+   mesh_data%sph_meshsz=Grid%n
+  endif        
  else
-  mesh_data%wav_meshsz=irc+Grid%ishift
-  mesh_data%sph_meshsz=min(1+nint(Grid%r(irc)/mesh_data%rad_step),mesh_data%wav_meshsz)
- end if
+  if (.not.aeonly) then      
+   mesh_data%wav_meshsz=irc+Grid%ishift
+   mesh_data%sph_meshsz=min(1+nint(Grid%r(irc)/mesh_data%rad_step),mesh_data%wav_meshsz)
+  else 
+   mesh_data%wav_meshsz=Grid%n
+   mesh_data%sph_meshsz=Grid%n
+  endif 
+ endif
  mesh_data%prj_meshsz=mesh_data%sph_meshsz  ! To be modified by RSO
+ 
+ if (.not.aeonly) then
+   mesh_data%core_meshsz=coretailpoints
+   mesh_data%vale_meshsz=ivale
+   mesh_data%tau_meshsz=itau
+   mesh_data%vion_meshsz=ivion
+ else
+   mesh_data%core_meshsz=Grid%n
+   mesh_data%vale_meshsz=Grid%n
+   mesh_data%tau_meshsz=Grid%n
+   mesh_data%vion_meshsz=Grid%n
+ endif
 
- mesh_data%core_meshsz=coretailpoints
- mesh_data%vale_meshsz=ivale
- mesh_data%tau_meshsz=itau
-
- mesh_data%vion_meshsz=ivion
  if (mesh_data%vion_meshsz<=0) then
   if (mesh_data%mesh_type==1) then
    ii1=int(one+rmax_vloc/mesh_data%rad_step)

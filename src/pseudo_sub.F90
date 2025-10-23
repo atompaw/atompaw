@@ -905,10 +905,12 @@ CONTAINS
       ENDDO
     ENDDO
 
+    WRITE(STD_OUT,*) ' Starting  SPMatrixElements'; CALL flush_unit(std_out)
     DO ib=1,nbase
       DO jb=1,nbase
         llmin=ABS(PAW%l(ib)-PAW%l(jb))
         llmax=PAW%l(ib)+PAW%l(jb)
+        WRITE(STD_OUT,*) ' ib,jb,llmin,llmax  ', ib,jb,llmin,llmax; CALL flush_unit(std_out)
         DO l=llmin,llmax,2
           DO i=1,irc
             rr=Grid%r(i)
@@ -916,7 +918,7 @@ CONTAINS
 &               -PAW%otphi(i,ib)*PAW%otphi(i,jb))
           ENDDO
           PAW%mLij(ib,jb,l+1)=integrator(Grid,dum,1,irc)
-          WRITE(STD_OUT,'("mLij ",3i5,1p,1e15.7)') ib,jb,l,PAW%mLij(ib,jb,l+1)
+          WRITE(STD_OUT,'("mLij ",3i5,1p,1e15.7)') ib,jb,l,PAW%mLij(ib,jb,l+1);CALL flush_unit(std_out)
         ENDDO
       ENDDO
     ENDDO

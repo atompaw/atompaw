@@ -176,6 +176,14 @@ CONTAINS
                     PAW%otphi(i,io),PAW%otp(i,io)
           ENDDO
        CLOSE(ifout)
+        OPEN(ifout,file='wfndata'//TRIM(flnm),form='formatted')
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
+             PAW%eig(io)
+          DO i=1,irc+50
+             WRITE(ifout,'(1p,4es23.16)') Grid%r(i),PAW%ophi(i,io),&
+                    PAW%otphi(i,io),PAW%otp(i,io)
+          ENDDO
+       CLOSE(ifout)
     ENDDO
 
     ! also write "raw" wavefunctions

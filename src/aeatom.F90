@@ -771,26 +771,44 @@ CONTAINS
          ENDDO
        ENDIF
 
+       write(std_out,*) 'on line 774 in FC_Init ';call flush(std_out)
+
        !Read modified occupations from standard input
        np(1)=Orbit%nps;np(2)=Orbit%npp;np(3)=Orbit%npd;np(4)=Orbit%npf;np(5)=Orbit%npg
+       write(std_out,*) 'on line 778 in FC_Init ';call flush(std_out)
        CALL input_dataset_read_occ(norbit_mod,orbit_mod_l,orbit_mod_n,orbit_mod_k,&
 &                                  orbit_mod_occ,np,diracrelativistic)
 
+       write(std_out,*) ' at line 782 in aeatom.F90  norbit_mod', norbit_mod;call flush(std_out) 
        DO jo=1,norbit_mod
+         write(std_out,*) 'jo = ',jo;call flush(std_out)
+         write(std_out,*) 'kappa = ',Orbit%kappa(:); call flush(std_out)
+
          nfix=-100
          DO io=1,Orbit%norbit
-           IF (orbit_mod_n(jo)==Orbit%np(io).AND.orbit_mod_l(jo)==Orbit%l(io).AND.&
-&              ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==Orbit%kappa(io))) THEN
-             nfix=io
-             EXIT
-           ENDIF
+            write(std_out,*) 'io = ',io;call flush(std_out)
+            write(std_out,*) 'orbit_mod_n(jo) Orbit%np(io) ',orbit_mod_n(jo),Orbit%np(io);call flush(std_out)
+            write(std_out,*) 'orbit_mod_l(jo) Orbit%l(io) ',orbit_mod_l(jo),Orbit%l(io);call flush(std_out)
+            if (Orbit%iscore(io)) cycle
+            write(std_out,*) 
+!           IF (orbit_mod_n(jo)==Orbit%np(io).AND.orbit_mod_l(jo)==Orbit%l(io).AND.&
+!&              ((.NOT.diracrelativistic).OR.orbit_mod_k(jo)==Orbit%kappa(io))) THEN
+            IF (orbit_mod_n(jo)==Orbit%np(io).AND.orbit_mod_l(jo)==Orbit%l(io)) THEN
+               nfix=io
+                 IF(diracrelativistic)  THEN
+                         IF (.NOT.(orbit_mod_k(jo)==Orbit%kappa(io))) nfix=-100
+                 ENDIF        
+                 IF(nfix>0) EXIT
+            ENDIF
          ENDDO
+            write(std_out,*) 'nfix = ',nfix;call flush(std_out)
          IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
            WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc',&
             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
            STOP
          ENDIF
          Orbit%occ(nfix)=orbit_mod_occ(jo)
+            write(std_out,*) ' Orbit%occ(nfix)=orbit_mod_occ(jo) ', Orbit%occ(nfix);call flush(std_out)
        ENDDO
        DEALLOCATE(orbit_mod_l)
        DEALLOCATE(orbit_mod_n)
@@ -820,6 +838,8 @@ CONTAINS
        ENDIF
 
        electrons=FC%zvale+FC%zcore
+       write(std_out,*) ' electrons = ',electrons;call flush(std_out)
+
 
        !
        !  calculate initial charge density from stored wavefunctions

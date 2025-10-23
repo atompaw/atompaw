@@ -1560,6 +1560,15 @@ CONTAINS
 
       CALL poisson(Grid,con,PAW%hatden,PAW%hatpot,selfen)
       WRITE(STD_OUT,*) 'Self energy for L=0 hat density  ', selfen
+      WRITE(STD_OUT,*) 'hatden charge  ', con
+
+      OPEN(1001,file='hatpot',form='formatted')
+      write(1001,'(a)') '#     r    hatden       hatpot'
+      do i=1,n
+           write(1001,'(1p, 3e15.7)') r(i), PAW%hatden(i), PAW%hatpot(i)
+      enddo   
+      CLOSE(1001)
+
 
     END SUBROUTINE sethat
 
@@ -2068,7 +2077,7 @@ End subroutine resettcore
     TYPE(OrbitInfo), INTENT(INOUT) :: Orbit
 
 
-    INTEGER :: n,irc,nbase,l,lmax,mxbase,lng,currentnode
+    INTEGER :: n,irc,nbase,l,lmax,lng,currentnode,mxbase
     INTEGER :: i,j,k,io,ok,nbl,nr,nodes,ib,loop,niter,iter,ibasis_add
     REAL(8) :: h,rc,q00,energy,rat,delta,thisconv,qeff,tq,range
     REAL(8) :: ecoul,etxc,eexc
@@ -2099,7 +2108,7 @@ End subroutine resettcore
     PAW%exctype=Orbit%exctype
 
     nbase=PAW%nbase
-    mxbase=nbase+5*max(1,PAW%lmax)
+    mxbase=PAW%mxbase
 
   ! "filter" occupied states for long-range noise
     DO io=1,Orbit%norbit
@@ -4846,7 +4855,7 @@ End subroutine resettcore
       REAL(8), POINTER  :: r(:)
       REAL(8) :: h,qeff,tq,rat,q00,ecoul,etxc,eexc,occ,fac
       INTEGER :: n,i,irc,io,nbase,ib,ic
-      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:)
+      REAL(8), allocatable :: d(:),dv(:),dvx(:),v(:),vv(:),vxB(:),vxK(:)
       REAL(8), allocatable :: t(:),vt(:),vthat(:)
 
       CALL FillHat(Grid,PAW)
@@ -4878,7 +4887,7 @@ End subroutine resettcore
       enddo
       deallocate(d)
 
-      allocate(d(n),dv(n),dvx(n),STAT=i)
+      allocate(d(n),dv(n),dvx(n),vxB(n),vxK(n),STAT=i)
       allocate(t(n),vt(n),vthat(n))       
       if (i/=0) stop 'Error (1) in allocating  arrays in findvlocfromveff'
 
@@ -4927,8 +4936,9 @@ End subroutine resettcore
 
 !!! Check rveff and unscreening potential
       open(1001,file='Vloccheck',form='formatted')
+      write(1001,'(a)') '# r     rveff           vscreen         vloc      vhat'
       do i=1,n
-         write(1001,'(1p,10e15.7)') Grid%r(i),PAW%rveff(i),dv(i),PAW%vloc(i)
+         write(1001,'(1p,10e15.7)') Grid%r(i),PAW%rveff(i),dv(i),PAW%vloc(i),q00*PAW%hatpot(i)
       enddo    
       close(1001)
 
@@ -5045,7 +5055,61 @@ End subroutine resettcore
       enddo
       close(123)     
 
-      deallocate(v,vv)
+
+!  Recalculate  PAW%abinitvloc (For Kresse)  and PAW%abinitnohat  (For Blochl)    
+!!!!  Redo potentials
+!  \Delta Qval
+      d=PAW%den-PAW%tden
+      tq=integrator(Grid,d,1,irc)
+      write(std_out,*) ' Delta Qval = ', tq
+
+!     Compute VH(tDEN+hatDEN)
+      d=PAW%tden+tq*PAW%hatden
+      CALL poisson(Grid,q00,d,v,rat)
+      write(std_out,*) ' Completed Poisson with q00 = ', q00
+      write(std_out,*) ' Completed Poisson with v(n) = ', v(n)
+
+!  Compute Blochl exc      
+        d=PAW%tden+PAW%tcore
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,vxB,etxc,eexc,tau=t,vtau=vt)
+
+!     Compute Kresse   exc Vxc(tcore+tDEN+hatDEN)
+      d=PAW%tcore+PAW%tden+tq*PAW%hatden
+        t=PAW%tcoretau+PAW%tvaletau
+        CALL exch(Grid,d,vxK,etxc,eexc,tau=t,vtau=vthat)
+
+      PAW%abinitvloc=0.d0; PAW%abinitnohat=0
+      PAW%abinitnohat(2:n)=(PAW%rveff(2:n)-v(2:n)-vxB(2:n))/r(2:n)  
+      call extrapolate(Grid,PAW%abinitnohat)
+      PAW%abinitvloc(2:n)=(PAW%rveff(2:n)-v(2:n)-vxK(2:n))/r(2:n)  
+      call extrapolate(Grid,PAW%abinitvloc)
+
+      open(123,file='newcompare.abinit', form='formatted')
+      write(123,*) '#r    veff    rvH        Blochl Pseudo   vxc  vtau      Kresse Pseudo   vxc  vtau '
+      do i=2,n
+         write(123,'(1p,9e16.7)') r(i),PAW%rveff(i)/r(i), v(i),&
+&             PAW%abinitnohat(i),vxB(i),vt(i),PAW%abinitvloc(i),vxK(i),vthat(i)
+      enddo
+      close(123)
+
+
+! Reassess poscorenhat      
+! check if PAW%tcore+PAW%tden+tq*PAW%hatden is positive      
+      PAW%poscorenhat=.true.
+      open(123,file='checkpositivity',form='formatted')
+      do i=1,n
+         rat=PAW%tcore(i)+PAW%tden(i)+tq*PAW%hatden(i)
+         write(123,'(1p, 5e16.7)') r(i),PAW%tcore(i),PAW%tden(i),tq*PAW%hatden(i),rat 
+         if ((PAW%tcore(i)+PAW%tden(i)+tq*PAW%hatden(i))<-1.d-8) then
+          PAW%poscorenhat=.false.
+          exit       
+         endif
+      enddo   
+      close(123)
+
+
+      deallocate(v,vv,vxB,vxK)
       deallocate(d,dv,dvx,vt,vthat)
 
     END SUBROUTINE FindVlocfromVeff

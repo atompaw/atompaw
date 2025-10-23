@@ -5,6 +5,12 @@
 !!  This module contains objects and routines used to parse the atompaw
 !!  input file. The complete input dataset is stored in the `input_dataset`
 !!  Fortran data-structure.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Contains the following subroutines
+!
+! input_dataset_read, input_dataset_free, input_dataset_copy, input_dataset_read_occ,
+!  input_dataset_read_abinit, input_dataset_read_xml, input_dataset_read_upf
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
 #include "config.h"
@@ -238,8 +244,9 @@ CONTAINS
  INTEGER :: ispline,isplr0,isplns
  LOGICAL :: has_to_echo
  LOGICAL :: read_global_data_,read_elec_data_,read_coreval_data_,read_basis_data_
- CHARACTER(300) :: inputline,inputword
- CHARACTER(300) :: exchangecorrelationandgridline
+ CHARACTER(200) :: inputline,inputword
+ !CHARACTER(128) :: exchangecorrelationandgridline
+ CHARACTER(256) :: exchangecorrelationandgridline
  CHARACTER(1) :: CHR
  REAL(8) :: x1,x2
  INTEGER :: basis_add_l(nbasis_add_max)
@@ -550,7 +557,6 @@ END IF
    WRITE(STD_OUT,'(3x,a,5(1x,i0))') "Max. quantum numbers (s,p,d,f,g): ",dataset%np(1:5)
    WRITE(STD_OUT,'(3x,a,i0)') "Total number of orbitals: ",dataset%norbit
  END IF
-
  CALL input_dataset_read_occ(dataset%norbit_mod,dataset%orbit_mod_l,&
 &                   dataset%orbit_mod_n,dataset%orbit_mod_k,dataset%orbit_mod_occ,&
 &                   dataset%np,dataset%diracrelativistic,&
@@ -1608,7 +1614,7 @@ END IF
      STOP
    END IF
    norbit_mod=norbit_mod+1
-   if (norbit_mod>norbit_max) stop 'input_dataset_occ: error -- to many occupation lines!'
+   if (norbit_mod>norbit_max) stop 'input_dataset_occ: error -- too many occupation lines!'
    tmp_l(norbit_mod)=ll
    tmp_n(norbit_mod)=nn
    tmp_k(norbit_mod)=kk
@@ -1617,7 +1623,7 @@ END IF
 
  IF (ALLOCATED(orbit_mod_l)) DEALLOCATE(orbit_mod_l)
  IF (ALLOCATED(orbit_mod_n)) DEALLOCATE(orbit_mod_n)
- IF (ALLOCATED(orbit_mod_n)) DEALLOCATE(orbit_mod_k)
+ IF (ALLOCATED(orbit_mod_k)) DEALLOCATE(orbit_mod_k)
  IF (ALLOCATED(orbit_mod_occ)) DEALLOCATE(orbit_mod_occ)
  ALLOCATE(orbit_mod_l(norbit_mod))
  ALLOCATE(orbit_mod_n(norbit_mod))
@@ -1629,7 +1635,7 @@ END IF
  orbit_mod_occ(1:norbit_mod)=tmp_occ(1:norbit_mod)
 
 !Print read data
- IF (has_to_print) THEN
+IF (has_to_print) THEN
    WRITE(STD_OUT,'(3x,a)') "Occupations of orbitals:"
    IF (.NOT.diracrel) THEN
      WRITE(STD_OUT,'(7x,a)') "n l :  occ"
@@ -1667,7 +1673,7 @@ END IF
        END IF
      END DO
    END IF
- END IF
+END IF
 
  END SUBROUTINE input_dataset_read_occ
 

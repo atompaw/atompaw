@@ -4,6 +4,7 @@
 !      InitPot, DestroyPot, CopyPot, InitSCF, CopySCF
 !
 !  Note that all energies including tau are in Rydberg units
+!  9/9/2025 NAWH added initialization of logical variables
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #if defined HAVE_CONFIG_H
@@ -71,20 +72,21 @@ MODULE atomdata
      REAL(8) :: valekin,valecoul,valeexc,corekin,evale ! used in frozencore only
   END TYPE SCFInfo
 
-  LOGICAL :: frozencorecalculation
-  LOGICAL :: setupfrozencore
-  LOGICAL :: scalarrelativistic
-  LOGICAL :: diracrelativistic
-  LOGICAL :: shapetcore
-  LOGICAL :: needvtau
-  LOGICAL :: usespline
-  LOGICAL :: BDsolve
-  LOGICAL :: finitenucleus
-  LOGICAL :: gaussianshapefunction,besselshapefunction
-  LOGICAL :: ColleSalvetti
-  LOGICAL :: HFpostprocess
-  LOGICAL :: localizedcoreexchange
-  LOGICAL :: exploremode
+  LOGICAL :: frozencorecalculation=.false.
+  LOGICAL :: setupfrozencore=.false.
+  LOGICAL :: scalarrelativistic=.false.
+  LOGICAL :: diracrelativistic=.false.
+  LOGICAL :: printoutcore=.false.
+  LOGICAL :: shapetcore=.false.
+  LOGICAL :: needvtau=.false.
+  LOGICAL :: usespline=.false.
+  LOGICAL :: BDsolve=.false.
+  LOGICAL :: finitenucleus=.false.
+  LOGICAL :: gaussianshapefunction=.false.,besselshapefunction=.false.
+  LOGICAL :: ColleSalvetti=.false.
+  LOGICAL :: HFpostprocess=.false.
+  LOGICAL :: localizedcoreexchange=.false.
+  LOGICAL :: exploremode=.false.
   INTEGER :: nlogderiv
   REAL(8) :: minlogderiv,maxlogderiv
 

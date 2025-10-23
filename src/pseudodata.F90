@@ -18,7 +18,7 @@ MODULE pseudodata
   TYPE  Pseudoinfo
      CHARACTER(132) :: exctype
      INTEGER  :: lmax,irc,irc_shap,irc_vloc,irc_core,coretailpoints,mesh_size
-     INTEGER  :: ivale,itau,ivion
+     INTEGER  :: ivale,itau,ivion,mxbase
      CHARACTER(15) :: orthogonalization_scheme
      CHARACTER(132) :: Vloc_description
      CHARACTER(132) :: Proj_description
@@ -67,7 +67,7 @@ MODULE pseudodata
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(OrbitInfo), INTENT(IN) :: Orbit
       Type(PseudoInfo), INTENT(INOUT) :: PAW
-      INTEGER :: io,l,n,mxbase,nbase,ok
+      INTEGER :: io,l,n,nbase,ok,mxbase
 !     Initialize logical variables
       PAW%multi_rc=.false.
       PAW%poscorenhat=.true.
@@ -83,7 +83,8 @@ MODULE pseudodata
             ENDIF
          ENDDO
       ENDDO
-      mxbase=nbase+5*max(1,PAW%lmax) !Estimate excess
+      mxbase=nbase+6*max(1,PAW%lmax) !Estimate excess
+      PAW%mxbase=mxbase
       PAW%nbase=nbase
       WRITE(STD_OUT,*) 'Found ', nbase,' valence basis functions '
       WRITE(STD_OUT,*) 'Allocating for ', mxbase, ' total basis functions'

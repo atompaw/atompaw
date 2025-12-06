@@ -103,7 +103,7 @@ PROGRAM atompaw
   endif
 
   if(.not.diracrelativistic) then
-    CALL InitPAW(PAW,Grid,FCOrbit)
+    CALL InitPAW(PAW,Grid,FCOrbit,input_dataset%lmax)
     CALL SetPAWOptions1(ifen,Grid)
     CALL setbasis(Grid,FCPot,FCOrbit)
     Call setcoretail(Grid,FC%coreden)

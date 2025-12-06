@@ -12,6 +12,7 @@ MODULE pseudodata
   Use io_tools
   Use gridmod
   Use atomdata
+  USE input_dataset_mod
 
   IMPLICIT NONE
 
@@ -63,18 +64,22 @@ MODULE pseudodata
 
   CONTAINS
 
-    SUBROUTINE InitPAW(PAW,Grid,Orbit)
+    SUBROUTINE InitPAW(PAW,Grid,Orbit,lmax)
       TYPE(GridInfo), INTENT(IN) :: Grid
       TYPE(OrbitInfo), INTENT(IN) :: Orbit
       Type(PseudoInfo), INTENT(INOUT) :: PAW
+      INTEGER, INTENT(IN) :: lmax
       INTEGER :: io,l,n,nbase,ok,mxbase
+
+!     Initialize lmax
+      PAW%lmax=lmax
+
 !     Initialize logical variables
       PAW%multi_rc=.false.
       PAW%poscorenhat=.true.
       PAW%tcoreshapeexp=.false.
       CALL DestroyPAW(PAW)
 !     Compute initial size of basis
-      n=Grid%n
       nbase=0
       DO l=0,PAW%lmax
          DO io=1,Orbit%norbit    ! cycle through all configurations
@@ -88,6 +93,7 @@ MODULE pseudodata
       PAW%nbase=nbase
       WRITE(STD_OUT,*) 'Found ', nbase,' valence basis functions '
       WRITE(STD_OUT,*) 'Allocating for ', mxbase, ' total basis functions'
+      n=Grid%n
       ALLOCATE(PAW%projshape(n),PAW%hatden(n),PAW%hatpot(n),&
 &        PAW%hatshape(n),PAW%vloc(n),PAW%rveff(n),PAW%abinitvloc(n),&
 &        PAW%abinitnohat(n),PAW%AErefrv(n),PAW%rvx(n),PAW%trvx(n),&

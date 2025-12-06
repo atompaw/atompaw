@@ -781,11 +781,11 @@ end function libxc_getid_fromName
    if (xc_func%id<=0) cycle
 
    if (xc_func%xckind==XC_EXCHANGE) then
-     write(unt,'(a)') 'Exchange functional (LibXC):'
+     write(unt,'(3x,a)') ' Exchange functional (LibXC):'
    else if (xc_func%xckind==XC_CORRELATION) then
-     write(unt,'(a)') 'Correlation functional (LibXC):'
+     write(unt,'(3x,a)') ' Correlation functional (LibXC):'
    else if (xc_func%xckind==XC_EXCHANGE_CORRELATION) then
-     write(unt,'(a)') 'Exchange-Correlation functional (LibXC):'
+     write(unt,'(3x,a)') ' Exchange-Correlation functional (LibXC):'
    end if
 
 #if defined HAVE_FC_ISO_C_BINDING
@@ -797,7 +797,7 @@ end function libxc_getid_fromName
      call c_f_pointer(xc_get_info_refs(xc_func%conf,iref_c),strg_c)
      if (associated(strg_c)) then
        call xc_char_to_f(strg_c,msg)
-       write(unt,'(2x,a)') trim(msg)
+       write(unt,'(5x,a)') trim(msg)
        iref_c=iref_c+1
      else
        iref_c=-1

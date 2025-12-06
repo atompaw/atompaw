@@ -101,9 +101,7 @@ CONTAINS
      PAW%tcoreshapeexp=.true.
      WRITE(STD_OUT,*) ' Using modified core shape functions'
   endif   
-          
-
-
+             
   WRITE(ifen,*) ' paw parameters: '
   WRITE(ifen,*) '      lmax = ',PAW%lmax
   WRITE(ifen,*) '        rc = ',PAW%rc
@@ -5595,8 +5593,8 @@ End subroutine resettcore
 &            read_global_data=.false.,read_elec_data=.false.,&
 &            read_coreval_data=.false.,read_basis_data=.true.)
 
+        Call InitPAW(PAW,Grid,FCOrbit,input_dataset%lmax)
         CALL SetPAWOptions1(ifen,Grid)
-        Call InitPAW(PAW,Grid,FCOrbit)
         CALL setbasis(Grid,FCPot,FCOrbit)
         Call setcoretail(Grid,FC%coreden)
         Call setttau(Grid,FC%coreden,FC%coretau)

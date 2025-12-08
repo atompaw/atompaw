@@ -2255,13 +2255,13 @@ CONTAINS
     INTEGER, INTENT(IN) :: unit
 
     IF (Grid%type==lineargrid) THEN
-       WRITE(unit,*) ' Radial integration grid is linear '
-       WRITE(unit,'(" h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)')&
+       WRITE(unit,'(/,1x,a)') ' Radial integration grid is linear '
+       WRITE(unit,'(1x,"h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)') &
 &       Grid%h,Grid%n,Grid%r(Grid%n)
     ELSEIF (Grid%type==loggrid) THEN
-       WRITE(unit,*) ' Radial integration grid is logarithmic '
-       WRITE(unit,&
-&       '("r0 = ",1p,1E15.7," h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)')&
+       WRITE(unit,'(/,1x,a)') 'Radial integration grid is logarithmic '
+       WRITE(unit, &
+&       '(1x,"r0 = ",1p,1E15.7," h = ", 1p,1e15.7,"   n = ",i9," rmax = ", 1p,1e15.7)') &
 &       Grid%drdu(1), Grid%h, Grid%n,Grid%r(Grid%n)
     ENDIF
   END SUBROUTINE reportgrid

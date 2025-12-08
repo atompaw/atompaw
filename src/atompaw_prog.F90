@@ -124,6 +124,8 @@ PROGRAM atompaw
     CALL Report_Pseudopotential(Grid,PAW)
 
     CALL SPMatrixElements(Grid,FCOrbit,FCPot,FC,PAW)
+    CALL Report_orbitals(Grid,FCOrbit,PAW,STD_OUT)
+    CALL Report_orbitals(Grid,FCOrbit,PAW,ifen)
     CALL Report_pseudo_energies(PAW,STD_OUT)
     CALL Report_pseudo_energies(PAW,ifen)
     IF (.not.PAW%poscorenhat) then

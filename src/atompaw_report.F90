@@ -39,42 +39,47 @@ CONTAINS
     CHARACTER (len=1) :: syml
     REAL(8), POINTER :: r(:),den(:),rv(:),wfn(:,:)
     INTEGER, POINTER :: n,nps,npp,npd,npf,npg
+    
+    INTEGER, SAVE :: count=0
 
-    WRITE(ifen,*) 'Completed calculations for ',TRIM(POT%sym)
+    count = count+1
+    if (count>1) WRITE(ifen,'(/,/,1x,"---")')
+    
+    WRITE(ifen,'(1x,5a,/)') 'Completed calculations for ',TRIM(POT%sym),' (',trim(key),')'
 
     SELECT CASE(TRIM(Orbit%exctype))
     CASE default
       if (have_libxc) then
-        WRITE(ifen,*) 'Exchange-correlation type:'
+        WRITE(ifen,'(1x,a)') 'Exchange-correlation type:'
         call libxc_print_func(ifen)
         if(needvtau) then
-           WRITE(ifen,*) 'Full generalized Kohn-Sham equations solved'
+           WRITE(ifen,'(4x,a)') 'Full generalized Kohn-Sham equations solved'
         else
-           WRITE(ifen,*) 'Conventional Kohn-Sham equations solved'
+           WRITE(ifen,'(4x,a)') 'Conventional Kohn-Sham equations solved'
         endif    
       else
-        WRITE(ifen,*) 'Exchange-correlation type: LDA, Perdew-Wang correlation'
+        WRITE(ifen,'(1x,a)') 'Exchange-correlation type: LDA, Perdew-Wang correlation'
       end if
     CASE('LDA-PW')
-       WRITE(ifen,*) 'Exchange-correlation type: LDA, Perdew-Wang correlation'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: LDA, Perdew-Wang correlation'
     CASE('GGA-PBE')
-       WRITE(ifen,*) 'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof'
     CASE('GGA-PBESOL')
-       WRITE(ifen,*) &
+       WRITE(ifen,'(1x,a)') &
 &     'Exchange-correlation type: GGA, Perdew-Burke-Ernzerhof modified (PBEsol)'
     CASE('HF')
-       WRITE(ifen,*) 'Exchange-correlation type: Hartree-Fock (in devel)'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: Hartree-Fock (in devel)'
     CASE('HFV')
-       WRITE(ifen,*) &
+       WRITE(ifen,'(1x,a)') &
 &    'Exchange-correlation type: Hartree-Fock, frozen-core potential (in devel)'
     CASE('EXX')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange (in devel)'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: Exact-exchange (in devel)'
     CASE('EXXOCC')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange OCC (in devel)'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: Exact-exchange OCC (in devel)'
     CASE('EXXKLI')
-       WRITE(ifen,*) 'Exchange-correlation type: Exact-exchange KLI (in devel)'
+       WRITE(ifen,'(1x,a)') 'Exchange-correlation type: Exact-exchange KLI (in devel)'
     CASE('EXXCS')
-       WRITE(ifen,*) &
+       WRITE(ifen,'(1x,a)') &
 &     'Exchange-correlation type: Exact-exchange Colle-Salvetti (in devel)'
     END SELECT
 
@@ -82,72 +87,102 @@ CONTAINS
     if (usespline) CALL splinereport(ifen)
     IF (scalarrelativistic) THEN
        if (finitenucleus) then
-         WRITE(ifen,*) 'Scalar relativistic calculation -- finite nucleus'
+         WRITE(ifen,'(/,1x,a)') 'Scalar relativistic calculation -- finite nucleus'
        else
-         WRITE(ifen,*) 'Scalar relativistic calculation'
+         WRITE(ifen,'(/,1x,a)') 'Scalar relativistic calculation'
        endif
     ELSEIF (diracrelativistic) then   
-         WRITE(ifen,*) 'Dirac-relativistic calculation'
+         WRITE(ifen,'(/,1x,a)') 'Dirac-relativistic calculation'
     ELSE
        if (finitenucleus) then
-         WRITE(ifen,*) 'Non-relativistic calculation -- finite nucleus'
+         WRITE(ifen,'(/,1x,a)') 'Non-relativistic calculation -- finite nucleus'
        else
-         WRITE(ifen,*) 'Non-relativistic calculation'
+         WRITE(ifen,'(/,1x,a)') 'Non-relativistic calculation'
        endif
     ENDIF
+
     IF (key=='AE') &
-         WRITE(ifen,*) '  AEatom converged in',SCF%iter,' iterations'
+         WRITE(ifen,'(/,1x,a,i4,a)') 'AEatom converged in',SCF%iter,' iterations'
     IF (key=='SC') &
-         WRITE(ifen,*) '  SCatom converged in',SCF%iter,' iterations'
-    WRITE(ifen,'(a,f6.2)') '     for nz = ',Pot%zz
-    WRITE(ifen,*) '    delta  = ', SCF%delta
+         WRITE(ifen,'(/,1x,a,i4,a)') 'SCatom converged in',SCF%iter,' iterations'
+    WRITE(ifen,'(3x,a,f6.2)')    'nz     = ',Pot%zz
+    WRITE(ifen,'(3x,a,es24.12)') 'delta  = ', SCF%delta
+
     IF (key=='AE') THEN
-      WRITE(ifen,*) ' All Electron Orbital energies:         '
+      WRITE(ifen,'(/,1x,a)') 'All Electron Orbital energies:         '
       if(diracrelativistic) then
-      WRITE(ifen,*) ' n   kappa  l   occupancy       energy'
-       DO io=1,Orbit%norbit
+       WRITE(ifen,'(2x,a)') 'n   kappa  l   occupancy       energy'
+        DO io=1,Orbit%norbit
           write(std_out,*) 'io',io, Orbit%norbit; call flush_unit(std_out)
-          WRITE(ifen,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+          WRITE(ifen,'(1x,i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
 &               Orbit%np(io),Orbit%kappa(io),Orbit%l(io),&
 &               Orbit%occ(io),Orbit%eig(io)
        ENDDO
       else        
-      WRITE(ifen,*) ' n  l     occupancy       energy'
+       WRITE(ifen,'(2x,a)') 'n  l      occupancy      energy'
        DO io=1,Orbit%norbit
           write(std_out,*) 'io',io, Orbit%norbit; call flush_unit(std_out)
-          WRITE(ifen,'(i2,1x,i2,4x,1p,2e15.7)') &
+          WRITE(ifen,'(1x,i2,1x,i2,4x,1p,2e15.7)') &
                Orbit%np(io),Orbit%l(io),&
                Orbit%occ(io),Orbit%eig(io)
        ENDDO
-       endif 
+      endif 
     ELSE IF (key=='SC') THEN
-      WRITE(ifen,*) '  Valence Electron Orbital energies:         '
+      WRITE(ifen,'(/,1x,a)') 'Valence Electron Orbital energies:         '
       if(diracrelativistic) then
-      WRITE(ifen,*) ' n  kappa l   occupancy       energy'
-       DO io=1,Orbit%norbit
+        WRITE(ifen,'(2x,a)') 'n  kappa l   occupancy       energy'
+         DO io=1,Orbit%norbit
           IF (.NOT.orbit%iscore(io)) &
-&          WRITE(ifen,'(i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
+&          WRITE(ifen,'(1x,i2,1x,i2,2x,i2,4x,1p,2e15.7)') &
 &               Orbit%np(io),Orbit%kappa(io),Orbit%l(io),&
 &               Orbit%occ(io),Orbit%eig(io)
-       ENDDO
+         ENDDO
       else        
-      WRITE(ifen,*) ' n  l     occupancy       energy'
-       DO io=1,Orbit%norbit
-          IF (.NOT.orbit%iscore(io))WRITE(ifen,'(i2,1x,i2,4x,1p,2e15.7)') &
+        WRITE(ifen,'(2x,a)') 'n  l      occupancy      energy'
+         DO io=1,Orbit%norbit
+          IF (.NOT.orbit%iscore(io))WRITE(ifen,'(2x,i2,1x,i2,4x,1p,2e15.7)') &
                Orbit%np(io),Orbit%l(io),&
                Orbit%occ(io),Orbit%eig(io)
-       ENDDO
+         ENDDO
        endif 
-    ENDIF
-    WRITE(ifen,*)
-    WRITE(ifen,*) ' Total energy'
-    WRITE(ifen,*) '    Total                    :  ',SCF%etot
-    IF (key=='SC') THEN
-       WRITE(ifen,*) '    Valence                  :  ',SCF%evale
     ENDIF
 
+    WRITE(ifen,'(/,1x,a)') 'Total energy'
+    WRITE(ifen,'(3x,a,f22.14)') 'Total                    :  ',SCF%etot
+    IF (key=='SC') THEN
+       WRITE(ifen,'(3x,a,f22.14)') 'Valence                  :  ',SCF%evale
+    ENDIF
+    
   END SUBROUTINE Report_Atomres
 
+  SUBROUTINE Report_orbitals(Grid,Orbit,PAW,ifen)
+    TYPE(GridInfo),INTENT(IN) :: Grid
+    TYPE(OrbitInfo),INTENT(IN) :: Orbit
+    Type(PseudoInfo), INTENT(IN) :: PAW
+    INTEGER, INTENT(IN) :: ifen
+    INTEGER :: io
+    REAL(8) :: norm, insph
+
+    WRITE(ifen,'(/,1x,a)') 'Orbital leakage outside PAW augmentation regions'
+    if (diracrelativistic) then
+      WRITE(ifen,'(3x,a)') ' orb    is_core?  %out_of_sphere' 
+    else
+      WRITE(ifen,'(3x,a)') 'orb  is_core?  %out_of_sphere' 
+    end if
+
+    DO io=1,Orbit%norbit
+      norm  = overlap(Grid,Orbit%wfn(1:Grid%n,io),Orbit%wfn(1:Grid%n,io),1,Grid%n)
+      insph = overlap(Grid,Orbit%wfn(1:PAW%irc,io),Orbit%wfn(1:PAW%irc,io),1,PAW%irc)
+      if (diracrelativistic) then
+        WRITE(ifen,'(2x,3i2,5x,l2,9x,f6.2)') &
+&         Orbit%np(io),Orbit%kappa(io),Orbit%l(io),Orbit%iscore(io),(1.d0-insph/norm)*100.d0
+      else
+        WRITE(ifen,'(2x,2i2,3x,l2,9x,f6.2)') &
+&         Orbit%np(io),Orbit%l(io),Orbit%iscore(io),(1.d0-insph/norm)*100.d0
+      end if
+    ENDDO
+    
+  END SUBROUTINE Report_orbitals
 
   SUBROUTINE Report_Pseudobasis(Grid,PAW,ifen)
      Type(GridInfo), INTENT(IN)  :: Grid
@@ -160,31 +195,30 @@ CONTAINS
      CHARACTER (len=4) :: flnm
 
      nbase=PAW%nbase;irc=PAW%irc;n=Grid%n
-     WRITE(ifen,'(/"Number of basis functions ",i5)') nbase
-     WRITE(ifen,*)'No.    n nodes    l      Energy         Cp coeff         Occ'
-
+     WRITE(ifen,'(/,1x,"Number of basis functions ",i5)') nbase
+     WRITE(ifen,'(1x,a)')'No.   n  nodes  l      Energy         Cp coeff         Occ'
 
      DO io=1,nbase
-        WRITE(ifen,'(4i5,1p,3e15.7)') io,PAW%np(io),PAW%nodes(io),PAW%l(io),PAW%eig(io),&
+        WRITE(ifen,'(i3,3(2x,i3),2x,3e15.7)') io,PAW%np(io),PAW%nodes(io),PAW%l(io),PAW%eig(io),&
           PAW%ck(io),PAW%occ(io)
         CALL mkname(io,flnm)
+
         OPEN(ifout,file='wfn'//TRIM(flnm),form='formatted')
-        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
-             PAW%eig(io)
-          DO i=1,irc+50
-             WRITE(ifout,'(1p,5e12.4)') Grid%r(i),PAW%ophi(i,io),&
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',PAW%eig(io)
+        DO i=1,irc+50
+          WRITE(ifout,'(1p,5e12.4)') Grid%r(i),PAW%ophi(i,io),&
                     PAW%otphi(i,io),PAW%otp(i,io)
-          ENDDO
-       CLOSE(ifout)
+        ENDDO
+        CLOSE(ifout)
+
         OPEN(ifout,file='wfndata'//TRIM(flnm),form='formatted')
-        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
-             PAW%eig(io)
-          DO i=1,irc+50
-             WRITE(ifout,'(1p,4es23.16)') Grid%r(i),PAW%ophi(i,io),&
+        WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',PAW%eig(io)
+        DO i=1,irc+50
+          WRITE(ifout,'(1p,4es23.16)') Grid%r(i),PAW%ophi(i,io),&
                     PAW%otphi(i,io),PAW%otp(i,io)
-          ENDDO
+       ENDDO
        CLOSE(ifout)
-    ENDDO
+     ENDDO
 
     ! also write "raw" wavefunctions
      DO io=1,nbase
@@ -192,32 +226,33 @@ CONTAINS
         OPEN(ifout,file='wfn00'//TRIM(flnm),form='formatted')
         WRITE(ifout,*) '# l=',PAW%l(io),'basis function with energy  ',&
              PAW%eig(io)
-          DO i=1,irc+50
-             WRITE(ifout,'(1p,5e12.4)') Grid%r(i),PAW%phi(i,io),&
+        DO i=1,irc+50
+          WRITE(ifout,'(1p,5e12.4)') Grid%r(i),PAW%phi(i,io),&
                     PAW%tphi(i,io),PAW%tp(i,io)
-          ENDDO
-       CLOSE(ifout)
-    ENDDO
+        ENDDO
+        CLOSE(ifout)
+     ENDDO
 
-    allocate(mapp(PAW%OCCWFN%norbit))
-    mapp=0
-    icount=0
-    do io=1,PAW%OCCWFN%norbit
+     allocate(mapp(PAW%OCCWFN%norbit))
+     mapp=0
+     icount=0
+     do io=1,PAW%OCCWFN%norbit
        if(PAW%OCCWFN%iscore(io)) then
        else
          icount=icount+1
          mapp(icount)=io
        endif
-    enddo
-    OPEN(ifout,file='OCCWFN',form='formatted')
-    WRITE(ifout,'("#            ",50i30)') (mapp(j),j=1,icount)
-    do i=1,n
+     enddo
+
+     OPEN(ifout,file='OCCWFN',form='formatted')
+     WRITE(ifout,'("#            ",50i30)') (mapp(j),j=1,icount)
+     do i=1,n
        write(ifout,'(1p,51e15.7)') Grid%r(i),(PAW%OCCWFN%wfn(i,mapp(j)),&
                 PAW%TOCCWFN%wfn(i,mapp(j)),j=1,icount)
-    enddo
-    close(ifout)
+     enddo
+     close(ifout)
 
-    deallocate(mapp)
+     deallocate(mapp)
 
   END SUBROUTINE Report_Pseudobasis
 
@@ -1135,14 +1170,14 @@ CONTAINS
        Type(PseudoInfo), INTENT(IN) :: PAW
        Integer , INTENT(IN) :: ien
 
-       write(ien,*)' Summary of PAW energies'
-       write(ien,*)'       Total valence energy     ', PAW%Etotal
-       write(ien,*)'         Smooth energy          ', PAW%tvale
-       write(ien,*)'         One center             ', PAW%Ea
-       write(ien,*)'         Smooth kinetic         ', PAW%tkin
-       write(ien,*)'         Vloc energy            ', PAW%tion
-       write(ien,*)'         Smooth exch-corr       ', PAW%txc
-       write(ien,*)'         One-center xc          ', PAW%Eaxc
+       write(ien,'(/,1x,a)')'Summary of PAW energies'
+       write(ien,'(3x,a,f22.14)')'Total valence energy     :', PAW%Etotal
+       write(ien,'(3x,a,f22.14)')'Smooth energy            :', PAW%tvale
+       write(ien,'(3x,a,f22.14)')'One center               :', PAW%Ea
+       write(ien,'(3x,a,f22.14)')'Smooth kinetic           :', PAW%tkin
+       write(ien,'(3x,a,f22.14)')'Vloc energy              :', PAW%tion
+       write(ien,'(3x,a,f22.14)')'Smooth exch-corr         :', PAW%txc
+       write(ien,'(3x,a,f22.14)')'One-center xc            :', PAW%Eaxc
 
   End Subroutine Report_pseudo_energies
 

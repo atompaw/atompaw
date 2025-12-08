@@ -102,7 +102,7 @@ CONTAINS
      WRITE(STD_OUT,*) ' Using modified core shape functions'
   endif   
              
-  WRITE(ifen,*) ' paw parameters: '
+  WRITE(ifen,'(/,1x,a)') 'PAW parameters: '
   WRITE(ifen,*) '      lmax = ',PAW%lmax
   WRITE(ifen,*) '        rc = ',PAW%rc
   WRITE(ifen,*) '       irc = ',PAW%irc
@@ -348,13 +348,13 @@ CONTAINS
 
    !Output in summary file
    IF (needvtau) THEN
-     WRITE(ifen,*) 'Sequence of dataset construction steps modified for mGGA'      
-     WRITE(ifen,*) 'Only projectors from Vanderbilt scheme available'
+     WRITE(ifen,'(3x,a)') 'Sequence of dataset construction steps modified for mGGA'      
+     WRITE(ifen,'(3x,a)')   'Only projectors from Vanderbilt scheme available'
    ENDIF
-   WRITE(ifen,*) TRIM(PAW%Vloc_description)
-   WRITE(ifen,*) TRIM(PAW%Proj_description)
-   WRITE(ifen,*) TRIM(PAW%Comp_description)
-   if (shapetcore) WRITE(ifen,*) 'tcore reset with hatshape form'
+   WRITE(ifen,'(3x,a)') TRIM(PAW%Vloc_description)
+   WRITE(ifen,'(3x,a)') TRIM(PAW%Proj_description)
+   WRITE(ifen,'(3x,a)') TRIM(PAW%Comp_description)
+   if (shapetcore) WRITE(ifen,'(3x,a)') 'tcore reset with hatshape form'
 
    CALL StoreTOCCWFN(PAW)
 
@@ -4677,24 +4677,21 @@ End subroutine resettcore
       allocate(eig(nbase),work(4*nbase))
       call DSYEV('N','U',nbase,ovlp,nbase,eig,work,4*nbase,info)
       write(std_out,'(" Completed diagonalization of ovlp with info = ", i8)')info
-      write(ifen,'(" Completed diagonalization of ovlp with info = ", i8)')info
-       if (info==0) then
+      if (info==0) then
          write(std_out,*) " "
          write(std_out,*) "Eigenvalues of overlap operator (in the basis of projectors):"
-         write(ifen,*) " "
-         write(ifen,*) "Eigenvalues of overlap operator (in the basis of projectors):"
+         write(ifen,'(/,1x,a)') "Eigenvalues of overlap operator (in the basis of projectors):"
          do i=1,nbase
-            write(std_out,'( i5,5x,1p,1e17.8)') i,eig(i)
-            write(ifen,'( i5,5x,1p,1e17.8)') i,eig(i)
+            write(std_out,'(i5,5x,1p,1e17.8)') i,eig(i)
+            write(ifen,'(i5,5x,1p,1e17.8)') i,eig(i)
             if (eig(i)<tol) Check_overlap_of_projectors=.false.
          enddo
-        else
-          write(std_out,*) 'Stopping due to failure of ovlp diagonalization'
-          write(ifen,*) 'Stopping due to failure of ovlp diagonalization'
-          stop
-       endif       
+      else
+         write(std_out,*) 'Stopping due to failure of ovlp diagonalization'
+         write(ifen,'(/,1x,a)') 'Stopping due to failure of ovlp diagonalization'
+         stop
+      endif       
       write(std_out,*) " "
-      write(ifen,*) " "
 
 !      do i=1,nbase
 !        write(std_out,*) i,wr(i)

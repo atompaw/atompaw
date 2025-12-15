@@ -345,6 +345,7 @@ CONTAINS
 &             WRITE(STD_OUT,&
 &         '("AndersonMix converged in ",i5," iterations with err = ",1p,1e15.7)')&
 &              i, err
+          success=.TRUE.
           EXIT
        endif
        CALL shift4(v1,v2,v3,v4,err)

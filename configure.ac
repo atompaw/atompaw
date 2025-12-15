@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.2.0.4],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[5.0.0.0c],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,8 +28,13 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 01/2024 - MT &  NH several MGGA bug fixes
+!--- Version ${PACKAGE_VERSION} - 12/2025 - debugging and cleaning - MT & NH
 EOF
+#!--- Version ${PACKAGE_VERSION} - 11/2025 - debugging and cleaning
+#!--- Version ${PACKAGE_VERSION} - 10/2025 - debugging
+#!--- Version ${PACKAGE_VERSION} - 10/2025 - MT &  NH major bug fix in pseudo.F90 and pseudodata.F90
+#!--- Version ${PACKAGE_VERSION} - 9/2024 - MT &  NH several MGGA bug fixes and extra writes for analysis
+#!--- Version ${PACKAGE_VERSION} - 01/2024 - MT &  NH several MGGA bug fixes
 #!--- Version ${PACKAGE_VERSION} - 7/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
 #!--- Version ${PACKAGE_VERSION} - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
 #!--- Version ${PACKAGE_VERSION} - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1

@@ -1,0 +1,8 @@
+#!/bin/tcsh
+module load compilers/gcc/12.3.0
+module load libs/openblas/0.3.26
+module load libs/libxc/7.0.0
+./configure --prefix=/deac/phy/natalieGrp/software/developcode/atompaw/Aspire-5.0.0.0b --enable-libxc --with-libxc-prefix=$LIBXCHOME --with-linalg-prefix=$OPENBLASROOT --with-linalg-libs='-lopenblas' FC=gfortran FCFLAGS='-g -O0' CC='gcc -O0' CPP='gcc -E -O0'
+make
+make install
+make dist

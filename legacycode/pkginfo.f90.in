@@ -1,0 +1,12 @@
+MODULE PkgInfo
+
+  IMPLICIT NONE
+
+  PUBLIC
+
+  CHARACTER(len=*), PARAMETER :: atp_package = "@PACKAGE@"
+  CHARACTER(len=*), PARAMETER :: atp_version = "@VERSION@"
+  CHARACTER(len=*), PARAMETER :: atp_host    = "@host@"
+  CHARACTER(len=*), PARAMETER :: atp_target  = "@target@"
+
+END MODULE PkgInfo

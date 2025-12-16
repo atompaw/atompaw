@@ -1,0 +1,11 @@
+#!/bin/tcsh
+
+'cp' -f ../Makefile .
+'cp' -f ../graphatom.inc .
+
+'cp' -f ../*.f90 .
+
+source /etc/profile.d/modules.csh
+module load compilers/intel-2012-lp64
+make
+make graphatom

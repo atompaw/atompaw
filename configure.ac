@@ -17,7 +17,7 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[5.0.0.0c],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],[4.2.0.5],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
@@ -28,8 +28,9 @@ AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
 cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 12/2025 - debugging and cleaning - MT & NH
+!--- Version ${PACKAGE_VERSION} - 12/17/2025 - MT corrected bug reported by several users
 EOF
+#!--- Version ${PACKAGE_VERSION} - 12/2025 - debugging and cleaning - MT & NH
 #!--- Version ${PACKAGE_VERSION} - 11/2025 - debugging and cleaning
 #!--- Version ${PACKAGE_VERSION} - 10/2025 - debugging
 #!--- Version ${PACKAGE_VERSION} - 10/2025 - MT &  NH major bug fix in pseudo.F90 and pseudodata.F90

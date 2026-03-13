@@ -217,4 +217,30 @@ End Subroutine
     IF (i0==1) line=""
   END SUBROUTINE eliminate_comment
 
+!******************************************************************************
+!  is_real - Check if a string contains a real number
+!     line - string to check
+!******************************************************************************
+  LOGICAL FUNCTION is_real(line)
+    CHARACTER(*), INTENT(IN) :: line
+    REAL(8) :: x
+    INTEGER :: ios
+    is_real = .FALSE.
+    read(line, *, iostat=ios) x
+    if (ios == 0) is_real = .TRUE.
+  END FUNCTION is_real
+
+!******************************************************************************
+!  is_integer - Check if a string contains an integer
+!     line - string to check
+!******************************************************************************
+  LOGICAL FUNCTION is_integer(line)
+    CHARACTER(*), INTENT(IN) :: line
+    INTEGER :: n
+    INTEGER :: ios
+    is_integer = .FALSE.
+    read(line, *, iostat=ios) n
+    if (ios == 0) is_integer = .TRUE.
+  END FUNCTION is_integer
+
 END MODULE Tools

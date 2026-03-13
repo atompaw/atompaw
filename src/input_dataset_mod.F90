@@ -426,27 +426,20 @@ CONTAINS
    dataset%gridmatch=v4logrange
  END IF
  IF (igrid>0) THEN
-   iend=256
-   IF (irelat >igrid.and.irelat-1 <iend) iend=irelat -1
-   IF (ilogder>igrid.and.ilogder-1<iend) iend=ilogder-1
-   IF (ibd>igrid.and.ibd-1<iend) iend=ibd-1
-   inputline=""
-   IF (ilog>0.and.ilogv4==0.and.iend>igrid+7) &
-&    inputline=TRIM(exchangecorrelationandgridline(igrid+7:iend))
-   IF (ilog>0.and.ilogv4>0.and.iend>igrid+9) &
-&    inputline=TRIM(exchangecorrelationandgridline(igrid+9:iend))
-   IF (ilin>0.and.iend>igrid+10) &
-&    inputline=TRIM(exchangecorrelationandgridline(igrid+10:iend))
+   iend=256 ; inputline=""
+   IF (ilog>0.and.iend>igrid+7) inputline=TRIM(exchangecorrelationandgridline(igrid+7:iend))
+   IF (ilogv4>0.and.iend>igrid+9) inputline=TRIM(exchangecorrelationandgridline(igrid+9:iend))
+   IF (ilin>0.and.iend>igrid+10) inputline=TRIM(exchangecorrelationandgridline(igrid+10:iend))
    IF (inputline/="") THEN
      CALL extractword(1,inputline,inputword);inputword=trim(inputword)
-     IF (inputword/="") THEN
+     IF (is_integer(inputword)) THEN
        READ(inputword,*) dataset%gridpoints
        CALL extractword(2,inputline,inputword);inputword=trim(inputword)
-       IF (inputword/="") THEN
+       IF (is_real(inputword)) THEN
          READ(inputword,*) dataset%gridrange
          dataset%gridmatch=dataset%gridrange
          CALL extractword(3,inputline,inputword);inputword=trim(inputword)
-         IF (inputword/="") read(inputword,*) dataset%gridmatch
+         IF (is_real(inputword)) read(inputword,*) dataset%gridmatch
        END IF
      END IF
    END IF
@@ -458,20 +451,17 @@ CONTAINS
  dataset%maxlogderiv=logder_max
  dataset%nlogderiv=logder_pts
  IF (ilogder>0) THEN
-   iend=256
-   IF (igrid >ilogder.and.igrid-1 <iend) iend=igrid -1
-   IF (irelat>ilogder.and.irelat-1<iend) iend=irelat-1
-   inputline=""
+   iend=256 ; inputline=""
    IF (iend>ilogder+13) inputline=trim(exchangecorrelationandgridline(ilogder+13:iend))
    IF (inputline/="") THEN
      CALL extractword(1,inputline,inputword);inputword=trim(inputword)
-     IF (inputword/="") THEN
+     IF (is_real(inputword)) THEN
        READ(inputword,*) dataset%minlogderiv
        CALL extractword(2,inputline,inputword);inputword=trim(inputword)
-       IF (inputword/="") THEN
+       IF (is_real(inputword)) THEN
          READ(inputword,*) dataset%maxlogderiv
          CALL extractword(3,inputline,inputword);inputword=trim(inputword)
-         IF (inputword/="") READ(inputword,*) dataset%nlogderiv
+         IF (is_integer(inputword)) READ(inputword,*) dataset%nlogderiv
        END IF
      END IF
    END IF
@@ -692,7 +682,7 @@ END IF
  CALL eliminate_comment(inputline)
 
  CALL extractword(1,inputline,inputword);inputword=trim(inputword)
- IF (inputword/="") READ(inputword,*) dataset%rc
+ IF (is_real(inputword)) READ(inputword,*) dataset%rc
  IF (dataset%rc<=1.d-12) THEN
    WRITE(STD_OUT,*) 'input_dataset: error -- rc too small ',dataset%rc,'!'
    STOP
@@ -703,13 +693,13 @@ END IF
  dataset%rc_core=dataset%rc
 
  CALL extractword(2,inputline,inputword);inputword=trim(inputword)
- IF (inputword/="") THEN
+ IF (is_real(inputword)) THEN
    READ(inputword,*) dataset%rc_shap
    CALL extractword(3,inputline,inputword);inputword=trim(inputword)
-   IF (inputword/="") THEN
+   IF (is_real(inputword)) THEN
      READ(inputword,*) dataset%rc_vloc
      CALL extractword(4,inputline,inputword);inputword=trim(inputword)
-     IF (inputword/="") THEN
+     IF (is_real(inputword)) THEN
        READ(inputword,*) dataset%rc_core
      ELSE
        WRITE(STD_OUT,*) 'input_dataset: error -- rc(core) is missing!'
@@ -1764,21 +1754,17 @@ END IF
  dataset%abinit_rso_gfact=RSO_GFACT_DEF
  dataset%abinit_rso_werror=RSO_WERROR_DEF
  IF (dataset%abinit_userso) THEN
-   iend=200
-   IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-   IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-   IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
-   IF (i_author   >i_rsoptim.AND.i_author   -1<iend) iend=i_author   -1
-   inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
+   iend=200 ; inputstring=""
+   IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-     IF (inputword/="") THEN
+     IF (is_real(inputword)) THEN
        READ(inputword,*) dataset%abinit_rso_ecut
        CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-       IF (inputword/="") THEN
+       IF (is_real(inputword)) THEN
          READ(inputword,*) dataset%abinit_rso_gfact
          CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
-         IF (inputword/="") READ(inputword,*) dataset%abinit_rso_werror
+         IF (is_real(inputword)) READ(inputword,*) dataset%abinit_rso_werror
        END IF
      END IF
    END IF
@@ -1789,18 +1775,14 @@ END IF
  dataset%abinit_log_meshsz=LOGGRD_SIZE_DEF
  dataset%abinit_log_step=LOGGRD_STEP_DEF
  IF (dataset%abinit_uselog) THEN
-   iend=200
-   IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-   IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-   IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-   IF (i_author   >i_logspline.AND.i_author   -1<iend) iend=i_author   -1
-   inputstring="";IF (iend>i_logspline+9) inputstring=TRIM(inputline(i_logspline+9:iend))
+   iend=200 ; inputstring=""
+   IF (iend>i_logspline+9) inputstring=TRIM(inputline(i_logspline+9:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-     IF (inputword/="") THEN
+     IF (is_integer(inputword)) THEN
        READ(inputword,*) dataset%abinit_log_meshsz
        CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-       IF (inputword/="") READ(inputword,*) dataset%abinit_log_step
+       IF (is_real(inputword)) READ(inputword,*) dataset%abinit_log_step
      END IF
    END IF
  END IF
@@ -1939,23 +1921,17 @@ END IF
  dataset%xml_rso_gfact=RSO_GFACT_DEF
  dataset%xml_rso_werror=RSO_WERROR_DEF
  IF (dataset%xml_userso) THEN
-   iend=200
-   IF (i_usexcnhat>i_rsoptim.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-   IF (i_prtcorewf>i_rsoptim.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-   IF (i_logspline>i_rsoptim.AND.i_logspline-1<iend) iend=i_logspline-1
-   IF (i_lda12    >i_rsoptim.AND.i_lda12    -1<iend) iend=i_lda12    -1
-   IF (i_author   >i_rsoptim.AND.i_author   -1<iend) iend=i_author   -1
-   IF (i_comment  >i_rsoptim.AND.i_comment  -1<iend) iend=i_comment  -1
-   inputstring="";IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
+   iend=200 ; inputstring=""
+   IF (iend>i_rsoptim+7) inputstring=TRIM(inputline(i_rsoptim+7:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-     IF (inputword/="") THEN
+     IF (is_real(inputword)) THEN
        READ(inputword,*) dataset%xml_rso_ecut
        CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-       IF (inputword/="") THEN
+       IF (is_real(inputword)) THEN
          READ(inputword,*) dataset%xml_rso_gfact
          CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
-         IF (inputword/="") READ(inputword,*) dataset%xml_rso_werror
+         IF (is_real(inputword)) READ(inputword,*) dataset%xml_rso_werror
        END IF
      END IF
    END IF
@@ -1969,26 +1945,20 @@ END IF
  dataset%xml_lda12_rcut=LDA12_RCUT_DEF
  dataset%xml_lda12_logfile=TRIM(LDA12_LOGFILE)
  IF (dataset%xml_uselda12) THEN
-   iend=200
-   IF (i_usexcnhat>i_lda12.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-   IF (i_prtcorewf>i_lda12.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-   IF (i_logspline>i_lda12.AND.i_logspline-1<iend) iend=i_logspline-1
-   IF (i_rsoptim  >i_lda12.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-   IF (i_author   >i_lda12.AND.i_author   -1<iend) iend=i_author   -1
-   IF (i_comment  >i_lda12.AND.i_comment  -1<iend) iend=i_comment  -1
-   inputstring="";IF (iend>i_lda12+5) inputstring=TRIM(inputline(i_lda12+5:iend))
+   iend=200 ; inputstring=""
+   IF (iend>i_lda12+5) inputstring=TRIM(inputline(i_lda12+5:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-     IF (inputword/="") THEN
+     IF (is_integer(inputword)) THEN
        READ(inputword,*) dataset%xml_lda12_orb_n
        CALL extractword(2,inputstring,inputword);inputword=TRIM(inputword)
-       IF (inputword/="") THEN
+       IF (is_integer(inputword)) THEN
          READ(inputword,*) dataset%xml_lda12_orb_l
          CALL extractword(3,inputstring,inputword);inputword=TRIM(inputword)
-         IF (inputword/="") THEN
+         IF (is_real(inputword)) THEN
            READ(inputword,*) dataset%xml_lda12_ion
            CALL extractword(4,inputstring,inputword);inputword=TRIM(inputword)
-           IF (inputword/="") READ(inputword,*) dataset%xml_lda12_rcut
+           IF (is_real(inputword)) READ(inputword,*) dataset%xml_lda12_rcut
          END IF
        END IF
      END IF
@@ -1999,17 +1969,11 @@ END IF
  dataset%xml_usespl=MERGE(.true.,USELOG_DEF,i_logspline>0)
  dataset%xml_spl_meshsz=LOGGRD_SIZE_DEF
  IF (dataset%xml_usespl) THEN
-   iend=200
-   IF (i_usexcnhat>i_logspline.AND.i_usexcnhat-1<iend) iend=i_usexcnhat-1
-   IF (i_prtcorewf>i_logspline.AND.i_prtcorewf-1<iend) iend=i_prtcorewf-1
-   IF (i_rsoptim  >i_logspline.AND.i_rsoptim  -1<iend) iend=i_rsoptim  -1
-   IF (i_lda12    >i_logspline.AND.i_lda12    -1<iend) iend=i_lda12    -1
-   IF (i_author   >i_logspline.AND.i_author   -1<iend) iend=i_author   -1
-   IF (i_comment  >i_logspline.AND.i_comment  -1<iend) iend=i_comment  -1
-   inputstring="";IF (iend>i_logspline+11) inputstring=TRIM(inputline(i_logspline+11:iend))
+   iend=200 ; inputstring=""
+   IF (iend>i_logspline+11) inputstring=TRIM(inputline(i_logspline+11:iend))
    IF (inputstring/="") THEN
      CALL extractword(1,inputstring,inputword);inputword=TRIM(inputword)
-     IF (inputword/="") READ(inputword,*) dataset%xml_spl_meshsz
+     IF (is_integer(inputword)) READ(inputword,*) dataset%xml_spl_meshsz
    END IF
  END IF
 

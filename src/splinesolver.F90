@@ -337,7 +337,7 @@ CONTAINS
   SUBROUTINE splinereport(unit)
      INTEGER, INTENT(IN) :: unit
 
-     WRITE(unit,'(/,1xa)') 'Splinesolver method used for bound states'
+     WRITE(unit,'(/,1x,a)') 'Splinesolver method used for bound states'
      WRITE(unit,'(1x,a)') 'Splinesolver grid parameters r0 and ns:'
      WRITE(unit,'(3x,f10.5, i9)') r0,ns     
 

@@ -35,24 +35,75 @@ See `COPYING file`
 
 ### Installation
 
+#### Installation via CMake
+
+Installation with `CMake` is the most straightforward method.
+Once inside the ATOMPAW source directory, simply run:  
+
+```
+mkdir build && cd build
+cmake ..
+make
+[make install]
+```  
+
+The linear algebra library (`BLAS`/`LAPACK`) should be automatically detected. If not, you can add the following on the `cmake ..` line:  
+
+```
+-DBLAS_ROOT=/PATH/TO/BLAS -DLAPACK_ROOT=PATH/TO/LAPACK
+```
+
+The [libxc](https://libxc.gitlab.io) library (collection of exchange-correlation functionals) should be automatically detected, although it is optional. If not, add the following on the `cmake ..` line:  
+
+```
+-DLIBXC_ROOT=/PATH/TO/LIBXC
+```
+
+#### Installation via Autotools
 
 If you obtained the sources directly from the git repository,
-you will first need to generate the configure script by running
+you will first need to generate the `configure` script by running:  
+
 ```
 ./bootstrap.sh
 ```
-(Not needed if you downloaded the sources from ATOMPAW
+(This step is not necessary if you downloaded the sources from the ATOMPAW
 [website](http://users.wfu.edu/natalie/papers/pwpaw))  
 
 Then run:  
+
 ```
-./configure --prefix=PATH/TO/ATOMPAW [options]
+mkdir build && cd build
+../configure --prefix=PATH/TO/ATOMPAW [options]
 make
-make install
-```
-Most common options (complete list: `./configure --help`):
-- A `blas/lapack` library is required. If not present in a standard directory, use:  
-  `--with-linalg-prefix=PATH/TO/LINEAR/ALGEBRA`
-- To link with [libxc](https://www.tddft.org/programs/libxc/) collection of 
+[make install]
+```  
+
+Most commonly used options (for a complete list, run `./configure --help`):  
+
+- A `BLAS`/`LAPACK` library is required. If not installed in a standard location, specify it with:  
+  `--with-linalg-prefix=PATH/TO/LINEAR/ALGEBRA`  
+- To link against the [libxc](https://www.tddft.org/programs/libxc/) library, which provides a collection of 
   exchange-correlation functionals, use:  
   `--enable-libxc --with-libxc-prefix=PATH/TO/LIBXC`.
+
+#### Installation via Homebrew (MacOS)
+
+If you are using macOS, you can use the [Homebrew package manager](https://brew.sh) to easily install the latest version of ATOMPAW.
+Once Homebrew is installed, simply run:  
+
+```
+brew tap atompaw/repo
+brew install atompaw
+```
+
+or directly:
+
+```
+brew install atompaw/repo/atompaw
+```
+
+> Notes:  
+> 
+> - Always use the latest Homebrew version (use brew upgrade).  
+> - Bottles (compiled versions) are not always provided. If so, ATOMPAW will be built on the fly during installation process.

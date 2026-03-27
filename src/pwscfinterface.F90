@@ -514,6 +514,14 @@ Module PWscfInterface
        shortqe='GGA-PBE'
        OK=.true.
        return
+   elseif (TRIM(libxcform)=='XC_GGA_X_B86_MGC+XC_GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='XC_GGA_C_PBE+XC_GGA_X_B86_MGC' .OR. &
+&          TRIM(libxcform)=='GGA_X_B86_MGC+GGA_C_PBE' .OR. &
+&          TRIM(libxcform)=='GGA_C_PBE+GGA_X_B86_MGC') then
+       qeform='SLA PW B86B PBC' 
+       shortqe='GGA-B86BPBE'
+       OK=.true.
+       return
    elseif (TRIM(libxcform)=='XC_GGA_X_WC+XC_GGA_C_PBE' .OR. &
 &          TRIM(libxcform)=='XC_GGA_C_WC+XC_GGA_X_PBE' .OR. &
 &          TRIM(libxcform)=='GGA_X_WC+GGA_C_PBE' .OR. &

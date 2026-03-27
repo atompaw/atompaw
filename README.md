@@ -5,7 +5,7 @@ The software `ATOMPAW` generates projector and basis functions which are needed 
 performing electronic structure calculations (Density-Functional Theory)
 based on the Projector Augmented-Wave (PAW) method.
 
-### What does AtomPAW?
+### What does AtomPAW do?
 
 The program is applicable to materials throughout the periodic table.
 For each element, the user inputs the atomic number, the electronic configuration,

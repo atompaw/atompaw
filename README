@@ -12,7 +12,7 @@ For each element, the user inputs the atomic number, the electronic configuratio
 a choice of basis functions, and an augmentation radius.
 The program produces output files containing the projector and basis functions
 and the corresponding matrix elements in a format which can be read by several
-DFT codes (*abinit*, *quantum espresso*, *gpaw*, *pwpaw*, *onetep*, and all codes that
+DFT codes (abinit, quantum espresso, gpaw, pwpaw, onetep, and all codes that
 can read atomic PAW setups in the PAW-XML format).
 
 

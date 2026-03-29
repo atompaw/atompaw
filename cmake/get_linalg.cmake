@@ -13,7 +13,7 @@ string(REPLACE ":" ";" _ld_paths "$ENV{LD_LIBRARY_PATH}")
 # ----- BLAS -----
 
 # 1- Try BLAS via CMake find_package
-find_package(BLAS)
+find_package(BLAS QUIET)
 if (BLAS_FOUND)
   message(STATUS "BLAS found via cmake target")
   set(BLAS_FOUND_with_cmake TRUE)
@@ -62,7 +62,7 @@ endif()
 # ----- LAPACK -----
 
 # 1- Try LAPACK via CMake find_package
-find_package(LAPACK)
+find_package(LAPACK QUIET)
 if (LAPACK_FOUND)
   message(STATUS "LAPACK found via cmake target")
   set(LAPACK_FOUND_with_cmake TRUE)
@@ -146,4 +146,8 @@ else()
   message(FATAL_ERROR "BLAS+LAPACK test failed: ${TRY_OUTPUT}")
 endif()
 
-message(CHECK_PASS "done")
+if (BLAS_LAPACK_OK)
+  message(CHECK_PASS "done")
+else()
+  message(CHECK_PASS "not found")
+endif()

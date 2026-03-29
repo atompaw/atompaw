@@ -18,7 +18,7 @@ if (USE_LIBXC)
   message(CHECK_START ">>> Detecting libXC")
 
 # 1- Try via CMake find_package
-  find_package(Libxc)
+  find_package(Libxc QUIET)
   if (Libxc_FOUND)
     message(STATUS "Libxc found via cmake target")
 
@@ -116,5 +116,10 @@ if (USE_LIBXC)
     message(FATAL_ERROR "Libxc required (ENABLE_LIBXC=ON) but not available!")
   endif()
 
-  message(CHECK_PASS "done")
+  if (LIBXC_OK)
+    message(CHECK_PASS "done")
+  else()
+    message(CHECK_PASS "not found")
+  endif()
+  
 endif()

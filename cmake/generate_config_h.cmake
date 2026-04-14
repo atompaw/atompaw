@@ -26,7 +26,20 @@ check_include_files("stdlib.h;stdarg.h;string.h;float.h" ${MY_PACKAGE_NAME_PREFI
 # Fortran and ISO C Bindings
 # if (HAVE_FC_ISO_C_BINDING)
 #   set(HAVE_FC_ISO_C_BINDING 1)
-# end if
+# endif()
+
+# Fortran and FLUSH/FLUSH_
+if (HAVE_FC_FLUSH)
+  set(HAVE_FC_FLUSH 1)
+endif()
+if (HAVE_FC_FLUSH_)
+  set(HAVE_FC_FLUSH_ 1)
+endif()
+
+# Fortran and ISATTY
+if (HAVE_FC_ISATTY)
+  set(HAVE_FC_ISATTY 1)
+endif()
 
 # Absoft
 if(CMAKE_Fortran_COMPILER_ID STREQUAL Absoft)

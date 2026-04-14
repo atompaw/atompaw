@@ -130,13 +130,27 @@ if (BLAS_FOUND_with_cmake OR BLAS_FOUND_with_pkgconfig OR
 else()
   set(BLAS_LAPACK_FOUND_OK FALSE)
 endif()
-  
+
 # If BLAS/LAPACK found, test if it works
 if (BLAS_LAPACK_FOUND_OK)
   enable_language(Fortran)
+  # Fortran program calling BLAS/Lapack
+file(WRITE ${CMAKE_BINARY_DIR}/tests/test_linalg/test_linalg.F90 "
+program test_linalg
+  implicit none
+  integer, parameter :: n = 2
+  real(8) :: A(2,2), b(2), x(2)
+  integer :: ipiv(2), info
+  A = reshape([1.0d0, 2.0d0, 3.0d0, 4.0d0], [2,2])
+  b = [5.0d0, 6.0d0]
+  call dcopy(n, b, 1, x, 1)
+    call dgesv(n, 1, A, n, ipiv, x, n, info)
+  stop (info == 0)  ! 0=OK, 1=échec
+end program test_linalg
+")
   try_run(LINALG_RUN_RESULT LINALG_COMPILE_RESULT
-          ${CMAKE_BINARY_DIR}/test_linalg
-          ${CMAKE_SOURCE_DIR}/cmake/tests/test_linalg.F90
+          ${CMAKE_BINARY_DIR}/tests/test_linalg
+          ${CMAKE_BINARY_DIR}/tests/test_linalg/test_linalg.F90
           LINK_LIBRARIES ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
   if (NOT LINALG_RUN_RESULT)
     set(BLAS_LAPACK_OK TRUE)

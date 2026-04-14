@@ -114,9 +114,23 @@ if (USE_LIBXC)
 
 # If libxc found, test if it works
   if (LIBXC_FOUND_OK)
+    # C program calling LibXC
+    file(WRITE ${CMAKE_BINARY_DIR}/tests/test_libxc/test_libxc.c "
+#include "xc.h"
+int main() {
+    xc_func_type func;
+    double rho[1] = {1.0};
+    double ex[1], vx[1];
+    int version_major;
+    version_major = (int)XC_VERSION_MAJOR;
+    xc_func_init(&func, XC_FUNC_TYPE_LDA, XC_POLARIZATION_NONE, 1, "LDA_X");
+    xc_lda(&func, 1, rho, ex, vx);
+    xc_func_end(&func);
+}
+")
     try_run(LIBXC_RUN_RESULT LIBXC_COMPILE_RESULT
-            ${CMAKE_BINARY_DIR}/test_libxc
-            ${CMAKE_SOURCE_DIR}/cmake/tests/test_libxc.c
+            ${CMAKE_BINARY_DIR}/tests/test_libxc
+            ${CMAKE_BINARY_DIR}/tests/test_libxc/test_libxc.c
             CMAKE_FLAGS  -DINCLUDE_DIRECTORIES=${Libxc_INCLUDE_DIRS}
             LINK_LIBRARIES ${Libxc_LIBRARIES})
     if (NOT LIBXC_RUN_RESULT)

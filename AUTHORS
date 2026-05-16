@@ -11,9 +11,13 @@
   marc.torrent@cea.fr
 
 
-
-* Build system (autotools) contributor:
+* CMake Build system contributor:
   Yann Pouillon (ETSF, UPV/EHU, Donostian-San Sebastián, Spain)
+  Marc Torrent
+
+* Autotools Build system contributors:
+  Yann Pouillon (ETSF, UPV/EHU, Donostian-San Sebastián, Spain)
+  Marc Torrent
 
 * XML output contributor:
   Francois Jollet (CEA, Paris, France)
@@ -21,10 +25,8 @@
 * Quantum Espress output contributor:
   Davide Ceresoli (ISTM, Milano, Italy)
 
-
 * Other contributors:
   G. Eric. Matthews (WFU, USA)
   Alan R. Tackett  (Vanderbilt U., USA)
   Alan Wright (Sandia National Lab, USA)
   Xiao Xu (WFU, USA)
-

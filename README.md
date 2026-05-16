@@ -21,8 +21,8 @@ and all codes that can read atomic PAW setups in the
 [PAW-XML](https://esl.cecam.org/Paw-xml) format).
 
 
-Most of the relevant information can be found on the
-ATOMPAW [official website](http://users.wfu.edu/natalie/papers/pwpaw).
+Most of the relevant information is available on the
+ATOMPAW [official website](http://users.wfu.edu/natalie/papers/pwpaw) as well as on ATOMPAW [github repository](https://github.com/atompaw/atompaw).
 
 Many documentation files can be found in the doc directory.
 See especially the 

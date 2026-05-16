@@ -1,291 +1,290 @@
-Installation Instructions
-*************************
+===========================================================================
+ AtomPAW -- Installation Guide
+===========================================================================
 
-Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
-2006, 2007, 2008 Free Software Foundation, Inc.
+AtomPAW generates Projector Augmented-Wave (PAW) setups for use with
+electronic structure codes based on Density-Functional Theory (DFT).
 
-   This file is free documentation; the Free Software Foundation gives
-unlimited permission to copy, distribute and modify it.
+For general information, please visit the official website:
+  http://users.wfu.edu/natalie/papers/pwpaw
 
-Basic Installation
-==================
+---------------------------------------------------------------------------
+ Table of Contents
+---------------------------------------------------------------------------
+  1. Prerequisites
+  2. Getting the source code
+  3. Quick start
+     3a. Installation via Autotools
+     3b. Installation via CMake
+  4. Configuration options (Autotools)
+  5. CMake options
+  6. Environment variables
+  7. Build and install
+  8. Troubleshooting
+  9. Contact
+---------------------------------------------------------------------------
 
-   Briefly, the shell commands `./configure; make; make install' should
-configure, build, and install this package.  The following
-more-detailed instructions are generic; see the `README' file for
-instructions specific to this package.
 
-   The `configure' shell script attempts to guess correct values for
-various system-dependent variables used during compilation.  It uses
-those values to create a `Makefile' in each directory of the package.
-It may also create one or more `.h' files containing system-dependent
-definitions.  Finally, it creates a shell script `config.status' that
-you can run in the future to recreate the current configuration, and a
-file `config.log' containing compiler output (useful mainly for
-debugging `configure').
-
-   It can also use an optional file (typically called `config.cache'
-and enabled with `--cache-file=config.cache' or simply `-C') that saves
-the results of its tests to speed up reconfiguring.  Caching is
-disabled by default to prevent problems with accidental use of stale
-cache files.
-
-   If you need to do unusual things to compile the package, please try
-to figure out how `configure' could check whether to do them, and mail
-diffs or instructions to the address given in the `README' so they can
-be considered for the next release.  If you are using the cache, and at
-some point `config.cache' contains results you don't want to keep, you
-may remove or edit it.
-
-   The file `configure.ac' (or `configure.in') is used to create
-`configure' by a program called `autoconf'.  You need `configure.ac' if
-you want to change it or regenerate `configure' using a newer version
-of `autoconf'.
-
-The simplest way to compile this package is:
-
-  1. `cd' to the directory containing the package's source code and type
-     `./configure' to configure the package for your system.
-
-     Running `configure' might take a while.  While running, it prints
-     some messages telling which features it is checking for.
-
-  2. Type `make' to compile the package.
-
-  3. Optionally, type `make check' to run any self-tests that come with
-     the package.
-
-  4. Type `make install' to install the programs and any data files and
-     documentation.
-
-  5. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  To also remove the
-     files that `configure' created (so you can compile the package for
-     a different kind of computer), type `make distclean'.  There is
-     also a `make maintainer-clean' target, but that is intended mainly
-     for the package's developers.  If you use it, you may have to get
-     all sorts of other programs in order to regenerate files that came
-     with the distribution.
-
-  6. Often, you can also type `make uninstall' to remove the installed
-     files again.
-
-Compilers and Options
-=====================
-
-   Some systems require unusual options for compilation or linking that
-the `configure' script does not know about.  Run `./configure --help'
-for details on some of the pertinent environment variables.
-
-   You can give `configure' initial values for configuration parameters
-by setting variables in the command line or in the environment.  Here
-is an example:
-
-     ./configure CC=c99 CFLAGS=-g LIBS=-lposix
-
-   *Note Defining Variables::, for more details.
-
-Compiling For Multiple Architectures
-====================================
-
-   You can compile the package for more than one kind of computer at the
-same time, by placing the object files for each architecture in their
-own directory.  To do this, you can use GNU `make'.  `cd' to the
-directory where you want the object files and executables to go and run
-the `configure' script.  `configure' automatically checks for the
-source code in the directory that `configure' is in and in `..'.
-
-   With a non-GNU `make', it is safer to compile the package for one
-architecture at a time in the source code directory.  After you have
-installed the package for one architecture, use `make distclean' before
-reconfiguring for another architecture.
-
-   On MacOS X 10.5 and later systems, you can create libraries and
-executables that work on multiple system types--known as "fat" or
-"universal" binaries--by specifying multiple `-arch' options to the
-compiler but only a single `-arch' option to the preprocessor.  Like
-this:
-
-     ./configure CC="gcc -arch i386 -arch x86_64 -arch ppc -arch ppc64" \
-                 CXX="g++ -arch i386 -arch x86_64 -arch ppc -arch ppc64" \
-                 CPP="gcc -E" CXXCPP="g++ -E"
-
-   This is not guaranteed to produce working output in all cases, you
-may have to build one architecture at a time and combine the results
-using the `lipo' tool if you have problems.
-
-Installation Names
-==================
-
-   By default, `make install' installs the package's commands under
-`/usr/local/bin', include files under `/usr/local/include', etc.  You
-can specify an installation prefix other than `/usr/local' by giving
-`configure' the option `--prefix=PREFIX'.
-
-   You can specify separate installation prefixes for
-architecture-specific files and architecture-independent files.  If you
-pass the option `--exec-prefix=PREFIX' to `configure', the package uses
-PREFIX as the prefix for installing programs and libraries.
-Documentation and other data files still use the regular prefix.
-
-   In addition, if you use an unusual directory layout you can give
-options like `--bindir=DIR' to specify different values for particular
-kinds of files.  Run `configure --help' for a list of the directories
-you can set and what kinds of files go in them.
-
-   If the package supports it, you can cause programs to be installed
-with an extra prefix or suffix on their names by giving `configure' the
-option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
-
-Optional Features
-=================
-
-   Some packages pay attention to `--enable-FEATURE' options to
-`configure', where FEATURE indicates an optional part of the package.
-They may also pay attention to `--with-PACKAGE' options, where PACKAGE
-is something like `gnu-as' or `x' (for the X Window System).  The
-`README' should mention any `--enable-' and `--with-' options that the
-package recognizes.
-
-   For packages that use the X Window System, `configure' can usually
-find the X include and library files automatically, but if it doesn't,
-you can use the `configure' options `--x-includes=DIR' and
-`--x-libraries=DIR' to specify their locations.
-
-Particular systems
-==================
-
-   On HP-UX, the default C compiler is not ANSI C compatible.  If GNU
-CC is not installed, it is recommended to use the following options in
-order to use an ANSI C compiler:
-
-     ./configure CC="cc -Ae"
-
-and if that doesn't work, install pre-built binaries of GCC for HP-UX.
-
-   On OSF/1 a.k.a. Tru64, some versions of the default C compiler cannot
-parse its `<wchar.h>' header file.  The option `-nodtk' can be used as
-a workaround.  If GNU CC is not installed, it is therefore recommended
-to try
-
-     ./configure CC="cc"
-
-and if that doesn't work, try
-
-     ./configure CC="cc -nodtk"
-
-Specifying the System Type
-==========================
-
-   There may be some features `configure' cannot figure out
-automatically, but needs to determine by the type of machine the package
-will run on.  Usually, assuming the package is built to be run on the
-_same_ architectures, `configure' can figure that out, but if it prints
-a message saying it cannot guess the machine type, give it the
-`--build=TYPE' option.  TYPE can either be a short name for the system
-type, such as `sun4', or a canonical name which has the form:
-
-     CPU-COMPANY-SYSTEM
-
-where SYSTEM can have one of these forms:
-
-     OS KERNEL-OS
-
-   See the file `config.sub' for the possible values of each field.  If
-`config.sub' isn't included in this package, then this package doesn't
-need to know the machine type.
-
-   If you are _building_ compiler tools for cross-compiling, you should
-use the option `--target=TYPE' to select the type of system they will
-produce code for.
-
-   If you want to _use_ a cross compiler, that generates code for a
-platform different from the build platform, you should specify the
-"host" platform (i.e., that on which the generated programs will
-eventually be run) with `--host=TYPE'.
-
-Sharing Defaults
+1. Prerequisites
 ================
 
-   If you want to set default values for `configure' scripts to share,
-you can create a site shell script called `config.site' that gives
-default values for variables like `CC', `cache_file', and `prefix'.
-`configure' looks for `PREFIX/share/config.site' if it exists, then
-`PREFIX/etc/config.site' if it exists.  Or, you can set the
-`CONFIG_SITE' environment variable to the location of the site script.
-A warning: not all `configure' scripts look for a site script.
+Required:
+  - A Fortran 90 compiler (gfortran, ifort, ifx, nagfor, ...)
+  - A BLAS/LAPACK library (OpenBLAS, MKL, LAPACK reference, Accelerate on macOS, ...)
+  - GNU Autotools: autoconf (>= 2.62), automake (>= 1.10), libtool (>= 2.2.2)
+    [only needed when building from the Git repository with Autotools]
+  - CMake (>= 3.20) [only needed when building with CMake]
 
-Defining Variables
+Optional:
+  - LibXC (>= 2.x): collection of exchange-correlation functionals
+      https://www.tddft.org/programs/libxc/
+
+
+2. Getting the source code
+==========================
+
+From the official website (tarball -- recommended for end-users):
+  Download a release tarball from http://users.wfu.edu/natalie/papers/pwpaw
+  The tarball already contains a pre-generated `configure` script; skip
+  directly to section 3.
+
+From the Git repository:
+  git clone https://github.com/atompaw/atompaw.git
+  cd atompaw
+
+  You must first generate the `configure` script by running:
+
+    ./bootstrap.sh
+
+  This calls aclocal, autoconf, and automake in the correct order.
+  It requires Autotools to be installed on your system.
+
+
+3. Quick start
+==============
+
+3a. Installation via Autotools
+-------------------------------
+
+The standard three-step build for a simple installation:
+
+  ./configure --prefix=/path/to/install
+  make
+  make install
+
+This installs the `atompaw` executable under /path/to/install/bin/.
+
+If BLAS/LAPACK are not found automatically (see section 8), use:
+
+  ./configure --prefix=/path/to/install \
+              --with-linalg-prefix=/path/to/blas_lapack
+  make
+  make install
+
+
+3b. Installation via CMake
+---------------------------
+
+CMake is the most straightforward installation method.
+Once inside the AtomPAW source directory, simply run:
+
+  mkdir build && cd build
+  cmake .. -DCMAKE_INSTALL_PREFIX=/path/to/install
+  make
+  make install
+
+The BLAS/LAPACK library should be automatically detected. If not, add
+the following on the `cmake ..` line:
+
+  -DBLAS_ROOT=/path/to/blas -DLAPACK_ROOT=/path/to/lapack
+
+The LibXC library (collection of exchange-correlation functionals,
+see https://libxc.gitlab.io) is optional and should be automatically
+detected. If not, add the following on the `cmake ..` line:
+
+  -DLIBXC_ROOT=/path/to/libxc
+
+
+4. Configuration options (Autotools)
+=====================================
+
+Run `./configure --help` for the complete list. The most useful options
+are described below.
+
+Installation prefix:
+  --prefix=DIR
+      Install atompaw under DIR (default: /usr/local).
+      The executable will be placed in DIR/bin/atompaw.
+
+Linear algebra (BLAS/LAPACK):
+  --with-linalg-prefix=DIR
+      Root directory of the BLAS/LAPACK installation.
+      configure will look for headers in DIR/include and
+      libraries in DIR/lib (or DIR/lib64).
+
+  --with-linalg-libs=FLAGS
+      Explicit linker flags for BLAS/LAPACK, e.g.:
+        --with-linalg-libs="-L/opt/openblas/lib -lopenblas"
+      Use this when the library layout is non-standard.
+
+LibXC (optional):
+  --enable-libxc
+      Activate LibXC support (disabled by default).
+
+  --with-libxc-prefix=DIR
+      Root directory of the LibXC installation.
+
+  --with-libxc-incs=FLAGS
+      Explicit include flags for LibXC headers, e.g.:
+        --with-libxc-incs="-I/opt/libxc/include"
+
+  --with-libxc-libs=FLAGS
+      Explicit linker flags for LibXC, e.g.:
+        --with-libxc-libs="-L/opt/libxc/lib -lxcf90 -lxc"
+
+Fortran compiler selection:
+  --with-fc-vendor=VENDOR
+      Force a specific compiler vendor (gnu, intel, nag, ...).
+
+  --with-fc-version=VERSION
+      Force a specific compiler version.
+
+
+5. CMake options
+================
+
+Run `cmake -LA ..` from the build directory for the complete list.
+The most useful options (passed as -DOPTION=VALUE on the cmake line):
+
+Installation prefix:
+  CMAKE_INSTALL_PREFIX=DIR
+      Install atompaw under DIR (default: /usr/local).
+
+Fortran compiler:
+  CMAKE_Fortran_COMPILER=PATH
+      Path to the Fortran compiler to use, e.g.:
+        -DCMAKE_Fortran_COMPILER=ifort
+
+Build type:
+  CMAKE_BUILD_TYPE=Release|Debug|RelWithDebInfo
+      Optimization level (default: Release).
+
+Linear algebra (BLAS/LAPACK):
+  BLAS_ROOT=DIR
+      Root directory of the BLAS installation.
+  LAPACK_ROOT=DIR
+      Root directory of the LAPACK installation.
+
+LibXC (optional):
+  LIBXC_ROOT=DIR
+      Root directory of the LibXC installation.
+      LibXC support is enabled automatically when this is set
+      or when LibXC is found in standard system paths.
+
+Example combining several options:
+
+  cmake .. -DCMAKE_INSTALL_PREFIX=/opt/atompaw \
+           -DCMAKE_Fortran_COMPILER=ifort \
+           -DCMAKE_BUILD_TYPE=Release \
+           -DBLAS_ROOT=/opt/mkl \
+           -DLAPACK_ROOT=/opt/mkl \
+           -DLIBXC_ROOT=/opt/libxc
+
+
+6. Environment variables
+========================
+
+Environment variables can be set on the configure command line or
+exported before running configure:
+
+  FC          Fortran compiler to use (e.g. FC=ifort or FC=gfortran)
+  FCFLAGS     Fortran compiler flags (overrides AtomPAW defaults)
+  LDFLAGS     Linker flags
+  LIBS        Additional libraries to link
+  LINALG_PREFIX   Equivalent to --with-linalg-prefix
+  LIBXC_PREFIX    Equivalent to --with-libxc-prefix
+
+Examples:
+
+  # Use Intel Fortran with MKL
+  ./configure FC=ifort \
+              FCFLAGS="-O2 -xHost" \
+              --with-linalg-libs="-mkl"
+
+  # Use gfortran with OpenBLAS installed in /opt/openblas
+  ./configure FC=gfortran \
+              --with-linalg-prefix=/opt/openblas
+
+  # Enable LibXC with a custom installation path
+  ./configure --enable-libxc \
+              --with-libxc-prefix=/opt/libxc
+
+
+7. Build and install
+====================
+
+After running configure successfully:
+
+  make              # compile AtomPAW
+  make install      # install the atompaw binary
+
+To build in a separate directory (out-of-source build, recommended):
+
+  mkdir build && cd build
+  ../configure --prefix=/path/to/install [options]
+  make
+  make install
+
+Useful make targets:
+
+  make clean          Remove compiled object files and the binary
+  make distclean      Remove all files generated by configure and make
+                      (restores the source tree to a pristine state)
+  make uninstall      Remove the installed files from PREFIX
+
+
+8. Troubleshooting
 ==================
 
-   Variables not defined in a site shell script can be set in the
-environment passed to `configure'.  However, some packages may run
-configure again during the build, and the customized values of these
-variables may be lost.  In order to avoid this problem, you should set
-them in the `configure' command line, using `VAR=value'.  For example:
+BLAS/LAPACK not found:
+  If configure cannot find a BLAS/LAPACK library automatically, specify
+  its location explicitly:
 
-     ./configure CC=/usr/local2/bin/gcc
+    --with-linalg-prefix=/path/to/openblas
+  or
+    --with-linalg-libs="-L/path/to/lib -lblas -llapack"
 
-causes the specified `gcc' to be used as the C compiler (unless it is
-overridden in the site shell script).
+  On macOS, Apple's Accelerate framework can be used:
+    --with-linalg-libs="-framework Accelerate"
 
-Unfortunately, this technique does not work for `CONFIG_SHELL' due to
-an Autoconf bug.  Until the bug is fixed you can use this workaround:
+  On systems with Intel MKL, the simplest flag is usually:
+    --with-linalg-libs="-mkl"   (with ifort)
+    --with-linalg-libs="-lmkl_rt"  (generic)
 
-     CONFIG_SHELL=/bin/bash /bin/bash ./configure CONFIG_SHELL=/bin/bash
+LibXC not found:
+  Make sure LibXC was compiled with the same Fortran compiler as AtomPAW.
+  Then point configure to its installation:
+    --enable-libxc --with-libxc-prefix=/path/to/libxc
 
-`configure' Invocation
-======================
+Compiler not found:
+  Set FC to the full path of your Fortran compiler:
+    FC=/usr/local/bin/gfortran-13 ./configure ...
 
-   `configure' recognizes the following options to control how it
-operates.
+Regenerating configure after editing configure.ac:
+  If you modify configure.ac, regenerate configure with:
+    ./bootstrap.sh
+  or
+    autoreconf -fi
 
-`--help'
-`-h'
-     Print a summary of all of the options to `configure', and exit.
 
-`--help=short'
-`--help=recursive'
-     Print a summary of the options unique to this package's
-     `configure', and exit.  The `short' variant lists options used
-     only in the top level, while the `recursive' variant lists options
-     also present in any nested packages.
+9. Contact
+==========
 
-`--version'
-`-V'
-     Print the version of Autoconf used to generate the `configure'
-     script, and exit.
+Bug reports and questions can be sent to the AtomPAW developers:
+  natalie@wfu.edu
+  marc.torrent@cea.fr
 
-`--cache-file=FILE'
-     Enable the cache: use and save the results of the tests in FILE,
-     traditionally `config.cache'.  FILE defaults to `/dev/null' to
-     disable caching.
+Source code and issue tracker:
+  https://github.com/atompaw/atompaw
 
-`--config-cache'
-`-C'
-     Alias for `--cache-file=config.cache'.
-
-`--quiet'
-`--silent'
-`-q'
-     Do not print messages saying which checks are being made.  To
-     suppress all normal output, redirect it to `/dev/null' (any error
-     messages will still be shown).
-
-`--srcdir=DIR'
-     Look for the package's source code in directory DIR.  Usually
-     `configure' can determine that directory automatically.
-
-`--prefix=DIR'
-     Use DIR as the installation prefix.  *Note Installation Names::
-     for more details, including other options available for fine-tuning
-     the installation locations.
-
-`--no-create'
-`-n'
-     Run the configure checks, but stop before creating any output
-     files.
-
-`configure' also accepts some other, not widely useful, options.  Run
-`configure --help' for more details.
-
+===========================================================================

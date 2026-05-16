@@ -17,52 +17,20 @@
 
 # Initialize Autoconf
 AC_PREREQ(2.62)
-AC_INIT([AtomPAW],[4.2.0.5],[natalie@wfu.edu, marc.torrent@cea.fr],[atompaw])
+AC_INIT([AtomPAW],
+        m4_esyscmd_s([grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' VERSION | head -1]),
+        [natalie@wfu.edu, marc.torrent@cea.fr],
+        [atompaw])
 AC_REVISION([Autotools support for AtomPAW])
 AC_CONFIG_AUX_DIR(config/gnu)
 AC_CONFIG_MACRO_DIR([config/m4])
 AC_CONFIG_SRCDIR(src/atompaw_prog.F90)
 
-# Regenerate the VERSION file
-# Note: remember that some editors break long lines
-AC_MSG_NOTICE([regenerating the VERSION file])
 _AC_SRCDIRS(["."])
-cat >"${ac_abs_top_srcdir}/VERSION" <<EOF
-!--- Version ${PACKAGE_VERSION} - 12/17/2025 - MT corrected bug reported by several users
-EOF
-#!--- Version ${PACKAGE_VERSION} - 12/2025 - debugging and cleaning - MT & NH
-#!--- Version ${PACKAGE_VERSION} - 11/2025 - debugging and cleaning
-#!--- Version ${PACKAGE_VERSION} - 10/2025 - debugging
-#!--- Version ${PACKAGE_VERSION} - 10/2025 - MT &  NH major bug fix in pseudo.F90 and pseudodata.F90
-#!--- Version ${PACKAGE_VERSION} - 9/2024 - MT &  NH several MGGA bug fixes and extra writes for analysis
-#!--- Version ${PACKAGE_VERSION} - 01/2024 - MT &  NH several MGGA bug fixes
-#!--- Version ${PACKAGE_VERSION} - 7/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
-#!--- Version ${PACKAGE_VERSION} - 6/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
-#!--- Version ${PACKAGE_VERSION} - 10/2022 - modification to PWscfinterface for compatibility with QE 7.1
-#!--- Version ${PACKAGE_VERSION} - 05/2022 - correction for intel compatibility thanks to JZ and NH added some self-consistency corrections
-#!--- Version ${PACKAGE_VERSION} - 03/2022 - NH,MT added self-consistent MGGAplus other features
-#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT,FJ added LDA-1/2 potential
-#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT introduce std I/O variables
-#!--- Version ${PACKAGE_VERSION} - 11/2020 - MT change input reading design
-#!--- Version ${PACKAGE_VERSION} - 06/2019 - MT,FJ,NH overlap>0, core kinetic
-#!--- Version ${PACKAGE_VERSION} - 12/2018 - MT modified abinitinterface pbesol
-#!--- Version ${PACKAGE_VERSION} - 09/2018 - NH check for positive xc argument
-#!--- Version ${PACKAGE_VERSION} - 07/2018 - MT fixed some libxc issues 
-#!--- Version ${PACKAGE_VERSION} - 05/2018 - mod. abinitinterface, other updates
-#!--- Version ${PACKAGE_VERSION} - 03/2018 - MT enabled libxc4
-#!--- Version ${PACKAGE_VERSION} - 01/2018 - Dirac solver available for graphatom
-#!--- Version ${PACKAGE_VERSION} - 09/2017 - LibXC C API now used + libXC detection improved
-#!--- Version ${PACKAGE_VERSION} - 12/2016 - Finite-Nucleus fixed for DFT
-#!--- Version ${PACKAGE_VERSION} - 02/2016 - XML output improved; --version command line option
-#!--- Version ${PACKAGE_VERSION} - 03/2015 - PBESOL ; SOCCORO output
-#!--- Version ${PACKAGE_VERSION} - 08/2014 - portability corrections; rename f90 in F90
-#!--- Version ${PACKAGE_VERSION} - 08/2014 - added exchange core-valence terms
-#!--- Version ${PACKAGE_VERSION} - 01/2014 - solver, coretail, xml corr.
-#!--- Version ${PACKAGE_VERSION} - 11/2013 - solver fixed; 1/2014 coretail
 
 # Initialize Automake
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(1.10)
+AM_INIT_AUTOMAKE([1.10 foreign])
 AC_CONFIG_HEADERS([config.h])
 #AM_CONFIG_HEADER([config.h])
 

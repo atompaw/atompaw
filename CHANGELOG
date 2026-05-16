@@ -2,29 +2,57 @@
 =========                  ChangeLog for ATOMPAW v4.x                =========
 ==============================================================================
 
- 11/2020  -- MT,FJ added LDA-1/2 potential
- 11/2020  -- MT: introduce std I/O variables
- 11/2020  -- MT: change input reading design
- 06/2019  -- MT,FJ,NH: overlap>0, core kinetic
- 12/2018  -- MT: modified abinitinterface pbesol
- 09/2018  -- NH: check for positive xc argument
- 07/2018  -- MT: fixed some libxc issues 
- 05/2018  -- NH: mod. abinitinterface, other updates
- 03/2018  -- MT: enabled libxc4
- 01/2018  -- NH: Dirac solver available for graphatom
- 09/2017  -- MT: LibXC C API now used + libXC detection improved
- 12/2016  -- NH: Finite-Nucleus fixed for DFT
- 02/2016  -- MT: Improved configuration script; added Mac compatibility
-                 added command line option   --version
- 07/2015  -- NH: Minor changes to graphatom; allowing core hole
- 06/2015  -- NH: partial libxc access for PWscf
- 05/2015  -- MT: improved xml output for abinit
- 12/2014  -- NH: fixed PBEsol for PWscf
- 11/2014  -- NH: added socorro output option
- 08/2014  -- NH: Added exchange core-valence terms 
+ 12-17-25 -- Version 4.2.0.5
+   12/2025 - MT corrected bug reported by several users
+   11/2025 - debugging and cleaning
+   10/2025 - debugging
+ 10-23-25 -- Version 4.2.0.4 - 
+   12/2025 - debugging and cleaning - MT & NH
+   10/2025 - MT &  NH major bug fix in pseudo.F90 and pseudodata.F90
+   09/2024 - MT &  NH several MGGA bug fixes and extra writes for analysis
+   01/2024 - MT &  NH several MGGA bug fixes
+   07/2023 - MT xmlinterface, NH possibly useless tcore shape possibility
+ 06-09-23 -- Version 4.2.0.3 - 
+   06/2023 - MT backward compatibility,JZ Lamb shift, NH libxc_mod, excor
+ 10-17-22 -- Version 4.2.0.2 - 
+   10/2022 - modification to PWscfinterface for compatibility with QE 7.1
+ 05-26-22 -- Version 4.2.0.1 - 
+   05/2022 - correction for intel compatibility thanks to JZ and NH added some SC corrections
+ 03-24-22 -- Version 4.2.0.0 - 
+   03/2022 - NH,MT added self-consistent MGGAplus other features
+ 01-11-21 -- Version 4.1.1.0 - 
+   11/2020 - MT,FJ added LDA-1/2 potential
+   11/2020 - MT introduce std I/O variables
+   11/2020 - MT change input reading design
+ 06-27-19 -- Version 4.1.0.6 - 
+   06/2019 - MT,FJ,NH overlap>0, core kinetic
+ 12-02-18 -- Version 4.1.0.5 - 
+   12/2018 - MT modified abinitinterface pbesol
+ 09-20-18 -- Version 4.1.0.4 - 
+   09/2018 - NH check for positive xc argument
+ 07-04-18 -- Version 4.1.0.3 - 
+   07/2018 - MT fixed some libxc issues 
+ 05-30-18 -- Version 4.1.0.2 - 
+   05/2018 - mod. abinitinterface, other updates
+ 03-06-18 -- Version 4.1.0.1 - 
+   03/2018 - MT enabled libxc4
+   01/2018 - Dirac solver available for graphatom
+   09/2017 - LibXC C API now used + libXC detection improved
+   12/2016 - Finite-Nucleus fixed for DFT
+ 02-15-16 -- Version 4.1.0.0 - 
+   02/2016 - XML output improved; --version command line option
+   03/2015 - PBESOL ; SOCCORO output
+   07/2015 - NH: Minor changes to graphatom; allowing core hole
+   06/2015 - NH: partial libxc access for PWscf
+   05/2015 - MT: improved xml output for abinit
+   12/2014 - NH: fixed PBEsol for PWscf
+   11/2014 - NH: added socorro output option
+   08/2014 - portability corrections; rename f90 in F90
+   08/2014 - added exchange core-valence terms
+   01/2014 - solver, coretail, xml corr.
+   11/2013 - solver fixed; 1/2014 coretail
  07-07-13 -- MT: Re-introduce "build system" (from v3.1.x)
                  Now standard "configure;make" procedure is available
-
  07-06-13 -- MT: Transfer all changes appeared between v3.0.1.9 and v3.1.0.0
  07-06-13 -- MT: Cleaning, memory leak eradication
  07-05-13 -- MT: Transfer all corrections and cleaning introduced between

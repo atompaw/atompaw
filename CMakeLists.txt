@@ -8,9 +8,9 @@ set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 
 # Retrieve ATOMPAW version
 file(STRINGS "VERSION" FILE_VERSION)
-string(REGEX MATCH " *Version *([0-9][0-9.]*)" match "${FILE_VERSION}")
-if(CMAKE_MATCH_1)
-    set(ATP_VERSION "${CMAKE_MATCH_1}")
+string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)\\.([0-9]+)" _match "${FILE_VERSION}")
+if (_match)
+    set(ATP_VERSION "${_match}")
 else()
     set(ATP_VERSION "undefined")
 endif()

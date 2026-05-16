@@ -1,7 +1,7 @@
 # Cmake config file for ATOMPAW
 # Authors: M. Torrent, P. Kestener
 
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.21)
 
 # Suppress developer warnings
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)

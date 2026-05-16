@@ -5,6 +5,14 @@
 # Define variable: Libxc_INCLUDE_DIRS
 # Define variable: Libxc_VERSION
 # ---
+# Define variable: USE_LIBXC if LibXC is to be used
+# Define variable: LIBXC_OK  if LibXC is usable (or not)
+# ---
+# Define property: ENABLE_LIBXC (default=AUTO)
+# ---
+# Note: may use PkgConfig_FOUND variable
+# ---
+
 
 set(ENABLE_LIBXC "AUTO" CACHE STRING "Use libxc: AUTO (automatic), ON (force activation), OFF (deactivated)")
 set_property(CACHE ENABLE_LIBXC PROPERTY STRINGS "AUTO;ON;OFF")
@@ -18,22 +26,49 @@ if (USE_LIBXC)
   message(CHECK_START ">>> Detecting libXC")
 
 # 1- Try via CMake find_package
-  find_package(Libxc QUIET)
-  if (Libxc_FOUND)
-    message(STATUS "Libxc found via cmake target")
-    set(LIBXC_FOUND TRUE)
-    set(Libxc_FOUND_with_cmake TRUE)
+  if (NOT DEFINED Libxc_ROOT AND DEFINED LIBXC_ROOT)
+    set(Libxc_ROOT ${LIBXC_ROOT})
+  endif()
+#  find_package(Libxc QUIET)
+  if (Libxc_FOUND OR LIBXC_FOUND)
+    if (TARGET Libxc::xc)
+      message(STATUS "Libxc found via find_package (config mode)")
+      set(LIBXC_FOUND TRUE)
+      set(Libxc_FOUND_with_cmake TRUE)
+    elseif (LIBXC_INCLUDE_DIRS OR LIBXC_LIBRARIES)
+      message(STATUS "Libxc found via find_package (module mode)")
+      set(LIBXC_FOUND TRUE)
+      set(Libxc_FOUND_with_cmake TRUE)
+      if (NOT TARGET Libxc::xc)
+        add_library(Libxc::xc UNKNOWN IMPORTED)
+        set_target_properties(Libxc::xc PROPERTIES
+          IMPORTED_LOCATION             "${LIBXC_LIBRARIES}"
+          INTERFACE_LINK_LIBRARIES      "${LIBXC_LIBRARIES}"
+          INTERFACE_INCLUDE_DIRECTORIES "${LIBXC_INCLUDE_DIRS}")
+      endif()
+    endif()
   endif()
 
 # 2- Try via PKGCONFIG
-  if (NOT LIBXC_FOUND)
+  if (NOT LIBXC_FOUND AND NOT Libxc_FOUND)
     if (PkgConfig_FOUND)
+      if (DEFINED LIBXC_ROOT)
+        set(ENV{PKG_CONFIG_PATH} "${LIBXC_ROOT}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+      elseif (Libxc_ROOT)
+        set(ENV{PKG_CONFIG_PATH} "${Libxc_ROOT}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+      endif()
       pkg_check_modules(LIBXC QUIET IMPORTED_TARGET libxc)
     endif()
+
     if (LIBXC_FOUND)
       message(STATUS "Libxc found via pkg-config: ${LIBXC_VERSION}")
+
+      # Create target
       if (NOT TARGET Libxc::xc)
-        add_library(Libxc::xc ALIAS PkgConfig::LIBXC)
+        add_library(Libxc::xc INTERFACE IMPORTED GLOBAL)
+        if (TARGET PkgConfig::LIBXC)
+          target_link_libraries(Libxc::xc INTERFACE PkgConfig::LIBXC)
+        endif()
       endif()
       set(Libxc_VERSION ${LIBXC_VERSION})
       get_target_property(Libxc_LIBRARIES Libxc::xc INTERFACE_LINK_LIBRARIES)
@@ -48,7 +83,8 @@ if (USE_LIBXC)
         find_path(Libxc_INCLUDE_DIRS NAMES xc.h
                   HINTS ${LIBXC_PREFIX}/include
                   ${LIBXC_LIBRARY_DIRS}/../include
-                  PATH_SUFFIXES libxc)
+                  PATH_SUFFIXES libxc
+                  NO_CACHE)
       endif()
       if (NOT Libxc_INCLUDE_DIRS)
         set(LIBXC_FOUND FALSE)
@@ -59,33 +95,38 @@ if (USE_LIBXC)
   endif()
 
 # 3- Try via environment variables
-  if (NOT LIBXC_FOUND)
-    if (NOT LIBXC_ROOT)
-      set(LIBXC_ROOT "$ENV{LIBXC_ROOT}" CACHE PATH "Libxc root")
-    endif()
-    if (NOT LIBXC_ROOT)
-      set(LIBXC_ROOT "$ENV{LIBXC_DIR}" CACHE PATH "Libxc root")
-    endif()
+  if (NOT LIBXC_FOUND AND NOT Libxc_FOUND)
+    foreach(_var LIBXC_ROOT LIBXC_PREFIX LIBXC_DIR)
+      if (DEFINED ENV{${_var}} AND NOT LIBXC_ROOT)
+        set(LIBXC_ROOT "$ENV{${_var}}" CACHE PATH "LIBXC root")
+      endif()
+    endforeach()
     string(REPLACE ":" ";" _ld_paths "$ENV{LD_LIBRARY_PATH}")
+    foreach(_path ${_ld_paths})
+      list(APPEND _ld_path_incs "${_path}/../include")
+     endforeach()
     find_path(LIBXC_INCLUDE_DIR
               NAMES xc.h xc_funcs.h
               HINTS
                 "${LIBXC_ROOT}/include"
-                "${_ld_paths}/../include"
+                "${_ld_path_incs}"
               PATH_SUFFIXES "" libxc xc
-              NO_DEFAULT_PATH)
+              NO_DEFAULT_PATH
+              NO_CACHE)
     find_library(LIBXC_LIBRARY
                  NAMES xc
                  HINTS
                    "${LIBXC_ROOT}/lib"
                    "${LIBXC_ROOT}/lib64"
                    ${_ld_paths}
-                 NO_DEFAULT_PATH)
+                 NO_DEFAULT_PATH
+                 NO_CACHE)
     if (LIBXC_INCLUDE_DIR AND LIBXC_LIBRARY AND NOT TARGET Libxc::xc)
       message(STATUS "Libxc found in environment: ${LIBXC_LIBRARY}")
       add_library(Libxc::xc UNKNOWN IMPORTED)
       set_target_properties(Libxc::xc PROPERTIES
-          IMPORTED_LOCATION "${LIBXC_LIBRARY}"
+          IMPORTED_LOCATION             "${LIBXC_LIBRARY}"
+          INTERFACE_LINK_LIBRARIES      "${LIBXC_LIBRARY}"
           INTERFACE_INCLUDE_DIRECTORIES "${LIBXC_INCLUDE_DIR}")
       set(Libxc_INCLUDE_DIRS ${LIBXC_INCLUDE_DIR})
       set(Libxc_LIBRARIES ${LIBXC_LIBRARY})
@@ -116,27 +157,35 @@ if (USE_LIBXC)
   if (LIBXC_FOUND_OK)
     # C program calling LibXC
     file(WRITE ${CMAKE_BINARY_DIR}/tests/test_libxc/test_libxc.c "
-#include "xc.h"
-int main() {
-    xc_func_type func;
-    double rho[1] = {1.0};
-    double ex[1], vx[1];
-    int version_major;
-    version_major = (int)XC_VERSION_MAJOR;
-    xc_func_init(&func, XC_FUNC_TYPE_LDA, XC_POLARIZATION_NONE, 1, "LDA_X");
-    xc_lda(&func, 1, rho, ex, vx);
-    xc_func_end(&func);
+#include <xc.h>
+#include <xc_funcs.h>
+#include <xc_version.h>
+    int main() {
+      xc_func_type func;
+      double rho[1] = {1.0};
+      double ex[1], vx[1];
+      int version_major;
+      version_major = (int)XC_MAJOR_VERSION;
+      xc_func_init(&func, XC_LDA_X, XC_UNPOLARIZED);
+      xc_lda_exc_vxc(&func, 1, rho, ex, vx);
+      xc_func_end(&func);
 }
 ")
+    string(REPLACE ";" "\\;" _libxc_incdirs_escaped "${Libxc_INCLUDE_DIRS}")
     try_run(LIBXC_RUN_RESULT LIBXC_COMPILE_RESULT
             ${CMAKE_BINARY_DIR}/tests/test_libxc
             ${CMAKE_BINARY_DIR}/tests/test_libxc/test_libxc.c
-            CMAKE_FLAGS  -DINCLUDE_DIRECTORIES=${Libxc_INCLUDE_DIRS}
-            LINK_LIBRARIES ${Libxc_LIBRARIES})
-    if (NOT LIBXC_RUN_RESULT)
+            CMAKE_FLAGS  "-DINCLUDE_DIRECTORIES:STRING=${_libxc_incdirs_escaped}"
+            LINK_LIBRARIES ${Libxc_LIBRARIES}
+            OUTPUT_VARIABLE TRY_OUTPUT)
+    if (LIBXC_COMPILE_RESULT AND NOT LIBXC_RUN_RESULT)
       set(LIBXC_OK TRUE)
     else()
       set(LIBXC_OK FALSE)
+      message(STATUS "LibXC compilation+execution test failed!")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(FATAL_ERROR "${TRY_OUTPUT}")
+      endif()
     endif()
   endif()
 
@@ -148,7 +197,7 @@ int main() {
   if (LIBXC_OK)
     message(CHECK_PASS "done")
   else()
-    message(CHECK_PASS "not found")
+    message(CHECK_FAIL "not found")
   endif()
   
 endif()

@@ -68,6 +68,9 @@
 /* Define to 1 if Fortran ISATTY is available */
 #cmakedefine HAVE_FC_ISATTY 1
 
+/* Define to 1 if LibXC library is available */
+#cmakedefine HAVE_LIBXC 1
+
 /* Name of package */
 #define PACKAGE "@PROJECT_NAME@"
 

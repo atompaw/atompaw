@@ -102,21 +102,24 @@ module libxc_mod
 
 !XC functional public type
  type,public :: libxc_functional_t
-   integer  :: id              ! identifier
-   integer  :: family          ! LDA, GGA, etc.
-   integer  :: xckind          ! EXCHANGE, CORRELATION, etc.
-   integer  :: nspin           ! # of spin components
-   integer  :: abi_ixc         ! Abinit IXC id for this functional
-   logical  :: has_exc         ! TRUE is exc is available for the functional
-   logical  :: has_vxc         ! TRUE is vxc is available for the functional
-   logical  :: has_fxc         ! TRUE is fxc is available for the functional
-   logical  :: has_kxc         ! TRUE is kxc is available for the functional
-   logical  :: needs_tau       ! TRUE is functional needs kinetic energy density
-   logical  :: needs_laplacian ! TRUE is functional needs laplacian of density
-   logical  :: is_hybrid       ! TRUE is functional is a hybrid functional
-   real(8) :: hyb_mixing       ! Hybrid functional: mixing factor of Fock contribution (default=0)
-   real(8) :: hyb_mixing_sr    ! Hybrid functional: mixing factor of SR Fock contribution (default=0)
-   real(8) :: hyb_range        ! Range (for separation) for a hybrid functional (default=0)
+   integer  :: id                ! identifier
+   integer  :: family            ! LDA, GGA, etc.
+   integer  :: xckind            ! EXCHANGE, CORRELATION, etc.
+   integer  :: nspin             ! # of spin components
+   integer  :: abi_ixc           ! Abinit IXC id for this functional
+   logical  :: has_exc           ! TRUE is exc is available for the functional
+   logical  :: has_vxc           ! TRUE is vxc is available for the functional
+   logical  :: has_fxc           ! TRUE is fxc is available for the functional
+   logical  :: has_kxc           ! TRUE is kxc is available for the functional
+   logical  :: needs_tau         ! TRUE is functional needs kinetic energy density
+   logical  :: needs_laplacian   ! TRUE is functional needs laplacian of density
+   logical  :: is_hybrid         ! TRUE is functional is a hybrid functional
+   real(8) :: hyb_mixing         ! Hybrid functional: mixing factor of Fock contribution (default=0)
+   real(8) :: hyb_mixing_sr      ! Hybrid functional: mixing factor of SR Fock contribution (default=0)
+   real(8) :: hyb_range          ! Range (for separation) for a hybrid functional (default=0)
+   real(8) :: density_threshold  ! Threshold to be applied on density (if specific to this XC)
+   real(8) :: sigma_threshold    ! Threshold to be applied on density gradient (if specific to this XC)
+   real(8) :: kdensity_threshold ! Threshold to be applied on kin. ene. density (if specific to this XC)
 #ifdef HAVE_FC_ISO_C_BINDING
    type(C_PTR),pointer :: conf => null() ! C pointer to the functional itself
 #endif
@@ -611,6 +614,9 @@ end function libxc_getid_fromName
    xc_func%hyb_mixing=0.d0
    xc_func%hyb_mixing_sr=0.d0
    xc_func%hyb_range=0.d0
+   xc_func%density_threshold=machine_precision
+   xc_func%sigma_threshold=machine_precision
+   xc_func%kdensity_threshold=machine_precision
 
    if (xc_func%id<=0) cycle
 
@@ -629,7 +635,6 @@ end function libxc_getid_fromName
 !     stop
 !   end if
 
-    !write(std_out,*) 'xc_func%family ', ii,xc_func%family
 #if defined HAVE_LIBXC && defined HAVE_FC_ISO_C_BINDING
 
 !  Allocate functional
@@ -731,6 +736,9 @@ end function libxc_getid_fromName
    xc_func%hyb_mixing=0.d0
    xc_func%hyb_mixing_sr=0.d0
    xc_func%hyb_range=0.d0
+   xc_func%density_threshold=machine_precision
+   xc_func%sigma_threshold=machine_precision
+   xc_func%kdensity_threshold=machine_precision
 #if defined HAVE_FC_ISO_C_BINDING
    if (associated(xc_func%conf)) then
      call xc_func_end(xc_func%conf)
@@ -1157,12 +1165,9 @@ end function libxc_nspin
 #if defined HAVE_LIBXC
 
 !---- Local variables
- !real(8),parameter :: tol=1.d-14
- real(8) :: tol  ! set to machine_zero below
-
- integer :: ii,ipts,izero
+ integer :: ii,ipts,izero_den,izero_sig,izero_kden
  logical :: is_lda,is_gga,is_mgga,needs_tau,needs_laplacian
- real(8),target :: exctmp
+ real(8),target :: exctmp,tol_den,tol_sig,tol_kden
  real(8),target :: rhotmp(nsp),vxctmp(nsp),sigma(3),vsigma(3)
  real(8),target :: v2rho2(3),v2rhosigma(6),v2sigma2(6)
  real(8),target :: v3rho3(4),v3rho2sigma(9),v3rhosigma2(12),v3sigma3(10)
@@ -1178,8 +1183,6 @@ end function libxc_nspin
 !------------------------------------------------------------------
 !---- Executable code
  if (.not.libxc_constants_initialized) call libxc_constants_load()
-
- tol=machine_zero
 
  is_lda=libxc_islda()
  is_gga=libxc_isgga()
@@ -1213,20 +1216,17 @@ end function libxc_nspin
  if (is_mgga.and.present(vxclrho)) vxclrho=0.d0
  if (is_mgga.and.present(vxctau)) vxctau=0.d0
 
-
 !Filter density/gradient when density goes to zero
-!This is useless ; libxc has its own filtering process
- izero=npts
+!(useless? ; libxc has its own filtering process)
+ izero_den=npts ; izero_sig=npts ; izero_kden=npts
+ tol_den=maxval(libxc_funcs(1:2)%density_threshold)
+ tol_sig=maxval(libxc_funcs(1:2)%sigma_threshold)
+ tol_kden=maxval(libxc_funcs(1:2)%kdensity_threshold)
 !do ipts=npts,2,-1
-! if (all(rho(ipts,:)<tol)) izero=ipts-1
+! if (all(rho(ipts,:)<tol_den))  izero_den=ipts-1
+! if (all(grho(ipts,:)<tol_sig)) izero_sig=ipts-1
+! if (all(tau(ipts,:)<tol_sig))  izero_kden=ipts-1
 !end do
-
-!Adjust zero-density threshold
- do ii = 1,2
-   if (libxc_funcs(ii)%id>0) then
-     call xc_func_set_density_threshold(libxc_funcs(ii)%conf,tol)
-   end if
- end do
 
 !Define C pointers to libXC routine arguments
 #if defined HAVE_FC_ISO_C_BINDING
@@ -1272,13 +1272,13 @@ end function libxc_nspin
 
    !Load density (and gradient) for this point
    vxctmp=0.d0;exctmp=0.d0
-   if (ipts<=izero) then
+   if (ipts<=izero_den) then
      rhotmp(1:nsp)=rho(ipts,1:nsp)
    else
-     rhotmp=tol
+     rhotmp=tol_den
    end if
    if (is_gga.or.is_mgga) then
-     if (ipts<=izero) then
+     if (ipts<=izero_sig) then
        if (nsp==1) then
          !AtomPAW passes |grho| while LibXC needs |grho|^2
          sigma(1)=grho(ipts,1)**2
@@ -1290,11 +1290,11 @@ end function libxc_nspin
          sigma(2)=(grho(ipts,3)**2-sigma(1)-sigma(3))*0.5d0
        end if
      else
-       sigma=0.d0
+       sigma=tol_sig
      end if
    end if
    if (is_mgga) then
-     if (ipts<=izero) then
+     if (ipts<=izero_kden) then
          !AtomPAW passes tau (Ry) while LibXC needs tau (Ha)
        if (nsp==1) then
          tautmp(1)=0.d0 ; lrhotmp(1)=0.d0
@@ -1312,8 +1312,8 @@ end function libxc_nspin
          endif
        end if
      else
-       tautmp=0.d0
-       lrhotmp=0.d0
+       tautmp=tol_kden
+       lrhotmp=tol_kden
      end if
    end if
 

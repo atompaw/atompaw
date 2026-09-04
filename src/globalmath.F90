@@ -19,9 +19,10 @@ MODULE GlobalMath
 
   IMPLICIT NONE
 
-  REAL(8), parameter :: inverse_fine_structure=137.035999139d0
+  REAL(8), parameter :: inverse_fine_structure=137.035999177d0  !physics.nist.gov 2026
   REAL(8), parameter :: ifsalpha2=inverse_fine_structure**2
   REAL(8), parameter :: fsalpha2=1.d0/inverse_fine_structure**2
+  REAL(8), parameter :: BohrinAngstroms=0.529177210544d0      !physics.nist.gov  2026
   REAL(8) :: pi , machine_precision , machine_zero , machine_infinity
 
   REAL(8), PRIVATE :: minlog,maxlog,minexp,maxexp

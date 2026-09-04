@@ -69,7 +69,7 @@ CONTAINS
     INTEGER, ALLOCATABLE :: nl(:,:)
     
 !   Various initializations
-    AEPot%v0=0.d0;AEPot%v0p=0.d0;AEPot%Nv0=0;AEPot%Nv0p=0 
+    AEPot%v0=0.d0;AEPot%v0p=0.d0;AEPot%v0pp=0.d0;AEPot%Nv0=0.d0;AEPot%Nv0p=0.d0;AEPot%Nv0pp=0.d0 
     frozencorecalculation=.FALSE.;setupfrozencore=.false.
     gaussianshapefunction=.FALSE.;besselshapefunction=.FALSE.
 

@@ -47,9 +47,9 @@ MODULE atomdata
      CHARACTER(2) :: sym
      INTEGER :: nz     !  nz is nuclear charge     
      REAL(8) :: zz        !  zz=nz is nuclear charge
-     REAL(8) :: q,v0,v0p  !  q is total electron charge
-     !  v0,v0p are potential value and deriv at r=0
-     REAL(8) :: Nv0,Nv0p    !  finite nucleus value and deriv at 0
+     REAL(8) :: q,v0,v0p,v0pp  !  q is total electron charge
+     !  v0,v0p,v0pp are potential value and deriv at r=0
+     REAL(8) :: Nv0,Nv0p,Nv0pp    !  finite nucleus value and derivs at 0
      REAL(8), POINTER :: rv(:)  => null()
      REAL(8), POINTER :: rvn(:) => null()
      REAL(8), POINTER :: rvh(:) => null()
@@ -231,7 +231,7 @@ CONTAINS
     TYPE (PotentialInfo), INTENT(INOUT) :: Pot
     INTEGER :: ok
     CALL DestroyPot(Pot)
-!   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0
+!   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0;Pot%v0pp=0.d0
     ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),Pot%vtau(n),stat=ok)
     IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
     Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0;Pot%vtau=0.d0
@@ -261,9 +261,11 @@ CONTAINS
     CPot%q=SPot%q
     CPot%v0=SPot%v0
     CPot%v0p=SPot%v0p
+    CPot%v0pp=SPot%v0pp
     CPot%finitenucleusmodel=SPot%finitenucleusmodel
     CPot%Nv0=SPot%Nv0
     CPot%Nv0p=SPot%Nv0p
+    CPot%Nv0pp=SPot%Nv0pp
     CPot%rv(1:n)=SPot%rv(1:n)
     CPot%rvn(1:n)=SPot%rvn(1:n)
     CPot%rvh(1:n)=SPot%rvh(1:n)

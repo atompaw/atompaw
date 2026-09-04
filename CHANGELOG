@@ -2,6 +2,24 @@
 =========                  ChangeLog for ATOMPAW v4.x                =========
 ==============================================================================
 
+  9/04/2026 - 4.2.0.6 - Mostly corrected bugs in finite nucleus models in scalarrelativistic code
+        reported in github by Stefaan Cottelier -- works for loggrid but not for loggridv4 at 2001 grid pts
+ Temporary stop of  unofficial branch for fixing spline issue
+   8/12/2026 - 5.0.0.16 version; bug correction in numerov and some cleaning
+   8/4/2026  - 5.0.0.15 version; resuming cmake with Marc's guidance after debugging with old configure
+   7/23/2026 - temporary version; keep some things from 5.0.0.12, but go back to den mix only 5.0.0.13
+   7/16/2026 - temporary version; for MGGA, try converging first with vtau==0 -- Cmake12 (5.0.0.12)
+   7/12/2026 - temporary version ; using Fornberg derivative -- Cmake11
+   7/08/2026 - temporary version; corrected wfn normalization and back to numerical derivs -Cmake10
+   7/06/2026 - temporary version with analytic vtau and Marc's improved libxc_mod.F90 -Cmake9
+   6/29/2026 - temporary version with analytic vtau  -Cmake8
+   6/23/2026 - NH tries to fix Vtau and to use Andersonmix with den // tau for MGGA - Cmake7
+   5/12/2026 -- NH trying to check splinesolver -- Cmake3
+   5/2/2026 - NH still modifying -- Cmake2
+   4/25/2026 - NH still modifying -- Cmake1
+  Start of unofficial branch for fixing spline issue
+  4/23/2026 - MT completed Cmake version  -- Cmake0
+  12/17/2025 - MT corrected bug reported by several users
  12-17-25 -- Version 4.2.0.5
    12/2025 - MT corrected bug reported by several users
    11/2025 - debugging and cleaning

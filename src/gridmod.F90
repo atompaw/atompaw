@@ -633,11 +633,12 @@ CONTAINS
   !   nuclear contribution (-2*nz) is not yet included
   !******************************************************************
 
-  SUBROUTINE zeropot(Grid,rv,v0,v0p)
+  SUBROUTINE zeropot(Grid,rv,v0,v0p,v0pp)
     ! extrapolate potential to value at r=0
     TYPE (GridInfo), INTENT(IN):: Grid
     REAL(8), INTENT(IN) :: rv(:)    ! Note: rv(1) corresponds to r=0
     REAL(8), INTENT(OUT) :: v0,v0p
+    REAL(8), optional, INTENT(OUT) :: v0pp
 
     REAL(8) :: tmp(15),tmp1(15)
     INTEGER :: i,n
@@ -650,6 +651,13 @@ CONTAINS
 
     CALL extrapolate(Grid,tmp1(1:15))
     v0p=tmp1(1)
+
+    if (present(v0pp) ) then
+        tmp=0
+        CALL derivative(Grid,tmp1(1:15),tmp(1:15),2,15)
+        CALL extrapolate(Grid,tmp(1:15))   
+        v0pp=tmp(1)
+    endif    
   END SUBROUTINE zeropot
 
   SUBROUTINE extrapolate(Grid,v)

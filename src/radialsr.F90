@@ -35,6 +35,8 @@ MODULE radialsr
   Real(8), private, allocatable :: ww(:),jj(:)
      ! jj stores (r+(alpha/2)**2*(E*r-rv) == r*M(r)
      ! ww stores kappa*(kappa+1)/(r**2*M(r)) - (E - V(r))
+  Real(8), private,parameter :: balpha2=inverse_fine_structure**2
+  Real(8), private,parameter :: alpha2=1.d0/inverse_fine_structure**2
 
 CONTAINS
 
@@ -67,7 +69,7 @@ CONTAINS
 !*******************************************************************
 !  Subroutine Azeroexpand(Grid,Pot,l,energy)
 !      If finitenucleus==.true. assumes potential is non-singular
-!          at origin and Pot%v0 and Pot%v0p are properly set
+!          at origin and Pot%v0 and Pot%v0p and Pot%v0pp  are properly set
 !      Otherwise, assumes nuclear potential is -2*Z/r
 !*******************************************************************
  Subroutine Azeroexpand(Grid,Pot,l,energy,nr)
@@ -78,8 +80,8 @@ CONTAINS
    Integer, optional, INTENT(IN) :: nr
 
    Integer :: i,j,k,n
-   Real(8) :: nz,xx,yy,angm,alpha2,balpha2
-   Real(8) :: Tm10,Tm11,T00,Tm21,Tm22,term
+   Real(8) :: nz,xx,yy,angm
+   Real(8) :: Tm10,Tm11,T00,Tm21,Tm22,term,term1,term2
 
    n=Grid%n
    if (present(nr)) n=min(n,nr)
@@ -91,8 +93,6 @@ CONTAINS
 
    nz=Pot%nz
     ww=0; jj=0;
-   balpha2=inverse_fine_structure**2
-   alpha2=1.d0/balpha2
    jj(1:n)=(Grid%r(1:n) + &
 &       0.25d0*alpha2*(energy*Grid%r(1:n)-Pot%rv(1:n)))
    angm=l*(l+1)
@@ -110,34 +110,43 @@ CONTAINS
 &        (Pot%v0p/nz+(4*balpha2**2/(nz*nz))*term**2)*(gamma-1.d0)
       c1=-Tm10/Tm21
       c2=-(Tm11*C1+T00)/Tm22      
-      !write(std_out,*) 'Azeroexpand: ', gamma,c1,c2
-      MA=0; MB=0
+      !iwrite(std_out,*) 'Azeroexpand: ', gamma,c1,c2
 
    else  ! version for finite nuclear size
        gamma=l+1.d0
-       term=1.d0+0.25d0*alpha2*(energy-Pot%v0)
-       Tm21=2*l+2;      Tm22=2*(2*l+3)
-       Tm10=(0.25d0*alpha2*Pot%v0p/term)*(l)
-       Tm11=(0.25d0*alpha2*Pot%v0p/term)*(l+1)
-       T00=(energy-Pot%v0)*term+l*((0.25d0*alpha2*Pot%v0p/term)**2)
+       term=4.d0+alpha2*(energy-Pot%v0)
+       Tm21=2*l+2
+       Tm10=(alpha2*Pot%v0p/term)*l
+       Tm22=2*(2*l+3)
+       Tm11=(alpha2*Pot%v0p/term)*(l+1)
+       term1=alpha2*(4*Pot%v0pp+alpha2*((Pot%v0p)**2+(energy-Pot%v0)*Pot%v0pp))/term**2
+       T00=0.25*(energy-Pot%v0)*term+term1*l
+
+       !!!term=1.d0+0.25d0*alpha2*(energy-Pot%v0)
+       !!!Tm21=2*l+2;      Tm22=2*(2*l+3)
+       !!!Tm10=(0.25d0*alpha2*Pot%v0p/term)*(l)
+       !!!Tm11=(0.25d0*alpha2*Pot%v0p/term)*(l+1)
+       !!!T00=(energy-Pot%v0)*term+l*((0.25d0*alpha2*Pot%v0p/term)**2)
+          
        c1=-Tm10/Tm21
-       c2=-(Tm11*C1+T00)/Tm22      
+       c2=-(Tm11*c1+T00)/Tm22      
        !write(std_out,*) 'Azeroexpand: ', gamma,c1,c2
-       MA=0; MB=0
    endif
 
   end subroutine Azeroexpand
 
 !*******************************************************************
-! SUBROUTINE wfnsrinit(Grid,l,wfn,lwfn,istart)
+! SUBROUTINE wfnsrinit(Grid,l,wfn,lwfn,istart,Pot,energy)
 !*******************************************************************
-  SUBROUTINE wfnsrinit(Grid,l,wfn,lwfn,istart)
+  SUBROUTINE wfnsrinit(Grid,l,wfn,lwfn,istart,Pot,energy)
    ! returns the solution of the scalar relativistic equations near r=0
    !  using power series expansion
    Type(GridInfo), INTENT(IN) :: Grid
    INTEGER, INTENT(IN) :: l
     REAL(8),INTENT(INOUT) :: wfn(:),lwfn(:)
     INTEGER, INTENT(OUT) :: istart
+    Type(PotentialInfo), INTENT(IN) :: Pot
+    REAL(8), INTENT(IN) :: energy
 
     REAL(8) :: rr,M
     INTEGER :: i,j,n
@@ -154,9 +163,10 @@ CONTAINS
           lwfn(i+1)=lwfn(i+1)*(rr**gamma)/jj(i+1)
 
        else   ! finite nucleus case
-          M=MA-MB*rr
+          M=1.d0+0.25d0*alpha2*(energy-Pot%rv(i+1)/rr)
           wfn(i+1)=(1+rr*(c1+rr*c2))*(rr**(l+1))
           lwfn(i+1)=(l+rr*((l+1)*c1+rr*(l+2)*c2))*(rr**(l+1))/M
+          !write(std_out,*) 'FN init ', rr, wfn(i+1), lwfn(i+1)
        endif
 
     enddo
@@ -241,7 +251,7 @@ CONTAINS
 
     lwfn=0;zz=0;yy=0;
 
-    call wfnsrinit(Grid,l,wfn,lwfn,istart)
+    call wfnsrinit(Grid,l,wfn,lwfn,istart,Pot,energy)
     call prepareforcfdsol(Grid,1,istart,nr,wfn,lwfn,yy,zz)
     call cfdsoliter(Grid,zz,yy,istart,nr)
     call getwfnfromcfdsol(1,nr,yy,wfn)
@@ -341,7 +351,7 @@ CONTAINS
     energy = 0
     call Azeroexpand(Grid,Pot,l,energy)
     lwfn=0;zz=0;yy=0;
-    call wfnsrinit(Grid,l,p1,lwfn,istart)
+    call wfnsrinit(Grid,l,p1,lwfn,istart,Pot,energy)
     !
     !start outward integration
     call prepareforcfdsol(Grid,1,istart,n,p1,lwfn,yy,zz)
@@ -391,7 +401,7 @@ CONTAINS
           match=match+6
           rin=Gfirstderiv(Grid,match,p2)/p2(match)
 
-          call wfnsrinit(Grid,l,p1,lwfn,istart)
+          call wfnsrinit(Grid,l,p1,lwfn,istart,Pot,energy)
           call prepareforcfdsol(Grid,1,istart,n,p1,lwfn,yy,zz)
           call cfdsoliter(Grid,zz,yy,istart,match+6)
           call getwfnfromcfdsol(1,match+6,yy,p1)

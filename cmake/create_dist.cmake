@@ -12,7 +12,7 @@ set(DIST_PATHS
     doc
     config/m4
     example
-    ChangeLog
+    CHANGELOG
     Makefile.am
     README.md
     AUTHORS

@@ -30,21 +30,55 @@ set(DIST_PATHS
     Makefile.in
 )
 
+# Patterns that must never be shipped, in any directory
+set(DIST_EXCLUDE_REGEX
+"(~|\\.bak|\\.old|\\.orig|\\.rej|\\.swp)$|(^|/)(tmp|tmpsave|core)[^/]*$|(^|/)#[^/]*#$|_old\\.[Ff]90$|(^|/)\\.[^/]+(/|$)")
+
+# For the src/ directory, only real source and build files are distributed
+# (Fortran/C sources, configure templates, Makefiles, CMake files). Anything
+# else living in src/ is left out of the tarball
+set(SRC_INCLUDE_PATTERNS
+    "*.F90" "*.f90" "*.c" "*.h" "*.in"          # sources + templates configure
+    "Makefile.am" "Makefile.in" "CMakeLists.txt")
+
+# For the example/ directory, drop the run-time output files and directories,
+# keeping only the inputs and reference results worth shipping
+set(EXAMPLE_EXCLUDE_REGEX
+"(^|/)(explore|dummy|NC|OCCWFN|rvf|rVx|vloc|checkvxc|hattest|tp|compare\\.abinit)(/|$)|(^|/)(den|pot)[^/]*$|(^|/)([0-9]+\\.)?wfn00[^/]*$|(^|/)[^/]*(AE0|SC1)$")
+
 # Extract a full file list from previous list
 set(DIST_FILES)
 foreach(path ${DIST_PATHS})
   if (IS_DIRECTORY ${CMAKE_SOURCE_DIR}/${path})
-    file(GLOB_RECURSE files 
-         RELATIVE "${CMAKE_SOURCE_DIR}/${path}"
-         "${CMAKE_SOURCE_DIR}/${path}/*"
-        )
+    if (path STREQUAL "src")
+      # Whitelisted, non-recursive glob: keep only wanted file types
+      set(_globs)
+      foreach(pat ${SRC_INCLUDE_PATTERNS})
+        list(APPEND _globs "${CMAKE_SOURCE_DIR}/${path}/${pat}")
+      endforeach()
+      file(GLOB files RELATIVE "${CMAKE_SOURCE_DIR}/${path}" ${_globs})
+    else()
+      # Everything else: full recursive content of the directory
+      file(GLOB_RECURSE files
+           RELATIVE "${CMAKE_SOURCE_DIR}/${path}"
+           "${CMAKE_SOURCE_DIR}/${path}/*")
+    endif()
     foreach(file ${files})
+      # Drop backup / scratch files wherever they are
+      if ("${file}" MATCHES "${DIST_EXCLUDE_REGEX}")
+        continue()
+      endif()
+      # Drop run-time output from the example/ tree
+      if (path STREQUAL "example" AND "${file}" MATCHES "${EXAMPLE_EXCLUDE_REGEX}")
+        continue()
+      endif()
       list(APPEND DIST_FILES "${path}/${file}")
     endforeach()
   else()
     list(APPEND DIST_FILES ${path})
   endif()
 endforeach()
+list(REMOVE_DUPLICATES DIST_FILES)
 
 # Create a temporary command to copy files
 set(COPY_COMMANDS)

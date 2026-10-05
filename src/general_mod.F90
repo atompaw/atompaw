@@ -59,7 +59,7 @@ CONTAINS
             CALL zeropot(Grid,dum,Pot%v0,Pot%v0p,Pot%v0pp)
             Pot%v0=Pot%v0+Pot%Nv0
             Pot%v0p=Pot%v0p+Pot%Nv0p
-            Pot%v0pp=Pot%v0p+Pot%Nv0pp
+            Pot%v0pp=Pot%v0pp+Pot%Nv0pp
     else
            dum=rvin
            if (needvtau) dum(1)=dum(1)-Pot%rvx(1)
@@ -960,7 +960,7 @@ CONTAINS
             ENDDO
               Pot%Nv0=-(4.d0/sqrt(pi))*Pot%nz/RR
               Pot%Nv0p=0.d0
-              Pot%Nv0pp=2*(4.d0/sqrt(pi))/(3*(RR**3)) ! factor of 2 due to 1/2 factor in front of Nv0pp
+              Pot%Nv0pp=2*(4.d0/sqrt(pi))*Pot%nz/(3*(RR**3)) ! factor of 2 due to 1/2 factor in front of Nv0pp
     END SELECT     
     open(7,file='nuclearpot.dat',form='formatted')
        write(7,*) '#  ', Pot%Nv0, Pot%Nv0p, Pot%Nv0pp

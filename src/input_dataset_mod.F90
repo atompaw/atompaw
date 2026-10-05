@@ -2113,19 +2113,19 @@ END IF
 
 !  Logarithmic step
    i_dx=INDEX(inputline,'UPFDX')
-   IF (i_dx>0) READ(inputline(i_dx+5:256),*) dataset%upf_grid_dx
+   IF (i_dx>0) READ(inputline(i_dx+5:),*) dataset%upf_grid_dx
 
 !  Minimum radius
    i_xmin=INDEX(inputline,'UPFXMIN')
-   IF (i_xmin>0) READ(inputline(i_xmin+7:256),*) dataset%upf_grid_xmin
+   IF (i_xmin>0) READ(inputline(i_xmin+7:),*) dataset%upf_grid_xmin
 
 !  Inverse of radial step
    i_zmesh=INDEX(inputline,'UPFZMESH')
-   IF (i_zmesh>0) READ(inputline(i_zmesh+8:256),*) dataset%upf_grid_zmesh
+   IF (i_zmesh>0) READ(inputline(i_zmesh+8:),*) dataset%upf_grid_zmesh
 
 !  Range
    i_range=INDEX(inputline,'UPFRANGE')
-   IF (i_range>0) READ(inputline(i_range+8:256),*) dataset%upf_grid_range
+   IF (i_range>0) READ(inputline(i_range+8:),*) dataset%upf_grid_range
 
  END IF
 

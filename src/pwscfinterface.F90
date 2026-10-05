@@ -474,7 +474,7 @@ Module PWscfInterface
 
    SUBROUTINE libxc2UPF(libxcform,qeform,shortqe,OK)
    IMPLICIT NONE
-   CHARACTER(50), INTENT(IN) :: libxcform
+   CHARACTER(*), INTENT(IN) :: libxcform
    CHARACTER(50), INTENT(OUT) :: qeform,shortqe
    Logical, INTENT(OUT) :: OK
 

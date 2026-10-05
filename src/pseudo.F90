@@ -3450,7 +3450,7 @@ End subroutine resettcore
      ! Read matching radius (from input dataset)
          thisrc=FindGridIndex(Grid,input_dataset%basis_func_rc(ib))
          thisrc=MIN(thisrc,irc)       ! make sure rc<total rc
-         rc=r(thisrc);PAW%rcio(io)=rc
+         rc=r(thisrc);PAW%rcio(ib)=rc
          WRITE(STD_OUT,'(a,3i5,1p,1e15.7)') ' For this wfn: ',ib,PAW%np(ib),PAW%l(ib),PAW%eig(ib)
          WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then

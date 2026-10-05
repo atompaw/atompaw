@@ -212,13 +212,14 @@ CONTAINS
     ENDIF
 
 
-    ALLOCATE(dum(i1:i2),stat=i)
+    ALLOCATE(dum(i2),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in overlap allocation ', n,i
        STOP
     ENDIF
-    dum(1:n)=f1(i1:i2)*f2(i1:i2)
-    overlap=integrator(Grid,dum(1:n),1,n)
+    dum(1:i1)=0.d0
+    dum(i1:i2)=f1(i1:i2)*f2(i1:i2)
+    overlap=integrator(Grid,dum,i1,i2)
     DEALLOCATE(dum)
   END FUNCTION overlap
   !*****************************************************

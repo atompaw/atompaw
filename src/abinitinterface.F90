@@ -2492,7 +2492,7 @@ end subroutine calc_shapef
 !---- Executable code
 !------------------------------------------------------------------
 
- open(input_unit,file='dummy',form='formatted')
+ open(newunit=input_unit,file='dummy',form='formatted')
  read(input_unit,'(a)',iostat=OK,end=10) inputline
  if (OK/=0) return
  input_string=trim(inputline)

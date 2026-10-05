@@ -978,7 +978,7 @@ CONTAINS
 
 
   SUBROUTINE Report_EXX_functions(sub)
-    CHARACTER(2) :: sub
+    CHARACTER(*), INTENT(IN) :: sub
     INTEGER :: i,j,k,n,nmap,io
     INTEGER, ALLOCATABLE :: mmap(:)
 
@@ -1569,6 +1569,7 @@ CONTAINS
      n=Grid%n
      ALLOCATE(dum1(n),dum2(n),arg(n),der1(n),der2(n))
 
+     norbit=Orbit%norbit
      mdim=norbit*norbit
      ALLOCATE(M(mdim,mdim),MM(mdim,mdim),ux(mdim),vx(mdim),&
 &             Rp(mdim),ind1(mdim),ind2(mdim),indm1(mdim),indm2(mdim))

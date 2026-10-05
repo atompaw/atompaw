@@ -896,7 +896,7 @@ CONTAINS
     ELSE
        write(std_out,*) 'Finite nucleus model  -- calculating empirical length scale'
        if (Pot%nz==1) then
-            AZ=1.d0
+            AZ=unit   ! 1 fm
        elseif (Pot%nz.le.100) then
             Z=Pot%nz
             AZ=0.004467d0*(Z**2) + 2.163d0*Z - 1.168d0

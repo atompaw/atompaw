@@ -55,6 +55,10 @@ add_compile_options(-I${CMAKE_BINARY_DIR})
 # Add source files
 add_subdirectory(src)
 
+# Regression tests (ctest)
+enable_testing()
+add_subdirectory(tests)
+
 # Installation of docs and scripts
 install(FILES
   doc/atompaw-usersguide.pdf

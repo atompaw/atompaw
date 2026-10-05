@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cmake:
+    name: CMake ${{ matrix.build_type }}, libxc ${{ matrix.libxc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build_type: Release
+            libxc: "ON"
+          - build_type: Release
+            libxc: "OFF"
+          # Bounds and floating-point checking: catches out-of-bounds
+          # accesses, invalid operations and divisions by zero in the tests
+          - build_type: Debug
+            libxc: "ON"
+            fflags: "-O0 -g -fcheck=all -ffpe-trap=invalid,zero,overflow -fbacktrace"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran cmake liblapack-dev libblas-dev
+          if [ "${{ matrix.libxc }}" = "ON" ]; then sudo apt-get install -y libxc-dev; fi
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DENABLE_LIBXC=${{ matrix.libxc }}
+          ${{ matrix.fflags && format('-DCMAKE_Fortran_FLAGS_DEBUG="{0}"', matrix.fflags) || '' }}
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  autotools:
+    name: Autotools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran autoconf automake libtool liblapack-dev libblas-dev libxc-dev
+      - name: Bootstrap
+        run: ./bootstrap.sh
+      - name: Configure
+        run: ./configure --enable-libxc
+      - name: Build
+        run: make -j 4

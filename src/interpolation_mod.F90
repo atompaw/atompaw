@@ -42,7 +42,7 @@ Module interpolation_mod
      call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in interpfunc ',rin(1),rout(1),rin(nin),rout(nout)
-      stop
+      error stop
      endif
 
      fout=0
@@ -110,7 +110,7 @@ Module interpolation_mod
      call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in binterpfunc ',rin(1),rout(1),rin(nin),rout(nout)
-      stop
+      error stop
      endif
 
      fout=0
@@ -306,7 +306,7 @@ subroutine specialinterp(l,nin,rin,yin,MMin,nout,rout,yout,ypout)
      call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in specialint ',rin(1),rout(1),rin(nin),rout(nout)
-      stop
+      error stop
      endif 
 
     do i=1,nout
@@ -362,7 +362,7 @@ subroutine specialinterp(l,nin,rin,yin,MMin,nout,rout,yout,ypout)
      call checkrange(rout(nout),rin(nin),rightin,righton,rightout)
      if (leftout.or.rightout) then
       write(std_out,*) 'Grid error in lininterpfunc ',rin(1),rout(1),rin(nin),rout(nout)
-      stop
+      error stop
      endif
 
      fout=0

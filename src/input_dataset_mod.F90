@@ -443,7 +443,7 @@ CONTAINS
        END IF
      END IF
    END IF
-   IF (dataset%gridpoints<=0) STOP "input_dataset: error -- number of grid points should be >0!"
+   IF (dataset%gridpoints<=0) ERROR STOP "input_dataset: error -- number of grid points should be >0!"
  END IF
 
 !Treat logderiv data
@@ -613,7 +613,7 @@ END IF
      END DO
    END IF
  END DO
- IF (dataset%norbit_val/=nval) STOP 'input_dataset: bug -- wrong nval!'
+ IF (dataset%norbit_val/=nval) ERROR STOP 'input_dataset: bug -- wrong nval!'
 
 !Print read data
  IF (has_to_print) THEN
@@ -685,7 +685,7 @@ END IF
  IF (is_real(inputword)) READ(inputword,*) dataset%rc
  IF (dataset%rc<=1.d-12) THEN
    WRITE(STD_OUT,*) 'input_dataset: error -- rc too small ',dataset%rc,'!'
-   STOP
+   ERROR STOP
  END IF
 
  dataset%rc_shap=dataset%rc
@@ -703,21 +703,21 @@ END IF
        READ(inputword,*) dataset%rc_core
      ELSE
        WRITE(STD_OUT,*) 'input_dataset: error -- rc(core) is missing!'
-       STOP
+       ERROR STOP
      END IF
    ELSE
      WRITE(STD_OUT,*) 'input_dataset: error -- rc(Vloc) is missing!'
-     STOP
+     ERROR STOP
    END IF
    IF (dataset%rc_shap<=1.d-12.OR.dataset%rc_vloc<=1.d-12.OR.&
 &      dataset%rc_core<=1.d-12) THEN
      WRITE(STD_OUT,*) 'input_dataset: error -- one rc is too small!'
-     STOP
+     ERROR STOP
    END IF
    IF (dataset%rc_shap>dataset%rc.OR.dataset%rc_vloc>dataset%rc.OR.&
 &      dataset%rc_core>dataset%rc) THEN
      WRITE(STD_OUT,*) 'input_dataset: error -- rc_shape, rc_vloc and rc_core must be <rc!'
-     STOP
+     ERROR STOP
    END IF
  ENDIF
 
@@ -763,11 +763,11 @@ END IF
      CALL eliminate_comment(inputline)
      READ(inputline,*) CHR
      IF (CHR/='y'.AND.CHR/='Y') THEN
-       IF (CHR/='n'.AND.CHR/='N') STOP 'input_dataset: error -- Please enter Y or N!'
+       IF (CHR/='n'.AND.CHR/='N') ERROR STOP 'input_dataset: error -- Please enter Y or N!'
        EXIT
      END IF
      dataset%nbasis_add=dataset%nbasis_add+nadd
-     IF (dataset%nbasis_add>nbasis_add_max) STOP 'Too many additional basis functions!'
+     IF (dataset%nbasis_add>nbasis_add_max) ERROR STOP 'Too many additional basis functions!'
      basis_add_l(dataset%nbasis_add-nadd+1:dataset%nbasis_add)=ll
      IF (dataset%diracrelativistic) THEN
        basis_add_k(dataset%nbasis_add)=-1
@@ -908,26 +908,26 @@ END IF
 
  IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
 &     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
-&   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) STOP &
+&   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) ERROR STOP &
 &  'input_dataset: error -- Vanderbilt orthogonalization not compatible with Bloechls projector scheme!'
 
  IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
 &     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
-&   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) STOP &
+&   .AND.dataset%ortho_type==ORTHO_TYPE_VANDERBILT) ERROR STOP &
 &  'input_dataset: error -- Vanderbilt orthogonalization not compatible with Bloechls projector scheme!'
 
  IF ((dataset%projector_type==PROJECTOR_TYPE_BLOECHL) &
-&   .AND.dataset%needvtau) STOP &
+&   .AND.dataset%needvtau) ERROR STOP &
 &   'input_dataset: error -- mGGA not compatible the Bloechl projector scheme!'
 
  !!!! Hopefully this will never happen             
  IF ((dataset%projector_type==PROJECTOR_TYPE_HF) &
-&   .AND.dataset%needvtau) STOP &
+&   .AND.dataset%needvtau) ERROR STOP &
 &   'input_dataset: error -- mGGA and Hartree-Fock are not compatible!'
 
  IF ((dataset%pseudo_type==PSEUDO_TYPE_BLOECHL.OR. &
 &     dataset%pseudo_type==PSEUDO_TYPE_BLOECHL_K) &
-&   .AND.dataset%needvtau) STOP &
+&   .AND.dataset%needvtau) ERROR STOP &
 &   'input_dataset: error -- mGGA not compatible the Bloechl pseudization scheme!'
 
  IF (INDEX(inputline,'SINC2')>0) THEN
@@ -1052,7 +1052,7 @@ END IF
      dataset%vloc_type=VLOC_TYPE_KERKER_POLY
      nstart=INDEX(inputline,'POLY')
    ELSE
-     STOP "EXPF or POLY keyword missing!"
+     ERROR STOP "EXPF or POLY keyword missing!"
    END IF   
    READ(unit=inputline(nstart+5:),fmt=*,err=334,end=334,iostat=io) &
 &    dataset%vloc_kerker_power(1:4)
@@ -1062,7 +1062,7 @@ END IF
  IF ((dataset%vloc_type==VLOC_TYPE_SETVLOC.OR. &
 &     dataset%vloc_type==VLOC_TYPE_KERKER_EXPF.OR. &
 &     dataset%vloc_type==VLOC_TYPE_KERKER_POLY) &
-&   .AND.dataset%needvtau) STOP &
+&   .AND.dataset%needvtau) ERROR STOP &
 &   'input_dataset: error -- mGGA not compatible the chosen Vloc scheme!'
 
  IF (dataset%vloc_type==VLOC_TYPE_MTROULLIER.OR. &
@@ -1071,7 +1071,7 @@ END IF
 &    dataset%vloc_type==VLOC_TYPE_ULTRASOFT) THEN
    READ(unit=inputline,fmt=*,err=444,end=444,iostat=io) dataset%vloc_l,dataset%vloc_ene
 444  CONTINUE
-   IF (dataset%vloc_l<0.or.dataset%vloc_l>10) STOP 'input_dataset: error while reading Vloc parameters!'
+   IF (dataset%vloc_l<0.or.dataset%vloc_l>10) ERROR STOP 'input_dataset: error while reading Vloc parameters!'
  END IF
 
 !Print read data
@@ -1093,7 +1093,7 @@ END IF
 &          dataset%vloc_setvloc_coef,", rad=",dataset%vloc_setvloc_rad
      IF (dataset%needvtau) THEN
        write(STD_OUT,*) 'SETVLOC  option not available for MGGA'
-         stop
+         error stop
      ENDIF     
    ENDIF  
    IF (dataset%vloc_type==VLOC_TYPE_KERKER_EXPF) &
@@ -1164,7 +1164,7 @@ END IF
      END DO
    END DO
 
-   IF (dataset%nbasis/=norb) STOP 'input_dataset: error -- inconsistency in the number of basis functions!'
+   IF (dataset%nbasis/=norb) ERROR STOP 'input_dataset: error -- inconsistency in the number of basis functions!'
 
 !  Print read data
    IF (has_to_print) THEN
@@ -1601,10 +1601,10 @@ END IF
 &    ((.NOT.diracrel).AND.(xocc>2.d0*(2*ll+1))).OR.&
 &    ((     diracrel).AND.(xocc>2.d0*ABS(kk)))) THEN
      WRITE(STD_OUT,*) 'input_dataset: error in occupations -- ip,l,kap,xocc: ',nn,ll,kk,xocc,'!'
-     STOP
+     ERROR STOP
    END IF
    norbit_mod=norbit_mod+1
-   if (norbit_mod>norbit_max) stop 'input_dataset_occ: error -- too many occupation lines!'
+   if (norbit_mod>norbit_max) error stop 'input_dataset_occ: error -- too many occupation lines!'
    tmp_l(norbit_mod)=ll
    tmp_n(norbit_mod)=nn
    tmp_k(norbit_mod)=kk

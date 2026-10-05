@@ -128,7 +128,7 @@ Module exx_pseudo
     ALLOCATE(wfp(n),vl(n),arg(n),dum(n),dum1(n),stat=ok)
     IF (ok/=0) THEN
        WRITE(STD_OUT,*) 'calc_expot_io allocation error:', n,Orbit%norbit,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     r=>Grid%r
@@ -791,7 +791,7 @@ Module exx_pseudo
 
     if (mult-1/=many) then
          write(std_out,*) 'Error in multisolv ', mult,many
-         stop
+         error stop
     endif
 
     call inhomo_numerov_SVD_bvm(Gridwk,l,n-1,mult,energy,tol,rv,rhs(:,1:mult),&

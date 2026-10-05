@@ -88,7 +88,7 @@ CONTAINS
   PAW%rc_core=Grid%r(PAW%irc_core)
   irc=PAW%irc;rc=PAW%rc
 
-  if (irc>n-Grid%ishift) stop 'error -- rc is too big !'
+  if (irc>n-Grid%ishift) error stop 'error -- rc is too big !'
   WRITE(STD_OUT,*) ' adjusted rc ',rc, Grid%r(irc)
   WRITE(STD_OUT,*) ' irc,rc = ',irc,rc
   if (multi_rc) then
@@ -561,7 +561,7 @@ CONTAINS
     ALLOCATE(pote(nr),dpote(nr),ddpote(nr),logvtau(nr),dlogvtau(nr),ddlogvtau(nr),dddlogvtau(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     !write(std_out,*) ' Troullier ', n,nr,irc
@@ -921,7 +921,7 @@ CONTAINS
     ALLOCATE(pote(nr),dpote(nr),ddpote(nr),logvtau(nr),dlogvtau(nr),ddlogvtau(nr),dddlogvtau(nr),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in kerker  -- in allocating wfn,p', nr,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     if (scalarrelativistic) then
@@ -1145,7 +1145,7 @@ CONTAINS
     ALLOCATE(VNC(n),wfn(n),p(n),dum(n),aux(n),dp(n),ddp(n),Kaux(n),v(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(std_out,*) 'Error in VPSmatch  -- in allocating wfn,p', n,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     wfn=0
@@ -1325,7 +1325,7 @@ CONTAINS
 
     if (iter.ge.niter) then
          write(std_out,*) 'Failed to converged norm-conserving VPS '
-         stop
+         error stop
     endif     
     DEALLOCATE(VNC,wfn,p,dp,ddp,dum,aux,Kaux,v)
   END SUBROUTINE VPSmatch
@@ -1366,7 +1366,7 @@ CONTAINS
     rc=PAW%rc_vloc
 
     ALLOCATE(VNC(n),wfn(nr),aux(nr),Kaux(nr),stat=ok)
-    IF (ok/=0) stop 'Error in uspseudo -- allocating arrays'
+    IF (ok/=0) error stop 'Error in uspseudo -- allocating arrays'
 
     if (scalarrelativistic) then
        CALL unboundsr(Grid,Pot,nr,l,e,wfn,nodes)
@@ -1476,7 +1476,7 @@ CONTAINS
       nr=min(PAW%irc+5,Grid%n)
       call InitPot(Pot,nr)
       ALLOCATE(VNC(nr),wfn(nr),stat=i)
-      IF (i/=0) STOP 'Error in checkghosts allocation'
+      IF (i/=0) ERROR STOP 'Error in checkghosts allocation'
       POT%rv(1:nr)=PAW%rveff(1:nr)
       call zeropot(Grid,POT%rv,POT%v0,POT%v0p)
 
@@ -1586,7 +1586,7 @@ CONTAINS
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
              write(std_out,*) 'coretailselfenergy: allocation error -- ', n,i
-             stop
+             error stop
           endif
 
       x=integrator(Grid,PAW%tcore)
@@ -1626,7 +1626,7 @@ CONTAINS
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
              write(std_out,*) 'smoothcore: allocation error -- ', n,i
-             stop
+             error stop
           endif
       CALL derivative(Grid,orig,d1)
       CALL derivative(Grid,d1,d2)
@@ -1682,7 +1682,7 @@ CONTAINS
       allocate(d1(n),d2(n),stat=i)
           if (i /= 0) then
              write(std_out,*) 'smoothtau: allocation error -- ', n,i
-             stop
+             error stop
           endif
       CALL derivative(Grid,orig,d1)
       CALL derivative(Grid,d1,d2)
@@ -1914,7 +1914,7 @@ CONTAINS
 
       if (.not.ok) then
           write(std_out,*) 'resettcore terminating due to negative values '
-          stop
+          error stop
       else  
           write(std_out,*)' successfully completed resettcore with irc_core = ',j    
       endif    
@@ -1991,7 +1991,7 @@ End subroutine resettcore
           else
               write(std_out,*) 'Something wrong -- should be core state ',&
 &                io,PAW%TOCCWFN%l(io),PAW%TOCCWFN%eig(io),PAW%TOCCWFN%occ(io)
-              stop
+              error stop
           endif
        ENDIF
     Enddo
@@ -2029,7 +2029,7 @@ End subroutine resettcore
       ALLOCATE(den(n),a(n),stat=i)
       IF (i/=0) THEN
          WRITE(STD_OUT,*) 'Error in selfhatpot allocation',irc,i
-         STOP
+         ERROR STOP
       ENDIF
 
       if (besselshapefunction) then
@@ -2156,7 +2156,7 @@ End subroutine resettcore
              PAW%phi(:,nbase)=Orbit%wfn(:,io)
 
              if(diracrelativistic) then 
-               STOP 'Error -- setbasis subroutine not ready for diracrelativistic!'
+               ERROR STOP 'Error -- setbasis subroutine not ready for diracrelativistic!'
                !rat=1.d0/sqrt(overlap(Grid,PAW%phi(:,nbase),PAW%phi(:,nbase)))
                !PAW%phi(:,nbase)=rat*PAW%phi(:,nbase)
                !PAW%kappa(nbase)=kappa
@@ -2185,7 +2185,7 @@ End subroutine resettcore
          nbase=nbase+1
          IF (nbase > mxbase ) THEN
            WRITE(STD_OUT,*) 'Error in  setbasis -- too many functions ', nbase,mxbase
-           STOP
+           ERROR STOP
          ENDIF
          PAW%l(nbase)=l
          PAW%np(nbase)=999
@@ -2257,7 +2257,7 @@ End subroutine resettcore
     if(needvtau) then
        write(std_out,*) 'Sorry -- this case has not been programmed yet'
        write(std_out,*)  ' need to modify bsolv routine for extra derivatives '
-       stop
+       error stop
     endif   
     n=Grid%n
     h=Grid%h
@@ -2271,7 +2271,7 @@ End subroutine resettcore
     ALLOCATE(tmp(n),VNC(n),PS%rv(n),stat=ok)
     IF (ok /= 0 ) THEN
        WRITE(STD_OUT,*) 'Error in allocating  denout in makebasis ',n,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     ! find basis functions
@@ -2316,8 +2316,8 @@ End subroutine resettcore
     REAL(8), ALLOCATABLE :: VNC(:),Ci(:),aa(:,:),ai(:,:)
     REAL(8), POINTER  :: r(:)
  
-    if (optps<1.or.optps>3) stop 'bug: error calling makebasis_custom routine'
-    if (optorth<0.or.optorth>1) stop 'bug: error calling makebasis_custom routine'
+    if (optps<1.or.optps>3) error stop 'bug: error calling makebasis_custom routine'
+    if (optorth<0.or.optorth>1) error stop 'bug: error calling makebasis_custom routine'
 
     n=Grid%n
     r=>Grid%r
@@ -2331,7 +2331,7 @@ End subroutine resettcore
 
   ! Set screened local pseudopotential
     allocate(VNC(n),stat=i)
-    if (i/=0) stop 'allocation error in makebasis_vanderbilt'
+    if (i/=0) error stop 'allocation error in makebasis_vanderbilt'
     VNC(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,VNC)
 
@@ -2349,7 +2349,7 @@ End subroutine resettcore
 &          (optps==1.and.thisrc>n-3).or. &
 &          (optps==2.and.thisrc>n-6)) then
           write(std_out,*) 'rc out of range', thisrc,n,irc
-          stop
+          error stop
        endif
 
      ! Find partial wave pseudization
@@ -2537,8 +2537,8 @@ End subroutine resettcore
     REAL(8), POINTER  :: r(:)
     
     write(std_out,*) 'Entering makebasis_custom_vtau1'
-    if (optps<1.or.optps>3) stop 'bug: error calling makebasis_custom routine'
-    if (optorth<0.or.optorth>1) stop 'bug: error calling makebasis_custom routine'
+    if (optps<1.or.optps>3) error stop 'bug: error calling makebasis_custom routine'
+    if (optorth<0.or.optorth>1) error stop 'bug: error calling makebasis_custom routine'
 
     n=Grid%n
     r=>Grid%r
@@ -2563,7 +2563,7 @@ End subroutine resettcore
 &          (optps==1.and.thisrc>n-3).or. &
 &          (optps==2.and.thisrc>n-6)) then
           write(std_out,*) 'rc out of range', thisrc,n,irc
-          stop
+          error stop
        endif
 
      ! Find partial wave pseudization
@@ -2649,13 +2649,13 @@ End subroutine resettcore
 
   ! Set screened local pseudopotential
     allocate(VNC(n),stat=i)
-    if (i/=0) stop 'allocation error in make_modrrkj'
+    if (i/=0) error stop 'allocation error in make_modrrkj'
     VNC(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,VNC)
 
 
     allocate(kv(match),jl(n,match),f(n),Ci(match),aa(match,match))
-    if (i/=0) stop 'allocation error in make_nrecipe'
+    if (i/=0) error stop 'allocation error in make_nrecipe'
   ! Loop on basis elements
     lprev=-1;np=0
     do io=1,nbase
@@ -3107,7 +3107,7 @@ End subroutine resettcore
       WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
       if (thisrc<3.or.thisrc>irc) then
         write(std_out,*) 'rc out of range', thisrc,n,irc
-        stop
+        error stop
       endif
       rcindex(io)=thisrc;rcval(io)=rc
       write(std_out,'(" For io = ", i5," rc = ", i5,f10.5)') io,rcindex(io),rcval(io)
@@ -3307,7 +3307,7 @@ End subroutine resettcore
 
   ! Set screened local pseudopotential
     allocate(VNC(n),aux(n),f(n),d(n),dd(n),stat=i)
-    if (i/=0) stop 'allocation error in make_modrrkj'
+    if (i/=0) error stop 'allocation error in make_modrrkj'
     VNC(2:n)=PAW%rveff(2:n)/r(2:n)
     call extrapolate(Grid,VNC)
     !#call derivative(Grid,PAW%tvtau,aux)
@@ -3428,12 +3428,12 @@ End subroutine resettcore
 
       if(needvtau) then
            write(std_out,*) 'In makebasis_V_setvloc -- needvtau not setup'
-           stop
+           error stop
       endif   
 
       if (TRIM(PAW%exctype)=='HF'.or.TRIM(PAW%exctype)=='EXX') then
          write(std_out,*) 'makebasis_V_setvloc is not designed for ', PAW%exctype
-         stop
+         error stop
       endif
       n=Grid%n
       r=>Grid%r
@@ -3455,7 +3455,7 @@ End subroutine resettcore
          WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
          if (thisrc<3.or.thisrc>irc.or.thisrc>n-3) then
             write(std_out,*) 'rc out of range', thisrc,n,irc
-            stop
+            error stop
          endif
          call pspolyn(PAW%phi(:,ib),Ci,r,l,np,thisrc,n)
      ! Compute pseudized partial wave and part of  projector
@@ -3609,7 +3609,7 @@ End subroutine resettcore
         rc=Grid%r(irc_io(io))
         if(irc_io(io)>PAW%irc) then
          write(std_out,*) 'rc out of range', irc_io(io),n,PAW%irc
-         stop
+         error stop
         endif
        enddo
       endif
@@ -3701,7 +3701,7 @@ End subroutine resettcore
       ALLOCATE(fakerv(n),f(n),chi(n),tphi(n),tp(n),stat=ok)
       IF (ok /= 0) THEN
          WRITE(STD_OUT,*) 'Error in bsolv allocation ', n,ok
-         STOP
+         ERROR STOP
       ENDIF
       tphi=PAW%phi(:,io)
       en=PAW%eig(io)
@@ -3759,7 +3759,7 @@ End subroutine resettcore
 
             IF (iter.GE.mxiter) THEN
                WRITE(STD_OUT,*)' terminating projector',iter
-               STOP
+               ERROR STOP
             ENDIF
 
             IF (ABS(del).GT.step) del=DSIGN(step,del)
@@ -3822,7 +3822,7 @@ End subroutine resettcore
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
          WRITE(STD_OUT,*) 'Error in allocating space in ftprod',n,nq,i
-         STOP
+         ERROR STOP
       ENDIF
 
       dq=qmax/nq
@@ -3877,7 +3877,7 @@ End subroutine resettcore
       ALLOCATE(q(nq),dum(n),dum1(n),dum2(n),dum3(n),arg(n),stat=i)
       IF (i/=0) THEN
          WRITE(STD_OUT,*) 'Error in allocating space in fthatpot',n,nq,i
-         STOP
+         ERROR STOP
       ENDIF
 
       dq=qmax/nq
@@ -3937,7 +3937,7 @@ End subroutine resettcore
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
          WRITE(STD_OUT,*) 'Error in allocating space in ftkin',n,nq,i
-         STOP
+         ERROR STOP
       ENDIF
 
       dq=qmax/nq
@@ -3992,7 +3992,7 @@ End subroutine resettcore
       ALLOCATE(q(nq),dum(n),dum1(n),stat=i)
       IF (i/=0) THEN
          WRITE(STD_OUT,*) 'Error in allocating space in ftvloc',n,nq,i
-         STOP
+         ERROR STOP
       ENDIF
 
       OPEN(55,file='ftvloc',form='formatted')
@@ -4059,7 +4059,7 @@ End subroutine resettcore
 
       IF (nr<irc) THEN
          WRITE(STD_OUT,*) 'error in unboundsep -- nr < irc', nr,irc
-         STOP
+         ERROR STOP
       ENDIF
       !
       ! initialize wfn
@@ -4073,7 +4073,7 @@ End subroutine resettcore
       ALLOCATE(y(nr,nbase),b(nbase),stat=ib)
       IF (ib/=0) THEN
          WRITE(STD_OUT,*) 'Error in unboundsep allocation',  nr,nbase,ib
-         STOP
+         ERROR STOP
       ENDIF
 
       lcount=0
@@ -4089,7 +4089,7 @@ End subroutine resettcore
          ALLOCATE(a(lcount,lcount),stat=ib)
          IF (ib/=0) THEN
             WRITE(STD_OUT,*) 'Error in unboundsep allocation',  lcount,ib
-            STOP
+            ERROR STOP
          ENDIF
 
          icount=0
@@ -4195,7 +4195,7 @@ End subroutine resettcore
 
       IF (nr<irc) THEN
          WRITE(STD_OUT,*) 'error in unboundsepked -- nr < irc', nr,irc
-         STOP
+         ERROR STOP
       ENDIF
       !
 
@@ -4204,7 +4204,7 @@ End subroutine resettcore
       ALLOCATE(y(nr,nbase),b(nbase),stat=ib)
       IF (ib/=0) THEN
          WRITE(STD_OUT,*) 'Error in unboundsepked allocation',  nr,nbase,ib
-         STOP
+         ERROR STOP
       ENDIF
 
       lcount=0
@@ -4220,7 +4220,7 @@ End subroutine resettcore
          ALLOCATE(a(lcount,lcount),stat=ib)
          IF (ib/=0) THEN
             WRITE(STD_OUT,*) 'Error in unboundsepked allocation',  lcount,ib
-            STOP
+            ERROR STOP
          ENDIF
 
          icount=0
@@ -4327,7 +4327,7 @@ End subroutine resettcore
       ALLOCATE(p1(n),u(n),y(n,nbase),b(nbase),stat=ib)
       IF (ib/=0) THEN
          WRITE(STD_OUT,*) 'Error in boundsep allocation',  n,nbase,ib
-         STOP
+         ERROR STOP
       ENDIF
       !WRITE(STD_OUT,*) 'in boundsep with ', l,node,energy,emin,emax
       lcount=0
@@ -4341,7 +4341,7 @@ End subroutine resettcore
          ALLOCATE(a(lcount,lcount),stat=ib)
          IF (ib/=0) THEN
             WRITE(STD_OUT,*) 'Error in boundsep allocation',  lcount,ib
-            STOP
+            ERROR STOP
          ENDIF
       ENDIF
 
@@ -4504,7 +4504,7 @@ End subroutine resettcore
          IF (iter.GT.niter) THEN
             WRITE(STD_OUT,*) 'no convergence in boundsep',l,dele,energy
             WRITE(STD_OUT,*) ' best guess of eig, dele = ',energy0,best
-            STOP
+            ERROR STOP
          ENDIF
       ENDDO
       !
@@ -4543,7 +4543,7 @@ End subroutine resettcore
 
       IF (nr<irc) THEN
          WRITE(STD_OUT,*) 'error in PStoAE  -- nr < irc', nr,irc
-         STOP
+         ERROR STOP
       ENDIF
 
       psi(1:nr)=tpsi(1:nr)
@@ -4608,7 +4608,7 @@ End subroutine resettcore
          write(std_out,*) "This probably means that your projectors are too similar"
          write(std_out,*) "or that your PAW basis is incomplete."
          write(std_out,*) "Advice: try to change your input parameters (f.i. : reference energies)."
-         stop
+         error stop
       end if
 
   END SUBROUTINE Set_PAW_MatrixElements
@@ -4689,7 +4689,7 @@ End subroutine resettcore
       else
          write(std_out,*) 'Stopping due to failure of ovlp diagonalization'
          write(ifen,'(/,1x,a)') 'Stopping due to failure of ovlp diagonalization'
-         stop
+         error stop
       endif       
       write(std_out,*) " "
 
@@ -4736,7 +4736,7 @@ End subroutine resettcore
       ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),PS%vtau(n),PS%rvx(n),stat=ie)
       IF (ie/=0) THEN
          WRITE(STD_OUT,*) 'Error in logderiv allocation',n,ie
-         STOP
+         ERROR STOP
       ENDIF
 
       ! load  PS
@@ -4884,7 +4884,7 @@ End subroutine resettcore
 
       allocate(d(n),dv(n),dvx(n),vxB(n),vxK(n),STAT=i)
       allocate(t(n),vt(n),vthat(n))       
-      if (i/=0) stop 'Error (1) in allocating  arrays in findvlocfromveff'
+      if (i/=0) error stop 'Error (1) in allocating  arrays in findvlocfromveff'
 
       d=PAW%tden+PAW%tcore
       call poisson(Grid,tq,d,dv,ecoul)
@@ -4949,7 +4949,7 @@ End subroutine resettcore
       PAW%abinitvloc=0.d0
       PAW%abinitnohat=0.d0
       allocate(v(n),vv(n),STAT=i)
-      if (i/=0) stop 'Error (2) in allocating  arrays in findvlocfromveff'
+      if (i/=0) error stop 'Error (2) in allocating  arrays in findvlocfromveff'
 
       d=PAW%den-PAW%tden
       tq=integrator(Grid,d,1,irc)
@@ -5168,7 +5168,7 @@ End subroutine resettcore
              IF (PSO%iscore(io)) THEN
                  write(std_out,*) 'Core orbitals cannot be changed',&
                  &  orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo)
-                 stop
+                 error stop
              endif
              nfix=io
              EXIT
@@ -5177,7 +5177,7 @@ End subroutine resettcore
        IF (nfix.LE.0) THEN
           WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc', &
 &             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix
-          STOP
+          ERROR STOP
        ENDIF
        PSO%occ(nfix)=orbit_mod_occ(jo)
        AEO%occ(nfix)=orbit_mod_occ(jo)
@@ -5549,11 +5549,11 @@ End subroutine resettcore
      read(inputline,*) ndata,nrcs
      if (ndata>9999) then
           write(std_out,*) 'Error : ndata must be <= 9999', ndata
-          stop
+          error stop
      endif        
      if (nrcs<1.or.nrcs>9999) then
           write(std_out,*) 'Error : nrcs must be <= 9999 and >=1', nrcs
-          stop
+          error stop
      endif        
 
      call UpperCase(inputline)
@@ -5675,7 +5675,7 @@ End subroutine resettcore
       ALLOCATE(psi(nr),tpsi(nr),ttpsi(nr),PS%rv(n),stat=ie)
       IF (ie/=0) THEN
          WRITE(STD_OUT,*) 'Error in logderiv allocation',n,ie
-         STOP
+         ERROR STOP
       ENDIF
 
       ! load  PS

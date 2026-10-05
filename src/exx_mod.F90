@@ -87,7 +87,7 @@ CONTAINS
 &           HSZ%LMBDref(io,io),HSZ%LMBDcore(io,io),HSZ%LMBDvale(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(STD_OUT,*) 'Error in allocate HSZdata ', io,n,ok
-          STOP
+          ERROR STOP
        ENDIF
        HSZ%psi=0
        HSZ%shift=0
@@ -125,7 +125,7 @@ CONTAINS
 &           HF%CSlmany(io),HF%CSlmap(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(STD_OUT,*) 'Error in allocate HFdata ', io,ok
-          STOP
+          ERROR STOP
        ENDIF
        HF%lmbd=0
 
@@ -208,7 +208,7 @@ CONTAINS
 
     arg=Potwk%rvx
     if (TRIM(exctype)=='EXX') then
-     write(std_out,*) 'EXX option is currently broken!!'; call flush_unit(std_out); stop
+     write(std_out,*) 'EXX option is currently broken!!'; call flush_unit(std_out); error stop
      IF (frozencorecalculation.and..not.setupfrozencore) THEN
         WRITE(STD_OUT,*) 'Beginning FC'
         CALL Init_EXX_vx(Gridwk,Orbitwk,Potwk)
@@ -287,7 +287,7 @@ CONTAINS
 &           HSZ%LMBDref(io,io),HSZ%LMBDcore(io,io),HSZ%LMBDvale(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(STD_OUT,*) 'Error in allocate HSZdata ', io,n,ok
-          STOP
+          ERROR STOP
        ENDIF
        HSZ%psi=0
        HSZ%shift=0
@@ -309,7 +309,7 @@ CONTAINS
 &           HF%CSlmany(io), HF%CSlmap(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(STD_OUT,*) 'Error in allocate HFdata ', io,ok
-          STOP
+          ERROR STOP
        ENDIF
        HF%lmbd=0
 
@@ -449,7 +449,7 @@ CONTAINS
     ALLOCATE(dum(n), stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error in init_exx_vx ',i,n
-       STOP
+       ERROR STOP
     ENDIF
     CALL InitialVx(Grid,Orbit%wfn(:,outer),dum)
 
@@ -515,7 +515,7 @@ CONTAINS
        DO io=1,Orbit%norbit
           IF (Orbit%iscore(io).AND.outer==io) THEN
              WRITE(STD_OUT,*) 'Error in FC SetIndex -- core state ', io,outer
-             STOP
+             ERROR STOP
           ENDIF
        ENDDO
     ENDIF
@@ -552,7 +552,7 @@ CONTAINS
        DO io=1,Orbit%norbit
           IF (Orbit%iscore(io).AND.outer==io) THEN
              WRITE(STD_OUT,*) 'Error in FC SetIndex -- core state ', io,outer
-             STOP
+             ERROR STOP
           ENDIF
        ENDDO
     ENDIF
@@ -572,7 +572,7 @@ CONTAINS
        betaL=SQRT(ABS(Orbit%eig(HSZ%zero_index)))
     ELSE
        WRITE(STD_OUT,*) 'Error in Setfparms ', HSZ%zero_index
-       STOP
+       ERROR STOP
     ENDIF
 
     HSZ%betaL=ABS(betaL)
@@ -601,7 +601,7 @@ CONTAINS
     ALLOCATE(dum(Gridwk%n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXsub allocation' ,Gridwk%n
-       STOP
+       ERROR STOP
     ENDIF
 
     n=Gridwk%n
@@ -616,7 +616,7 @@ CONTAINS
 
     IF(frozencorecalculation) THEN
        WRITE(STD_OUT,*) ' Frozencore calculation should not use this routine!'
-       STOP
+       ERROR STOP
        DO io = 1 , Orbitwk%norbit
           IF(Orbitwk%iscore(io)) THEN
              tmpOrbit%eig(io)=Orbitwk%eig(io)
@@ -1071,7 +1071,7 @@ CONTAINS
     ALLOCATE(dum(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'allocation error in Get_FCEnergy_EXX', i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     call Get_Energy_EXX_VC(Grid,Orbit,FCeex)
@@ -1268,7 +1268,7 @@ CONTAINS
     !   It is not quite working yet
     WRITE(STD_OUT,*) 'Colle Salvetti correlation function not yet quite working'
     WRITE(STD_OUT,*) 'Program will stop.'
-    STOP
+    ERROR STOP
     a=0.04918d0
     a=a*2
     b=0.132d0
@@ -1495,7 +1495,7 @@ CONTAINS
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),aa(mn-1),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error inhomo_multi_numerov ', mn,i
-       STOP
+       ERROR STOP
     ENDIF
 
     ! assume wfn(r) ~ r**(l+1) for r->0
@@ -1738,7 +1738,7 @@ CONTAINS
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXOCCiter allocation' ,n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     write(std_out,*) 'Starting EXXOCCiter_wfn'; call flush_unit(std_out)
@@ -1815,7 +1815,7 @@ CONTAINS
              Orbitwk%den=tmpOrbit%den
 
              CALL Report_EXX_functions('ER')
-             STOP
+             ERROR STOP
        ENDIF
     ENDIF
 
@@ -1952,7 +1952,7 @@ CONTAINS
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXKLIiter allocation' ,n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     Potwk%rvx=w
@@ -1991,7 +1991,7 @@ CONTAINS
        Orbitwk%den=tmpOrbit%den
 
        CALL Report_EXX_functions('ER')
-       STOP
+       ERROR STOP
     ENDIF
 
     tmpPot%rv=rv
@@ -2097,7 +2097,7 @@ CONTAINS
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXKLIiter allocation' ,n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     Call Find_Hartree(w)
@@ -2201,7 +2201,7 @@ CONTAINS
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXKLIiter allocation' ,n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     write(std_out,*) 'Starting EXXKLIiter_wfn'; call flush_unit(std_out)
@@ -2278,7 +2278,7 @@ CONTAINS
              Orbitwk%den=tmpOrbit%den
 
              CALL Report_EXX_functions('ER')
-             STOP
+             ERROR STOP
        ENDIF
     ENDIF
 
@@ -2560,7 +2560,7 @@ CONTAINS
     ALLOCATE(rv(Gridwk%n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in Hsub allocation' ,Gridwk%n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     WRITE(STD_OUT,*) 'Starting Hartree '
@@ -2581,7 +2581,7 @@ CONTAINS
        Orbitwk%den=tmpOrbit%den
 
        CALL Report_EXX_functions('ER')
-       STOP
+       ERROR STOP
     ENDIF
 
 
@@ -2654,7 +2654,7 @@ CONTAINS
     ALLOCATE(dum(n),res(n),rv(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in EXXIter allocation' ,n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     Potwk%rvx=w
@@ -2676,7 +2676,7 @@ CONTAINS
        Orbitwk%den=tmpOrbit%den
 
        CALL Report_EXX_functions('ER')
-       STOP
+       ERROR STOP
     ENDIF
 
     tmpPot%rv=rv

@@ -52,7 +52,7 @@ CONTAINS
    allocate(ww(n),jj(n), stat=i)
    if (i/=0) then
       write(std_out,*)  'Allocate_scalar_relativistic: error in allocation ',i,n
-      stop
+      error stop
    endif
 
  End subroutine Allocate_scalar_relativistic
@@ -186,7 +186,7 @@ CONTAINS
 
     if (energy>0.d0) then
        write(std_out,*) 'Error in wfnsrasym -- energy > 0', energy
-       stop
+       error stop
     endif
 
     wfn=0; lwfn=0; 
@@ -238,7 +238,7 @@ CONTAINS
     n=Grid%n
     IF (nr > n) THEN
        WRITE(STD_OUT,*) 'Error in unboundsr -- nr > n', nr,n
-       STOP
+       ERROR STOP
     ENDIF
 
     call Azeroexpand(Grid,Pot,l,energy,nr)
@@ -246,7 +246,7 @@ CONTAINS
     allocate(lwfn(nr),zz(2,2,nr),yy(2,nr),stat=ierr)
        if (ierr/=0) then
           write(std_out,*) ' allocation error in unboundsr ', nr,ierr
-          stop
+          error stop
        endif
 
     lwfn=0;zz=0;yy=0;
@@ -325,14 +325,14 @@ CONTAINS
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) ' Error in boundsr allocation ',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     success=.true.
     allocate(lwfn(n),zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
           write(std_out,*) ' allocation error in boundsr ', n,i
-          stop
+          error stop
        endif
 
 
@@ -427,7 +427,7 @@ CONTAINS
                   do i=2,n
                     write(999,'(1p,4e15.7)') Grid%r(i),jj(i)/Grid%r(i),ww(i),Pot%rv(i)
                   enddo
-                  STOP
+                  ERROR STOP
                 ENDIF
              ENDIF
              emax=MIN(emax,energy+err)

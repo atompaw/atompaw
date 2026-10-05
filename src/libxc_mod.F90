@@ -396,7 +396,7 @@ module libxc_mod
    write(std_out,'(/,2x,a)') "Error in get_id_from_name:"
    write(std_out,'(2x,3a)')  " Unknown X, C or XC functionnal (", &
 &                     trim(xcstrg(ii)),") !"
-   stop
+   error stop
   end if
  end do
 
@@ -647,7 +647,7 @@ end function libxc_getid_fromName
    success_c=xc_func_init(xc_func%conf,func_id_c,nspin_c)
    if (success_c/=0) then
      write(std_out,'(a)') 'Error in libXC functional initialization!'
-     stop
+     error stop
    end if
 
 !  Special treatment for LDA_C_XALPHA functional
@@ -1191,22 +1191,22 @@ end function libxc_nspin
  needs_laplacian=(libxc_needs_laplacian().and.present(lrho))
 
 !Why?
- if (nsp==2.and.is_mgga) stop 'spin not available for mGGA!'
+ if (nsp==2.and.is_mgga) error stop 'spin not available for mGGA!'
 
  if (is_gga.and.((.not.present(vxcgr).or.(.not.present(grho))))) then
    write(std_out,'(/,2x,a)') "Bug in libxc_getvxc:"
    write(std_out,'(2x,a)')   " GGA called without grho or vxcgr!"
-   stop
+   error stop
  end if
  if(needs_tau.and.(.not.present(tau))) then
    write(std_out,'(/,2x,a)') "Error in libxc_getvxc:"
    write(std_out,'(2x,a)')  " getvxc needs kinetic energy density!"
-   stop
+   error stop
  endif
  if(needs_laplacian.and.(.not.present(lrho))) then
    write(std_out,'(/,2x,a)') "Error in libxc_getvxc:"
    write(std_out,'(2x,a)')  " getvxc needs Laplacian of density!"
-   stop
+   error stop
  endif
 !Need to add more consistency tests
 
@@ -1492,7 +1492,7 @@ end function libxc_nspin
 
  if (present(stop_if_error)) then
    if (stop_if_error.and.trim(msg)/="") then
-     write(std_out,'(a)') trim(msg) ; stop
+     write(std_out,'(a)') trim(msg) ; error stop
    end if
  end if
 

@@ -215,7 +215,7 @@ CONTAINS
       AEOrbit%npd=npd
       AEOrbit%npf=npf
       AEOrbit%npg=npg
-      IF (AEOrbit%norbit/=input_dataset%norbit) STOP 'Inconsistent number of orbitals!'
+      IF (AEOrbit%norbit/=input_dataset%norbit) ERROR STOP 'Inconsistent number of orbitals!'
       WRITE(STD_OUT,*) AEOrbit%norbit, ' orbitals will be calculated'
  
       WRITE(STD_OUT,*)' Below are listed the default occupations '
@@ -233,7 +233,7 @@ CONTAINS
         nfix=nl(ip,l+1)
         IF (nfix<=0.OR.nfix>AEOrbit%norbit) THEN
           WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc: ',ip,l,xocc,nfix,AEOrbit%norbit
-          STOP
+          ERROR STOP
         ENDIF
         AEOrbit%occ(nfix)=xocc
       END DO
@@ -342,7 +342,7 @@ CONTAINS
       AEOrbit%npd=npd
       AEOrbit%npf=npf
       AEOrbit%npg=npg
-      IF (AEOrbit%norbit/=input_dataset%norbit) STOP 'Inconsistent number of orbitals!'
+      IF (AEOrbit%norbit/=input_dataset%norbit) ERROR STOP 'Inconsistent number of orbitals!'
       WRITE(STD_OUT,*) AEOrbit%norbit, ' orbitals will be calculated'
 
       WRITE(STD_OUT,*)' Below are listed the default occupations '
@@ -361,7 +361,7 @@ CONTAINS
         nfix=nl(ip,kappa)
         IF (nfix<=0.OR.nfix>AEOrbit%norbit) THEN
           WRITE(STD_OUT,*) 'error in occupations -- ip,l,kappa,xocc: ',ip,l,kappa,xocc,nfix,AEOrbit%norbit
-          STOP
+          ERROR STOP
         ENDIF
          AEOrbit%occ(nfix)=xocc
       END DO
@@ -503,7 +503,7 @@ CONTAINS
     REAL(8),allocatable :: d(:)
     INTEGER :: initialconfig=0
 
-       IF (initialconfig/=0) STOP 'Error in aeatom -- Orbit_Init already called'
+       IF (initialconfig/=0) ERROR STOP 'Error in aeatom -- Orbit_Init already called'
 
        !  calculate initial charge density from hydrogen-like functions
        !  also initial energies
@@ -625,7 +625,7 @@ CONTAINS
            IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
              WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc',&
               orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
-             STOP
+             ERROR STOP
            ENDIF
            Orbit%occ(nfix)=orbit_mod_occ(jo)
          ENDDO
@@ -716,7 +716,7 @@ CONTAINS
     LOGICAL :: noalt=.true.
     If (choosevalence/=0) then
      write(std_out,*) 'Error in aeatom -- SC_Init already called'
-       stop
+       error stop
     endif
 
     CALL Set_Valence()
@@ -805,7 +805,7 @@ CONTAINS
          IF (nfix.LE.0.OR.nfix.GT.Orbit%norbit) THEN
            WRITE(STD_OUT,*) 'error in occupations -- ip,l,xocc',&
             orbit_mod_n(jo),orbit_mod_l(jo),orbit_mod_occ(jo),nfix,Orbit%norbit
-           STOP
+           ERROR STOP
          ENDIF
          Orbit%occ(nfix)=orbit_mod_occ(jo)
             write(std_out,*) ' Orbit%occ(nfix)=orbit_mod_occ(jo) ', Orbit%occ(nfix);call flush(std_out)
@@ -1049,7 +1049,7 @@ CONTAINS
        write(std_out,*) 'File seems to be fine'
      else
        write(std_out,*) 'File is not correct -- program will stop'
-       stop
+       error stop
      endif
 
     ! grid info

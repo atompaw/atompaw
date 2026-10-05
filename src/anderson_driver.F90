@@ -134,7 +134,7 @@ CONTAINS
           WRITE(AC%Err_Unit,*) 'Anderson_Mix: Error in DGESDD. Error=',i
           tmp = 0
           tmp = 1.d0/tmp
-          STOP
+          ERROR STOP
        END IF
 
        !WRITE(AC%Err_Unit,*) 'in Anderson_Mix -- completed SVD with values'
@@ -278,7 +278,7 @@ CONTAINS
        WRITE(Err_Unit, *) 'InitAnderson: Nmax=',Nmax, ' * VecSize=',VecSize
        tmp = 0
        tmp = 1.d0/tmp
-       STOP
+       ERROR STOP
     END IF
 
     AC%Lwork=5*Nmax*Nmax+10*Nmax
@@ -371,7 +371,7 @@ CONTAINS
              AC%NewMix=MAX(0.00001d0,AC%NewMix/2)
              IF (AC%NewMix<=0.00001d0) THEN
                 WRITE(STD_OUT,*) 'Sorry -- this is not working '
-                STOP
+                ERROR STOP
              ENDIF
           ENDIF
        ELSE

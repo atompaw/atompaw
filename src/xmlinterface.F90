@@ -1041,7 +1041,7 @@ public :: mesh_data_type
    mesh_data%ivbaremesh=1
    mesh_data%ivlda12mesh=1
  endif
- if (nmesh>1.and.nsplgrid>0) stop '  Bug (1) in xmlinterface: nmesh>1 and nsplgrid>0!'
+ if (nmesh>1.and.nsplgrid>0) error stop '  Bug (1) in xmlinterface: nmesh>1 and nsplgrid>0!'
 
  do ii=1,nmesh
   allocate(dudr(mesh_data%meshsz(ii)),stat=OK)
@@ -1073,7 +1073,7 @@ public :: mesh_data_type
     dudr(1:mesh_size(ii))=logstp0*(radstp0+rad_aux(1:mesh_size(ii)))
 
    case default
-    stop '  Bug (2) in xmlinterface: mesh type not implemented in Atompaw!'
+    error stop '  Bug (2) in xmlinterface: mesh type not implemented in Atompaw!'
   end select
 
   WRITE(unit_xml,'("<radial_grid eq=""",a,""" a=""",es23.16,$)') trim(char20),radstp0
@@ -1374,12 +1374,12 @@ public :: mesh_data_type
   msz_in=size(func_in) ; msz_out=size(func_out)
   func_out=zero
   if (nsplgrid>0) then
-    if (msz_out/=nsplgrid) stop '  Bug (1) in interp_and_filter: msz_out/=nsplgrid!'
+    if (msz_out/=nsplgrid) error stop '  Bug (1) in interp_and_filter: msz_out/=nsplgrid!'
     extra=(Grid%r(msz_in)<Grid1%r(msz_out))
     msz_spl=merge(msz_out-1,msz_out,extra)
     call interpfunc(msz_in,Grid%r,func_in,msz_spl,Grid1%r,func_out)
   else
-    if (msz_out>msz_in) stop '  Bug (2) in interp_and_filter: msz_out>msz_in!'
+    if (msz_out>msz_in) error stop '  Bug (2) in interp_and_filter: msz_out>msz_in!'
     func_out(1:msz_out)=func_in(1:msz_out)
   end if
   do jj=1,msz_out
@@ -1576,7 +1576,7 @@ public :: mesh_data_type
  icor=0
  do ib=1,AEOrbit%norbit
    if (AEOrbit%iscore(ib)) then
-     icor=icor+1;if (icor>core_size) stop '  Bug (1) in xmlprtcore!'
+     icor=icor+1;if (icor>core_size) error stop '  Bug (1) in xmlprtcore!'
      call mkname(icor,char4)
      char20=stripchar('"'//AEPot%sym//'_core'//char4//'"')
      if(diracrelativistic) then
@@ -1610,7 +1610,7 @@ public :: mesh_data_type
     logstp0=mesh_data%logstp(ii)
     dum(1:corewf_meshsz)=logstp0*(radstp0+Grid%r(1:corewf_meshsz)) 
    case default
-    stop '  Bug (2) in xmlprtcore: mesh type not implemented in Atompaw!'
+    error stop '  Bug (2) in xmlprtcore: mesh type not implemented in Atompaw!'
   end select
   WRITE(unit_xml_core,'("<radial_grid eq=""",a,""" a=""",es23.16,$)') trim(char21),radstp0
   WRITE(unit_xml_core,'(""" d=""",es23.16,""" istart=""0"" iend=""",i5,$)') &
@@ -1629,7 +1629,7 @@ public :: mesh_data_type
  icor=0
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
-    icor=icor+1;if (icor>core_size) stop 'Bug (3) in xmlprtcore!'
+    icor=icor+1;if (icor>core_size) error stop 'Bug (3) in xmlprtcore!'
     call mkname(AEOrbit%np(ib),char4)
     char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
     WRITE(unit_xml_core,'("<ae_core_wavefunction state=",a6," grid=""",a,i1,""">")') &
@@ -1651,7 +1651,7 @@ public :: mesh_data_type
    icor=0
    do ib=1,AEOrbit%norbit
     if (AEOrbit%iscore(ib)) then
-      icor=icor+1;if (icor>core_size) stop '  Bug (4) in xmlprtcore!'
+      icor=icor+1;if (icor>core_size) error stop '  Bug (4) in xmlprtcore!'
       call mkname(AEOrbit%np(ib),char4)
       char20=stripchar('"'//AEPot%sym//char4//char_orb(AEOrbit%l(ib)+1)//'"')
       WRITE(unit_xml_core,'("<ae_core_lwavefunction state=",a6," grid=""",a,i1,""">")') &

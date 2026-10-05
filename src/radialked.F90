@@ -253,7 +253,7 @@ CONTAINS
 
     if (energy>0.d0) then
        write(std_out,*) 'Error in wfnkedasym -- energy > 0', energy
-       stop
+       error stop
     endif
 
     wfn=0; lwfn=0; 
@@ -309,7 +309,7 @@ CONTAINS
     n=Grid%n
     IF (nr > n) THEN
        write(std_out,*) 'Error in unboundked -- nr > n', nr,n
-       STOP
+       ERROR STOP
     ENDIF
 
     call Set_Pot(Grid,Pot)
@@ -317,7 +317,7 @@ CONTAINS
     allocate(lwfn(nr),zz(2,2,nr),yy(2,nr),stat=ierr)
        if (ierr/=0) then
           write(std_out,*) ' allocation error in unboundked ', nr,ierr
-          stop
+          error stop
        endif
 
     lwfn=0;zz=0;yy=0;
@@ -372,7 +372,7 @@ CONTAINS
     n=Grid%n
     IF (nr > n) THEN
        write(std_out,*) 'Error in unboundked -- nr > n', nr,n
-       STOP
+       ERROR STOP
     ENDIF
 
     call Set_Pot(Grid,Pot)
@@ -380,7 +380,7 @@ CONTAINS
     allocate(lwfn(nr),zz(2,2,nr),yy(2,nr),ff(2,nr),stat=ierr)
        if (ierr/=0) then
           write(std_out,*) ' allocation error in unboundked ', nr,ierr
-          stop
+          error stop
        endif
 
        !x write(std_out,*) ' after Set_Pot '; call flush_unit(std_out)
@@ -460,14 +460,14 @@ CONTAINS
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
        write(std_out,*) ' Error in boundked allocation ',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     success=.true.
     allocate(lwfn(n),zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
           write(std_out,*) ' allocation error in boundked ', n,i
-          stop
+          error stop
        endif
 
 
@@ -570,7 +570,7 @@ CONTAINS
                 do i=2,n
                    write(999,'(1p,4e15.7)') Grid%r(i),Pot%rv(i),p1(i)
                 enddo
-                STOP
+                ERROR STOP
              ENDIF
              emax=MIN(emax,energy+err)
              energy=emin+(energy-emin)*ranx()
@@ -660,7 +660,7 @@ CONTAINS
     ALLOCATE(v(n), stat=i)
     IF (i /= 0) THEN
        write(std_out,*) 'Allocation error in ClassicalTurningked ', i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     v=0

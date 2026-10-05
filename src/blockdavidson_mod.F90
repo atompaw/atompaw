@@ -40,7 +40,7 @@ CONTAINS
 &        f(ndim,ns),hv(ndim),ov(ndim), stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in InitBlock...', ns,ndim,i
-       STOP
+       ERROR STOP
     ENDIF
   END SUBROUTINE InitBlockDavidson
 
@@ -123,7 +123,7 @@ CONTAINS
 
           IF (i < nvec) THEN
              WRITE(STD_OUT,*) 'Too few eigenvalues',i,nvec
-             STOP
+             ERROR STOP
           ENDIF
 
           delta=0
@@ -168,7 +168,7 @@ CONTAINS
     ALLOCATE(C(k,k),U(k,k),VT(k,k),WORK(LWORK),S(k),LUT(k),STAT=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'Diagonalizer: allocation ', k,Lwork,i
-       STOP
+       ERROR STOP
     ENDIF
 
     tol=1.d-8
@@ -193,7 +193,7 @@ CONTAINS
        NewSize=ii
     ELSE
        WRITE(STD_OUT,*) 'Error in Diagonalizer -- Obase is singular '
-       STOP
+       ERROR STOP
     ENDIF
 
     C=0 ;
@@ -213,7 +213,7 @@ CONTAINS
     !WRITE(STD_OUT,*) ' completed Hmat diagonalization with Info=',Info
     IF (info /= 0) THEN
        WRITE(STD_OUT,*) 'Stopping due to diagonalizer error'
-       STOP
+       ERROR STOP
     ENDIF
 
     Work=1.e10

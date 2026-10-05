@@ -1157,7 +1157,7 @@ Module ABINITInterface
    pawarray%shapefunc(ir)=al(1)*jbes1+al(2)*jbes2
   enddo
  else if (pshead%shape_type/=-1) then
-  stop '  Bug (1) in calc_shapef: invalid value for pshead%shape_type!'
+  error stop '  Bug (1) in calc_shapef: invalid value for pshead%shape_type!'
  endif
 
 !Compute moments of shape function
@@ -2386,7 +2386,7 @@ end subroutine calc_shapef
  icor=0
  do ib=1,AEOrbit%norbit
   if (AEOrbit%iscore(ib)) then
-   icor=icor+1;if (icor>pshead%core_size) stop '  Bug (1) in wrcorewf!'
+   icor=icor+1;if (icor>pshead%core_size) error stop '  Bug (1) in wrcorewf!'
    do isppol=1,nsppol
     if (nsppol==2) then
      if (isppol==1) spstrg=" UP"
@@ -2429,7 +2429,7 @@ end subroutine calc_shapef
    icor=0
    do ib=1,AEOrbit%norbit
      if (AEOrbit%iscore(ib)) then
-       icor=icor+1;if (icor>pshead%core_size) stop '  Bug (2) in wrcorewf!'
+       icor=icor+1;if (icor>pshead%core_size) error stop '  Bug (2) in wrcorewf!'
        write(funit,'(a,i2,a)') "===== Core wave functions PHI second spinor component",icor,&
 &          " =====   [phi(r)=PHI(r)/r*Ylm(th,ph)]"
        write(funit,'(i2,a)') imesh,"  : radial mesh index"
@@ -2547,7 +2547,7 @@ end subroutine calc_shapef
 
  if (idir==1) then
 
-  if (nn>Grid%n) stop '  Bug (1) in grid2pawrad: mesh size too large!'
+  if (nn>Grid%n) error stop '  Bug (1) in grid2pawrad: mesh size too large!'
 
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=Grid%n
@@ -2570,7 +2570,7 @@ end subroutine calc_shapef
 
  else if (idir==-1) then
 
-  if (nn>pawrad%meshsz) stop '  Bug (2) in grid2pawrad: mesh size too large!'
+  if (nn>pawrad%meshsz) error stop '  Bug (2) in grid2pawrad: mesh size too large!'
 
   if (nn> 0) meshsz=nn
   if (nn<=0) meshsz=pawrad%meshsz

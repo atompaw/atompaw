@@ -293,12 +293,12 @@ CONTAINS
     If (scalarrelativistic.or.diracrelativistic) then
         write(std_out,*) 'Program Updatewfnwden not written '    
         write(std_out,*) ' for relativistic solver -- error stop '
-        stop
+        error stop
     ENDIF    
     If (.not.usespline) THEN
         write(std_out,*) 'Program Updatewfnwden only written '    
         write(std_out,*) ' for usespline case -- error stop '
-        stop
+        error stop
     ENDIF    
 
     n=Grid%n; h=Grid%h;    nz=Pot%nz;   zz=Pot%zz
@@ -520,7 +520,7 @@ CONTAINS
     ALLOCATE(dum(n),STAT=k)
     IF (k /= 0) THEN
        WRITE(STD_OUT,*) 'Error in Get_KinCoul allocation ', n,k
-       STOP
+       ERROR STOP
     ENDIF
 
 !   Update density and tau
@@ -648,7 +648,7 @@ CONTAINS
     ALLOCATE(dum(n),STAT=k)
     IF (k /= 0) THEN
        WRITE(STD_OUT,*) 'Error in Get_FCKinCoul allocation; n,k=',n,k
-       STOP
+       ERROR STOP
     ENDIF
 
 
@@ -905,14 +905,14 @@ CONTAINS
             write(std_out,*) 'AZ parameter calculated to be', AZ
        else
            write(std_out,*) 'Problem in Finite Nucleus treatment -- Z>100 not programmed ', Pot%nz
-           stop
+           error stop
        endif
       
        SELECT CASE(Pot%finitenucleusmodel)
           CASE DEFAULT
             write(std_out,*) 'Error in finitenucleusmodel',Pot%finitenucleusmodel
             write(std_out,*) ' -- only 2,3,4,5 available --  Exiting '
-            Stop
+            Error Stop
           CASE(2)      
             write(std_out,*) 'Model 2 -- Breit'      
             RR=sqrt(2.d0)*AZ

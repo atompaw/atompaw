@@ -48,7 +48,7 @@ CONTAINS
     ALLOCATE(vec(k,many),f(k),dum(k),e(many),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in BoundNumerov ', i,n,k
-       STOP
+       ERROR STOP
     ENDIF
 
     vec=0
@@ -62,7 +62,7 @@ CONTAINS
     !WRITE(STD_OUT,*) 'Starting with ',count,'  orthonormal functions '
     IF (count<1) THEN
        WRITE(STD_OUT,*) 'Error in initial wavefunctions -- stopping '
-       STOP
+       ERROR STOP
     ENDIF
 
     i=1
@@ -70,7 +70,7 @@ CONTAINS
        IF (count>=many) EXIT
        IF (i>count) THEN
           WRITE(STD_OUT,*) 'Error in initial wavefunctions -- i>count ', i,count
-          STOP
+          ERROR STOP
        ENDIF
        dum=vec(:,i)
        IF (usingloggrid(Grid)) dum(1:n-2)=dum(1:n-2)/Grid%pref(2:n-1)
@@ -145,7 +145,7 @@ CONTAINS
        ALLOCATE(hn(n),hd(n),on(n),od(n),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Allocation error in initBoundNumerov', i,n
-          STOP
+          ERROR STOP
        ENDIF
        firsttime=1
        GridPtr=>Grid
@@ -293,7 +293,7 @@ CONTAINS
     ALLOCATE(p1(n),p2(n),dd(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) ' Error in newboundsch allocation ',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     zz=nz
@@ -543,7 +543,7 @@ CONTAINS
     n=Grid%n
     IF (nr > n) THEN
        WRITE(STD_OUT,*) 'Error in unboundsch -- nr > n', nr,n
-       STOP
+       ERROR STOP
     ENDIF
 
     ! initialize wfn

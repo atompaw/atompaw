@@ -39,11 +39,11 @@ Module paw_sub
    REAL(8) :: rc,xx,y,scale
    REAL(8),ALLOCATABLE :: A(:,:),X(:)
 
-   if (irc<3.or.irc>irc.or.irc>n-3) stop 'pspolyn: rc out of range'
-   if (np<1) stop 'pspolyn: p out of range'
+   if (irc<3.or.irc>irc.or.irc>n-3) error stop 'pspolyn: rc out of range'
+   if (np<1) error stop 'pspolyn: p out of range'
 
    allocate(A(np,np),X(np),stat=i)
-   if (i/=0) stop 'allocation error in pspolyn'
+   if (i/=0) error stop 'allocation error in pspolyn'
 
    rc=r(irc);np2=np/2
    scale=(rc/(rc-r(irc-1)))**2 ! Scale to limit rounding error in linsol
@@ -90,11 +90,11 @@ Module paw_sub
    REAL(8) :: qh,qrc2,rc,xx,scale,yy(6,6),zz(6)
    REAL(8),ALLOCATABLE :: A(:,:),X(:),Q(:,:),qq(:),ff(:),gg(:)
 
-   if (irc<3.or.irc>irc.or.irc>n-6) stop 'psuspolyn: rc out of range'
-   if (np<4) stop 'psuspolyn: polynomial degree for pseudization was too small'
+   if (irc<3.or.irc>irc.or.irc>n-6) error stop 'psuspolyn: rc out of range'
+   if (np<4) error stop 'psuspolyn: polynomial degree for pseudization was too small'
 
    allocate(A(np+4,np+4),X(np+4),Q(nq,np+4),qq(nq),ff(nq),gg(nq),stat=i)
-   if (i/=0) stop 'allocation error in psuspolyn'
+   if (i/=0) error stop 'allocation error in psuspolyn'
 
    il=l+1;rc=r(irc)
 

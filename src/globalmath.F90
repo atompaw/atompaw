@@ -174,7 +174,7 @@ CONTAINS
 
        if (val<1.d-8) then
           write(std_out,*) 'error in bessandneumfunc   -- argument should  be > 0',val
-          stop
+          error stop
        endif
 
        if (l==0) then
@@ -192,7 +192,7 @@ CONTAINS
        else
           write(std_out,*) 'Error in bessandneumfunc ;  '&
 &             ,'Only l<=2 has been programmed so far '
-          stop
+          error stop
        endif
 
        write(std_out,*) 'Check Bessel Wronskian : ',l,jl*nlp-nl*jlp
@@ -234,7 +234,7 @@ CONTAINS
     d = 1.d0
     if (kk>min(la,ra,lb)) then
        write(std_out,*) 'Dimension error in linsol ', la,ra,lb,kk
-       stop
+       error stop
     endif
     kkm=kk-1
     IF (kkm == 0) THEN
@@ -304,12 +304,12 @@ CONTAINS
 
     if (kk>min(la,ra)) then
        write(std_out,*) 'Dimension error in minverse ', la,ra,kk
-       stop
+       error stop
     endif
     ALLOCATE(ai(kk,kk),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error in minverse',i,kk
-       STOP
+       ERROR STOP
     ENDIF
 
     ai=0
@@ -479,7 +479,7 @@ end subroutine dirachwfn
 
     if (n>0) then
       write(std_out,*) 'Error in kummer function -- n>0',n
-      stop
+      error stop
     endif      
     kummer=1.d0
     if (n==0) return
@@ -543,7 +543,7 @@ end subroutine dirachwfn
     ALLOCATE(a(n),b(n),stat=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'Thomas: allocation error ', i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     a(2)=d
@@ -576,7 +576,7 @@ end subroutine dirachwfn
     INTEGER :: i
     IF (n.LT.1) THEN
        WRITE(STD_OUT,*) '***error in thomas -- n = ',n
-       STOP
+       ERROR STOP
     ELSE IF (n.EQ.1) THEN
        d(1)=d(1)/b(1)
        RETURN
@@ -625,7 +625,7 @@ end subroutine dirachwfn
             &         ff(3)*(6.d0*cqr*qinv**5/rc+sqr*qinv**4)+&
             &         ff(4)*cqr*qinv**5
     ELSE
-       STOP 'Error in intjl: l too large !'
+       ERROR STOP 'Error in intjl: l too large !'
     ENDIF
 
   END FUNCTION intjl
@@ -646,7 +646,7 @@ end subroutine dirachwfn
     REAL(8) :: besp1,fact,factp,factpp,jn,jnp,jnpp,jr,xx2,xxinv
 
 
-    IF (order>2) STOP "Wrong order in jbessel !"
+    IF (order>2) ERROR STOP "Wrong order in jbessel !"
 
     IF (ABS(xx)<prec) THEN
        bes=0.d0;IF (ll==0) bes=1.d0
@@ -672,7 +672,7 @@ end subroutine dirachwfn
           jn=jn+jr
        ENDDO
        bes=jn*fact
-       IF (ABS(jr)>prec) STOP 'Error: Bessel function did not converge !'
+       IF (ABS(jr)>prec) ERROR STOP 'Error: Bessel function did not converge !'
        IF (order>=1) THEN
           factp=fact*xx/DBLE(2*ll+3)
           jnp=1.D0;jr=1.D0;ii=0
@@ -681,7 +681,7 @@ end subroutine dirachwfn
              jnp=jnp+jr
           ENDDO
           besp=-jnp*factp+jn*fact*xxinv*DBLE(ll)
-          IF (ABS(jr)>prec) STOP 'Error: 1st der. of Bessel function did not converge !'
+          IF (ABS(jr)>prec) ERROR STOP 'Error: 1st der. of Bessel function did not converge !'
        ENDIF
        IF (order==2) THEN
           factpp=factp*xx/DBLE(2*ll+5)
@@ -691,7 +691,7 @@ end subroutine dirachwfn
              jnpp=jnpp+jr
           ENDDO
           besp1=-jnpp*factpp+jnp*factp*xxinv*DBLE(ll+1)
-          IF (ABS(jr)>prec) STOP 'Error: 2nd der. of Bessel function did not converge !'
+          IF (ABS(jr)>prec) ERROR STOP 'Error: 2nd der. of Bessel function did not converge !'
        ENDIF
     ELSE
        jn =SIN(xx)*xxinv
@@ -1167,7 +1167,7 @@ end subroutine dirachwfn
     ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
-       STOP
+       ERROR STOP
     ENDIF
 
     tol=rtol
@@ -1209,7 +1209,7 @@ end subroutine dirachwfn
 
     If (many<1.or.many>n) then
        Write(STD_OUT,*) 'Error in SOlveAXeqBM -- n, many ', n, many
-       stop
+       error stop
     endif
     IF (n == 1) THEN
        B(1)=B(1)/A(1,1)
@@ -1220,7 +1220,7 @@ end subroutine dirachwfn
     ALLOCATE(C(n,n),X(n),U(n,n),VT(n,n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
-       STOP
+       ERROR STOP
     ENDIF
 
 
@@ -1269,7 +1269,7 @@ end subroutine dirachwfn
     ALLOCATE(C(n,n),X(n),WORK(LWORK),S(n),STAT=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'SolveAXeqB: allocation ', n,Lwork,i
-       STOP
+       ERROR STOP
     ENDIF
 
     tol=rtol
@@ -1334,7 +1334,7 @@ end subroutine dirachwfn
 
      if (n<0.or.n>1000) then
         write(std_out,*) 'ERROR in ASSOCIATEDLAGUERRE -- n = ', n,x
-        stop
+        error stop
      endif
      fac=sqrt(float((n+1)*(n+2)))/2; acc=1
      if (n>0) then

@@ -138,7 +138,7 @@ CONTAINS
 
       IF (iter >= niter) THEN
          WRITE(STD_OUT,*) 'Error in EvaluateTP -- no convergence'
-         STOP
+         ERROR STOP
       ENDIF
     END SUBROUTINE EvaluateTp
 
@@ -160,12 +160,12 @@ CONTAINS
     ALLOCATE(b(nbase),stat=ib)
     IF (ib/=0) THEN
        WRITE(STD_OUT,*) 'Error in sepnorm allocation', nbase,ib
-       STOP
+       ERROR STOP
     ENDIF
 
     IF (nr<irc) THEN
        WRITE(STD_OUT,*) 'Error in sepnorm -- nr < irc'
-       STOP
+       ERROR STOP
     ENDIF
     sepnorm=overlap(Grid,wfn,wfn,1,nr)
     b=0
@@ -199,12 +199,12 @@ CONTAINS
     ALLOCATE(a(nbase),b(nbase),stat=ib)
     IF (ib/=0) THEN
        WRITE(STD_OUT,*) 'Error in genoverlap allocation', nbase,ib
-       STOP
+       ERROR STOP
     ENDIF
 
     IF (nr<irc) THEN
        WRITE(STD_OUT,*) 'Error in genoverlap -- nr < irc'
-       STOP
+       ERROR STOP
     ENDIF
     genoverlap=overlap(Grid,wfn1,wfn2,1,nr)
     a=0; b=0
@@ -271,7 +271,7 @@ CONTAINS
     ALLOCATE(den(n),a(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in hatpotL allocation',n,i
-       STOP
+       ERROR STOP
     ENDIF
 
 
@@ -334,7 +334,7 @@ CONTAINS
     ALLOCATE(den(n),a(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in hatL allocation',irc,i
-       STOP
+       ERROR STOP
     ENDIF
 
     IF (besselshapefunction) THEN
@@ -384,7 +384,7 @@ CONTAINS
     ALLOCATE(dum(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dqij allocation', n,ok
-       STOP
+       ERROR STOP
     ENDIF
     DO i=1,n
        dum(i)=PAW%ophi(i,ib)*PAW%ophi(i,ic)-PAW%otphi(i,ib)*PAW%otphi(i,ic)
@@ -419,7 +419,7 @@ CONTAINS
     ALLOCATE(dum(n),del1(n),tdel1(n),del2(n),tdel2(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dtij allocation', n,ok
-       STOP
+       ERROR STOP
     ENDIF
     CALL derivative(Grid,PAW%ophi(:,ib),del1)
     CALL derivative(Grid,PAW%ophi(:,ic),del2)
@@ -467,7 +467,7 @@ CONTAINS
     ALLOCATE(dum(n),tdel1(n),tdel2(n),aux(n),auxp(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dtij allocation', n,ok
-       STOP
+       ERROR STOP
     ENDIF
     dum=0
     DO i=2,irc
@@ -512,7 +512,7 @@ CONTAINS
     ALLOCATE(dum(n),d1(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dvij allocation', n,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     q=integrator(Grid,FC%coreden)
@@ -549,7 +549,7 @@ CONTAINS
     ALLOCATE(dum(n),d1(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in dvij allocation', n,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     dum(1)=0
@@ -638,7 +638,7 @@ CONTAINS
     ALLOCATE(wfp(n),dum(n),ddum(n),ch(n),ar(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'allocation error in Get_Energy_EXX', i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     eex=0;test=0

@@ -52,7 +52,7 @@ CONTAINS
    allocate(ww(n),jj(n), stat=i)
    if (i/=0) then
       write(std_out,*)  'Allocate_Dirac_relativistic: error in allocation ',i,n
-      stop
+      error stop
    endif
 
  End subroutine Allocate_Dirac_relativistic
@@ -107,7 +107,7 @@ CONTAINS
 
    else  ! version for finite nuclear size
            write(std_out,*) 'Dirac case not yet programmed for finite nucleus'
-           stop
+           error stop
    endif        
 
   end subroutine Dzeroexpand
@@ -138,7 +138,7 @@ CONTAINS
 
        else   ! finite nucleus case
                write(std_out,*) 'Dirac case not programmed for finite nucleus'
-               STOP
+               ERROR STOP
        endif
 
     enddo
@@ -158,7 +158,7 @@ CONTAINS
 
     if (energy>0.d0) then
        write(std_out,*) 'Error in wfnDasym -- energy > 0', energy
-       stop
+       error stop
     endif
 
     wfn=0; lwfn=0; 
@@ -204,7 +204,7 @@ CONTAINS
     n=Grid%n
     IF (nr > n) THEN
        WRITE(STD_OUT,*) 'Error in unboundD -- nr > n', nr,n
-       STOP
+       ERROR STOP
     ENDIF
 
     call Dzeroexpand(Grid,Pot,kappa,energy,nr)
@@ -212,7 +212,7 @@ CONTAINS
     allocate(zz(2,2,nr),yy(2,nr),stat=ierr)
        if (ierr/=0) then
           write(std_out,*) ' allocation error in unboundD ', nr,ierr
-          stop
+          error stop
        endif
 
     wfn=0;lwfn=0;zz=0;yy=0;
@@ -299,14 +299,14 @@ CONTAINS
     ALLOCATE(p1(n),lp1(n),p2(n),lp2(n),dd(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) ' Error in boundD allocation ',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     success=.true.
     allocate(zz(2,2,n),yy(2,n),stat=i)
        if (i/=0) then
           write(std_out,*) ' allocation error in boundD ', n,i
-          stop
+          error stop
        endif
 
 
@@ -401,7 +401,7 @@ CONTAINS
                   do i=2,n
                      write(999,'(1p,4e15.7)') Grid%r(i),jj(i),ww(i),Pot%rv(i)
                   enddo
-                  STOP
+                  ERROR STOP
                 ENDIF
              ENDIF
              emax=MIN(emax,energy+err)

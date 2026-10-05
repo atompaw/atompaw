@@ -102,7 +102,7 @@ MODULE pseudodata
 &        PAW%valetau(n),PAW%tvaletau(n),&
 &        PAW%vtau(n),PAW%tvtau(n),PAW%dtvtaudr(n),&
 &        PAW%nhatv(n),PAW%Ktvtau(n),PAW%Kdtvtaudr(n),PAW%Krveff(n),PAW%Kunscreen(n),stat=ok)
-      IF (ok/=0) STOP 'Allocation error 1 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 1 in InitPAW'
       PAW%projshape=0.d0;PAW%hatden=0.d0;PAW%hatpot=0.d0
       PAW%hatshape=0.d0;PAW%vloc=0.d0;PAW%rveff=0.d0
       PAW%abinitvloc=0.d0;PAW%abinitnohat=0.d0
@@ -119,7 +119,7 @@ MODULE pseudodata
 &        PAW%np(mxbase),PAW%l(mxbase),PAW%eig(mxbase),PAW%occ(mxbase),&
 &        PAW%ck(mxbase),PAW%vrc(mxbase),PAW%Kop(n,mxbase),PAW%rng(mxbase),&
 &        PAW%rcio(mxbase),PAW%nodes(mxbase),stat=ok)
-      IF (ok/=0) STOP 'Allocation error 2 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 2 in InitPAW'
       PAW%phi=0.d0;PAW%tphi=0.d0;PAW%tp=0.d0
       PAW%ophi=0.d0;PAW%otphi=0.d0;PAW%otp=0.d0
       PAW%eig=0.d0;PAW%occ=0.d0;PAW%vrc=0.d0;PAW%ck=0.d0;PAW%Kop=0.d0
@@ -131,23 +131,23 @@ MODULE pseudodata
       PAW%rng=Grid%n
       ALLOCATE(PAW%oij(mxbase,mxbase),PAW%dij(mxbase,mxbase),&
 &      PAW%wij(mxbase,mxbase), stat=ok)
-      IF (ok/=0) STOP 'Allocation error 3 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 3 in InitPAW'
       PAW%oij=0.d0;PAW%dij=0.d0;PAW%wij=0.d0
       ALLOCATE(PAW%rVf(n),PAW%rtVf(n),PAW%Kij(mxbase,mxbase),&
 &      PAW%Vfij(mxbase,mxbase),stat=ok)
-      IF (ok/=0) STOP 'Allocation error 4 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 4 in InitPAW'
       PAW%rVf=0.d0;PAW%rtVf=0.d0;PAW%Kij=0.d0;PAW%Vfij=0.d0
       IF (Orbit%exctype=='HF') THEN
          ALLOCATE(PAW%lmbd(Orbit%norbit,mxbase),stat=ok)
-         IF (ok/=0) STOP 'Allocation error 5 in InitPAW'
+         IF (ok/=0) ERROR STOP 'Allocation error 5 in InitPAW'
          PAW%lmbd=0.d0
       ELSE
          nullify(PAW%lmbd)
       ENDIF
       ALLOCATE(PAW%valencemap(Orbit%norbit),stat=ok)
-      IF (ok/=0) STOP 'Allocation error 6 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 6 in InitPAW'
       ALLOCATE(PAW%OCCwfn,PAW%TOCCwfn,stat=ok)
-      IF (ok/=0) STOP 'Allocation error 7 in InitPAW'
+      IF (ok/=0) ERROR STOP 'Allocation error 7 in InitPAW'
     END SUBROUTINE InitPAW
 
   Subroutine DestroyPAW(PAW)

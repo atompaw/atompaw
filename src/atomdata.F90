@@ -108,18 +108,18 @@ CONTAINS
     ALLOCATE(Orbit%np(norbit),Orbit%l(norbit),Orbit%eig(norbit),&
 &            Orbit%occ(norbit),Orbit%iscore(norbit),&
 &            stat=ok)
-    IF (ok/=0) STOP 'Error in allocation of nl, l, occ...'
+    IF (ok/=0) ERROR STOP 'Error in allocation of nl, l, occ...'
     Orbit%iscore=.false.
     Orbit%np=0;Orbit%l=0
     Orbit%eig=0.d0;Orbit%occ=0.d0
     ALLOCATE(Orbit%wfn(n,norbit),Orbit%otau(n,norbit), &
 &             Orbit%den(n),Orbit%tau(n),Orbit%deltatau(n),stat=ok)
-    IF (ok/=0) STOP 'Error in allocation of wfn, den...'
+    IF (ok/=0) ERROR STOP 'Error in allocation of wfn, den...'
     Orbit%wfn=0.d0;Orbit%den=0.d0;Orbit%tau=0.d0;Orbit%otau=0.d0
     Orbit%deltatau=0.d0
     If (diracrelativistic) then
        ALLOCATE(Orbit%lwfn(n,norbit),Orbit%kappa(norbit),stat=ok)
-       IF (ok/=0) STOP 'Error in allocation of lwfn,kappa'
+       IF (ok/=0) ERROR STOP 'Error in allocation of lwfn,kappa'
        Orbit%lwfn=0.d0
        Orbit%kappa=0.d0
     else
@@ -127,7 +127,7 @@ CONTAINS
     Endif
     If (exctype == "HF".or.exctype == "EXXKLI") then
        ALLOCATE(Orbit%lqp(norbit,norbit),Orbit%X(n,norbit),stat=ok)
-       IF (ok/=0) STOP 'Error in allocation of lqp, X...'
+       IF (ok/=0) ERROR STOP 'Error in allocation of lqp, X...'
     ELSE
        NULLIFY(Orbit%lqp,Orbit%X)
     ENDIF
@@ -194,10 +194,10 @@ CONTAINS
     CALL DestroyFC(FC)
     FC%zvale=0.d0;FC%zcore=0.d0
     ALLOCATE(FC%coreden(n),FC%valeden(n),stat=ok)
-    IF (ok/=0) STOP 'Error in allocation of coreden, valeden,...'
+    IF (ok/=0) ERROR STOP 'Error in allocation of coreden, valeden,...'
     FC%coreden=0.d0;FC%valeden=0.d0
     ALLOCATE(FC%coretau(n),FC%valetau(n),stat=ok)
-    IF (ok/=0) STOP 'Error in allocation of coretau, valetau,...'
+    IF (ok/=0) ERROR STOP 'Error in allocation of coretau, valetau,...'
     FC%coretau=0.d0;FC%valetau=0.d0
   END SUBROUTINE InitFC
 
@@ -233,7 +233,7 @@ CONTAINS
     CALL DestroyPot(Pot)
 !   Pot%sym="";Pot%nz=0;Pot%zz=0.d0;Pot%q=0.d0;Pot%v0=0.d0;Pot%v0p=0.d0;Pot%v0pp=0.d0
     ALLOCATE(Pot%rv(n),Pot%rvn(n),Pot%rvh(n),Pot%rvx(n),Pot%vtau(n),stat=ok)
-    IF (ok/=0) STOP 'Error in allocation of Pot%rv, Pot%rvh...'
+    IF (ok/=0) ERROR STOP 'Error in allocation of Pot%rv, Pot%rvh...'
     Pot%rv=0.d0;Pot%rvn=0.d0;Pot%rvh=0.d0;Pot%rvx=0.d0;Pot%vtau=0.d0
   END SUBROUTINE InitPot
 

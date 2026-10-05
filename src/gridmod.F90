@@ -126,14 +126,14 @@ CONTAINS
     SELECT CASE(Grid%type)
     CASE default
        WRITE(STD_OUT,*) 'Error in integrator -- grid ', Grid%type
-       STOP
+       ERROR STOP
     CASE(lineargrid)
        integrator=overint(n,Grid%h,arg(i1:i2))
     CASE(loggrid)
        ALLOCATE(dum(i1:i2),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Error in integrator -- allocation ', Grid%n,i
-          STOP
+          ERROR STOP
        ENDIF
        dum(i1:i2)=arg(i1:i2)*Grid%drdu(i1:i2)
        integrator=overint(n,Grid%h,dum(i1:i2),-1)
@@ -215,7 +215,7 @@ CONTAINS
     ALLOCATE(dum(i1:i2),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in overlap allocation ', n,i
-       STOP
+       ERROR STOP
     ENDIF
     dum(1:n)=f1(i1:i2)*f2(i1:i2)
     overlap=integrator(Grid,dum(1:n),1,n)
@@ -282,7 +282,7 @@ CONTAINS
           i1=begin;i2=bend;n=i2-i1+1
        ELSE
           WRITE(STD_OUT,*) 'Error in derivative', begin,bend,Grid%n
-          STOP
+          ERROR STOP
        ENDIF
     ENDIF
 
@@ -290,18 +290,18 @@ CONTAINS
     SELECT CASE(Grid%type)
     CASE default
        WRITE(STD_OUT,*) 'Error in derivative -- grid ', Grid%type
-       STOP
+       ERROR STOP
     CASE(lineargrid)
        CALL nderiv(Grid%h,f(i1:i2),dfdr(i1:i2),n,i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Error in derivative -nderiv problem', i
-          STOP
+          ERROR STOP
        ENDIF
     CASE(loggrid)
        CALL nderiv(Grid%h,f(i1:i2),dfdr(i1:i2),n,i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Error in derivative -nderiv problem', i
-          STOP
+          ERROR STOP
        ENDIF
        dfdr(i1:i2)=dfdr(i1:i2)/Grid%drdu(i1:i2)
     END SELECT
@@ -327,11 +327,11 @@ CONTAINS
           i1=begin;i2=bend;n=i2-i1+1
           IF (n<3) THEN
              WRITE(STD_OUT,*) 'Error in simplederiv -- n too small',n,i1,i2
-             STOP
+             ERROR STOP
           ENDIF
        ELSE
           WRITE(STD_OUT,*) 'Error in simplederive', begin,bend,Grid%n
-          STOP
+          ERROR STOP
        ENDIF
     ENDIF
 
@@ -363,7 +363,7 @@ CONTAINS
     ALLOCATE(dum1(n),dum2(n),stat=ok)
     IF (ok /= 0) THEN
        WRITE(STD_OUT,*) 'Error in laplace allocation',n
-       STOP
+       ERROR STOP
     ENDIF
     lfac=l*(l+1)
     del=0
@@ -411,7 +411,7 @@ CONTAINS
     ALLOCATE(a(n),b(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in allocating arrays in poisson',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     IF (Grid%type==lineargrid) THEN
@@ -499,7 +499,7 @@ CONTAINS
     ALLOCATE(aa(n),bb(n),cc(n),dd(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in allocating arrays in poisson',i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     DO jr=n,2,-1
@@ -571,7 +571,7 @@ CONTAINS
     ALLOCATE(a(irc),b(irc),c(irc),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Error in allocating arrays in apoisson ',i,irc
-       STOP
+       ERROR STOP
     ENDIF
 
     b=den(1:irc)*(Grid%r(1:irc))**L
@@ -698,7 +698,7 @@ CONTAINS
     ALLOCATE(a(many),b(many),p(many),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
-       STOP
+       ERROR STOP
     ENDIF
 
     p(1)=wfn(1)
@@ -767,12 +767,12 @@ CONTAINS
 
     IF (istart>many) THEN
        WRITE(STD_OUT,*) 'shifted_forward_numerov:  error istart many',istart,many
-       STOP
+       ERROR STOP
     ENDIF
     ALLOCATE(a(many),b(many),p(many),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
-       STOP
+       ERROR STOP
     ENDIF
 
     p(1:istart)=wfn(1:istart)
@@ -837,7 +837,7 @@ CONTAINS
     ALLOCATE(a(many),b(many),c(many),p(many),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error forward_numerov ', many,i
-       STOP
+       ERROR STOP
     ENDIF
 
      !Note for NAWH:  Need to check these initial values....
@@ -907,7 +907,7 @@ CONTAINS
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error inhomo_bound_numerov ', mn,i
-       STOP
+       ERROR STOP
     ENDIF
 
     ! assume wfn(r) ~ r**(l+1) for r->0 for homogeneous solution
@@ -1136,7 +1136,7 @@ CONTAINS
 
     If (nr>n-1) then
        write(std_out,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
-       stop
+       error stop
     endif
 
     IF (l==0)  zeroval=rv(1)
@@ -1234,7 +1234,7 @@ CONTAINS
 
     If (nr>n-1) then
        write(std_out,*) 'Error in inhomo_numerov_SVD_bv ', n,nr
-       stop
+       error stop
     endif
 
     IF (l==0)  zeroval=rv(1)
@@ -1319,7 +1319,7 @@ CONTAINS
     ALLOCATE(a(mn-1),b(mn-1),c(mn-1),p(mn-1),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error inhomo_bound_numerov ', mn,i
-       STOP
+       ERROR STOP
     ENDIF
 
     ! assume wfn(r) ~ r**(l+1) for r->0
@@ -1399,7 +1399,7 @@ CONTAINS
     ALLOCATE(a(n),b(n),p(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error backward_numerov ', n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     p(n)=wfn(n)
@@ -1483,7 +1483,7 @@ CONTAINS
     !write(std_out,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
     IF (SIZE(zz(2,2,:))/=mesh) THEN
        WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
-       STOP
+       ERROR STOP
     ENDIF
     isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
     IF ( isgn .EQ. + 1 ) THEN
@@ -1615,7 +1615,7 @@ CONTAINS
     !write(std_out,*) ' in cdfdol with mesh jj1,j22', mesh, jj1,jj2
     IF (SIZE(zz(2,2,:))/=mesh) THEN
        WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
-       STOP
+       ERROR STOP
     ENDIF
     isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
     !write(std_out,*) 'cdfsol   isgn ', isgn
@@ -1778,7 +1778,7 @@ CONTAINS
     mesh=SIZE(yy(2,:))
     IF (SIZE(zz(2,2,:))/=mesh.or.SIZE(ff(2,:))/=mesh) THEN
        WRITE(STD_OUT,*) 'cfdsol error - incompatible arrays', mesh,SIZE(zz(2,2,:))
-       STOP
+       ERROR STOP
     ENDIF
     isgn = ( jj2 - jj1 ) / iabs( jj2 - jj1 )
     IF ( isgn .EQ. + 1 ) THEN
@@ -1898,7 +1898,7 @@ CONTAINS
     ALLOCATE(a(n),b(n),p(n),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error backward_numerov ', n,i
-       STOP
+       ERROR STOP
     ENDIF
 
     p(n)=wfn(n)
@@ -2170,7 +2170,7 @@ CONTAINS
        secondderiv=(22*f(n-4)-112*f(n-3)+228*f(n-2)-208*f(n-1)+70*f(n))/(24*h*h)
     else
        WRITE(STD_OUT,*) 'Error in secondderiv', index, SIZE(f)
-       STOP
+       ERROR STOP
     ENDIF
 
   END FUNCTION secondderiv
@@ -2201,7 +2201,7 @@ CONTAINS
        firstderiv=(3*f(n-4)-16*f(n-3)+36*f(n-2)-48*f(n-1)+25*f(n))/(12*h)
     else
        WRITE(STD_OUT,*) 'Error in firstderiv', index, SIZE(f)
-       STOP
+       ERROR STOP
     ENDIF
   END FUNCTION firstderiv
 
@@ -2423,7 +2423,7 @@ CONTAINS
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
-          STOP
+          ERROR STOP
        ENDIF
        DO i=1,n
           Grid%r(i)=r0*(EXP(Grid%h*(i-1))-1)
@@ -2445,7 +2445,7 @@ CONTAINS
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
-          STOP
+          ERROR STOP
        ENDIF
        DO i=1,n
           Grid%r(i)=(Grid%h*(i-1))
@@ -2478,7 +2478,7 @@ CONTAINS
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
-          STOP
+          ERROR STOP
        ENDIF
        DO i=1,n
           Grid%r(i)=r0*(EXP(Grid%h*(i-1))-1)
@@ -2498,7 +2498,7 @@ CONTAINS
        ALLOCATE(Grid%r(n),Grid%drdu(n),Grid%pref(n),Grid%rr02(n),stat=i)
        IF (i/=0) THEN
           WRITE(STD_OUT,*) 'Allocation error in initgrid ', n,i
-          STOP
+          ERROR STOP
        ENDIF
        DO i=1,n
           Grid%r(i)=(Grid%h*(i-1))
@@ -2510,7 +2510,7 @@ CONTAINS
        WRITE(STD_OUT,*) 'InitGridwithn: -- linear ',n, h,Grid%range,r0
        ELSE
           write(std_out,*) 'error in initgridwithn -- type =',type    
-          stop
+          error stop
     ENDIF
 
   END SUBROUTINE initgridwithn
@@ -2555,7 +2555,7 @@ CONTAINS
     ALLOCATE(v(n), stat=i)
     IF (i /= 0) THEN
        WRITE(STD_OUT,*) 'Allocation error in ClassicalTurningPoint ', i,n
-       STOP
+       ERROR STOP
     ENDIF
 
     v=0
@@ -2621,7 +2621,7 @@ CONTAINS
        wfn(:,many+1)=f
     ELSE
        write(std_out,*) '!!!! warning in Gram Schmidt !!!!!!', norm,many
-       stop
+       error stop
     ENDIF
 
   END SUBROUTINE gramschmidt
@@ -2642,7 +2642,7 @@ CONTAINS
       n=Grid%n
       if (many.gt.n.or.many.lt.6) then
             write(std_out,*) 'Error in Milne == n>many',n,many
-            stop
+            error stop
       endif
 
       wfn=0
@@ -2735,17 +2735,17 @@ CONTAINS
     ALLOCATE(a(many),b(many),c(many),p(many),stat=i)
     IF (i/=0) THEN
        WRITE(STD_OUT,*) 'Allocation error midrange_numerov ', many,i
-       STOP
+       ERROR STOP
     ENDIF
 
      !Note   values of a,b,c for i<istart are not used
 
      if (istart<3) then
          write(std_out,*) 'Error in midrange_numerov -- istart < 3 ', istart
-         stop
+         error stop
      elseif (istart>many-1) then
          write(std_out,*) 'Error in midrange_numerov -- istart > many ', istart
-         stop
+         error stop
      endif
 
 
@@ -2824,7 +2824,7 @@ CONTAINS
 
     ELSEIF (from_e) THEN
       IF (.NOT.(PRESENT(energy).AND.PRESENT(rPot))) then
-        STOP 'Error in taufromwfn: rPot and energy should be present!'
+        ERROR STOP 'Error in taufromwfn: rPot and energy should be present!'
       END IF
 
 !     For testing purpose:

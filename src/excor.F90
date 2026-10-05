@@ -83,12 +83,12 @@ CONTAINS
         if(needvtau.and.(.not.libxc_ismgga())) then
           WRITE(STD_OUT,*) 'Problem with XC functional choice -- need mgga form for vtau '   
           WRITE(STD_OUT,*) '    Program stopping '
-          stop
+          error stop
         endif    
       ELSE
         WRITE(STD_OUT,*) 'ERROR: cannot understand Exchange-Correlation functional from input file!'
         WRITE(STD_OUT,*) '       possible issue: atompaw not compiled with libXC.'
-        stop
+        error stop
         !itype = LDA_PW
         !exctype='LDA-PW'
         !WRITE(STD_OUT,*) 'Perdew-Wang correlation'
@@ -347,7 +347,7 @@ CONTAINS
 &        fxc(Npts),stat=i)
     IF (i /=0) THEN
        WRITE(STD_OUT,*) 'error in radialexcpbe allocation ', Npts,i
-       STOP
+       ERROR STOP
     ENDIF
 
     ! if (.not.scalarrelativistic) then
@@ -438,7 +438,7 @@ CONTAINS
        write(6,*) 'exch:  Inconsistency in mgga ', needvtau,PRESENT(vtau)
        write(6,*) 'exch:  stopping execution '
        call flush_unit(6)
-       stop
+       error stop
     endif
 
     if (PRESENT(vtau)) vtau=0.d0
@@ -660,7 +660,7 @@ CONTAINS
 
        else
            write(std_out,*) 'unknown libxc family -- need to work harder '
-           stop        
+           error stop        
        end if
        rvxc=0.d0
        rvxc(1:n)=tmpv(1:n)*Grid%r(1:n)
@@ -684,7 +684,7 @@ CONTAINS
     else
 
        WRITE(STD_OUT,*) 'Warning (EXCOR): ', itype,' no results returned !'
-       STOP
+       ERROR STOP
     END if
 
     !write(std_out,*) 'Exiting exch '; call flush_unit(std_out)

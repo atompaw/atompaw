@@ -98,7 +98,7 @@ CONTAINS
 &           HF%CSlmany(io), HF%CSlmap(io,io),stat=ok)
        IF (ok /=0 ) THEN
           WRITE(STD_OUT,*) 'Error in allocate HFdata ', io,ok
-          STOP
+          ERROR STOP
        ENDIF
        HF%lmbd=0
 
@@ -402,7 +402,7 @@ CONTAINS
        lmap=>HF%CSlmap
     ELSE
        WRITE(STD_OUT,*) 'Error in HFDiag no matching type ', whichtype
-       STOP
+       ERROR STOP
     ENDIF
 
     WRITE(STD_OUT,*) ' Beginning HFDiag with fcount ', fcount
@@ -833,7 +833,7 @@ CONTAINS
 
        IF (.NOT.frozencorecalculation) THEN
           WRITE(STD_OUT,*) 'Error -- subroutine HFFCIter is only for Frozen core '
-          STOP
+          ERROR STOP
        ENDIF
 
        Grid=>Gridwk
@@ -951,7 +951,7 @@ CONTAINS
 
        IF (.NOT.frozencorecalculation.OR.Orbit%exctype/='HFV') THEN
           WRITE(STD_OUT,*) 'Error -- subroutine HFVFCIter is only for Frozen core '
-          STOP
+          ERROR STOP
        ENDIF
 
 
@@ -1118,7 +1118,7 @@ CONTAINS
 
        IF (energy<0.d0) THEN
           WRITE(STD_OUT,*) 'Error in HFunocc -- assumes energy>0 ',energy
-          STOP
+          ERROR STOP
        ENDIF
 
        write(std_out,*) 'Entering HFunocc with energy l = ', energy,l
@@ -1226,7 +1226,7 @@ CONTAINS
           do i=1,lng
            write(800+icount,'(1P,3e15.7)')Grid%r(i),wfn0(i),wfn(i)
           enddo
-          stop
+          error stop
 
        ENDIF
 

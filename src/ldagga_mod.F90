@@ -150,7 +150,7 @@ CONTAINS
           WRITE(STD_OUT,*) 'Sadly the program has not converged.'
           WRITE(STD_OUT,*) 'Consider trying splineinterp '     
           CALL FLUSH_UNIT(STD_OUT)
-          STOP
+          ERROR STOP
        endif   
     CALL Report_LDAGGA_functions(scftype)
 
@@ -183,7 +183,7 @@ CONTAINS
     ALLOCATE(dum(nw),stat=i)
     IF (i/=0) THEN
         WRITE(6,*) 'Error in LDAGGAsub allocation' ,nw
-        STOP
+        ERROR STOP
     ENDIF
 
 
@@ -351,12 +351,12 @@ CONTAINS
     nw=SIZE(w)
     if(n/=nw) then
       write(std_out,*) 'problem in DENITERsub n,nw', n,nw
-      stop
+      error stop
     endif
     ALLOCATE(dum(nw),stat=i)
     IF (i/=0) THEN
         WRITE(6,*) 'Error in DENITERsub allocation' ,nw
-        STOP
+        ERROR STOP
     ENDIF
 
     CALL CopyOrbit(Orbitwk,tmpOrbit)

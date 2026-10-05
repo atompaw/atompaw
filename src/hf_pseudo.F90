@@ -72,7 +72,7 @@ CONTAINS
        WRITE(STD_OUT,'(a,f10.7)') '  >>> rc =', rc
        IF (thisrc<3.OR.thisrc>irc.OR.thisrc>lng-3) THEN
           WRITE(STD_OUT,*) 'rc out of range', thisrc,lng,irc
-          STOP
+          ERROR STOP
        ENDIF
        CALL pspolyn(PAW%phi(:,ib),Ci,r,l,np,thisrc,lng)
        ! Compute pseudized partial wave and part of  projector
@@ -223,7 +223,7 @@ CONTAINS
           if (PAW%occ(ib)> 0.001d0) then
             write(std_out,*) 'Problem with basis ib', &
 &           ib,PAW%l(ib),PAW%eig(ib),PAW%occ(ib)
-            stop
+            error stop
           endif
           PAW%tp(1:lng,ib)=PAW%tp(1:lng,ib)-PAW%eig(ib)*PAW%tphi(1:lng,ib)
           arg(:)=arg(:)-PAW%eig(ib)*PAW%phi(:,ib)
@@ -468,7 +468,7 @@ END SUBROUTINE Smoothfunc
     ALLOCATE(a(nbase),b(nbase),stat=ib)
     IF (ib/=0) THEN
        WRITE(STD_OUT,*) 'Error in HFgenoverlap allocation', nbase,ib
-       STOP
+       ERROR STOP
     ENDIF
 
     HFgenoverlap=overlap(Grid,wfn1,wfn2)
@@ -505,7 +505,7 @@ END SUBROUTINE Smoothfunc
 
     IF (PAW%OCCWFN%iscore(io)) THEN
        WRITE(STD_OUT,*) 'In GetMoment -- io must not be core state !'
-       STOP
+       ERROR STOP
     ENDIF
 
     li=PAW%OCCWFN%l(io)
@@ -592,7 +592,7 @@ END SUBROUTINE Smoothfunc
                 CALL GetMoment(Grid,PAW,io,jo,ll,o,arg,iszero)
                 IF (iszero) THEN
                    WRITE(STD_OUT,*) 'Zero moment ', io,jo,li,lj,ll
-                   STOP
+                   ERROR STOP
                 ENDIF
                 arg=arg+wfp
                 CALL apoisson(Grid,ll,n,arg,dum)
@@ -700,7 +700,7 @@ END SUBROUTINE Smoothfunc
     Xcv=0.d0
     IF (PAW%OCCWFN%iscore(io).OR..NOT.PAW%OCCWFN%iscore(ic)) THEN
        WRITE(STD_OUT,*) 'Calc_Xc assumes io is valence and ic core ', ic
-       STOP
+       ERROR STOP
     ENDIF
 
     norbit=PAW%OCCwfn%norbit
@@ -726,7 +726,7 @@ END SUBROUTINE Smoothfunc
                 CALL GetMoment(Grid,PAW,io,jo,ll,o,arg,iszero)
                 IF (iszero) THEN
                    WRITE(STD_OUT,*) 'zero moment', io,jo,li,lj,ll
-                   STOP
+                   ERROR STOP
                 ENDIF
                 arg=arg+wfp
                 CALL apoisson(Grid,ll,n,arg,dum)
@@ -1249,7 +1249,7 @@ END SUBROUTINE Smoothfunc
 &                 rvx(n),trvx(n),stat=ok)
     IF (ok /=0) THEN
        WRITE(STD_OUT,*) 'Error in troullier  -- in allocating wfn,p', nr,ok
-       STOP
+       ERROR STOP
     ENDIF
 
     !write(std_out,*) ' Troullier ', n,nr,irc
@@ -1264,7 +1264,7 @@ END SUBROUTINE Smoothfunc
         CALL HFunocc(Grid,PAW%OCCWFN,l,e,Pot%rv,Pot%v0,Pot%v0p,wfn,lng,XX)
     Else
        Write(STD_OUT,*) 'Error -- this version of Troulliers is for HF only'
-       stop
+       error stop
     endif
 
     rvx(1)=0.d0; rvx(2:lng)=XX(2:lng)*Grid%r(2:lng)/wfn(2:lng)

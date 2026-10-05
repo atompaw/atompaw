@@ -59,10 +59,10 @@ PROGRAM atompaw
       call GetArg(2,inputfile)
       write(std_out,*) 'AEATOM results will be loaded from file ',TRIM(inputfile)
       Inquire(file=TRIM(inputfile),exist=OK)
-      If (.not.OK) stop 'Load file does not exist -- program will stop'
+      If (.not.OK) error stop 'Load file does not exist -- program will stop'
     else
       write(std_out,*) 'Argument form not recognized: ', token
-      stop
+      error stop
     endif
   else
     write(std_out,*) 'Input/output not saved/dumped in this run'
@@ -75,7 +75,7 @@ PROGRAM atompaw
   else
     call input_dataset_read(echofile='tmp')
     OK=compare_files('tmp','dummy',line_count=3+input_dataset%norbit_mod+input_dataset%norbit)
-    if (.not.OK) stop 'Program terminated!'
+    if (.not.OK) error stop 'Program terminated!'
     CALL copy_file('tmp','dummy')
   endif
 
@@ -111,7 +111,7 @@ PROGRAM atompaw
     If (TRIM(FCorbit%exctype)=='HF'.or.TRIM(FCorbit%exctype)=='EXXKLI') PAW%tcore=0
     If (TRIM(FCorbit%exctype)=='EXXKLI') Call fixtcorewfn(Grid,PAW)
     Call SetPAWOptions2(ifen,Grid,FCOrbit,FCPot,OK)
-    If (.not.OK) stop 'Stopping due to options failure'
+    If (.not.OK) error stop 'Stopping due to options failure'
     Call Report_Pseudobasis(Grid,PAW,ifen)
 
     Call Set_PAW_MatrixElements(Grid,PAW,ifen)

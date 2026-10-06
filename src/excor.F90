@@ -681,6 +681,11 @@ CONTAINS
        !!!stop
        !!!!!!!!!!!!!!!!!!!!!!!
        deallocate(tmpd,tmpv,exci,tmpt)
+    ELSE IF (itype==NO_XC) then !!! Hartree-Fock: no local exchange-correlation
+       rvxc=0.d0; etxc=0.d0; eexc=0.d0
+       IF (PRESENT(v0)) v0=0.d0
+       IF (PRESENT(v0p)) v0p=0.d0
+       IF (PRESENT(vtau)) vtau=0.d0
     else
 
        WRITE(STD_OUT,*) 'Warning (EXCOR): ', itype,' no results returned !'

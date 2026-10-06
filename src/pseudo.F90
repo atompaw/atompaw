@@ -309,7 +309,7 @@ CONTAINS
 	   else
 		  CALL makebasis_custom(Grid,Pot,PSindex,Orthoindex,pdeg,qcut)
 	   endif
-	 ELSE IF (Projectorindex==HARTREE_FOCK) THEN
+	 ELSE IF (Projectorindex==HFPROJ) THEN
 	  CALL make_hf_tp_only(Grid,Pot,PAW)
 	 ELSE IF (Projectorindex==MODRRKJ) THEN
 	  CALL makebasis_modrrkj(Grid,Pot,Orthoindex,success)
